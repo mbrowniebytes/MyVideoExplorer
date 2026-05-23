@@ -1,0 +1,108 @@
+lock-version = "1.0"
+created-by = "pip"
+
+[[packages]]
+name = "myvideoexplorer"
+
+[packages.directory]
+path = "."
+editable = true
+
+[[packages]]
+name = "packaging"
+version = "26.2"
+
+[[packages.wheels]]
+name = "packaging-26.2-py3-none-any.whl"
+url = "https://files.pythonhosted.org/packages/df/b2/87e62e8c3e2f4b32e5fe99e0b86d576da1312593b39f47d8ceef365e95ed/packaging-26.2-py3-none-any.whl"
+
+[packages.wheels.hashes]
+sha256 = "5fc45236b9446107ff2415ce77c807cee2862cb6fac22b8a73826d0693b0980e"
+
+[[packages]]
+name = "psutil"
+version = "7.2.2"
+
+[[packages.wheels]]
+name = "psutil-7.2.2-cp37-abi3-win_amd64.whl"
+url = "https://files.pythonhosted.org/packages/b4/90/e2159492b5426be0c1fef7acba807a03511f97c5f86b3caeda6ad92351a7/psutil-7.2.2-cp37-abi3-win_amd64.whl"
+
+[packages.wheels.hashes]
+sha256 = "eb7e81434c8d223ec4a219b5fc1c47d0417b12be7ea866e24fb5ad6e84b3d988"
+
+[[packages]]
+name = "pyside6"
+version = "6.11.1"
+
+[[packages.wheels]]
+name = "pyside6-6.11.1-cp310-abi3-win_amd64.whl"
+url = "https://files.pythonhosted.org/packages/57/f2/d9d8ce1373dabb37e5919f63cd18446556079631d3f2eea3ada03c29f6b8/pyside6-6.11.1-cp310-abi3-win_amd64.whl"
+
+[packages.wheels.hashes]
+sha256 = "0968877ab1fb4ef3587a284da6fe05e8647ada56a6a3750b6395188e01f4aba6"
+
+[[packages]]
+name = "pyside6-addons"
+version = "6.11.1"
+
+[[packages.wheels]]
+name = "pyside6_addons-6.11.1-cp310-abi3-win_amd64.whl"
+url = "https://files.pythonhosted.org/packages/9a/bd/8adc4d350b3b363f3dfc8fccdcf5bfed25f7e36c2fff30c64e106f4f1572/pyside6_addons-6.11.1-cp310-abi3-win_amd64.whl"
+
+[packages.wheels.hashes]
+sha256 = "0d13c4dfd671b050a48e4f8d8ddc724b7248f9c0437e7fc47fdf316278572923"
+
+[[packages]]
+name = "pyside6-essentials"
+version = "6.11.1"
+
+[[packages.wheels]]
+name = "pyside6_essentials-6.11.1-cp310-abi3-win_amd64.whl"
+url = "https://files.pythonhosted.org/packages/64/0e/b663ecc96ca57b5c91b83b6615d6b174380b0faf30338125c26e053d6aa7/pyside6_essentials-6.11.1-cp310-abi3-win_amd64.whl"
+
+[packages.wheels.hashes]
+sha256 = "63311bd48e32c584599ab04b9ef7c324082374cd2c9fa533f978fb893bb47e40"
+
+[[packages]]
+name = "qtawesome"
+version = "1.4.2"
+
+[[packages.wheels]]
+name = "qtawesome-1.4.2-py3-none-any.whl"
+url = "https://files.pythonhosted.org/packages/25/b1/da1d826ccc9258674b26dd0abcbbb1c55cab06e7fbf2697518b67edc79fc/qtawesome-1.4.2-py3-none-any.whl"
+
+[packages.wheels.hashes]
+sha256 = "dbf08524428fa2df73918ce362153254cd44f089380576d84bfaad8f40eece45"
+
+[[packages]]
+name = "qtpy"
+version = "2.4.3"
+
+[[packages.wheels]]
+name = "QtPy-2.4.3-py3-none-any.whl"
+url = "https://files.pythonhosted.org/packages/69/76/37c0ccd5ab968a6a438f9c623aeecc84c202ab2fabc6a8fd927580c15b5a/QtPy-2.4.3-py3-none-any.whl"
+
+[packages.wheels.hashes]
+sha256 = "72095afe13673e017946cc258b8d5da43314197b741ed2890e563cf384b51aa1"
+
+[[packages]]
+name = "shiboken6"
+version = "6.11.1"
+
+[[packages.wheels]]
+name = "shiboken6-6.11.1-cp310-abi3-win_amd64.whl"
+url = "https://files.pythonhosted.org/packages/52/b5/3f6fb2ee65b534193fb4ef713dd619dc31dadff5d12c16979a7699ad58be/shiboken6-6.11.1-cp310-abi3-win_amd64.whl"
+
+[packages.wheels.hashes]
+sha256 = "c2c6863aa80ec18c0f82cea3417837b279cdc60024ac17123461dc9042577df7"
+
+[[packages]]
+name = "structlog"
+version = "25.5.0"
+
+[[packages.wheels]]
+name = "structlog-25.5.0-py3-none-any.whl"
+url = "https://files.pythonhosted.org/packages/a8/45/a132b9074aa18e799b891b91ad72133c98d8042c70f6240e4c5f9dabee2f/structlog-25.5.0-py3-none-any.whl"
+
+[packages.wheels.hashes]
+sha256 = "a8453e9b9e636ec59bd9e79bbd4a72f025981b3ba0f5837aebf48f02f37a7f9f"
