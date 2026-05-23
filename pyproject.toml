@@ -1,0 +1,71 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "MyVideoExplorer"
+version = "0.1.0"
+description = "MyVideoExplorer"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "PySide6>=6.11.1",
+    "qtawesome>=1.4.2",
+    "structlog>=25.5.0",
+    "psutil>=7.2.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    # Linting and formatting
+    "ruff>=0.15.13",
+    "black>=26.5.1",
+    "mypy>=2.1.0",
+    
+    # Testing
+    "pytest>=9.0.3",
+    "pytest-qt>=4.5.0",
+    "pytest-cov>=4.1.0",
+    
+    # Additional quality tools
+    "isort>=8.0.1",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "C4", "UP"]
+ignore = ["E501"]
+
+[tool.black]
+line-length = 88
+target-version = ['py314']
+
+[tool.mypy]
+python_version = "3.14"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_calls = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+follow_imports = "silent"
+
+[tool.pytest.ini_options]
+minversion = "9.0"
+addopts = "-ra -q --strict-markers"
+pythonpath = ["."]
+markers = [
+    "unit: unit tests",
+    "integration: integration tests",
+]
+qt_api = "pyside6"
+
+[tool.setuptools.packages.find]
+where = ["."]
