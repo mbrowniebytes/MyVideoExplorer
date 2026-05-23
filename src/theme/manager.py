@@ -2,7 +2,7 @@ from __future__ import annotations
 import qtawesome as qta
 from PySide6.QtGui import QFont, QIcon
 from PySide6.QtWidgets import (
-    QAbstractButton, QApplication, QComboBox, QLabel, 
+    QAbstractButton, QApplication, QComboBox, QLabel,
     QListWidget, QPlainTextEdit, QTabWidget, QWidget
 )
 from src.theme.models import ThemeConfig
@@ -10,7 +10,7 @@ from src.theme.styles import StyleFactory
 
 class ThemeManager:
     """Orchestrates theme application and widget updates across the application."""
-    
+
     def __init__(self, config: ThemeConfig):
         self.config = config
         self.app: QApplication | None = None
@@ -32,7 +32,7 @@ class ThemeManager:
         self._refreshing = True
         try:
             font = QFont(self.config.font_family_default, self.config.font_size_base)
-            
+
             if root_widget is None:
                 # Update global application state
                 self.app.setFont(font)

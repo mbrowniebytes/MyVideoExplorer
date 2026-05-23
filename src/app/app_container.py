@@ -29,7 +29,8 @@ class AppContainer:
 
     def __init__(self) -> None:
         # Load saved log level
-        json_util = JsonUtil()
+        log_util = LogUtil().configure("error")
+        json_util = JsonUtil(log_util)
         cfg_dir = Path("cfg")
         defaults_app_file = cfg_dir / "defaults_app.json"
         settings_app_file = cfg_dir / "settings_app.json"
@@ -37,10 +38,13 @@ class AppContainer:
         app_data.update(json_util.load_json(settings_app_file))
         log_level = app_data.get("log_level", "info")
 
-        self.log_util = LogUtil(log_level=log_level).configure()
-        self.settings = Settings(self.log_util)
+        self.log_util = log_util.configure(log_level)
         self.log_util.log_memory("Application starting...")
 
+        self.settings = Settings(self.log_util)
+
+
+        self.json_util = JsonUtil(self.log_util)
         self.file_util = FileUtil(self.log_util)
         self.nfo_parse_util = NfoParseUtil(self.file_util, self.log_util)
         self.str_util = StrUtil(self.log_util)

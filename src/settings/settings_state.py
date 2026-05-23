@@ -2,7 +2,6 @@ from pathlib import Path
 from PySide6.QtCore import QObject, Signal
 from src.utils.json_util import JsonUtil
 from src.theme.theme import APP_THEME
-from theme.models import ThemeConfig
 
 # Define configuration paths
 CFG_DIR = Path("cfg")
@@ -20,7 +19,7 @@ DEFAULTS_FILTER_FILE = CFG_DIR / "defaults_filter.json"
 class SettingsState(QObject):
     sig_changed = Signal()
 
-    def __init__(self, log_util=None) -> None:
+    def __init__(self, log_util) -> None:
         super().__init__()
         self.log_util = log_util
         self.json_util = JsonUtil(self.log_util)
@@ -28,8 +27,7 @@ class SettingsState(QObject):
         self.folder_configs = []
         self.saved_filters = []
         self._load_settings()
-        if self.log_util:
-            self.log_util.debug(f"__init__ {self.__class__.__name__}")
+        self.log_util.debug(f"__init__ {self.__class__.__name__}")
 
     def _ensure_defaults(self):
         """Create cfg directory and defaults split files if they don't exist."""
@@ -68,7 +66,7 @@ class SettingsState(QObject):
         ui_data = self.json_util.load_json(DEFAULTS_UI_FILE)
         ui_data.update(self.json_util.load_json(SETTINGS_UI_FILE))
 
-        ThemeConfig.font_size_base = ui_data.get("font_size", ThemeConfig.font_size_base)
+        APP_THEME.font_size = ui_data.get("font_size", APP_THEME.font_size)
 
         # Load Media Settings
         media_data = self.json_util.load_json(DEFAULTS_MEDIA_FILE)

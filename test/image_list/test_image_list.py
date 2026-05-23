@@ -14,10 +14,11 @@ class TestImageList:
         file_util = MagicMock(spec=FileUtil)
         nfo_parse_util = MagicMock(spec=NfoParseUtil)
         nfo_parse_util.parse_nfo_folder.return_value = {}
-        str_util = StrUtil()
+
         view = MagicMock(spec=ImageListView)
         file_list = MagicMock(spec=FileList)
         mock_log = MagicMock()
+        str_util = MagicMock(spec=StrUtil)
 
         il = ImageList(file_util, nfo_parse_util, str_util, view, file_list, mock_log)
         il.build()

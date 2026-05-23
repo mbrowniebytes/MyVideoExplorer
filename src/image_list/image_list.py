@@ -17,7 +17,6 @@ from src.widgets.base_widget import BaseWidget
 
 
 class ImageList(BaseWidget):
-    IMAGE_EXTS = FileUtil.IMAGE_EXTS
 
     sig_wheel_step = Signal(int)
     sig_right_click = Signal()

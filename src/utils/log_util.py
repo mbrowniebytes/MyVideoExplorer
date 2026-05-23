@@ -1,6 +1,7 @@
 # src/utils/log_util.py
 import logging
 import traceback
+import sys
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 
@@ -34,7 +35,7 @@ class LogUtil:
     LOG_FILE = LOG_DIR / "app.log"
 
 
-    def __init__(self, log_level: str = None):
+    def __init__(self):
         """
         Initialize the LogUtil instance.
 
@@ -42,7 +43,7 @@ class LogUtil:
             log_level: Optional initial log level (defaults to DEFAULT_LOG_LEVEL).
         """
 
-        self.log_level = log_level or self.DEFAULT_LOG_LEVEL
+        self.log_level = self.DEFAULT_LOG_LEVEL
         self._logger_initialized = False
         self._file_handler = None
 
@@ -52,6 +53,14 @@ class LogUtil:
     def get_log_level_value(self, level_str: str) -> int:
         """Convert a string log level name to its corresponding logging constant."""
         return self.LEVEL_MAP.get(level_str.lower(), logging.INFO)
+
+    def ensure_log_level(self, level_str: str) -> str:
+        """Convert a string log level name to its corresponding logging constant."""
+        if self.LEVEL_MAP.get(level_str.lower()) is None:
+            return "info"
+        else:
+            return level_str.lower()
+
 
     @property
     def logger_initialized(self) -> bool:
@@ -144,7 +153,7 @@ class LogUtil:
         base_filename, ext, date = default_name.split(".")
         return f"{base_filename}.{date}.{ext}"
 
-    def configure(self, level_str: str = None) -> LogUtil:
+    def configure(self, level_str: str) -> LogUtil:
         """
         Configure the root logger and file handler.
 
@@ -159,6 +168,7 @@ class LogUtil:
             logging.root.handlers.clear()
 
         # Get or use provided level
+        self.log_level = self.ensure_log_level(level_str)
         effective_level = self.get_log_level_value(level_str or self.log_level)
 
         # Ensure log directory exists
@@ -287,7 +297,6 @@ class LogUtil:
     def handle_exception(self, exc_type, exc_value, exc_traceback):
         """Global exception handler to be used with sys.excepthook."""
         if issubclass(exc_type, KeyboardInterrupt):
-            import sys
 
             sys.__excepthook__(exc_type, exc_value, exc_traceback)
             return
@@ -300,7 +309,5 @@ class LogUtil:
             },
         )
         # Also log traceback
-        import traceback
-
         tb_str = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
         self.error(f"Traceback: {tb_str}")

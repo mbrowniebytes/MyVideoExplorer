@@ -5,7 +5,7 @@ from src.theme.manager import ThemeManager
 
 class Theme(ThemeManager):
     """
-    Main theme entry point. 
+    Main theme entry point.
     Maintains backward compatibility with original class name.
     """
     def __init__(self, config: ThemeConfig | None = None):
@@ -22,7 +22,7 @@ class Theme(ThemeManager):
     @font_size.setter
     def font_size(self, value: int):
         self.config.font_size_base = value
-        
+
     @property
     def font_family(self) -> str:
         return self.config.font_family_default

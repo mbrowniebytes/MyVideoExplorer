@@ -149,7 +149,7 @@ class StyleFactory:
                  border: 4px solid {c.color_border_highlight};
              }}
          """
-    
+
     @staticmethod
     def get_combo_qss(c: ThemeConfig) -> str:
         return f"""

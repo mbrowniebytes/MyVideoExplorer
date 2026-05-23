@@ -1,7 +1,8 @@
 # MyVideoExplorer
 
 
-
+app is under development  
+features, settings, configs may change without notice and with breaking changes
 
 ## Development Notes
 
@@ -50,8 +51,7 @@ skip
 > ruff check --fix
 
 #### Code   
-Use code completion, documentation, AI code generation, AI chat, AI analysis, code quality tools, tests,  or any other tool you want.  
-If a tool is error-prone, or produces Slop more often than not, then don't use that tool.  
+Use code completion, documentation, AI code generation, AI chat, AI analysis, code quality tools, tests,  or any other tool you want.   
 Direct and review every result from AI.  Create reasonable, maintainable, verbose naming, non-emoji code.  Follow existing patterns, or improve upon.  
 AI used: QWen, Junie, GTP, Gemini.
 
