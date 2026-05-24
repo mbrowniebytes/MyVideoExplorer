@@ -78,12 +78,14 @@ class SettingsAppTab(QWidget):
     def highlight_save_button(self):
         self.is_dirty = True
         self.save_app_btn.setStyleSheet(APP_THEME.button_qss() + APP_THEME.button_highlight_qss())
-        self.save_app_btn.setText(self.save_app_btn.text() + " *")
+        text_indicator = self.save_app_btn.text().removesuffix(" *") + " *"
+        self.save_app_btn.setText(text_indicator)
 
     def reset_save_button(self):
         self.is_dirty = False
         self.save_app_btn.setStyleSheet(APP_THEME.button_qss())
-        self.save_app_btn.setText(self.save_app_btn.text().removesuffix("*"))
+        text_indicator = self.save_app_btn.text().removesuffix(" *")
+        self.save_app_btn.setText(text_indicator)
 
     def _save_app_settings(self):
         """Save only App tab settings."""

@@ -3,6 +3,8 @@
 import logging
 import sys
 import traceback
+from PySide6 import QtAsyncio
+
 
 from PySide6.QtWidgets import (
     QApplication,
@@ -24,7 +26,8 @@ def main() -> int:
         window = app.build()
         window.show()
 
-        result = qapp.exec()
+        # result = qapp.exec()
+        result = QtAsyncio.run()
 
         container.log_util.log_memory("Application closing...")
         container.log_util.close()

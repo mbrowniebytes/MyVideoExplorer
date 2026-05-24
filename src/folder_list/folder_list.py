@@ -13,7 +13,6 @@ from src.theme.theme import APP_THEME
 from src.utils.file_util import FileUtil
 from src.utils.file_util_model import FileUtilModel
 from src.widgets.base_widget import BaseWidget
-from src.widgets.folder_picker_widget import FolderPickerWidget
 
 _EMPTY_STATE_NO_MEDIA_FOLDERS = (
     "No media folders configured.\nOpen Settings (Gear) → Media and add a media folder."
@@ -28,7 +27,6 @@ class FolderList(BaseWidget):
     def __init__(self, file_util: FileUtil, settings, log_util) -> None:
         super().__init__(log_util)
         self.folder_view = FolderListView()
-        self.folder_picker = FolderPickerWidget()
         self.file_util = file_util
         self.settings = settings
         self._signals_connected = False
@@ -60,7 +58,6 @@ class FolderList(BaseWidget):
         header_layout.addWidget(self.title_label)
         header_layout.addWidget(self.help_icon)
         header_layout.addStretch()
-        header_layout.addWidget(self.folder_picker)
         layout.addLayout(header_layout)
 
         layout.addWidget(self.folder_view)
@@ -269,6 +266,3 @@ class FolderList(BaseWidget):
 
         self.folder_view.setStyleSheet(APP_THEME.list_qss())
         self.folder_view.setFont(font)
-
-        self.folder_picker.pick_button.setStyleSheet(APP_THEME.button_qss())
-        self.folder_picker.pick_button.setFont(font)

@@ -8,25 +8,28 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QVBoxLayout,
     QTableView,
-    QTableWidget,
+    QWidget,
 )
 
 from src.widgets.simple_table_model import SimpleTableModel
 from src.theme.theme import APP_THEME
 
 
-class SimpleTableWidget(QTableWidget):
+class SimpleTableWidget(QWidget):
+    """A reusable widget that wraps a QTableView and its model for easy data display."""
+
     def __init__(
         self,
         rows: list[dict],
         cols: list[str],
         headers: list[str],
         resize_modes: list[QHeaderView.ResizeMode],
+        parent: QWidget | None = None,
     ) -> None:
-        super().__init__()
+        super().__init__(parent)
 
-        self.table: QTableView | None = None
-        self.model: SimpleTableModel | None = None
+        self.table: QTableView
+        self.model: SimpleTableModel
         self.build(
             rows,
             cols,
@@ -35,6 +38,7 @@ class SimpleTableWidget(QTableWidget):
         )
 
         layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.table)
         self.setLayout(layout)
         self.apply_theme()
@@ -44,35 +48,35 @@ class SimpleTableWidget(QTableWidget):
         rows: list[dict],
         headers: list[str] | None = None,
         cols: list[str] | None = None,
-    ):
-
-        if self.model is None:
+    ) -> None:
+        """Updates the table data and adjusts the view accordingly."""
+        if self.model is None or self.table is None:
             return
-        nbr_rows = len(rows)
-        self._update_table_height(nbr_rows)
+
         self.model.update_rows(rows=rows, headers=headers, cols=cols)
+        self._update_table_height(len(rows))
         self.table.resizeColumnsToContents()
-        self.table.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
-        )
 
     def _update_table_height(self, nbr_rows: int) -> None:
+        """Calculates and sets the table height based on its content."""
+        if self.table is None:
+            return
+
         # 12px font; 17 * 2 close to manual 35
         line_height = self.table.fontMetrics().lineSpacing() * 2
-        # print(f"_update_table_height: line_height:{line_height}")
         min_height = 2 * line_height
         max_height = (nbr_rows + 1) * line_height
-        # if max_height > self._max_height:
-        #     max_height = self._max_height
 
         if nbr_rows == 0:
             self.table.setMinimumHeight(0)
             self.table.setMaximumHeight(line_height)
-            self.table.setRowHidden(0, True)
         else:
             self.table.setMinimumHeight(min_height)
             self.table.setMaximumHeight(max_height)
-            self.table.setRowHidden(0, False)
+
+        # Safely handle the visibility of the first row
+        if self.model and self.model.rowCount() > 0:
+            self.table.setRowHidden(0, nbr_rows == 0)
 
     def build(
         self,
@@ -88,7 +92,7 @@ class SimpleTableWidget(QTableWidget):
 
         self.table.setAutoScroll(True)
         self.table.setSortingEnabled(True)
-        self.table.sortByColumn(0, Qt.AscendingOrder)
+        self.table.sortByColumn(0, Qt.SortOrder.AscendingOrder)
         self.table.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
 
         header = self.table.horizontalHeader()
@@ -101,18 +105,20 @@ class SimpleTableWidget(QTableWidget):
         nbr_rows = len(rows)
         self._update_table_height(nbr_rows)
 
-        self.table.setHorizontalScrollMode(QAbstractItemView.ScrollPerPixel)
+        self.table.setHorizontalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
         self.table.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
-        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
     def apply_theme(self) -> None:
+        """Applies consistent styling and fonts from the application theme."""
         if self.table is None:
             return
 
+        font = QFont(APP_THEME.font_family, APP_THEME.font_size)
         self.table.setStyleSheet(APP_THEME.table_qss())
-        self.table.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
+        self.table.setFont(font)
 
         header = self.table.horizontalHeader()
-        header.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
+        header.setFont(font)

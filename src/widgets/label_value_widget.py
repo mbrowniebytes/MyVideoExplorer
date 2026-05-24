@@ -28,7 +28,7 @@ class LabelValueWidget(BaseWidget):
             QHBoxLayout if orientation == Qt.Orientation.Horizontal else QVBoxLayout
         )
         self.layout = self.set_compact_layout(layout_type)
-        self.layout.setSpacing(4)
+        self.layout.setSpacing(8 if orientation == Qt.Orientation.Horizontal else 4)
 
         self.label_name = QLabel(name or "")
         self.label_name.setWordWrap(False)
@@ -39,11 +39,11 @@ class LabelValueWidget(BaseWidget):
         self.label_value.setWordWrap(True)
         self.label_value.setStyleSheet(APP_THEME.field_value_qss())
 
-        if is_link or name == "IDs:":
+        if is_link:
             self.label_value.setTextFormat(Qt.TextFormat.RichText)
             self.label_value.setOpenExternalLinks(True)
 
-        self._update_display_value(value)
+        self.set_value(value)
 
         if orientation == Qt.Orientation.Horizontal:
             self.label_name.setSizePolicy(
@@ -71,12 +71,6 @@ class LabelValueWidget(BaseWidget):
         self._update_display_value(value)
 
     def _update_display_value(self, value: str | int | float | None) -> None:
-        if value is None or value == "":
-            display_value = ""
-        else:
-            display_value = (
-                f" {value}"
-                if self.orientation == Qt.Orientation.Horizontal
-                else f"{value}"
-            )
-        self.label_value.setText(display_value)
+        """Internal method to handle label text formatting."""
+        text = str(value) if value is not None else ""
+        self.label_value.setText(text)

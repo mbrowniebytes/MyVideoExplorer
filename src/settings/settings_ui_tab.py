@@ -76,12 +76,14 @@ class SettingsUITab(QScrollArea):
     def highlight_save_button(self):
         self.is_dirty = True
         self.save_ui_btn.setStyleSheet(APP_THEME.button_qss() + APP_THEME.button_highlight_qss())
-        self.save_ui_btn.setText(self.save_ui_btn.text() + " *")
+        text_indicator = self.save_ui_btn.text().removesuffix(" *") + " *"
+        self.save_ui_btn.setText(text_indicator)
 
     def reset_save_button(self):
         self.is_dirty = False
         self.save_ui_btn.setStyleSheet(APP_THEME.button_qss())
-        self.save_ui_btn.setText(self.save_ui_btn.text().removesuffix("*"))
+        text_indicator = self.save_ui_btn.text().removesuffix(" *")
+        self.save_ui_btn.setText(text_indicator)
 
     def _on_font_size_changed(self, value: int):
         if value == APP_THEME.font_size:

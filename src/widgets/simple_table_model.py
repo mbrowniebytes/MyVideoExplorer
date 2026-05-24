@@ -12,25 +12,33 @@ class SimpleTableModel(QAbstractTableModel):
         self._headers = headers  # human-readable column labels
         self._cols = cols  # keys to access dict values
 
-    def rowCount(self, parent: QModelIndex = ...) -> int:
+    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
+        if parent.isValid():
+            return 0
         return len(self._rows)
 
-    def columnCount(self, parent: QModelIndex = ...) -> int:
+    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
+        if parent.isValid():
+            return 0
         return len(self._headers)
 
-    def data(self, index: QModelIndex, role: int = Qt.DisplayRole) -> str | None:
+    def data(self, index: QModelIndex, role: int = Qt.DisplayRole) -> object | None:
         if not index.isValid():
             return None
 
         row = index.row()
         col = index.column()
+        key = self._cols[col]
+        value = self._rows[row].get(key)
 
-        # Handle display role only (no icons/links in tables yet)
         if role == Qt.DisplayRole:
-            key = self._cols[col]
-            value = self._rows[row].get(key, "")
-
             return str(value) if value is not None else ""
+
+        if role == Qt.TextAlignmentRole:
+            # Right-align numbers for better readability
+            if isinstance(value, (int, float)):
+                return Qt.AlignRight | Qt.AlignVCenter
+            return Qt.AlignLeft | Qt.AlignVCenter
 
         return None
 
@@ -53,15 +61,14 @@ class SimpleTableModel(QAbstractTableModel):
         key_field = self._cols[column]
 
         def key_func(row_dict):
-            val = row_dict.get(key_field, "")
-            if isinstance(val, int) or isinstance(val, float):
+            val = row_dict.get(key_field)
+            if val is None:
+                return ""
+            if isinstance(val, (int, float)):
                 return val
-            # elif isinstance(val, str) and val.isnumeric():
-            #     return float(val)
-            else:
-                return str(val).lower()
+            return str(val).lower()
 
-        self.beginResetModel()
+        self.layoutAboutToBeChanged.emit()
         try:
             self._rows.sort(
                 key=key_func, reverse=(order == Qt.SortOrder.DescendingOrder)
@@ -70,7 +77,7 @@ class SimpleTableModel(QAbstractTableModel):
             print(
                 f"SimpleTableModel: sort failed for column {column}, key_field={key_field}: {e}"
             )
-        self.endResetModel()
+        self.layoutChanged.emit()
 
     def headerData(
         self,

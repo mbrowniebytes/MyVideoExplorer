@@ -1,62 +1,75 @@
 import math
 
-from PySide6 import QtWidgets as Widgets, QtGui, QtCore
-from PySide6.QtCore import Qt, QPoint
-from PySide6.QtGui import QFont
+from PySide6 import QtWidgets, QtGui, QtCore
+from PySide6.QtCore import Qt
 
 from src.theme.theme import APP_THEME
 
 
-class LabelAngledWidget(Widgets.QLabel):
+class LabelAngledWidget(QtWidgets.QLabel):
+    """
+    A QLabel that supports rendering text at an angle.
+    The widget automatically adjusts its size hint to accommodate the rotated text.
+    """
 
-    def __init__(self, text: str, angle: int = 0, *args):
-        Widgets.QLabel.__init__(self, *args)
+    def __init__(self, text: str, angle: int = 0, parent=None):
+        super().__init__(text, parent)
+        self._angle = angle
 
-        self.setText(text)
+    @property
+    def angle(self) -> int:
+        return self._angle
 
-        self.angle = angle
+    @angle.setter
+    def angle(self, value: int):
+        if self._angle != value:
+            self._angle = value
+            self.updateGeometry()
+            self.update()
 
     def paintEvent(self, event):
         painter = QtGui.QPainter(self)
-        fm = QtGui.QFontMetrics(painter.font())
+        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QtGui.QPainter.RenderHint.TextAntialiasing)
 
+        # Center the coordinate system in the widget
+        painter.translate(self.width() / 2, self.height() / 2)
+        painter.rotate(self._angle)
+
+        # Calculate text bounding rect based on current font metrics
+        fm = painter.fontMetrics()
         text_rect = fm.boundingRect(self.text())
+        
+        # Center the bounding rect around the origin (0, 0)
+        text_rect.moveCenter(QtCore.QPoint(0, 0))
 
-        if self.alignment() == Qt.AlignmentFlag.AlignTop:
-            v_y = text_rect.height()
-        else:
-            v_y = self.height() / 2
-        v_x = self.width() / 2
-        painter.translate(v_x, v_y)
-
-        painter.rotate(self.angle)
-
-        h_x = -int(text_rect.width() / 2)
-        h_y = int(text_rect.height() / 2)
-        label_point = QPoint(h_x, h_y)
-
-        painter.drawText(label_point, self.text())
-
+        # Use the current palette for the text color
+        painter.setPen(self.palette().color(self.foregroundRole()))
+        painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, self.text())
+        
         painter.end()
 
-    def minimumSizeHint(self):
-        size = Widgets.QLabel.minimumSizeHint(self)
-        return QtCore.QSize(
-            size.height()
-            + math.ceil(size.height() * abs(math.cos(math.radians(self.angle)))),
-            size.width()
-            + math.ceil(size.width() * abs(math.sin(math.radians(self.angle)))),
-        )
+    def _get_rotated_size(self, size: QtCore.QSize) -> QtCore.QSize:
+        """Helper to calculate the bounding box of the widget after rotation."""
+        w = size.width()
+        h = size.height()
+        rad = math.radians(self._angle)
+        cos_a = abs(math.cos(rad))
+        sin_a = abs(math.sin(rad))
 
-    def sizeHint(self):
-        size = Widgets.QLabel.sizeHint(self)
-        return QtCore.QSize(
-            size.height()
-            + math.ceil(size.height() * abs(math.cos(math.radians(self.angle)))),
-            size.width()
-            + math.ceil(size.width() * abs(math.sin(math.radians(self.angle)))),
-        )
+        # Standard formula for rotated bounding box
+        new_w = w * cos_a + h * sin_a
+        new_h = w * sin_a + h * cos_a
+
+        return QtCore.QSize(int(math.ceil(new_w)), int(math.ceil(new_h)))
+
+    def minimumSizeHint(self) -> QtCore.QSize:
+        return self._get_rotated_size(super().minimumSizeHint())
+
+    def sizeHint(self) -> QtCore.QSize:
+        return self._get_rotated_size(super().sizeHint())
 
     def apply_theme(self) -> None:
-        self.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
+        """Applies the application theme to the widget."""
+        self.setFont(QtGui.QFont(APP_THEME.font_family, APP_THEME.font_size))
         self.setStyleSheet(APP_THEME.label_qss())

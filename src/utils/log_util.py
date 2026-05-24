@@ -1,8 +1,10 @@
 # src/utils/log_util.py
+import datetime
 import logging
+import os
 import traceback
 import sys
-from logging.handlers import TimedRotatingFileHandler
+from logging.handlers import TimedRotatingFileHandler, RotatingFileHandler
 from pathlib import Path
 
 # Use structlog for structured logging output
@@ -10,7 +12,7 @@ import structlog
 
 # Define log directory and file paths
 BASE_PATH = Path().cwd().as_posix()
-SRC_PATH = BASE_PATH + "/src/"
+SRC_PATH = Path(BASE_PATH + "/src/")
 LOG_DIR = Path("log")
 
 
@@ -28,9 +30,8 @@ class LogUtil:
     }
 
     DEFAULT_LOG_LEVEL = "info"
-    # 1 if using dynamic log file name
-    MAX_BACKUPS = 1
-    ROTATION_PERIOD = "midnight" # "D"  # Daily rotation
+    MAX_BACKUPS = 5
+    ROTATION_PERIOD = "M" # "D"  # Daily rotation
     MAX_BYTES = 10 * 1024 * 1024  # 10 MB
     LOG_FILE = LOG_DIR / "app.log"
 
@@ -47,8 +48,8 @@ class LogUtil:
         self._logger_initialized = False
         self._file_handler = None
 
-        # date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-        # self.LOG_FILE = LOG_DIR / f"app-{date_str}.log"
+        date_str = datetime.datetime.now().strftime("%Y-%m-%d")
+        self.LOG_FILE = LOG_DIR / f"app-{date_str}.log"
 
     def get_log_level_value(self, level_str: str) -> int:
         """Convert a string log level name to its corresponding logging constant."""
@@ -175,13 +176,23 @@ class LogUtil:
         self._ensure_log_directory()
 
         # Configure file handler with daily rotation and backup limit
-        self._file_handler = TimedRotatingFileHandler(
+
+        # not working with custom date named log
+        # self._file_handler = TimedRotatingFileHandler(
+        #     self.LOG_FILE,
+        #     when=self.ROTATION_PERIOD,
+        #     interval=1,
+        #     backupCount=self.MAX_BACKUPS,
+        #     encoding="utf-8",
+        #     utc=False,
+        #     delay=True, # required else perms/timing issue
+        # )
+        # max size + custom cleanup()
+        self._file_handler = RotatingFileHandler(
             self.LOG_FILE,
-            when=self.ROTATION_PERIOD,
-            interval=1,
+            maxBytes=self.MAX_BYTES,
             backupCount=self.MAX_BACKUPS,
             encoding="utf-8",
-            utc=False,
             delay=True, # required else perms/timing issue
         )
 
@@ -289,6 +300,8 @@ class LogUtil:
             self._file_handler = None
 
     def close(self) -> None:
+        self.cleanup()
+
         """Close all handlers associated with this LogUtil instance."""
         if self._file_handler:
             self._file_handler.close()
@@ -310,4 +323,24 @@ class LogUtil:
         )
         # Also log traceback
         tb_str = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
-        self.error(f"Traceback: {tb_str}")
+        # could be debug
+        # log as error so have context with errors
+        # traceback already prepends: Traceback (most recent call last):
+        self.error(f"{tb_str}")
+
+    def cleanup(self) -> None:
+        """Manage daily backups of a file, keeping up to max_backups."""
+
+        log_dir = LOG_DIR
+
+        # Keep only the max_backups most recent backups
+        # explicit set, since deleting files
+        pattern = "app*log"
+        backups = sorted(log_dir.glob(pattern), reverse=True, key=os.path.getmtime)
+
+        for old_backup in backups[self.MAX_BACKUPS:]:
+            try:
+                # print(f"cleanup: old_backup.unlink {old_backup}")
+                old_backup.unlink()
+            except OSError as e:
+                self.warn(f"Failed to delete old backup {old_backup}: {e}")

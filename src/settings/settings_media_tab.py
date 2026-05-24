@@ -1,7 +1,7 @@
 import os
 
-from PySide6.QtCore import QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QFont
+from PySide6.QtCore import QSize, Qt, QTimer, Signal, QRegularExpression
+from PySide6.QtGui import QFont, QRegularExpressionValidator
 from PySide6.QtWidgets import (
     QComboBox,
     QFormLayout,
@@ -102,12 +102,14 @@ class SettingsMediaTab(QScrollArea):
     def highlight_save_button(self):
         self.is_dirty = True
         self.save_media_btn.setStyleSheet(APP_THEME.button_qss() + APP_THEME.button_highlight_qss())
-        self.save_media_btn.setText(self.save_media_btn.text() + " *")
+        text_indicator = self.save_media_btn.text().removesuffix(" *") + " *"
+        self.save_media_btn.setText(text_indicator)
 
     def reset_save_button(self):
         self.is_dirty = False
         self.save_media_btn.setStyleSheet(APP_THEME.button_qss())
-        self.save_media_btn.setText(self.save_media_btn.text().removesuffix("*"))
+        text_indicator = self.save_media_btn.text().removesuffix(" *")
+        self.save_media_btn.setText(text_indicator)
 
     def _refresh_folder_nav_settings(self) -> None:
         try:
@@ -210,6 +212,8 @@ class SettingsMediaTab(QScrollArea):
         folder_picker.selected_folder = default_folder
 
         folder_edit = QLineEdit(default_folder)
+        folder_edit.setPlaceholderText("Media Folder Path")
+        
         label_edit = QLineEdit(default_label)
         label_edit.setPlaceholderText("Label")
         label_edit.setFixedWidth(200)
@@ -287,10 +291,10 @@ class SettingsMediaTab(QScrollArea):
         browse_btn.setIconSize(QSize(APP_THEME.icon_size - 5, APP_THEME.icon_size - 5))
         # browse_btn.setFixedWidth(40)
         browse_btn.setStyleSheet(APP_THEME.button_qss())
-        browse_btn.clicked.connect(
-            lambda: folder_picker.pick_folder(
-                lambda val: self._on_folder_selected(val, folder_edit, folder_config)
-            )
+        browse_btn.clicked.connect(folder_picker.pick_folder)
+
+        folder_picker.sig_selected_folder.connect(
+            lambda val: self._on_folder_selected(val, folder_edit, folder_config)
         )
 
         container = QWidget()
@@ -333,6 +337,9 @@ class SettingsMediaTab(QScrollArea):
         folder_edit.editingFinished.connect(
             lambda fe=folder_edit: self._on_config_changed(folder_config, "path", fe.text())
         )
+        # folder_edit.editingFinished.connect(
+        #     lambda fe=folder_edit: self._on_folder_selected(folder_edit.text(), fe, folder_config)
+        # )
 
         return container
 
@@ -359,6 +366,9 @@ class SettingsMediaTab(QScrollArea):
         return valid_paths
 
     def _on_config_changed(self, folder_config: dict, key: str, value: any):
+        # print(
+        #     f"_on_config_changed: key:{key} value:{value} folder_config:{folder_config}"
+        # )
         if folder_config.get(key) == value:
             return
         folder_config[key] = value
@@ -367,14 +377,19 @@ class SettingsMediaTab(QScrollArea):
     def _on_folder_selected(
         self, value: str, folder_edit: QLineEdit, folder_config: dict
     ) -> None:
-        if folder_edit.text() == value:
-            return
+        # print(f"_on_folder_selected: value:{value} folder_edit.text():{folder_edit.text()}")
+        # good for folder picker, bad for folder edit        
+        # if folder_edit.text() == value:
+        #     return
+        folder_edit.blockSignals(True)
         folder_edit.setText(value)
+        folder_edit.blockSignals(False)
         folder_config["path"] = value
         self.sig_changed.emit()
         # Emit signal with updated valid paths so controller updates root_folders
+        # perhaps remove signal and have a refresh button
         paths = self._get_valid_media_paths()
-        print(f"_on_folder_selected: paths:{paths}")
+        # print(f"_on_folder_selected: paths:{paths}")
         self.sig_root_folders_changed.emit(paths)
 
     def _add_folder(self) -> None:

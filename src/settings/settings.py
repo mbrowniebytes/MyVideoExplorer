@@ -106,7 +106,7 @@ class Settings(QWidget):
 
     def _check_all_saved(self):
         # If no tab is dirty, emit False
-        print(f"_check_all_saved: self.media_tab.is_dirty:{self.media_tab.is_dirty}")
+        # print(f"_check_all_saved: self.media_tab.is_dirty:{self.media_tab.is_dirty}")
         if not (self.app_tab.is_dirty or
                 self.ui_tab.is_dirty or
                 self.media_tab.is_dirty or

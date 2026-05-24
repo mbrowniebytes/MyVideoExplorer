@@ -1,4 +1,5 @@
 import json
+import os
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -12,7 +13,8 @@ class JsonUtil:
     DEFAULT_ENCODING = "utf-8"
     DEFAULT_INDENT = 4
     MAX_BACKUPS_DEFAULT = 5
-
+    CFG_DIR = Path("cfg")
+    
     def __init__(self, log_util:LogUtil) -> None:
         self.log_util = log_util
 
@@ -46,7 +48,13 @@ class JsonUtil:
         if not file_path.exists():
             return
 
-        cfg_dir = file_path.parent
+
+        if "PYTEST_CURRENT_TEST" in os.environ:
+            cfg_dir = file_path.parent
+        else:
+            # explict set
+            cfg_dir = self.CFG_DIR
+
         today_str = datetime.now().strftime("%Y-%m-%d")
         backup_name = cfg_dir / f"{file_path.stem}_{today_str}{file_path.suffix}"
 
@@ -60,10 +68,15 @@ class JsonUtil:
 
         # Keep only the max_backups most recent backups
         pattern = f"{file_path.stem}_*{file_path.suffix}"
-        backups = sorted(cfg_dir.glob(pattern), reverse=True)
+        # explicit check, since deleting files
+        if pattern.find("settings_") == -1:
+            self.log_util.warn(f"Failed to delete old backups with unexpected pattern {pattern}")
+            return
 
+        backups = sorted(cfg_dir.glob(pattern), reverse=True, key=os.path.getmtime)
+        
         for old_backup in backups[max_backups:]:
             try:
                 old_backup.unlink()
             except OSError as e:
-                self.log_util.warning(f"Failed to delete old backup {old_backup}: {e}")
+                self.log_util.warn(f"Failed to delete old backup {old_backup}: {e}")

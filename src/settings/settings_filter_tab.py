@@ -62,12 +62,14 @@ class SettingsFilterTab(QScrollArea):
     def highlight_save_button(self):
         self.is_dirty = True
         self.save_filter_btn.setStyleSheet(APP_THEME.button_qss() + APP_THEME.button_highlight_qss())
-        self.save_filter_btn.setText(self.save_filter_btn.text() + " *")
+        text_indicator = self.save_filter_btn.text().removesuffix(" *") + " *"
+        self.save_filter_btn.setText(text_indicator)
 
     def reset_save_button(self):
         self.is_dirty = False
         self.save_filter_btn.setStyleSheet(APP_THEME.button_qss())
-        self.save_filter_btn.setText(self.save_filter_btn.text().removesuffix("*"))
+        text_indicator = self.save_filter_btn.text().removesuffix(" *")
+        self.save_filter_btn.setText(text_indicator)
 
     def _refresh_filters(self):
         # Clear existing filter rows

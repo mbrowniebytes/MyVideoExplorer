@@ -23,7 +23,6 @@ class TestFolderList:
 
     def test_ui_initialization(self, folder_list):
         """Verify that UI components are correctly initialized."""
-        assert folder_list.folder_picker.pick_button.text() == "Select Folder"
         assert folder_list.folder_view.count() == 0
         # Check if title label exists in layout (indirectly via build)
         assert folder_list._container.objectName() == "folderListContainer"
@@ -103,14 +102,6 @@ class TestFolderList:
 
         assert blocker.args[0] == "/path/to/Folder A"
 
-    def test_pick_folder_button_click(self, folder_list, qtbot):
-        """Verify that the select folder button triggers the picker."""
-        with patch.object(folder_list.folder_picker, "select_folder") as mock_select:
-            qtbot.mouseClick(
-                folder_list.folder_picker.pick_button, Qt.MouseButton.LeftButton
-            )
-            mock_select.assert_called_once()
-
     def test_nested_folder_prefixes(self, folder_list, mock_nested_folder_items):
         """Verify that depth translates to prefixes in the list."""
         with patch("src.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
@@ -160,10 +151,6 @@ class TestFolderList:
             folder_list.apply_theme()
 
             assert "container { color: red; }" in folder_list._container.styleSheet()
-            assert (
-                "button { color: blue; }"
-                in folder_list.folder_picker.pick_button.styleSheet()
-            )
             assert "list { color: green; }" in folder_list.folder_view.styleSheet()
             assert folder_list.folder_view.font().family() == "Arial"
             assert folder_list.folder_view.font().pointSize() == 12

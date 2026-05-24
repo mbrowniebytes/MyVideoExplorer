@@ -68,7 +68,7 @@ class NfoParseUtil:
 
         nfo_file = self.file_util.find_nfo_file(folder_path)
         if nfo_file is None:
-            print("NfoUtil: No NFO file found")
+            # print("NfoUtil: No NFO file found")
             # Cache the negative result
             self._cached_folder_path = folder_path
             self._cached_movie_info = None
