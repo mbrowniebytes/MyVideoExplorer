@@ -1,7 +1,7 @@
 import os
 
-from PySide6.QtCore import QSize, Qt, QTimer, Signal, QRegularExpression
-from PySide6.QtGui import QFont, QRegularExpressionValidator
+from PySide6.QtCore import QSize, Qt, QTimer, Signal
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QComboBox,
     QFormLayout,
@@ -213,7 +213,7 @@ class SettingsMediaTab(QScrollArea):
 
         folder_edit = QLineEdit(default_folder)
         folder_edit.setPlaceholderText("Media Folder Path")
-        
+
         label_edit = QLineEdit(default_label)
         label_edit.setPlaceholderText("Label")
         label_edit.setFixedWidth(200)
@@ -378,7 +378,7 @@ class SettingsMediaTab(QScrollArea):
         self, value: str, folder_edit: QLineEdit, folder_config: dict
     ) -> None:
         # print(f"_on_folder_selected: value:{value} folder_edit.text():{folder_edit.text()}")
-        # good for folder picker, bad for folder edit        
+        # good for folder picker, bad for folder edit
         # if folder_edit.text() == value:
         #     return
         folder_edit.blockSignals(True)

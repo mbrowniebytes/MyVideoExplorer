@@ -4,7 +4,7 @@ import logging
 import os
 import traceback
 import sys
-from logging.handlers import TimedRotatingFileHandler, RotatingFileHandler
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 # Use structlog for structured logging output

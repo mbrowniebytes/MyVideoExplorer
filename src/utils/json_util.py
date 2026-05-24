@@ -14,7 +14,7 @@ class JsonUtil:
     DEFAULT_INDENT = 4
     MAX_BACKUPS_DEFAULT = 5
     CFG_DIR = Path("cfg")
-    
+
     def __init__(self, log_util:LogUtil) -> None:
         self.log_util = log_util
 
@@ -74,7 +74,7 @@ class JsonUtil:
             return
 
         backups = sorted(cfg_dir.glob(pattern), reverse=True, key=os.path.getmtime)
-        
+
         for old_backup in backups[max_backups:]:
             try:
                 old_backup.unlink()

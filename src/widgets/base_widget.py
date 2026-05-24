@@ -1,7 +1,6 @@
 
 from __future__ import annotations
 
-from typing import Any
 from PySide6.QtWidgets import QWidget, QLayout, QVBoxLayout
 from src.theme.theme import APP_THEME
 from src.utils.log_util import LogUtil

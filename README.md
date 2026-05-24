@@ -75,19 +75,19 @@ python version:
 https://pyinstaller.org/en/stable/usage.html
 https://pyinstaller.org/en/stable/spec-files.html
 
+fyi, creates main.spec
 > pyinstaller src/main.py
 
-creates main.spec
-
+creates dist
 > pyinstaller --noconfirm main.spec
 
 
 skip - 
 qt version:  
+fyi, creates pysidedeploy.spe
 > pyside6-deploy . --init
 
-creates pysidedeploy.spec
-
+creates dist
 > pyside6-deploy .
 
 ---

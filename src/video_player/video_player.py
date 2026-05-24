@@ -35,9 +35,9 @@ class VideoPlayer:
         """Sets the directory context for video discovery."""
         self.active_folder_path = folder_path
 
-    def play_video(self, folder_path: str | None = None) -> None:
+    def play_video(self, folder_path: str | None = None) -> bool:
         """
-        Locates and plays a video. 
+        Locates and plays a video.
         If source_image_path is provided, it tries to find a matching video name.
         """
 
@@ -48,11 +48,13 @@ class VideoPlayer:
 
         if not target_video_path:
             self.log_util.warn("No video file found to play.")
-            return
+            return False
 
         self.log_util.info(f"Launching video playback for: {target_video_path}")
 
         asyncio.create_task(self.video_launcher.play_via_external_app(target_video_path))
+
+        return True
 
     def stop_video(self) -> None:
         """Stops the current internal playback session."""

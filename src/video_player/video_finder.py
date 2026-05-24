@@ -6,7 +6,7 @@ from src.utils.log_util import LogUtil
 
 class VideoFinder:
     """Utility class to locate video files within the file system."""
-    
+
     VIDEO_EXTS = frozenset({".mkv", ".mp4", ".avi", ".ts", ".mpg", ".mpeg"})
 
     def __init__(self, log_util:LogUtil) -> None:
@@ -14,8 +14,8 @@ class VideoFinder:
 
     def find_associated_video(self, folder_path: str | None) -> str | None:
         """
-        Searches for a video file. 
-        
+        Searches for a video file.
+
         Priority logic:
         1. If image_path is provided, looks in the image's directory for a video with the same name.
         2. If no exact name match is found, returns the first video found in the directory.
@@ -48,7 +48,7 @@ class VideoFinder:
             # if not os.path.isfile(full_item_path):
             if not full_item_path.is_file():
                 continue
-                
+
             # path_obj = Path(full_item_path)
             if full_item_path.suffix.lower() not in self.VIDEO_EXTS:
                 continue

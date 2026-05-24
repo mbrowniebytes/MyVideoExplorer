@@ -1,7 +1,6 @@
 import os
 import sys
 import asyncio
-from time import sleep
 
 from src.utils.log_util import LogUtil
 

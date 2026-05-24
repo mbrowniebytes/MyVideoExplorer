@@ -39,14 +39,14 @@ class LabelAngledWidget(QtWidgets.QLabel):
         # Calculate text bounding rect based on current font metrics
         fm = painter.fontMetrics()
         text_rect = fm.boundingRect(self.text())
-        
+
         # Center the bounding rect around the origin (0, 0)
         text_rect.moveCenter(QtCore.QPoint(0, 0))
 
         # Use the current palette for the text color
         painter.setPen(self.palette().color(self.foregroundRole()))
         painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, self.text())
-        
+
         painter.end()
 
     def _get_rotated_size(self, size: QtCore.QSize) -> QtCore.QSize:

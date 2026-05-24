@@ -8,7 +8,7 @@ class RightAlignedTabBar(QTabBar):
     This component is intended to be used within a QTabWidget or a custom layout
     where tab positioning needs to be controlled.
     """
-    
+
     def __init__(self, parent=None, spacer_index: int | None = None) -> None:
         super().__init__(parent)
         self.setExpanding(True)
