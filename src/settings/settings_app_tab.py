@@ -10,12 +10,13 @@ from PySide6.QtWidgets import (
 )
 
 from src.settings.settings_base_tab import SettingsBaseTab
+from src.settings.settings_state import SettingsState
 from src.theme.theme import APP_THEME
 from src.utils.log_util import LogUtil
 
 
 class SettingsAppTab(SettingsBaseTab):
-    def __init__(self, state, log_util, parent=None):
+    def __init__(self, state: SettingsState, log_util: LogUtil, parent=None):
         super().__init__(log_util, parent)
         self.log_util = log_util
         self.state = state

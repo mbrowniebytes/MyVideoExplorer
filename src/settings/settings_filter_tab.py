@@ -11,12 +11,21 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from src.folder_filter.folder_filter_table import FolderFilterTable
+
 from src.settings.settings_base_tab import SettingsBaseTab
+from src.settings.settings_state import SettingsState
 from src.theme.theme import APP_THEME
+from src.utils.log_util import LogUtil
 
 
 class SettingsFilterTab(SettingsBaseTab):
-    def __init__(self, state, log_util, parent=None):
+    # TODO centralize w/ folder_filter
+    GENRES = sorted(
+        ["Action", "Comedy", "Sci-Fi", "Mystery", "Thriller", "Drama", "Adventure"]
+    )
+
+    def __init__(self, state: SettingsState, log_util: LogUtil, parent=None):
         super().__init__(log_util, parent)
         self.state = state
 
@@ -32,6 +41,8 @@ class SettingsFilterTab(SettingsBaseTab):
         self.content_layout = QVBoxLayout(self.main_widget)
         self.content_layout.setContentsMargins(10, 10, 10, 10)
         self.content_layout.setSpacing(15)
+
+        self.filter_table = FolderFilterTable(self.GENRES, self.state.folder_configs)
 
         self._build_ui()
         self.content_layout.addStretch()
@@ -93,20 +104,27 @@ class SettingsFilterTab(SettingsBaseTab):
 
     def _make_filter_row(self, filter_cfg: dict) -> QWidget:
         container = QWidget()
-        layout = QHBoxLayout(container)
+        layout = QVBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(10)
+        layout.setSpacing(5)
+
+        name_container = QWidget()
+        name_layout = QHBoxLayout(name_container)
+        name_layout.setContentsMargins(0, 0, 0, 0)
+        name_layout.setSpacing(5)
+        layout.addWidget(name_container)
 
         name_edit = QLineEdit(filter_cfg.get("name", ""))
         name_edit.setPlaceholderText("Filter Name")
+        name_layout.addWidget(name_edit)
 
-        save_btn = QPushButton("Save")
-        save_btn.setIcon(APP_THEME.icon("fa5s.save", color=APP_THEME.text_color))
-        save_btn.setIconSize(QSize(APP_THEME.icon_size - 5, APP_THEME.icon_size - 5))
-        save_btn.setStyleSheet(APP_THEME.button_qss())
-        save_btn.clicked.connect(
-            lambda: self._save_filter(filter_cfg, name_edit.text())
-        )
+        add_btn = QPushButton("Add")
+        add_btn.setIcon(APP_THEME.icon("fa5s.plus-circle", color=APP_THEME.text_color))
+        add_btn.setIconSize(QSize(APP_THEME.icon_size - 5, APP_THEME.icon_size - 5))
+        add_btn.setStyleSheet(APP_THEME.button_qss())
+        # add_btn.clicked.connect(
+        #     lambda: self.filter_table.add_filter()
+        # )
 
         delete_btn = QPushButton("")
         delete_btn.setIcon(APP_THEME.icon("fa5s.trash-alt", color=APP_THEME.text_color))
@@ -114,13 +132,17 @@ class SettingsFilterTab(SettingsBaseTab):
         delete_btn.setStyleSheet(APP_THEME.button_qss())
         delete_btn.clicked.connect(lambda: self._delete_filter(filter_cfg))
 
-        layout.addWidget(name_edit)
-        layout.addWidget(save_btn)
-        layout.addWidget(delete_btn)
+        name_layout.addWidget(add_btn)
+        name_layout.addWidget(delete_btn)
+
+        filters_data = filter_cfg.get("filters") or []
+        for f in filters_data:
+            self.filter_table.add_filter(f.get("filter", ""), f.get("value", ""))
+        layout.addWidget(self.filter_table)
 
         return container
 
-    def _save_filter(self, filter_cfg: dict, new_name: str):
+    def _add_filter(self, filter_cfg: dict, new_name: str):
         if not new_name.strip():
             return
 
@@ -139,9 +161,9 @@ class SettingsFilterTab(SettingsBaseTab):
 
     def _delete_filter(self, filter_cfg: dict):
         name = filter_cfg.get("name")
-        self.state.delete_filter(name)
-        self.sig_changed.emit()
-        self._refresh_filters()
+        # self.state.delete_filter(name)
+        # self.sig_changed.emit()
+        # self._refresh_filters()
 
     def apply_theme(self):
         super().apply_theme()

@@ -18,14 +18,16 @@ from PySide6.QtWidgets import (
 )
 
 from src.settings.settings_base_tab import SettingsBaseTab
+from src.settings.settings_state import SettingsState
 from src.theme.theme import APP_THEME
+from src.utils.log_util import LogUtil
 from src.widgets.folder_picker_widget import FolderPickerWidget
 
 
 class SettingsMediaTab(SettingsBaseTab):
     sig_root_folders_changed = Signal(list)
 
-    def __init__(self, state, log_util, parent=None):
+    def __init__(self, state: SettingsState, log_util: LogUtil, parent=None):
         super().__init__(log_util, parent)
         self.state = state
 

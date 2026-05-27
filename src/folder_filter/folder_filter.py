@@ -189,7 +189,7 @@ class FolderFilters(BaseWidget):
     ) -> QToolButton:
         btn = QToolButton()
         btn.setToolTip(label)
-        btn.setText(label)
+        # btn.setText(label)
         btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         btn.setIcon(APP_THEME.icon(icon_name, color=APP_THEME.text_color))
         btn.setIconSize(QSize(APP_THEME.icon_size, APP_THEME.icon_size))
@@ -231,8 +231,7 @@ class FolderFilters(BaseWidget):
         if filter_type.upper() in ("", "OS", "NFO"):
             return
 
-        if self.filter_table:
-            self.filter_table.add_filter(filter_type)
+        self.filter_table.add_filter(filter_type)
 
         filter_name = self.saved_filters_combo.currentText().strip()
         if filter_name == "":
