@@ -1,4 +1,4 @@
-from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QGroupBox,
@@ -11,28 +11,33 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from src.settings.settings_base_tab import SettingsBaseTab
 from src.theme.theme import APP_THEME
 
 
-class SettingsFilterTab(QScrollArea):
-    sig_changed = Signal()
-    sig_saved = Signal()
-
-    def __init__(self, state, log_util):
-        super().__init__()
-        self.log_util = log_util
+class SettingsFilterTab(SettingsBaseTab):
+    def __init__(self, state, log_util, parent=None):
+        super().__init__(log_util, parent)
         self.state = state
-        self.is_dirty = False
-        self.setWidgetResizable(True)
-        self.setFrameShape(QScrollArea.Shape.NoFrame)
+
+        self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(0)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
 
         self.main_widget = QWidget()
-        self.layout = QVBoxLayout(self.main_widget)
-        self.layout.setContentsMargins(10, 10, 10, 10)
-        self.layout.setSpacing(15)
+        self.content_layout = QVBoxLayout(self.main_widget)
+        self.content_layout.setContentsMargins(10, 10, 10, 10)
+        self.content_layout.setSpacing(15)
 
         self._build_ui()
-        self.setWidget(self.main_widget)
+        self.content_layout.addStretch()
+
+        scroll.setWidget(self.main_widget)
+        self.layout.addWidget(scroll)
 
     def _build_ui(self):
         self.filter_group = QGroupBox("Saved Filters")
@@ -40,36 +45,36 @@ class SettingsFilterTab(QScrollArea):
 
         self._refresh_filters()
 
-        self.layout.addWidget(self.filter_group)
-        self.layout.addStretch(2)
+        self.content_layout.addWidget(self.filter_group)
+        self.content_layout.addStretch(2)
 
         # Move Save Filters Settings button to bottom-right, centered
         save_btn_container = QWidget()
         save_btn_layout = QHBoxLayout(save_btn_container)
         save_btn_layout.setContentsMargins(20, 15, 20, 15)
 
-        self.save_filter_btn = QPushButton("Save Filter Settings")
-        self.save_filter_btn.setFixedWidth(180)
-        self.save_filter_btn.setStyleSheet(APP_THEME.button_qss())
-        self.save_filter_btn.clicked.connect(self._save_filter_settings)
+        self.save_btn = QPushButton("Save Filter Settings")
+        self.save_btn.setFixedWidth(180)
+        self.save_btn.setStyleSheet(APP_THEME.button_qss())
+        self.save_btn.clicked.connect(self._save_filter_settings)
 
-        save_btn_layout.addWidget(self.save_filter_btn)
-        self.layout.addWidget(
+        save_btn_layout.addWidget(self.save_btn)
+        self.content_layout.addWidget(
             save_btn_container,
             alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom,
         )
 
     def highlight_save_button(self):
         self.is_dirty = True
-        self.save_filter_btn.setStyleSheet(APP_THEME.button_qss() + APP_THEME.button_highlight_qss())
-        text_indicator = self.save_filter_btn.text().removesuffix(" *") + " *"
-        self.save_filter_btn.setText(text_indicator)
+        self.save_btn.setStyleSheet(APP_THEME.button_qss() + APP_THEME.button_highlight_qss())
+        text_indicator = self.save_btn.text().removesuffix(" *") + " *"
+        self.save_btn.setText(text_indicator)
 
     def reset_save_button(self):
         self.is_dirty = False
-        self.save_filter_btn.setStyleSheet(APP_THEME.button_qss())
-        text_indicator = self.save_filter_btn.text().removesuffix(" *")
-        self.save_filter_btn.setText(text_indicator)
+        self.save_btn.setStyleSheet(APP_THEME.button_qss())
+        text_indicator = self.save_btn.text().removesuffix(" *")
+        self.save_btn.setText(text_indicator)
 
     def _refresh_filters(self):
         # Clear existing filter rows
@@ -128,7 +133,7 @@ class SettingsFilterTab(QScrollArea):
 
         filter_cfg["name"] = new_name
         self.state.save_filters()
-        self.state.sig_changed.emit()
+        # self.state.sig_changed.emit()
         self.sig_changed.emit()
         self._refresh_filters()
 
@@ -139,6 +144,7 @@ class SettingsFilterTab(QScrollArea):
         self._refresh_filters()
 
     def apply_theme(self):
+        super().apply_theme()
         font = QFont(APP_THEME.font_family, APP_THEME.font_size)
         self.main_widget.setFont(font)
         self.main_widget.setStyleSheet(APP_THEME.container_qss())

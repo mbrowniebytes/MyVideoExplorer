@@ -11,11 +11,11 @@ class TestFolderListIcons:
     def folder_list(self, qtbot):
         file_util = MagicMock(spec=FileUtil)
         settings = MagicMock()
-        settings.folder_configs = [
+        settings.settings_data_model.folder_configs = [
             {"path": "/path/to/Folder A", "icon": "fa5s.video"},
             {"path": "/path/to/Folder B", "icon": "fa5s.image"},
         ]
-        settings.settings_data_model = MagicMock()
+
 
         with patch("src.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
             mock_log = MagicMock()
@@ -71,7 +71,7 @@ class TestFolderListIcons:
         )
 
         # Change icon in settings
-        folder_list.settings.folder_configs[0]["icon"] = "fa5s.star"
+        folder_list.settings.settings_data_model.folder_configs[0]["icon"] = "fa5s.star"
 
         # Call refresh_icons
         folder_list.refresh_icons()

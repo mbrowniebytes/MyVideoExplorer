@@ -12,11 +12,13 @@ from PySide6.QtGui import QFont
 from PySide6.QtCore import Qt
 
 from src.settings.settings_base_tab import SettingsBaseTab
+from src.settings.settings_state import SettingsState
 from src.theme.theme import APP_THEME
+from src.utils.log_util import LogUtil
 
 
 class SettingsUITab(SettingsBaseTab):
-    def __init__(self, state, log_util, parent=None):
+    def __init__(self, state: SettingsState, log_util: LogUtil, parent=None):
         super().__init__(log_util, parent)
         self.state = state
         
@@ -84,7 +86,7 @@ class SettingsUITab(SettingsBaseTab):
             APP_THEME.refresh_theme()
         finally:
             self.font_size_spinbox.blockSignals(False)
-        self.state.sig_changed.emit()
+        self.state.sig_settings_changed.emit()
 
     def _save_ui_settings(self):
         """Save only UI tab settings."""
