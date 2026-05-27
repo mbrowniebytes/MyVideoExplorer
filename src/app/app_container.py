@@ -3,8 +3,8 @@ from src.app.app_controller import AppController
 from src.file_list.file_list import FileList
 from src.folder_list.folder_list import FolderList
 from src.folder_nav.folder_nav import FolderNav
-from src.folder_nav.folder_nav_filters import FolderNavFilters
-from src.folder_nav.folder_nav_filters_filter import FolderFilterEngine
+from src.folder_filter.folder_filter import FolderFilters
+from src.folder_filter.folder_filter_filter import FolderFilterFilter
 from src.image_list.image_list import ImageList
 from src.image_list.image_list_view import ImageListView
 from src.media_info.media_info import MediaInfo
@@ -51,10 +51,10 @@ class AppContainer:
 
         self.controller = AppController(self.log_util)
 
-        self.folder_nav_filters_filter = FolderFilterEngine(
+        self.folder_nav_filters_filter = FolderFilterFilter(
             self.nfo_parse_util, self.settings.settings_data_model.folder_configs, self.log_util
         )
-        self.folder_nav_filters = FolderNavFilters(
+        self.folder_nav_filters = FolderFilters(
             self.folder_nav_filters_filter, self.file_util, self.settings, self.log_util
         )
         self.folder_nav = FolderNav(self.folder_nav_filters, self.log_util)

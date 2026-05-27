@@ -1,8 +1,7 @@
 import pytest
 from unittest.mock import MagicMock
-from src.folder_nav.folder_nav_filters import FolderNavFilters
-from src.folder_nav.folder_nav_filters_filter import FolderFilterEngine
-from src.settings.settings import Settings
+from src.folder_filter.folder_filter import FolderFilters
+from src.folder_filter.folder_filter_filter import FolderFilterFilter
 from src.utils.file_util import FileUtil
 from src.utils.nfo_parse_util import NfoParseUtil
 
@@ -22,10 +21,10 @@ class TestFolderNavFilters:
     def nav_filters(self, qtbot, settings_mock):
         file_util = MagicMock(spec=FileUtil)
         nfo_util = MagicMock(spec=NfoParseUtil)
-        engine = FolderFilterEngine(nfo_util)
+        engine = FolderFilterFilter(nfo_util)
         engine.apply_filters = MagicMock(side_effect=engine.apply_filters)
         mock_log = MagicMock()
-        widget = FolderNavFilters(engine, file_util, settings_mock, mock_log)
+        widget = FolderFilters(engine, file_util, settings_mock, mock_log)
         widget.build()
         qtbot.addWidget(widget)
         return widget

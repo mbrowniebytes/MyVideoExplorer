@@ -4,7 +4,7 @@ from PySide6.QtCore import Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QVBoxLayout
 
-from src.folder_nav.folder_nav_filters import FolderNavFilters
+from src.folder_filter.folder_filter import FolderFilters
 from src.theme.theme import APP_THEME
 from src.widgets.base_widget import BaseWidget
 from PySide6.QtCore import QTimer
@@ -19,7 +19,7 @@ class FolderNav(BaseWidget):
     sig_selected_items = Signal(list)
     sig_genre_changed = Signal(str)
 
-    def __init__(self, folder_nav_filters: FolderNavFilters, log_util) -> None:
+    def __init__(self, folder_nav_filters: FolderFilters, log_util) -> None:
         super().__init__(log_util)
         self.root_folders: list[str] = []
         self.folder_nav_filters = folder_nav_filters

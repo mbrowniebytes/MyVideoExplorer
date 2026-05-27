@@ -1,9 +1,9 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from src.folder_nav.folder_nav import FolderNav
-from src.folder_nav.folder_nav_filters import FolderNavFilters
+from src.folder_filter.folder_filter import FolderFilters
 from src.settings.settings import Settings
-from src.folder_nav.folder_nav_filters_filter import FolderFilterEngine
+from src.folder_filter.folder_filter_filter import FolderFilterFilter
 from src.utils.file_util import FileUtil
 
 
@@ -19,9 +19,9 @@ class TestFolderNav:
         settings.sig_changed = MagicMock()
 
         file_util = MagicMock(spec=FileUtil)
-        engine = MagicMock(spec=FolderFilterEngine)
+        engine = MagicMock(spec=FolderFilterFilter)
         mock_log = MagicMock()
-        filters = FolderNavFilters(engine, file_util, settings, mock_log)
+        filters = FolderFilters(engine, file_util, settings, mock_log)
 
         widget = FolderNav(filters, mock_log)
 

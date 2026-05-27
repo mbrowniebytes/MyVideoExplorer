@@ -11,9 +11,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from src.folder_nav.folder_filter_media import FolderFilterMedia
-from src.folder_nav.folder_filter_table import FolderFilterTable
-from src.folder_nav.folder_nav_filters_filter import FolderFilterEngine
+from src.folder_filter.folder_filter_media import FolderFilterMedia
+from src.folder_filter.folder_filter_table import FolderFilterTable
+from src.folder_filter.folder_filter_filter import FolderFilterFilter
 from src.settings.settings import Settings
 from src.theme.theme import APP_THEME
 from src.utils.file_util import FileUtil
@@ -21,7 +21,7 @@ from src.utils.file_util_model import FileUtilModel
 from src.widgets.base_widget import BaseWidget
 
 
-class FolderNavFilters(BaseWidget):
+class FolderFilters(BaseWidget):
     sig_apply_filters = Signal()
     sig_genre_changed = Signal(str)
     sig_root_folder = Signal(str)
@@ -32,7 +32,7 @@ class FolderNavFilters(BaseWidget):
 
     def __init__(
         self,
-        folder_filter_engine: FolderFilterEngine,
+        folder_filter_engine: FolderFilterFilter,
         file_util: FileUtil,
         settings: Settings,
         log_util,
