@@ -48,7 +48,7 @@ class FolderNavFilters(BaseWidget):
         self.save_filter_button = QToolButton()
         # self.delete_filter_button = QToolButton()
         self.media_filter = FolderFilterMedia(self.settings, self)
-        self.filter_table = FolderFilterTable(self.GENRES, self.settings.folder_configs)
+        self.filter_table = FolderFilterTable(self.GENRES, self.settings.settings_data_model.folder_configs)
         # support multiple roots
         self.root_folders: list[str] = []
         self.folder_nav_filters_filter = folder_filter_engine
@@ -67,7 +67,7 @@ class FolderNavFilters(BaseWidget):
         self._build_save_filter_button()
         # self._build_delete_filter_button()
 
-        self.filter_table = FolderFilterTable(self.GENRES, self.settings.folder_configs)
+        self.filter_table = FolderFilterTable(self.GENRES, self.settings.settings_data_model.folder_configs)
 
         buttons_to_style = [
             self.apply_button,
@@ -113,7 +113,7 @@ class FolderNavFilters(BaseWidget):
         self.nav_combo = QComboBox()
         self.nav_combo.clear()
         self.nav_combo.addItem("- Select Folder -", userData="")
-        for config in self.settings.folder_configs:
+        for config in self.settings.settings_data_model.folder_configs:
             label = config["label"]
             self.nav_combo.addItem(label, userData=config["path"])
 
@@ -169,7 +169,7 @@ class FolderNavFilters(BaseWidget):
     def _refresh_saved_filters_combo(self) -> None:
         self.saved_filters_combo.clear()
         self.saved_filters_combo.addItem("")
-        filter_names = [f.get("name") for f in self.settings.saved_filters]
+        filter_names = [f.get("name") for f in self.settings.settings_data_model.saved_filters]
         for name in sorted(filter_names):
             self.saved_filters_combo.addItem(name)
 
@@ -214,7 +214,7 @@ class FolderNavFilters(BaseWidget):
             self.build_nav_combo()
             self._refresh_saved_filters_combo()
 
-        self.settings.sig_changed.connect(refresh_all)
+        self.settings.settings_data_model.sig_settings_changed.connect(refresh_all)
 
     def _handle_media_selection(self, index: int) -> None:
         if index < 0:
@@ -262,7 +262,7 @@ class FolderNavFilters(BaseWidget):
 
         name = self.saved_filters_combo.itemText(index)
         filters = None
-        for f in self.settings.saved_filters:
+        for f in self.settings.settings_data_model.saved_filters:
             if f.get("name") == name:
                 filters = f.get("filters")
                 break

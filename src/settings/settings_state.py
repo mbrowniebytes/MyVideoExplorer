@@ -17,7 +17,7 @@ DEFAULTS_FILTER_FILE = CFG_DIR / "defaults_filter.json"
 
 
 class SettingsState(QObject):
-    sig_changed = Signal()
+    sig_settings_changed = Signal()
 
     def __init__(self, log_util) -> None:
         super().__init__()
@@ -138,51 +138,32 @@ class SettingsState(QObject):
         self.json_util.backup_file(SETTINGS_APP_FILE, max_backups=5)
         self.json_util.save_json(SETTINGS_APP_FILE, app_settings)
 
-    def save_filter(self, name: str, filters: list[dict]) -> None:
+
+    def save_filter(self, name: str, filter_cfg: list[dict]) -> None:
         """Saves a named filter configuration."""
         # Check if filter with this name already exists
-        for i, filter_cfg in enumerate(self.saved_filters):
-            if filter_cfg.get("name") == name:
-                self.saved_filters[i] = {"name": name, "filters": filters}
+        b_found = False
+        for i, saved_filter_cfg in enumerate(self.saved_filters):
+            if saved_filter_cfg.get("name") == name:
+                self.saved_filters[i] = {"name": name, "filters": filter_cfg}
+                b_found = True
                 break
-        else:
-            self.saved_filters.append({"name": name, "filters": filters})
+                
+        if not b_found:
+            self.saved_filters.append({"name": name, "filters": filter_cfg})
 
-        self.save_settings()
-        self.sig_changed.emit()
+        self.save_filters()
+        self.sig_settings_changed.emit()
 
     def delete_filter(self, name: str) -> None:
         """Deletes a named filter configuration."""
         self.saved_filters = [f for f in self.saved_filters if f.get("name") != name]
-        self.save_settings()
-        self.sig_changed.emit()
+        self.save_filters()
+        self.sig_settings_changed.emit()
 
     def save_settings(self):
         """Save all tabs' settings (legacy method for backward compatibility)."""
-        # This calls each individual save method internally via state.sig_changed
-        self._ensure_defaults()
-
-        app_settings = {
-            "log_level": self.log_level,
-        }
-        ui_settings = {
-            "font_size": APP_THEME.font_size,
-        }
-        media_settings = {
-            "folder_configs": self.folder_configs,
-        }
-        filter_settings = {
-            "saved_filters": self.saved_filters,
-        }
-
-        # Backup logic: keep up to 5 daily copies for each file
-        self.json_util.backup_file(SETTINGS_APP_FILE, max_backups=5)
-        self.json_util.backup_file(SETTINGS_UI_FILE, max_backups=5)
-        self.json_util.backup_file(SETTINGS_MEDIA_FILE, max_backups=5)
-        self.json_util.backup_file(SETTINGS_FILTER_FILE, max_backups=5)
-
-        # Save current settings
-        self.json_util.save_json(SETTINGS_APP_FILE, app_settings)
-        self.json_util.save_json(SETTINGS_UI_FILE, ui_settings)
-        self.json_util.save_json(SETTINGS_MEDIA_FILE, media_settings)
-        self.json_util.save_json(SETTINGS_FILTER_FILE, filter_settings)
+        self.save_app()
+        self.save_ui()
+        self.save_media()
+        self.save_filters()

@@ -1,7 +1,13 @@
 
-from PySide6.QtCore import Signal, Qt
-from PySide6.QtWidgets import QFileDialog, QWidget, QHBoxLayout
-from src.folder_nav.nav_button import NavButton
+from PySide6.QtCore import Signal, Qt, QSize
+from PySide6.QtWidgets import (
+    QFileDialog,
+    QWidget,
+    QHBoxLayout,
+    QToolButton,
+    QSizePolicy,
+)
+from src.theme.theme import APP_THEME
 from src.widgets.base_widget import BaseWidget
 
 
@@ -15,7 +21,20 @@ class FolderPickerWidget(BaseWidget):
 
     def _setup_ui(self) -> None:
         layout = self.set_compact_layout(QHBoxLayout)
-        self.pick_button = NavButton("Select Folder", "fa5s.folder-open")
+        
+        self.pick_button = QToolButton()        
+        self.pick_button.setToolTip("Select Folder")
+        self.pick_button.setCheckable(True)
+        self.pick_button.setCursor(Qt.CursorShape.PointingHandCursor)
+
+        self.pick_button.setIcon(APP_THEME.icon("fa5s.folder-open", color=APP_THEME.text_color))
+        self.pick_button.setIconSize(QSize(APP_THEME.icon_size, APP_THEME.icon_size))
+        self.pick_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.pick_button.setFixedSize(70, 40)
+
+        self.pick_button.setText("")
+
+        
         self.pick_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
         self.pick_button.clicked.connect(self.pick_folder)
         layout.addWidget(self.pick_button)

@@ -15,6 +15,8 @@ class TestFolderListIcons:
             {"path": "/path/to/Folder A", "icon": "fa5s.video"},
             {"path": "/path/to/Folder B", "icon": "fa5s.image"},
         ]
+        settings.settings_data_model = MagicMock()
+
         with patch("src.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
             mock_log = MagicMock()
             widget = FolderList(file_util, settings=settings, log_util=mock_log)
@@ -26,7 +28,7 @@ class TestFolderListIcons:
     def test_icons_assigned_on_initial_load(self, folder_list):
         items = [
             FileUtilModel(
-                type="dir", name="Folder A", full_path="/path/to/Folder A", depth=0
+                type="dir", name="Folder A", full_path="/path/to/Folder A", depth=0,
             ),
             FileUtilModel(
                 type="dir", name="Folder B", full_path="/path/to/Folder B", depth=0

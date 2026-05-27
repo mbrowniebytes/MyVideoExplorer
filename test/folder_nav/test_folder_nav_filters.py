@@ -17,6 +17,7 @@ class TestFolderNavFilters:
             {"label": "TV Shows", "path": "tv"},
         ]
         settings.saved_filters = []
+        settings.settings_data_model = MagicMock()
         return settings
 
     @pytest.fixture

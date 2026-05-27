@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QComboBox,
     QFormLayout,
@@ -9,19 +9,16 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from src.settings.settings_base_tab import SettingsBaseTab
 from src.theme.theme import APP_THEME
 from src.utils.log_util import LogUtil
 
 
-class SettingsAppTab(QWidget):
-    sig_changed = Signal()
-    sig_saved = Signal()
-
-    def __init__(self, state, log_util):
-        super().__init__()
+class SettingsAppTab(SettingsBaseTab):
+    def __init__(self, state, log_util, parent=None):
+        super().__init__(log_util, parent)
         self.log_util = log_util
         self.state = state
-        self.is_dirty = False
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(10, 10, 10, 10)
         self.layout.setSpacing(15)
@@ -59,33 +56,18 @@ class SettingsAppTab(QWidget):
         save_btn_layout = QHBoxLayout(save_btn_container)
         save_btn_layout.setContentsMargins(20, 15, 20, 15)
 
-        self.save_app_btn = QPushButton("Save App Settings")
-        self.save_app_btn.setFixedWidth(180)
-        self.save_app_btn.setStyleSheet(APP_THEME.button_qss())
-        self.save_app_btn.clicked.connect(self._save_app_settings)
+        self.save_btn = QPushButton("Save App Settings")
+        self.save_btn.setFixedWidth(180)
+        self.save_btn.setStyleSheet(APP_THEME.button_qss())
+        self.save_btn.clicked.connect(self._save_app_settings)
 
-        save_btn_layout.addWidget(self.save_app_btn)
+        save_btn_layout.addWidget(self.save_btn)
         self.layout.addWidget(
             save_btn_container,
             alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom,
         )
 
         self.logging_level_combo.currentIndexChanged.connect(self._on_setting_changed)
-
-    def _on_setting_changed(self):
-        self.sig_changed.emit()
-
-    def highlight_save_button(self):
-        self.is_dirty = True
-        self.save_app_btn.setStyleSheet(APP_THEME.button_qss() + APP_THEME.button_highlight_qss())
-        text_indicator = self.save_app_btn.text().removesuffix(" *") + " *"
-        self.save_app_btn.setText(text_indicator)
-
-    def reset_save_button(self):
-        self.is_dirty = False
-        self.save_app_btn.setStyleSheet(APP_THEME.button_qss())
-        text_indicator = self.save_app_btn.text().removesuffix(" *")
-        self.save_app_btn.setText(text_indicator)
 
     def _save_app_settings(self):
         """Save only App tab settings."""

@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.folder_list.folder_list_view import FolderListView
+from src.settings.settings import Settings
 from src.theme.theme import APP_THEME
 from src.utils.file_util import FileUtil
 from src.utils.file_util_model import FileUtilModel
@@ -24,7 +25,7 @@ _EMPTY_STATE_NO_MEDIA_FOLDERS = (
 class FolderList(BaseWidget):
     sig_folder_selected_intent = Signal(str)
 
-    def __init__(self, file_util: FileUtil, settings, log_util) -> None:
+    def __init__(self, file_util: FileUtil, settings: Settings, log_util) -> None:
         super().__init__(log_util)
         self.folder_view = FolderListView()
         self.file_util = file_util
@@ -135,7 +136,7 @@ class FolderList(BaseWidget):
             return "fa5s.folder"
 
         norm_path = path.replace("\\", "/").rstrip("/").lower()
-        for config in self.settings.folder_configs:
+        for config in self.settings.settings_data_model.folder_configs:
             cfg_path = config.get("path", "").replace("\\", "/").rstrip("/").lower()
             if norm_path == cfg_path:
                 return config.get("icon", "fa5s.folder")
@@ -148,7 +149,7 @@ class FolderList(BaseWidget):
             return False
         import os
 
-        for config in self.settings.folder_configs:
+        for config in self.settings.settings_data_model.folder_configs:
             p = config.get("path", "")
             if p and os.path.isdir(p):
                 return True

@@ -32,7 +32,6 @@ class FolderNav(BaseWidget):
         layout = self.set_compact_layout(QVBoxLayout)
         layout.setSpacing(10)
         layout.addWidget(self.folder_nav_filters)
-        layout.addStretch()
 
         self._connect_sigs()
         return self

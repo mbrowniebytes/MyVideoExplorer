@@ -1,11 +1,8 @@
-from PySide6.QtCore import Signal
-from PySide6.QtWidgets import (
-    QLabel,
-    QTabBar,
-    QTabWidget,
-    QVBoxLayout,
-    QWidget,
-)
+from __future__ import annotations
+
+
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import QTabBar, QTabWidget, QVBoxLayout, QWidget
 
 from src.settings.settings_app_tab import SettingsAppTab
 from src.settings.settings_filter_tab import SettingsFilterTab
@@ -13,137 +10,134 @@ from src.settings.settings_media_tab import SettingsMediaTab
 from src.settings.settings_state import SettingsState
 from src.settings.settings_ui_tab import SettingsUITab
 from src.theme.theme import APP_THEME
+from src.utils.log_util import LogUtil
+from src.widgets.base_widget import BaseWidget
 from src.widgets.right_aligned_tab_bar import RightAlignedTabBar
 
 
-class Settings(QWidget):
+class Settings(BaseWidget):
+    """Container widget for application settings, managing tabs and state persistence."""
+
     sig_dirty_changed = Signal(bool)
 
-    def __init__(self, log_util) -> None:
+    def __init__(self, log_util: LogUtil | None = None) -> None:
         super().__init__()
         self.log_util = log_util
-        self.log_util.debug(f"__init__ {self.__class__.__name__}")
-        self.tab_widget = QTabWidget()
-        self.help_icon = QLabel()
-        self.state = SettingsState(self.log_util)
-        self.ui_tab = SettingsUITab(self.state, self.log_util)
-        self.media_tab = SettingsMediaTab(self.state, self.log_util)
-        self.filter_tab = SettingsFilterTab(self.state, self.log_util)
-        self.app_tab = SettingsAppTab(self.state, self.log_util)  # Add App tab
 
-        # Connect signals
-        self.state.sig_changed.connect(self.apply_theme)
-        self.media_tab.sig_changed.connect(self.apply_theme)
-        self.media_tab.sig_changed.connect(self.state.sig_changed.emit)
+        # Data Model (State Management)
+        self.settings_data_model = SettingsState(self.log_util)
 
-        # Wire dirty signals
-        self.app_tab.sig_changed.connect(lambda: self._mark_dirty(self.app_tab))
-        self.ui_tab.sig_changed.connect(lambda: self._mark_dirty(self.ui_tab))
-        self.media_tab.sig_changed.connect(lambda: self._mark_dirty(self.media_tab))
-        self.filter_tab.sig_changed.connect(lambda: self._mark_dirty(self.filter_tab))
+        # View Components (Settings Tabs)
+        self.app_settings_tab = SettingsAppTab(self.settings_data_model, self.log_util)
+        self.ui_settings_tab = SettingsUITab(self.settings_data_model, self.log_util)
+        self.media_settings_tab = SettingsMediaTab(
+            self.settings_data_model, self.log_util
+        )
+        self.filter_settings_tab = SettingsFilterTab(
+            self.settings_data_model, self.log_util
+        )
 
-        # Connect tab saved signals to check_all_saved
-        self.app_tab.sig_saved.connect(self._check_all_saved)
-        self.ui_tab.sig_saved.connect(self._check_all_saved)
-        self.media_tab.sig_saved.connect(self._check_all_saved)
-        self.filter_tab.sig_saved.connect(self._check_all_saved)
+        # Group tabs for centralized management (DRY principle)
+        self.managed_tabs: list[QWidget] = [
+            self.app_settings_tab,
+            self.ui_settings_tab,
+            self.media_settings_tab,
+            self.filter_settings_tab,
+        ]
 
-    @property
-    def folder_configs(self):
-        return self.state.folder_configs
+        self._build_ui()
+        self._connect_signals()
 
-    @folder_configs.setter
-    def folder_configs(self, value):
-        self.state.folder_configs = value
-
-    @property
-    def saved_filters(self):
-        return self.state.saved_filters
-
-    @saved_filters.setter
-    def saved_filters(self, value):
-        self.state.saved_filters = value
-
-    @property
-    def sig_changed(self):
-        return self.state.sig_changed
-
-    def build(self) -> QWidget:
+    def _build_ui(self) -> None:
+        """Constructs the settings UI layout and registers tabs."""
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
-        self.tab_widget = QTabWidget()
-        tab_bar = RightAlignedTabBar(self.tab_widget, spacer_index=0)
-        self.tab_widget.setTabBar(tab_bar)
-        self.tab_widget.setStyleSheet(APP_THEME.tabs_qss())
-        self.tab_widget.setTabPosition(QTabWidget.TabPosition.North)
+        self.settings_tabs_container = QTabWidget()
+        tab_bar = RightAlignedTabBar(self.settings_tabs_container, spacer_index=0)
+        self.settings_tabs_container.setTabBar(tab_bar)
+        self.settings_tabs_container.setStyleSheet(APP_THEME.tabs_qss())
+        self.settings_tabs_container.setTabPosition(QTabWidget.TabPosition.North)
 
-        # Spacer Tab (Index 0)
+        # Add invisible spacer tab to push functional tabs right
+        self._add_spacer_tab(self.settings_tabs_container, tab_bar)
+
+        # Register settings tabs with consistent labels
+        tab_labels = ["App", "UI", "Media", "Filters"]
+        for tab_widget, label in zip(self.managed_tabs, tab_labels):
+            self.settings_tabs_container.addTab(tab_widget, f" {label} ")
+
+        # Default to first functional tab (index 1)
+        if self.settings_tabs_container.count() > 1:
+            self.settings_tabs_container.setCurrentIndex(1)
+
+        main_layout.addWidget(self.settings_tabs_container)
+
+    @staticmethod
+    def _add_spacer_tab(tab_widget: QTabWidget, tab_bar: QTabBar) -> None:
+        """Adds a disabled spacer tab to align other tabs to the right."""
         spacer = QWidget()
-        self.tab_widget.addTab(spacer, "")
-        self.tab_widget.setTabEnabled(0, False)
+        spacer.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        tab_widget.addTab(spacer, "")
+        tab_widget.setTabEnabled(0, False)
         tab_bar.setTabButton(0, QTabBar.ButtonPosition.LeftSide, None)
         tab_bar.setTabButton(0, QTabBar.ButtonPosition.RightSide, None)
 
-        # Add Tabs
-        self.tab_widget.addTab(self.app_tab, "  App  ")
-        self.tab_widget.addTab(self.ui_tab, "   UI   ")
-        self.tab_widget.addTab(self.media_tab, " Media ")
-        self.tab_widget.addTab(self.filter_tab, " Filters ")
+    def _connect_signals(self) -> None:
+        """Wires up signals between tabs, state, and the container."""
+        self.settings_data_model.sig_settings_changed.connect(self.apply_theme)
 
-        # Select first real tab (index 1) as 0 is spacer
-        if self.tab_widget.count() > 1:
-            self.tab_widget.setCurrentIndex(1)
+        for tab in self.managed_tabs:
+            # Use default argument to capture current loop variable correctly
+            tab.sig_changed.connect(lambda t=tab: self._mark_tab_dirty(t))
+            tab.sig_saved.connect(self._check_all_tabs_saved)
 
-        main_layout.addWidget(self.tab_widget)
-
-        return self
-
-    def _mark_dirty(self, tab):
-        tab.highlight_save_button()
+    def _mark_tab_dirty(self, tab: QWidget) -> None:
+        """Marks a specific tab as dirty and notifies the container."""
+        if hasattr(tab, "highlight_save_button"):
+            tab.highlight_save_button()
         self.sig_dirty_changed.emit(True)
 
-    def _check_all_saved(self):
-        # If no tab is dirty, emit False
-        # print(f"_check_all_saved: self.media_tab.is_dirty:{self.media_tab.is_dirty}")
-        if not (self.app_tab.is_dirty or
-                self.ui_tab.is_dirty or
-                self.media_tab.is_dirty or
-                self.filter_tab.is_dirty):
+    def _check_all_tabs_saved(self) -> None:
+        """Checks if all tabs are clean. Emits False if no dirty tabs remain."""
+        if not any(getattr(t, "is_dirty", False) for t in self.managed_tabs):
             self.sig_dirty_changed.emit(False)
 
-    def _save_all_settings(self):
-        """Save all tabs' settings."""
-        self.state.save_settings()
+    def save_all_settings(self) -> None:
+        """Persists settings from all tabs and resets dirty states."""
+        self.settings_data_model.save_settings()
 
-        # Reset dirty state for all tabs
-        self.app_tab.reset_save_button()
-        self.ui_tab.reset_save_button()
-        self.media_tab.reset_save_button()
-        self.filter_tab.reset_save_button()
+        for tab in self.managed_tabs:
+            if hasattr(tab, "reset_save_button"):
+                tab.reset_save_button()
 
-        self.show_save_status("All Settings saved")
-        self._check_all_saved()
+        self.log_util.info("All Settings saved")
+        self._check_all_tabs_saved()
 
-    def show_save_status(self, message: str):
-        """Show a brief status notification."""
-        msg = f"✔ {message}"
-        print(msg)  # Log to console as status feedback
+    def apply_theme(self) -> None:
+        """Applies current theme to the settings container and all managed tabs."""
+        self.settings_tabs_container.setStyleSheet(APP_THEME.tabs_qss())
 
-    def apply_theme(self):
-        self.tab_widget.setStyleSheet(APP_THEME.tabs_qss())
-        self.help_icon.setStyleSheet(
-            APP_THEME.label_qss("small")
-            + "; border: 1px solid palette(text); border-radius: 10px;"
-        )
-        self.ui_tab.apply_theme()
-        self.media_tab.apply_theme()
-        self.filter_tab.apply_theme()
+        for tab in self.managed_tabs:
+            if hasattr(tab, "apply_theme"):
+                tab.apply_theme()
 
+    def build(self) -> QWidget:
+        """Ensures UI is constructed and returns the widget (backward compatibility)."""
+        if not hasattr(self, "settings_tabs_container"):
+            self._build_ui()
+        return self
 
-    def save_filter(self, name: str, filters: list[dict]):
-        self.state.save_filter(name, filters)
+    # --- Data Model Delegation ---
+    def get_folder_configs(self):
+        return self.settings_data_model.folder_configs
 
-    def delete_filter(self, name: str):
-        self.state.delete_filter(name)
+    def set_folder_configs(self, value):
+        self.settings_data_model.folder_configs = value
+
+    def save_filter(self, name: str, filters: list[dict]) -> None:
+        self.settings_data_model.save_filter(name, filters)
+
+    def delete_filter(self, name: str) -> None:
+        self.settings_data_model.delete_filter(name)

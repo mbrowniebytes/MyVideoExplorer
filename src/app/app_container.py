@@ -10,7 +10,7 @@ from src.image_list.image_list_view import ImageListView
 from src.media_info.media_info import MediaInfo
 from src.media_info.media_info_side_view import MediaInfoSideView
 from src.media_info.media_info_view import MediaInfoView
-from src.media_tabs.media_tabs import MediaTabs
+from src.media_info_tabs.media_info_tabs import MediaInfoTabs
 from src.settings.settings import Settings
 from src.utils.log_util import LogUtil
 from src.utils.file_util import FileUtil
@@ -52,7 +52,7 @@ class AppContainer:
         self.controller = AppController(self.log_util)
 
         self.folder_nav_filters_filter = FolderFilterEngine(
-            self.nfo_parse_util, self.settings.folder_configs, self.log_util
+            self.nfo_parse_util, self.settings.settings_data_model.folder_configs, self.log_util
         )
         self.folder_nav_filters = FolderNavFilters(
             self.folder_nav_filters_filter, self.file_util, self.settings, self.log_util
@@ -84,7 +84,7 @@ class AppContainer:
 
         self.video_player = VideoPlayer(self.file_util, self.log_util)
 
-        self.media_tabs = MediaTabs(self.log_util)
+        self.media_info_tabs = MediaInfoTabs(self.log_util)
 
         self._wire_all_signals()
 
@@ -114,7 +114,11 @@ class AppContainer:
             self.controller.set_current_file
         )
 
-        self.media_tabs.sig_tab_click.connect(self.controller.set_current_tab)
+        self.media_info_tabs.sig_tab_click.connect(self.controller.set_current_tab)
+
+        self.settings.media_settings_tab.sig_changed.connect(self.folder_list.refresh_icons)
+        self.settings.media_settings_tab.sig_root_folders_changed.connect(self.controller.set_root_folder)
+
 
     def _wire_controller_outputs(self) -> None:
         """Controller state changes → Component refreshes."""
@@ -133,7 +137,7 @@ class AppContainer:
 
         self.controller.sig_tab_changed.connect(self._on_tab_changed)
 
-        self.settings.sig_changed.connect(self.folder_list.refresh_icons)
+        self.settings.settings_data_model.sig_settings_changed.connect(self.folder_list.refresh_icons)
         # When media folders are deleted in settings, update controller root_folders
         if hasattr(self.settings, "media_tab") and hasattr(self.settings.media_tab, "sig_root_folders_changed"):
             self.settings.media_tab.sig_root_folders_changed.connect(self.controller.set_root_folder)

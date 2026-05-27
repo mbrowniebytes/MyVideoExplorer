@@ -53,7 +53,10 @@ skip
 #### Code   
 Use code completion, documentation, AI code generation, AI chat, AI analysis, code quality tools, tests,  or any other tool you want.   
 Direct and review every result from AI.  Create reasonable, maintainable, verbose naming, non-emoji code.  Follow existing patterns, or improve upon.  
-AI used: QWen, Junie, GTP, Gemini.
+AI used:   
+Local: Qwen, Gemma   
+Remote: Junie, GTP, Gemini  
+
 
  Please keep PRs small and focused.   
 

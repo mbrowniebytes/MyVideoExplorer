@@ -127,7 +127,7 @@ class SettingsFilterTab(QScrollArea):
             pass
 
         filter_cfg["name"] = new_name
-        self.state.save_settings()
+        self.state.save_filters()
         self.state.sig_changed.emit()
         self.sig_changed.emit()
         self._refresh_filters()

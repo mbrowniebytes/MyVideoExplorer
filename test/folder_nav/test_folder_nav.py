@@ -15,6 +15,7 @@ class TestFolderNav:
         settings = MagicMock(spec=Settings)
         settings.folder_configs = []
         settings.saved_filters = {}
+        settings.settings_data_model = MagicMock()
         settings.sig_changed = MagicMock()
 
         file_util = MagicMock(spec=FileUtil)

@@ -309,8 +309,8 @@ class LogUtil:
 
     def handle_exception(self, exc_type, exc_value, exc_traceback):
         """Global exception handler to be used with sys.excepthook."""
-        if issubclass(exc_type, KeyboardInterrupt):
-
+        if (issubclass(exc_type, KeyboardInterrupt) or
+                not getattr(sys, 'frozen', False)):
             sys.__excepthook__(exc_type, exc_value, exc_traceback)
             return
 

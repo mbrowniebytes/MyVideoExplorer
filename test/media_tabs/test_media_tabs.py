@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from PySide6.QtWidgets import QWidget
-from src.media_tabs.media_tabs import MediaTabs
+from src.media_info_tabs.media_info_tabs import MediaInfoTabs
 from src.media_info.media_info import MediaInfo
 from src.image_list.image_list import ImageList
 from src.settings.settings import Settings
@@ -11,7 +11,7 @@ class TestMediaTabs:
     @pytest.fixture
     def media_tabs(self, qtbot):
         mock_log = MagicMock()
-        tabs = MediaTabs(mock_log)
+        tabs = MediaInfoTabs(mock_log)
         # Mock components to avoid deep build issues
         mock_mi = MagicMock(spec=MediaInfo)
         mock_mi.build.return_value = QWidget()
@@ -55,7 +55,7 @@ class TestMediaTabs:
         assert size_hint.width() > 500
 
     def test_apply_theme(self, media_tabs):
-        with patch("src.media_tabs.media_tabs.APP_THEME") as mock_theme:
+        with patch("src.media_info_tabs.media_info_tabs.APP_THEME") as mock_theme:
             mock_theme.font_family = "Arial"
             mock_theme.font_size = 12
             mock_theme.tabs_qss.return_value = "QTabWidget { color: red; }"

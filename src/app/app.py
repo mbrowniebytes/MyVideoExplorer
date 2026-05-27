@@ -30,7 +30,7 @@ class App:
         self.folder_list = container.folder_list
         self.file_list = container.file_list
         self.image_list = container.image_list
-        self.media_tabs = container.media_tabs
+        self.media_tabs = container.media_info_tabs
         self.video_player = container.video_player
         self.media_info = container.media_info
 
@@ -84,7 +84,7 @@ class App:
         # Initialize app by iterating over all configured Media folders.
         # For each valid folder path, set it as the current root so the
         # UI components (folder nav, folder list, image list) refresh.
-        media_configs = getattr(self.container.settings, "folder_configs", [])
+        media_configs = self.container.settings.settings_data_model.folder_configs
         valid_paths = []
         for cfg in media_configs:
             p = cfg.get("path", "")

@@ -10,7 +10,7 @@ from src.widgets.base_widget import BaseWidget
 from src.widgets.right_aligned_tab_bar import RightAlignedTabBar
 
 
-class MediaTabs(BaseWidget):
+class MediaInfoTabs(BaseWidget):
     sig_tab_click = Signal(int)
 
     def __init__(self, log_util) -> None:
