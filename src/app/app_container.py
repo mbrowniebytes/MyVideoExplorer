@@ -114,7 +114,7 @@ class AppContainer:
             self.controller.set_current_file
         )
 
-        self.media_info_tabs.sig_tab_click.connect(self.controller.set_current_tab)
+        self.media_info_tabs.sig_tab_selection_changed.connect(self.controller.set_current_tab)
 
         self.settings.media_settings_tab.sig_changed.connect(self.folder_list.refresh_icons)
         self.settings.media_settings_tab.sig_root_folders_changed.connect(self.controller.set_root_folder)

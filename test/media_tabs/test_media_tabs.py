@@ -25,28 +25,28 @@ class TestMediaTabs:
         return tabs
 
     def test_initialization(self, media_tabs):
-        assert media_tabs.media_info_tabs.count() == 4
-        assert media_tabs.media_info_tabs.tabText(0) == "media"
-        assert media_tabs.media_info_tabs.tabText(1) == "info"
-        assert media_tabs.media_info_tabs.tabText(2) == ""
-        assert media_tabs.media_info_tabs.tabText(3) == "⚙"
+        assert media_tabs.tab_container.count() == 4
+        assert media_tabs.tab_container.tabText(0) == "media"
+        assert media_tabs.tab_container.tabText(1) == "info"
+        assert media_tabs.tab_container.tabText(2) == ""
+        assert media_tabs.tab_container.tabText(3) == "⚙"
 
     def test_tab_changed_emits_signal(self, media_tabs, qtbot):
-        with qtbot.waitSignal(media_tabs.sig_tab_click) as blocker:
-            media_tabs.media_info_tabs.setCurrentIndex(1)
+        with qtbot.waitSignal(media_tabs.sig_tab_selection_changed) as blocker:
+            media_tabs.tab_container.setCurrentIndex(1)
         assert blocker.args[0] == 1
-        assert media_tabs.current_tab == 1
+        assert media_tabs.active_tab_index == 1
 
     def test_show_settings_tab(self, media_tabs):
         media_tabs.show_settings_tab()
-        assert media_tabs.media_info_tabs.currentIndex() == 3
+        assert media_tabs.tab_container.currentIndex() == 3
 
     def test_spacer_tab_expands(self, media_tabs):
-        tab_bar = media_tabs.media_info_tabs.tabBar()
+        tab_bar = media_tabs.tab_container.tabBar()
         spacer_index = 2
 
         # Mock width of the tab bar container
-        media_tabs.media_info_tabs.resize(1000, 500)
+        media_tabs.tab_container.resize(1000, 500)
 
         size_hint = tab_bar.tabSizeHint(spacer_index)
 
@@ -62,6 +62,6 @@ class TestMediaTabs:
 
             media_tabs.apply_theme()
             assert (
-                media_tabs.media_info_tabs.styleSheet() == "QTabWidget { color: red; }"
+                media_tabs.tab_container.styleSheet() == "QTabWidget { color: red; }"
             )
             media_tabs.media_info.apply_theme.assert_called_once()
