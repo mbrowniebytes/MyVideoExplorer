@@ -92,11 +92,27 @@ class SettingsMediaTab(SettingsBaseTab):
         self.save_btn.setStyleSheet(APP_THEME.button_qss())
         self.save_btn.clicked.connect(self._save_media_settings)
 
+        self.reset_btn = self._build_reset_button("Reset Media Settings", self.reset_settings)
+
+        spacer = QWidget()
+        spacer.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        
+        save_btn_layout.addWidget(self.reset_btn)
+        save_btn_layout.addWidget(spacer)
         save_btn_layout.addWidget(self.save_btn)
         self.content_layout.addWidget(
             save_btn_container,
-            alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom,
+            alignment=Qt.AlignmentFlag.AlignBottom,
         )
+
+    def reset_settings(self):
+        """Reset settings for this tab."""
+        self.state.load_media()
+        self._refresh_folder_nav_settings()
+        self.reset_save_button()
+        self.sig_saved.emit()
+        print("Media Settings reset")
 
     def _refresh_folder_nav_settings(self) -> None:
         try:
@@ -336,8 +352,9 @@ class SettingsMediaTab(SettingsBaseTab):
         folder_config[key] = value
         self.sig_changed.emit()
 
-        paths = self._get_valid_media_paths()
-        self.sig_root_folders_changed.emit(paths)
+        # paths = self._get_valid_media_paths()
+        # self.sig_root_folders_changed.emit(paths)
+        self._on_setting_changed()
 
     def _on_folder_selected(
         self, value: str, folder_edit: QLineEdit, folder_config: dict
@@ -349,6 +366,7 @@ class SettingsMediaTab(SettingsBaseTab):
         self.sig_changed.emit()
         paths = self._get_valid_media_paths()
         self.sig_root_folders_changed.emit(paths)
+        self._on_setting_changed()
 
     def _add_folder(self) -> None:
         new_config = {
@@ -366,6 +384,7 @@ class SettingsMediaTab(SettingsBaseTab):
             100,
             lambda: self._click_new_folder_label(new_config),
         )
+        self.highlight_save_button()
 
     def _click_new_folder_label(self, folder_config: dict) -> None:
         item = self.folder_nav_layout.itemAt(self.folder_nav_layout.rowCount() - 1)
@@ -396,12 +415,14 @@ class SettingsMediaTab(SettingsBaseTab):
             self.state.folder_configs.remove(folder_config)
 
             self._refresh_folder_nav_settings()
-            self.sig_changed.emit()
-            self.log_util.debug("sig_changed emitted")
-            paths = self._get_valid_media_paths()
-            print(f"_remove_folder: paths:{paths}")
-            self.sig_root_folders_changed.emit(paths)
-            self.log_util.debug(f"sig_root_folders_changed emitted with paths: {paths}")
+            # self.sig_changed.emit()
+            # self.log_util.debug("sig_changed emitted")
+            # paths = self._get_valid_media_paths()
+            # print(f"_remove_folder: paths:{paths}")
+            # self.sig_root_folders_changed.emit(paths)
+            # self.log_util.debug(f"sig_root_folders_changed emitted with paths: {paths}")
+
+        self.highlight_save_button()
 
     def _save_media_settings(self):
         """Save only Media tab settings."""

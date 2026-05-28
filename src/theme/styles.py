@@ -93,7 +93,13 @@ class StyleFactory:
                 color: {c.color_interaction_selected_text};
                 font-weight: bold;
             }}
-            QPushButton {{ text-align: center; }}
+            QAbstractButton:disabled {{
+                background: {c.color_surface_disabled};
+                border: 1px solid {c.color_surface_disabled};
+            }}
+            QPushButton {{ 
+                text-align: center; 
+            }}
         """
 
     @staticmethod
@@ -110,7 +116,7 @@ class StyleFactory:
              QHeaderView::section {{
                  background: {c.color_surface_primary};
                  color: {c.color_text_primary};
-                 padding: 6px;
+                 padding: 0px;
                  border: 0;
              }}
          """

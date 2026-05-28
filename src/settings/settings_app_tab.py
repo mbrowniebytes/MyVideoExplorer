@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QVBoxLayout,
     QWidget,
+    QSizePolicy,
 )
 
 from src.settings.settings_base_tab import SettingsBaseTab
@@ -62,13 +63,33 @@ class SettingsAppTab(SettingsBaseTab):
         self.save_btn.setStyleSheet(APP_THEME.button_qss())
         self.save_btn.clicked.connect(self._save_app_settings)
 
+        self.reset_btn = self._build_reset_button("Reset App Settings", self.reset_settings)
+
+        spacer = QWidget()
+        spacer.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        
+        save_btn_layout.addWidget(self.reset_btn)
+        save_btn_layout.addWidget(spacer)
         save_btn_layout.addWidget(self.save_btn)
         self.layout.addWidget(
             save_btn_container,
-            alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom,
+            alignment=Qt.AlignmentFlag.AlignBottom,
         )
 
         self.logging_level_combo.currentIndexChanged.connect(self._on_setting_changed)
+
+    def reset_settings(self):
+        """Reset settings for this tab."""
+        self.state.load_app()
+        # Refresh combo box
+        current_level = self.state.log_level
+        index = self.logging_level_combo.findData(current_level)
+        if index >= 0:
+            self.logging_level_combo.setCurrentIndex(index)
+        self.reset_save_button()
+        self.sig_saved.emit()
+        print("App Settings reset")
 
     def _save_app_settings(self):
         """Save only App tab settings."""

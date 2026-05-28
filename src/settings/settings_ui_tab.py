@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QSpinBox,
     QVBoxLayout,
     QWidget,
+    QSizePolicy,
 )
 from PySide6.QtGui import QFont
 from PySide6.QtCore import Qt
@@ -51,6 +52,7 @@ class SettingsUITab(SettingsBaseTab):
         self.font_size_spinbox.setMaximum(24)
         self.font_size_spinbox.setValue(APP_THEME.font_size)
         self.font_size_spinbox.valueChanged.connect(self._on_font_size_changed)
+        self.font_size_spinbox.valueChanged.connect(lambda: self._on_setting_changed())
         display_layout.addRow("Font Size:", self.font_size_spinbox)
 
         self.content_layout.addWidget(display_group)
@@ -67,13 +69,29 @@ class SettingsUITab(SettingsBaseTab):
         self.save_btn.setStyleSheet(APP_THEME.button_qss())
         self.save_btn.clicked.connect(self._save_ui_settings)
 
+        self.reset_btn = self._build_reset_button("Reset UI Settings", self.reset_settings)
+        
+        spacer = QWidget()
+        spacer.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+        save_btn_layout.addWidget(self.reset_btn)
+        save_btn_layout.addWidget(spacer)
         save_btn_layout.addWidget(self.save_btn)
         self.content_layout.addWidget(
             save_btn_container,
-            alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom,
+            # alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom,
+            alignment=Qt.AlignmentFlag.AlignBottom,
         )
 
-        self.font_size_spinbox.valueChanged.connect(lambda: self._on_setting_changed())
+    def reset_settings(self):
+        """Reset settings for this tab."""
+        self.state.load_ui()
+        self.font_size_spinbox.setValue(APP_THEME.font_size)
+        APP_THEME.refresh_theme()
+        self.reset_save_button()
+        self.sig_saved.emit()
+        print("UI Settings reset")
 
     def _on_font_size_changed(self, value: int):
         if value == APP_THEME.font_size:
@@ -87,6 +105,7 @@ class SettingsUITab(SettingsBaseTab):
         finally:
             self.font_size_spinbox.blockSignals(False)
         self.state.sig_settings_changed.emit()
+        self._on_setting_changed()
 
     def _save_ui_settings(self):
         """Save only UI tab settings."""

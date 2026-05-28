@@ -31,7 +31,7 @@ class TestFolderNavFilters:
 
     def test_ui_initialization(self, nav_filters):
         """Verify that UI components are correctly initialized."""
-        assert nav_filters.apply_button.text().strip() == "Apply Filters"
+        assert nav_filters.apply_button.toolTip().strip() == "Apply Filters"
         # Starts with 1 row (placeholder)
         assert nav_filters.filter_table.rowCount() == 1
         assert (

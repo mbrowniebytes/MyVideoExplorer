@@ -1,12 +1,14 @@
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
+    QComboBox,
     QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QPushButton,
     QScrollArea,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -28,6 +30,7 @@ class SettingsFilterTab(SettingsBaseTab):
     def __init__(self, state: SettingsState, log_util: LogUtil, parent=None):
         super().__init__(log_util, parent)
         self.state = state
+        self.row_widgets = []
 
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -41,8 +44,6 @@ class SettingsFilterTab(SettingsBaseTab):
         self.content_layout = QVBoxLayout(self.main_widget)
         self.content_layout.setContentsMargins(10, 10, 10, 10)
         self.content_layout.setSpacing(15)
-
-        self.filter_table = FolderFilterTable(self.GENRES, self.state.folder_configs)
 
         self._build_ui()
         self.content_layout.addStretch()
@@ -69,26 +70,33 @@ class SettingsFilterTab(SettingsBaseTab):
         self.save_btn.setStyleSheet(APP_THEME.button_qss())
         self.save_btn.clicked.connect(self._save_filter_settings)
 
+        self.reset_btn = self._build_reset_button("Reset Filter Settings", self.reset_settings)
+        self.reset_btn.setFixedWidth(180)
+
+        spacer = QWidget()
+        spacer.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+        save_btn_layout.addWidget(self.reset_btn)
+        save_btn_layout.addWidget(spacer)
         save_btn_layout.addWidget(self.save_btn)
         self.content_layout.addWidget(
             save_btn_container,
-            alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom,
+            alignment=Qt.AlignmentFlag.AlignBottom,
         )
 
-    def highlight_save_button(self):
-        self.is_dirty = True
-        self.save_btn.setStyleSheet(APP_THEME.button_qss() + APP_THEME.button_highlight_qss())
-        text_indicator = self.save_btn.text().removesuffix(" *") + " *"
-        self.save_btn.setText(text_indicator)
+    def reset_settings(self):
+        """Reset settings for this tab."""
+        self.state.load_filters()
+        self._refresh_filters()
+        self.reset_save_button()
+        self.sig_saved.emit()
+        print("Filters Settings reset")
 
-    def reset_save_button(self):
-        self.is_dirty = False
-        self.save_btn.setStyleSheet(APP_THEME.button_qss())
-        text_indicator = self.save_btn.text().removesuffix(" *")
-        self.save_btn.setText(text_indicator)
 
     def _refresh_filters(self):
         # Clear existing filter rows
+        self.row_widgets = []
         while self.filter_layout.count():
             child = self.filter_layout.takeAt(0)
             if child.widget():
@@ -100,6 +108,7 @@ class SettingsFilterTab(SettingsBaseTab):
 
         for filter_cfg in self.state.saved_filters:
             row_widget = self._make_filter_row(filter_cfg)
+            self.row_widgets.append(row_widget)
             self.filter_layout.addWidget(row_widget)
 
     def _make_filter_row(self, filter_cfg: dict) -> QWidget:
@@ -118,13 +127,47 @@ class SettingsFilterTab(SettingsBaseTab):
         name_edit.setPlaceholderText("Filter Name")
         name_layout.addWidget(name_edit)
 
+        # Filter type combo
+        filter_type_combo = QComboBox()
+        filter_type_combo.setEditable(True)
+        index = 0
+        for filter_type in FolderFilterTable.FILTER_TYPES:
+            clean_type = filter_type.casefold().strip()
+            if clean_type in ("os", "nfo"):
+                filter_type_combo.insertSeparator(index)
+                label_text = filter_type
+                filter_type_combo.addItem(label_text)
+                # Disable OS and NFO so they act as headers
+                model = filter_type_combo.model()
+                model_index = model.index(index + 1, 0)
+                model.setData(model_index, 0, Qt.ItemDataRole.UserRole - 1)
+                index += 1
+            else:
+                label_text = f"  {filter_type}"
+                filter_type_combo.addItem(label_text)
+            index += 1
+        filter_type_combo.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        name_layout.addWidget(filter_type_combo)
+
+        # Create filter table for this specific row
+        filter_table = FolderFilterTable(self.GENRES, self.state.folder_configs)
+        filters_data = filter_cfg.get("filters") or []
+        for f in filters_data:
+            filter_table.add_filter(f.get("filter", ""), f.get("value", ""))
+        layout.addWidget(filter_table)
+
+        container.name_edit = name_edit
+        container.filter_table = filter_table
+
         add_btn = QPushButton("Add")
         add_btn.setIcon(APP_THEME.icon("fa5s.plus-circle", color=APP_THEME.text_color))
         add_btn.setIconSize(QSize(APP_THEME.icon_size - 5, APP_THEME.icon_size - 5))
         add_btn.setStyleSheet(APP_THEME.button_qss())
-        # add_btn.clicked.connect(
-        #     lambda: self.filter_table.add_filter()
-        # )
+        add_btn.clicked.connect(
+            lambda: self._add_filter_to_table(filter_table, filter_type_combo.currentText().strip())
+        )
 
         delete_btn = QPushButton("")
         delete_btn.setIcon(APP_THEME.icon("fa5s.trash-alt", color=APP_THEME.text_color))
@@ -135,35 +178,30 @@ class SettingsFilterTab(SettingsBaseTab):
         name_layout.addWidget(add_btn)
         name_layout.addWidget(delete_btn)
 
-        filters_data = filter_cfg.get("filters") or []
-        for f in filters_data:
-            self.filter_table.add_filter(f.get("filter", ""), f.get("value", ""))
-        layout.addWidget(self.filter_table)
-
         return container
 
-    def _add_filter(self, filter_cfg: dict, new_name: str):
-        if not new_name.strip():
+    def _add_filter_to_table(self, filter_table: FolderFilterTable, filter_type: str):
+        if filter_type.upper() in ("", "OS", "NFO"):
             return
+        filter_table.add_filter(filter_type)
+        self._on_setting_changed()
 
-        # Update name in the config
-        old_name = filter_cfg.get("name")
-        if old_name == new_name:
-            # Nothing changed in name, but maybe we want to save anyway?
-            # The issue asks to allow renaming.
-            pass
-
-        filter_cfg["name"] = new_name
-        self.state.save_filters()
-        # self.state.sig_changed.emit()
-        self.sig_changed.emit()
-        self._refresh_filters()
+    def _update_state_from_ui(self):
+        new_saved_filters = []
+        for row in self.row_widgets:
+            new_filter_cfg = {
+                "name": row.name_edit.text(),
+                "filters": row.filter_table.collect_filters()
+            }
+            new_saved_filters.append(new_filter_cfg)
+        self.state.saved_filters = new_saved_filters
 
     def _delete_filter(self, filter_cfg: dict):
-        name = filter_cfg.get("name")
-        # self.state.delete_filter(name)
-        # self.sig_changed.emit()
-        # self._refresh_filters()
+        self._update_state_from_ui()
+        if filter_cfg in self.state.saved_filters:
+            self.state.saved_filters.remove(filter_cfg)
+        self._refresh_filters()
+        self._on_setting_changed()
 
     def apply_theme(self):
         super().apply_theme()
@@ -174,6 +212,7 @@ class SettingsFilterTab(SettingsBaseTab):
 
     def _save_filter_settings(self):
         """Save only Filters tab settings."""
+        self._update_state_from_ui()
         self.state.save_filters()
         self.reset_save_button()
         self.sig_saved.emit()

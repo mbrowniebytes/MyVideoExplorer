@@ -90,6 +90,18 @@ class SettingsState(QObject):
                 new_filters.append({"name": name, "filters": filters})
             self.saved_filters = new_filters
 
+    def save_app(self):
+        """Save only UI tab settings."""
+        self._ensure_defaults()
+
+        app_settings = {
+            "log_level": self.log_level,
+        }
+
+        # Backup then save
+        self.json_util.backup_file(SETTINGS_APP_FILE, max_backups=5)
+        self.json_util.save_json(SETTINGS_APP_FILE, app_settings)
+
     def save_ui(self):
         """Save only UI tab settings."""
         self._ensure_defaults()
@@ -126,17 +138,33 @@ class SettingsState(QObject):
         self.json_util.backup_file(SETTINGS_FILTER_FILE, max_backups=5)
         self.json_util.save_json(SETTINGS_FILTER_FILE, filter_settings)
 
-    def save_app(self):
-        """Save only app tab settings."""
-        self._ensure_defaults()
+    def load_app(self):
+        """Reload App settings from file."""
+        app_data = self.json_util.load_json(DEFAULTS_APP_FILE)
+        app_data.update(self.json_util.load_json(SETTINGS_APP_FILE))
+        self.log_level = app_data.get("log_level", self.log_level)
 
-        app_settings = {
-            "log_level": self.log_level,
-        }
+    def load_media(self):
+        """Reload Media settings from file."""
+        media_data = self.json_util.load_json(DEFAULTS_MEDIA_FILE)
+        media_data.update(self.json_util.load_json(SETTINGS_MEDIA_FILE))
+        self.folder_configs = media_data.get("folder_configs", self.folder_configs)
+        # Ensure each folder config has an icon
+        for config in self.folder_configs:
+            if "icon" not in config:
+                config["icon"] = "folder"
 
-        # Backup then save
-        self.json_util.backup_file(SETTINGS_APP_FILE, max_backups=5)
-        self.json_util.save_json(SETTINGS_APP_FILE, app_settings)
+    def load_filters(self):
+        """Reload Filter settings from file."""
+        filter_data = self.json_util.load_json(DEFAULTS_FILTER_FILE)
+        filter_data.update(self.json_util.load_json(SETTINGS_FILTER_FILE))
+        self.saved_filters = filter_data.get("saved_filters", self.saved_filters)
+        # Migration: if saved_filters is a dict, convert it to a list of dicts
+        if isinstance(self.saved_filters, dict):
+            new_filters = []
+            for name, filters in self.saved_filters.items():
+                new_filters.append({"name": name, "filters": filters})
+            self.saved_filters = new_filters
 
 
     def save_filter(self, name: str, filter_cfg: list[dict]) -> None:

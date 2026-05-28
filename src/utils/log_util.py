@@ -2,11 +2,14 @@
 import datetime
 import logging
 import os
+import shutil
 import traceback
 import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
+import aioshutil
+import asyncio
 # Use structlog for structured logging output
 import structlog
 
@@ -46,10 +49,10 @@ class LogUtil:
 
         self.log_level = self.DEFAULT_LOG_LEVEL
         self._logger_initialized = False
-        self._file_handler = None
+        self._file_handler:RotatingFileHandler = None
 
-        date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-        self.LOG_FILE = LOG_DIR / f"app-{date_str}.log"
+        # date_str = datetime.datetime.now().strftime("%Y-%m-%d")
+        # self.LOG_FILE = LOG_DIR / f"app-{date_str}.log"
 
     def get_log_level_value(self, level_str: str) -> int:
         """Convert a string log level name to its corresponding logging constant."""
@@ -302,11 +305,6 @@ class LogUtil:
     def close(self) -> None:
         self.cleanup()
 
-        """Close all handlers associated with this LogUtil instance."""
-        if self._file_handler:
-            self._file_handler.close()
-        self.remove_file_handler()
-
     def handle_exception(self, exc_type, exc_value, exc_traceback):
         """Global exception handler to be used with sys.excepthook."""
         if (issubclass(exc_type, KeyboardInterrupt) or
@@ -344,3 +342,25 @@ class LogUtil:
                 old_backup.unlink()
             except OSError as e:
                 self.warn(f"Failed to delete old backup {old_backup}: {e}")
+
+        """Close all handlers associated with this LogUtil instance."""
+        if self._file_handler:
+            self._file_handler.close()
+        self.remove_file_handler()
+
+        # date_str = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        date_str = datetime.datetime.now().strftime("%Y%m%d")
+        backup_log = LOG_DIR / f"app-{date_str}.log"
+        # shutil.move(self.LOG_FILE, LOG_DIR / f"app-{date_str}.log")
+        self.concat_files([self.LOG_FILE.as_posix()], backup_log.as_posix())
+
+        # self.LOG_FILE.unlink()
+        open(self.LOG_FILE, "w").close()
+
+    def concat_files(self, source_files: list[str], destination_file: str):
+        with open(destination_file, 'wb') as dest:
+            for file in source_files:
+                with open(file, 'rb') as src:
+                    shutil.copyfileobj(src, dest)
+                    dest.write(b"\n")
+

@@ -12,6 +12,7 @@ class ThemeConfig:
     color_background_main: str = "#111111"
     color_surface_primary: str = "rgba(59, 89, 99, 99)"
     color_surface_alternate: str = "#151B21"
+    color_surface_disabled: str = "rgba(128, 128, 128, 128)"
 
     # Color Palette - Text
     color_text_primary: str = "#E6EDF3"
