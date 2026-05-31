@@ -4,7 +4,7 @@ from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QWidget
 from src.image_list.image_list_view import ImageListView
 from src.file_list.file_list import FileList
-from src.media_info.media_info_side_view import MediaInfoSideView
+from src.media_info_side.media_info_side_view import MediaInfoSideView
 from src.utils.str_util import StrUtil
 from src.utils.nfo_parse_util import NfoParseUtil
 

@@ -97,7 +97,7 @@ class SettingsMediaTab(SettingsBaseTab):
         spacer = QWidget()
         spacer.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        
+
         save_btn_layout.addWidget(self.reset_btn)
         save_btn_layout.addWidget(spacer)
         save_btn_layout.addWidget(self.save_btn)

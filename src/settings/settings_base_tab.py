@@ -52,6 +52,6 @@ class SettingsBaseTab(BaseWidget):
             self.save_btn.setStyleSheet(APP_THEME.button_qss())
             text = self.save_btn.text().removesuffix(" *")
             self.save_btn.setText(text)
-            
+
         if self.reset_btn:
             self.reset_btn.setEnabled(False)

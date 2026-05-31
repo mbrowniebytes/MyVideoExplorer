@@ -176,7 +176,7 @@ class SettingsState(QObject):
                 self.saved_filters[i] = {"name": name, "filters": filter_cfg}
                 b_found = True
                 break
-                
+
         if not b_found:
             self.saved_filters.append({"name": name, "filters": filter_cfg})
 

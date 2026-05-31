@@ -22,23 +22,23 @@ class SettingsUITab(SettingsBaseTab):
     def __init__(self, state: SettingsState, log_util: LogUtil, parent=None):
         super().__init__(log_util, parent)
         self.state = state
-        
+
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
-        
+
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QScrollArea.Shape.NoFrame)
-        
+
         self.main_widget = QWidget()
         self.content_layout = QVBoxLayout(self.main_widget)
         self.content_layout.setContentsMargins(10, 10, 10, 10)
         self.content_layout.setSpacing(15)
-        
+
         self._build_ui()
         self.content_layout.addStretch()
-        
+
         scroll.setWidget(self.main_widget)
         self.layout.addWidget(scroll)
 
@@ -70,7 +70,7 @@ class SettingsUITab(SettingsBaseTab):
         self.save_btn.clicked.connect(self._save_ui_settings)
 
         self.reset_btn = self._build_reset_button("Reset UI Settings", self.reset_settings)
-        
+
         spacer = QWidget()
         spacer.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)

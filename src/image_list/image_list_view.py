@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from src.file_list.file_list import FileList
 
 from src.image_list.image_preview_widget import ImagePreviewWidget
-from src.media_info.media_info_side_view import MediaInfoSideView
+from src.media_info_side.media_info_side_view import MediaInfoSideView
 from src.theme.theme import APP_THEME
 from src.utils.str_util import StrUtil
 from src.widgets.base_widget import BaseWidget

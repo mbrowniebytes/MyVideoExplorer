@@ -13,7 +13,6 @@ dependencies = [
     "qtawesome>=1.4.2",
     "structlog>=25.5.0",
     "psutil>=7.2.2",
-    "aioshutil>=1.6",
 ]
 
 [project.optional-dependencies]

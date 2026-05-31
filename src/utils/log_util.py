@@ -8,8 +8,6 @@ import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-import aioshutil
-import asyncio
 # Use structlog for structured logging output
 import structlog
 

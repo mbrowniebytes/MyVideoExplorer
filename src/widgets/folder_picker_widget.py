@@ -21,8 +21,8 @@ class FolderPickerWidget(BaseWidget):
 
     def _setup_ui(self) -> None:
         layout = self.set_compact_layout(QHBoxLayout)
-        
-        self.pick_button = QToolButton()        
+
+        self.pick_button = QToolButton()
         self.pick_button.setToolTip("Select Folder")
         self.pick_button.setCheckable(True)
         self.pick_button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -34,7 +34,7 @@ class FolderPickerWidget(BaseWidget):
 
         self.pick_button.setText("")
 
-        
+
         self.pick_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
         self.pick_button.clicked.connect(self.pick_folder)
         layout.addWidget(self.pick_button)

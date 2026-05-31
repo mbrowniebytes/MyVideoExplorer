@@ -8,7 +8,7 @@ from src.folder_filter.folder_filter_filter import FolderFilterFilter
 from src.image_list.image_list import ImageList
 from src.image_list.image_list_view import ImageListView
 from src.media_info.media_info import MediaInfo
-from src.media_info.media_info_side_view import MediaInfoSideView
+from src.media_info_side.media_info_side_view import MediaInfoSideView
 from src.media_info.media_info_view import MediaInfoView
 from src.media_info_tabs.media_info_tabs import MediaInfoTabs
 from src.settings.settings import Settings
@@ -67,7 +67,7 @@ class AppContainer:
             self.nfo_parse_util, self.str_util, self.log_util
         )
         self.media_info = MediaInfo(
-            self.media_info_view, self.media_info_side_view, self.nfo_parse_util, self.log_util
+            self.media_info_view, self.media_info_side_view, self.log_util
         )
 
         self.image_list_view = ImageListView(

@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 from src.media_info.media_info import MediaInfo
 from src.media_info.media_info_view import MediaInfoView
-from src.media_info.media_info_side_view import MediaInfoSideView
+from src.media_info_side.media_info_side_view import MediaInfoSideView
 from src.utils.nfo_parse_util import NfoParseUtil
 from src.utils.str_util import StrUtil
 
@@ -16,7 +16,7 @@ class TestMediaInfo:
         view = MediaInfoView(nfo_parse_util, str_util, mock_log)
         side_view = MediaInfoSideView(nfo_parse_util, str_util, mock_log)
 
-        mi = MediaInfo(view, side_view, nfo_parse_util, mock_log)
+        mi = MediaInfo(view, side_view, mock_log)
         mi.build()
         qtbot.addWidget(mi)
         return mi

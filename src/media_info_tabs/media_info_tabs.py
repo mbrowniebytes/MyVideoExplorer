@@ -52,7 +52,7 @@ class MediaInfoTabs(BaseWidget):
 
         self._initialize_tabs(settings)
         self._connect_signals()
-        
+
         self.tab_container.setStyleSheet(APP_THEME.tabs_qss())
         return self.tab_container
 
@@ -82,7 +82,7 @@ class MediaInfoTabs(BaseWidget):
         spacer.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self.spacer_tab_index = self.tab_container.addTab(spacer, "")
         self.tab_container.setTabEnabled(self.spacer_tab_index, False)
-        
+
         # Ensure buttons are removed from the tab bar for this index
         bar = self.tab_container.tabBar()
         bar.setTabButton(self.spacer_tab_index, QTabBar.ButtonPosition.LeftSide, None)
@@ -109,7 +109,7 @@ class MediaInfoTabs(BaseWidget):
     def _on_tab_index_changed(self, index: int) -> None:
         if index == self.active_tab_index or index == self.spacer_tab_index:
             return
-            
+
         self.active_tab_index = index
         self.sig_tab_selection_changed.emit(index)
         self.log_util.debug(f"Tab selection changed to index: {index}")

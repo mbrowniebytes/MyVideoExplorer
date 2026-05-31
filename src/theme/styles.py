@@ -97,8 +97,8 @@ class StyleFactory:
                 background: {c.color_surface_disabled};
                 border: 1px solid {c.color_surface_disabled};
             }}
-            QPushButton {{ 
-                text-align: center; 
+            QPushButton {{
+                text-align: center;
             }}
         """
 
