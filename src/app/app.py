@@ -36,7 +36,7 @@ class App:
 
     def build(self):
         self.window = QMainWindow()
-        self.window.setWindowTitle("PySide6 App")
+        self.window.setWindowTitle("MyVideoExplorer")
         self.window.resize(1400, 900)
         self.window.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
         self.window.setStyleSheet(APP_THEME.app_qss())
