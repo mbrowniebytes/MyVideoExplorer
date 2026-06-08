@@ -21,7 +21,7 @@ class Settings(BaseWidget):
     sig_dirty_changed = Signal(bool)
 
     def __init__(self, log_util: LogUtil | None = None) -> None:
-        super().__init__()
+        super().__init__(log_util)
         self.log_util = log_util
 
         # Data Model (State Management)

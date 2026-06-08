@@ -22,7 +22,7 @@ class App:
         container: AppContainer,
     ) -> None:
         super().__init__()
-        self.window = None
+        self.window: QMainWindow | None = None
         self.app = app
         self.container = container
         self.controller = container.controller
@@ -34,7 +34,7 @@ class App:
         self.video_player = container.video_player
         self.media_info = container.media_info
 
-    def build(self):
+    def build(self) -> QMainWindow:
         self.window = QMainWindow()
         self.window.setWindowTitle("MyVideoExplorer")
         self.window.resize(1400, 900)

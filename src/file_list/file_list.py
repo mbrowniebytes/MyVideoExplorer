@@ -27,10 +27,10 @@ class FileList(BaseWidget):
         self._signals_connected = False
         self._container = QWidget()
 
-    def build(self):
+    def build(self) -> QWidget:
         self._container = self._build_container()
         layout = QVBoxLayout(self._container)
-
+        
         self.title_widget = self._build_title_widget()
         layout.addWidget(self.title_widget)
         layout.addWidget(self.file_view)

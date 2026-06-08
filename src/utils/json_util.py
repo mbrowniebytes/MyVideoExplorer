@@ -3,6 +3,7 @@ import os
 import shutil
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from src.utils.log_util import LogUtil
 
@@ -15,26 +16,29 @@ class JsonUtil:
     MAX_BACKUPS_DEFAULT = 5
     CFG_DIR = Path("cfg")
 
-    def __init__(self, log_util:LogUtil) -> None:
+    def __init__(self, log_util: LogUtil) -> None:
         self.log_util = log_util
 
-    def ensure_defaults(self, cfg_dir: Path, defaults_file: Path, default_data: dict) -> None:
+    def ensure_defaults(
+        self, cfg_dir: Path, defaults_file: Path, default_data: dict[str, Any]
+    ) -> None:
         """Create config directory and default JSON file if they don't exist."""
         cfg_dir.mkdir(parents=True, exist_ok=True)
 
         if not defaults_file.exists():
             self.save_json(defaults_file, default_data)
 
-    def load_json(self, file_path: Path) -> dict:
+    def load_json(self, file_path: Path) -> dict[str, Any]:
         """Load JSON data from a file. Returns empty dict on error or missing file."""
         try:
             with open(file_path, encoding=self.DEFAULT_ENCODING) as f:
-                return json.load(f)
+                data: Any = json.load(f)
+                return data
         except (OSError, json.JSONDecodeError) as e:
             self.log_util.error(f"Failed to load {file_path}: {e}")
             return {}
 
-    def save_json(self, file_path: Path, data: dict) -> None:
+    def save_json(self, file_path: Path, data: dict[str, Any]) -> None:
         """Save data to a JSON file with proper error handling."""
         try:
             file_path.parent.mkdir(parents=True, exist_ok=True)

@@ -1,3 +1,4 @@
+from typing import Any
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
@@ -27,10 +28,10 @@ class SettingsFilterTab(SettingsBaseTab):
         ["Action", "Comedy", "Sci-Fi", "Mystery", "Thriller", "Drama", "Adventure"]
     )
 
-    def __init__(self, state: SettingsState, log_util: LogUtil, parent=None):
+    def __init__(self, state: SettingsState, log_util: LogUtil, parent: QWidget | None = None) -> None:
         super().__init__(log_util, parent)
         self.state = state
-        self.row_widgets = []
+        self.row_widgets: list[QWidget] = []
 
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -51,7 +52,7 @@ class SettingsFilterTab(SettingsBaseTab):
         scroll.setWidget(self.main_widget)
         self.layout.addWidget(scroll)
 
-    def _build_ui(self):
+    def _build_ui(self) -> None:
         self.filter_group = QGroupBox("Saved Filters")
         self.filter_layout = QVBoxLayout(self.filter_group)
 
@@ -85,7 +86,7 @@ class SettingsFilterTab(SettingsBaseTab):
             alignment=Qt.AlignmentFlag.AlignBottom,
         )
 
-    def reset_settings(self):
+    def reset_settings(self) -> None:
         """Reset settings for this tab."""
         self.state.load_filters()
         self._refresh_filters()
@@ -94,7 +95,7 @@ class SettingsFilterTab(SettingsBaseTab):
         print("Filters Settings reset")
 
 
-    def _refresh_filters(self):
+    def _refresh_filters(self) -> None:
         # Clear existing filter rows
         self.row_widgets = []
         while self.filter_layout.count():
@@ -111,7 +112,7 @@ class SettingsFilterTab(SettingsBaseTab):
             self.row_widgets.append(row_widget)
             self.filter_layout.addWidget(row_widget)
 
-    def _make_filter_row(self, filter_cfg: dict) -> QWidget:
+    def _make_filter_row(self, filter_cfg: dict[str, Any]) -> QWidget:
         container = QWidget()
         layout = QVBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -180,13 +181,13 @@ class SettingsFilterTab(SettingsBaseTab):
 
         return container
 
-    def _add_filter_to_table(self, filter_table: FolderFilterTable, filter_type: str):
+    def _add_filter_to_table(self, filter_table: FolderFilterTable, filter_type: str) -> None:
         if filter_type.upper() in ("", "OS", "NFO"):
             return
         filter_table.add_filter(filter_type)
         self._on_setting_changed()
 
-    def _update_state_from_ui(self):
+    def _update_state_from_ui(self) -> None:
         new_saved_filters = []
         for row in self.row_widgets:
             new_filter_cfg = {
@@ -196,21 +197,21 @@ class SettingsFilterTab(SettingsBaseTab):
             new_saved_filters.append(new_filter_cfg)
         self.state.saved_filters = new_saved_filters
 
-    def _delete_filter(self, filter_cfg: dict):
+    def _delete_filter(self, filter_cfg: dict[str, Any]) -> None:
         self._update_state_from_ui()
         if filter_cfg in self.state.saved_filters:
             self.state.saved_filters.remove(filter_cfg)
         self._refresh_filters()
         self._on_setting_changed()
 
-    def apply_theme(self):
+    def apply_theme(self) -> None:
         super().apply_theme()
         font = QFont(APP_THEME.font_family, APP_THEME.font_size)
         self.main_widget.setFont(font)
         self.main_widget.setStyleSheet(APP_THEME.container_qss())
         self._refresh_filters()
 
-    def _save_filter_settings(self):
+    def _save_filter_settings(self) -> None:
         """Save only Filters tab settings."""
         self._update_state_from_ui()
         self.state.save_filters()

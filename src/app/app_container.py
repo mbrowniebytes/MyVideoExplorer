@@ -165,7 +165,7 @@ class AppContainer:
 
     def _on_set_root_folder(self, folder_path: str) -> None:
         # print(f"_on_set_root_folder:{folder_path}")
-        self.folder_nav.set_root_folder(folder_path)
+        self.folder_nav.set_root_folder([folder_path])
         self.folder_list.refresh(folder_path, force=True)
 
     def _on_folder_selected(self, folder_path: str) -> None:

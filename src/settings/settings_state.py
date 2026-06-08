@@ -1,5 +1,8 @@
 from pathlib import Path
+from typing import Any
+
 from PySide6.QtCore import QObject, Signal
+
 from src.utils.json_util import JsonUtil
 from src.theme.theme import APP_THEME
 
@@ -19,31 +22,31 @@ DEFAULTS_FILTER_FILE = CFG_DIR / "defaults_filter.json"
 class SettingsState(QObject):
     sig_settings_changed = Signal()
 
-    def __init__(self, log_util) -> None:
+    def __init__(self, log_util: Any) -> None:
         super().__init__()
         self.log_util = log_util
         self.json_util = JsonUtil(self.log_util)
         self.log_level = "info"
-        self.folder_configs = []
-        self.saved_filters = []
+        self.folder_configs: list[dict[str, Any]] = []
+        self.saved_filters: list[dict[str, Any]] = []
         self._load_settings()
         self.log_util.debug(f"__init__ {self.__class__.__name__}")
 
-    def _ensure_defaults(self):
+    def _ensure_defaults(self) -> None:
         """Create cfg directory and defaults split files if they don't exist."""
         if not CFG_DIR.exists():
             CFG_DIR.mkdir(parents=True)
 
-        app_defaults = {
+        app_defaults: dict[str, str] = {
             "log_level": self.log_level,
         }
-        ui_defaults = {
+        ui_defaults: dict[str, int] = {
             "font_size": 18,
         }
-        media_defaults = {
+        media_defaults: dict[str, list[dict[str, Any]]] = {
             "folder_configs": self.folder_configs,
         }
-        filter_defaults = {
+        filter_defaults: dict[str, list[dict[str, Any]]] = {
             "saved_filters": self.saved_filters,
         }
 
@@ -52,7 +55,7 @@ class SettingsState(QObject):
         self.json_util.ensure_defaults(CFG_DIR, DEFAULTS_MEDIA_FILE, media_defaults)
         self.json_util.ensure_defaults(CFG_DIR, DEFAULTS_FILTER_FILE, filter_defaults)
 
-    def _load_settings(self):
+    def _load_settings(self) -> None:
         """Load settings from split json files, falling back to split defaults."""
         self._ensure_defaults()
 
@@ -85,16 +88,16 @@ class SettingsState(QObject):
 
         # Migration: if saved_filters is a dict, convert it to a list of dicts
         if isinstance(self.saved_filters, dict):
-            new_filters = []
+            new_filters: list[dict[str, Any]] = []
             for name, filters in self.saved_filters.items():
                 new_filters.append({"name": name, "filters": filters})
             self.saved_filters = new_filters
 
-    def save_app(self):
+    def save_app(self) -> None:
         """Save only UI tab settings."""
         self._ensure_defaults()
 
-        app_settings = {
+        app_settings: dict[str, str] = {
             "log_level": self.log_level,
         }
 
@@ -102,11 +105,11 @@ class SettingsState(QObject):
         self.json_util.backup_file(SETTINGS_APP_FILE, max_backups=5)
         self.json_util.save_json(SETTINGS_APP_FILE, app_settings)
 
-    def save_ui(self):
+    def save_ui(self) -> None:
         """Save only UI tab settings."""
         self._ensure_defaults()
 
-        ui_settings = {
+        ui_settings: dict[str, int] = {
             "font_size": APP_THEME.font_size,
         }
 
@@ -114,11 +117,11 @@ class SettingsState(QObject):
         self.json_util.backup_file(SETTINGS_UI_FILE, max_backups=5)
         self.json_util.save_json(SETTINGS_UI_FILE, ui_settings)
 
-    def save_media(self):
+    def save_media(self) -> None:
         """Save only Media tab settings."""
         self._ensure_defaults()
 
-        media_settings = {
+        media_settings: dict[str, list[dict[str, Any]]] = {
             "folder_configs": self.folder_configs,
         }
 
@@ -126,11 +129,11 @@ class SettingsState(QObject):
         self.json_util.backup_file(SETTINGS_MEDIA_FILE, max_backups=5)
         self.json_util.save_json(SETTINGS_MEDIA_FILE, media_settings)
 
-    def save_filters(self):
+    def save_filters(self) -> None:
         """Save only Filters tab settings."""
         self._ensure_defaults()
 
-        filter_settings = {
+        filter_settings: dict[str, list[dict[str, Any]]] = {
             "saved_filters": self.saved_filters,
         }
 
@@ -138,13 +141,13 @@ class SettingsState(QObject):
         self.json_util.backup_file(SETTINGS_FILTER_FILE, max_backups=5)
         self.json_util.save_json(SETTINGS_FILTER_FILE, filter_settings)
 
-    def load_app(self):
+    def load_app(self) -> None:
         """Reload App settings from file."""
         app_data = self.json_util.load_json(DEFAULTS_APP_FILE)
         app_data.update(self.json_util.load_json(SETTINGS_APP_FILE))
         self.log_level = app_data.get("log_level", self.log_level)
 
-    def load_media(self):
+    def load_media(self) -> None:
         """Reload Media settings from file."""
         media_data = self.json_util.load_json(DEFAULTS_MEDIA_FILE)
         media_data.update(self.json_util.load_json(SETTINGS_MEDIA_FILE))
@@ -154,7 +157,7 @@ class SettingsState(QObject):
             if "icon" not in config:
                 config["icon"] = "folder"
 
-    def load_filters(self):
+    def load_filters(self) -> None:
         """Reload Filter settings from file."""
         filter_data = self.json_util.load_json(DEFAULTS_FILTER_FILE)
         filter_data.update(self.json_util.load_json(SETTINGS_FILTER_FILE))
@@ -167,7 +170,7 @@ class SettingsState(QObject):
             self.saved_filters = new_filters
 
 
-    def save_filter(self, name: str, filter_cfg: list[dict]) -> None:
+    def save_filter(self, name: str, filter_cfg: list[dict[str, Any]]) -> None:
         """Saves a named filter configuration."""
         # Check if filter with this name already exists
         b_found = False
@@ -189,7 +192,7 @@ class SettingsState(QObject):
         self.save_filters()
         self.sig_settings_changed.emit()
 
-    def save_settings(self):
+    def save_settings(self) -> None:
         """Save all tabs' settings (legacy method for backward compatibility)."""
         self.save_app()
         self.save_ui()

@@ -19,7 +19,7 @@ from src.utils.log_util import LogUtil
 
 
 class SettingsUITab(SettingsBaseTab):
-    def __init__(self, state: SettingsState, log_util: LogUtil, parent=None):
+    def __init__(self, state: SettingsState, log_util: LogUtil, parent: QWidget | None = None) -> None:
         super().__init__(log_util, parent)
         self.state = state
 
@@ -42,7 +42,7 @@ class SettingsUITab(SettingsBaseTab):
         scroll.setWidget(self.main_widget)
         self.layout.addWidget(scroll)
 
-    def _build_ui(self):
+    def _build_ui(self) -> None:
         display_group = QGroupBox("UI Settings")
         display_layout = QFormLayout(display_group)
 
@@ -84,7 +84,7 @@ class SettingsUITab(SettingsBaseTab):
             alignment=Qt.AlignmentFlag.AlignBottom,
         )
 
-    def reset_settings(self):
+    def reset_settings(self) -> None:
         """Reset settings for this tab."""
         self.state.load_ui()
         self.font_size_spinbox.setValue(APP_THEME.font_size)
@@ -93,7 +93,7 @@ class SettingsUITab(SettingsBaseTab):
         self.sig_saved.emit()
         print("UI Settings reset")
 
-    def _on_font_size_changed(self, value: int):
+    def _on_font_size_changed(self, value: int) -> None:
         if value == APP_THEME.font_size:
             return
 
@@ -107,14 +107,14 @@ class SettingsUITab(SettingsBaseTab):
         self.state.sig_settings_changed.emit()
         self._on_setting_changed()
 
-    def _save_ui_settings(self):
+    def _save_ui_settings(self) -> None:
         """Save only UI tab settings."""
         self.state.save_ui()
         self.reset_save_button()
         self.sig_saved.emit()
         print("UI Settings saved")
 
-    def apply_theme(self):
+    def apply_theme(self) -> None:
         super().apply_theme()
         font = QFont(APP_THEME.font_family, APP_THEME.font_size)
         self.main_widget.setFont(font)

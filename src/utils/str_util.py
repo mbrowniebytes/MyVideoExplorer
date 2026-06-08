@@ -1,14 +1,16 @@
+from typing import Any
+
 from src.utils.log_util import LogUtil
 
 
 class StrUtil:
 
-    def __init__(self, log_util:LogUtil):
+    def __init__(self, log_util: LogUtil) -> None:
         super().__init__()
         self.log_util = log_util
         self.log_util.debug(f"__init__ {self.__class__.__name__}")
 
-    def join_strings(self, values: list) -> str:
+    def join_strings(self, values: list[Any]) -> str:
         """
         Join non-empty values into a comma-separated string.
 
@@ -21,7 +23,7 @@ class StrUtil:
         filtered = [str(value) for value in values if not self.is_empty_value(value)]
         return ", ".join(filtered)
 
-    def is_empty_value(self, value) -> bool:
+    def is_empty_value(self, value: Any) -> bool:
         """
         Check if a value is considered empty.
 
@@ -68,3 +70,5 @@ class StrUtil:
             Formatted string in title case
         """
         return key.replace("_", " ").strip().title()
+
+

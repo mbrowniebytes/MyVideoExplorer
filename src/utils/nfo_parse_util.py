@@ -1,5 +1,6 @@
 import os
 from math import floor
+from typing import Any
 from xml.etree import ElementTree
 
 from src.utils.file_util import FileUtil
@@ -7,7 +8,7 @@ from src.utils.file_util import FileUtil
 
 class NfoParseUtil:
     # Default movie info schema as a constant for better maintainability
-    MOVIE_INFO_SCHEMA = {
+    MOVIE_INFO_SCHEMA: dict[str, Any] = {
         "ids": [],
         "title": "",
         "year": 0,
@@ -27,18 +28,18 @@ class NfoParseUtil:
         "actors": [],
     }
 
-    def __init__(self, file_util: FileUtil, log_util=None):
+    def __init__(self, file_util: FileUtil, log_util: Any = None) -> None:
         super().__init__()
         self.file_util = file_util
         self.log_util = log_util
         if self.log_util:
             self.log_util.debug(f"__init__ {self.__class__.__name__}")
         self._cached_folder_path: str | None = None
-        self._cached_movie_info: dict | None = None
+        self._cached_movie_info: dict[str, Any] | None = None
 
     def parse_nfo(
         self, folder_path: str | None = None, nfo_file: str | None = None
-    ) -> dict | None:
+    ) -> dict[str, Any] | None:
         """Parse NFO file or folder for movie information."""
         if not any([nfo_file, folder_path]):
             print("NfoUtil: No NFO file or folder path provided")
@@ -53,7 +54,7 @@ class NfoParseUtil:
 
         return None
 
-    def parse_nfo_folder(self, folder_path: str) -> dict | None:
+    def parse_nfo_folder(self, folder_path: str) -> dict[str, Any] | None:
         """Parse NFO file from a folder path using cached result when possible."""
         if not folder_path:
             print("NfoUtil: No NFO folder provided")
@@ -80,7 +81,7 @@ class NfoParseUtil:
         self._cached_movie_info = movie_info
         return movie_info
 
-    def parse_nfo_file(self, nfo_file: str) -> dict | None:
+    def parse_nfo_file(self, nfo_file: str) -> dict[str, Any] | None:
         """Parse NFO file and extract movie information."""
         if not nfo_file:
             return None
@@ -107,7 +108,7 @@ class NfoParseUtil:
             print(f"Unexpected error parsing NFO file '{nfo_file}': {e}")
             return None
 
-    def create_empty_movie_info(self) -> dict:
+    def create_empty_movie_info(self) -> dict[str, Any]:
         """Create an empty movie info dictionary following the schema."""
         # Return a deep copy of the schema to avoid reference issues
         import copy
@@ -115,8 +116,8 @@ class NfoParseUtil:
         return copy.deepcopy(self.MOVIE_INFO_SCHEMA)
 
     def extract_media_metadata(
-        self, root: ElementTree.Element, movie_info: dict | None = None
-    ) -> dict:
+        self, root: ElementTree.Element, movie_info: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Extract all media metadata from XML root into movie info."""
         if movie_info is None:
             movie_info = self.create_empty_movie_info()
@@ -134,14 +135,14 @@ class NfoParseUtil:
 
         return movie_info
 
-    def normalize_movie_info(self, movie_info: dict) -> dict:
+    def normalize_movie_info(self, movie_info: dict[str, Any]) -> dict[str, Any]:
         """Normalize and deduplicate movie info."""
         self._dedupe_movie_info(movie_info)
         return movie_info
 
     # --- Basic fields parsing ---
 
-    def _parse_basic_fields(self, root: ElementTree.Element, movie_info: dict) -> None:
+    def _parse_basic_fields(self, root: ElementTree.Element, movie_info: dict[str, Any]) -> None:
         """Parse basic text fields and year from NFO root."""
         for field_name in ["title", "plot", "mpaa", "outline", "runtime", "tagline"]:
             value = root.findtext(field_name)

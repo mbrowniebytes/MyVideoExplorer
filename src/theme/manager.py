@@ -1,5 +1,6 @@
 from __future__ import annotations
-import qtawesome as qta
+from typing import Any
+import qtawesome as qta  # type: ignore[import-untyped]
 from PySide6.QtGui import QFont, QIcon
 from PySide6.QtWidgets import (
     QAbstractButton, QApplication, QComboBox, QLabel,
@@ -17,7 +18,7 @@ class ThemeManager:
         self._refreshed_app_widgets: set[int] = set()
         self._refreshing: bool = False
 
-    def set_application(self, app: QApplication):
+    def set_application(self, app: QApplication) -> None:
         """Assigns the global application instance for stylesheet management."""
         self.app = app
 
@@ -69,7 +70,7 @@ class ThemeManager:
         module_name = getattr(widget.__class__, "__module__", "")
         return module_name.startswith("src.")
 
-    def get_icon(self, name: str, **kwargs) -> QIcon:
+    def get_icon(self, name: str, **kwargs: Any) -> QIcon:
         """Safely fetch icons with a fallback to a folder icon if the name is missing."""
         try:
             return qta.icon(name, **kwargs)

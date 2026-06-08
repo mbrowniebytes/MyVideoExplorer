@@ -1,5 +1,6 @@
 import os
 
+from typing import Any
 from PySide6.QtCore import QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
@@ -27,7 +28,7 @@ from src.widgets.folder_picker_widget import FolderPickerWidget
 class SettingsMediaTab(SettingsBaseTab):
     sig_root_folders_changed = Signal(list)
 
-    def __init__(self, state: SettingsState, log_util: LogUtil, parent=None):
+    def __init__(self, state: SettingsState, log_util: LogUtil, parent: QWidget | None = None) -> None:
         super().__init__(log_util, parent)
         self.state = state
 
@@ -53,7 +54,7 @@ class SettingsMediaTab(SettingsBaseTab):
         scroll.setWidget(self.main_widget)
         self.layout.addWidget(scroll)
 
-    def _build_ui(self):
+    def _build_ui(self) -> None:
         self.folder_nav_group = QGroupBox("Media Folders")
         self.folder_nav_group.setFont(
             QFont(APP_THEME.font_family, APP_THEME.font_size - 2)
@@ -106,7 +107,7 @@ class SettingsMediaTab(SettingsBaseTab):
             alignment=Qt.AlignmentFlag.AlignBottom,
         )
 
-    def reset_settings(self):
+    def reset_settings(self) -> None:
         """Reset settings for this tab."""
         self.state.load_media()
         self._refresh_folder_nav_settings()
@@ -192,7 +193,7 @@ class SettingsMediaTab(SettingsBaseTab):
             browser = self._make_folder_browser(config)
             self.folder_nav_layout.addRow(browser)
 
-    def _make_folder_browser(self, folder_config: dict) -> QWidget:
+    def _make_folder_browser(self, folder_config: dict[str, Any]) -> QWidget:
         default_folder = folder_config["path"]
         default_label = folder_config["label"]
         default_icon = folder_config.get("icon", "folder")
@@ -346,7 +347,7 @@ class SettingsMediaTab(SettingsBaseTab):
                     valid_paths.append(real)
         return valid_paths
 
-    def _on_config_changed(self, folder_config: dict, key: str, value: any):
+    def _on_config_changed(self, folder_config: dict[str, Any], key: str, value: Any) -> None:
         if folder_config.get(key) == value:
             return
         folder_config[key] = value
@@ -357,7 +358,7 @@ class SettingsMediaTab(SettingsBaseTab):
         self._on_setting_changed()
 
     def _on_folder_selected(
-        self, value: str, folder_edit: QLineEdit, folder_config: dict
+        self, value: str, folder_edit: QLineEdit, folder_config: dict[str, Any]
     ) -> None:
         folder_edit.blockSignals(True)
         folder_edit.setText(value)
@@ -386,7 +387,7 @@ class SettingsMediaTab(SettingsBaseTab):
         )
         self.highlight_save_button()
 
-    def _click_new_folder_label(self, folder_config: dict) -> None:
+    def _click_new_folder_label(self, folder_config: dict[str, Any]) -> None:
         item = self.folder_nav_layout.itemAt(self.folder_nav_layout.rowCount() - 1)
         if item is not None:
             widget = item.widget()
@@ -396,7 +397,7 @@ class SettingsMediaTab(SettingsBaseTab):
                     child.selectAll()
                     return
 
-    def _remove_folder(self, folder_config: dict) -> None:
+    def _remove_folder(self, folder_config: dict[str, Any]) -> None:
         label = folder_config.get("label", "")
         path = folder_config.get("path", "")
 
@@ -424,14 +425,14 @@ class SettingsMediaTab(SettingsBaseTab):
 
         self.highlight_save_button()
 
-    def _save_media_settings(self):
+    def _save_media_settings(self) -> None:
         """Save only Media tab settings."""
         self.state.save_media()
         self.reset_save_button()
         self.sig_saved.emit()
         print("Media Settings saved")
 
-    def apply_theme(self):
+    def apply_theme(self) -> None:
         font = QFont(APP_THEME.font_family, APP_THEME.font_size)
         self.main_widget.setFont(font)
         self.main_widget.setStyleSheet(APP_THEME.container_qss())

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+from typing import Any
+
 
 class MediaInfoIdLinkFormatter:
     """Formats known media IDs as small HTML links for label widgets."""
 
     KNOWN_EXTERNAL_ID_TYPES_WITHOUT_LABEL = {"imdbid", "tmdbid"}
 
-    def build_id_html_values(self, media_id_items: list[dict]) -> list[str]:
+    def build_id_html_values(self, media_id_items: list[dict[str, Any]]) -> list[str]:
         formatted_id_html_values: list[str] = []
 
         for media_id_item in media_id_items:

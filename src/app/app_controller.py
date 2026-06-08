@@ -4,6 +4,7 @@ from __future__ import annotations
 from PySide6.QtCore import QObject, Signal
 
 from src.app.app_state import AppState
+from src.utils.log_util import LogUtil
 
 
 class AppController(QObject):
@@ -19,13 +20,13 @@ class AppController(QObject):
     sig_image_changed = Signal(str)
     sig_tab_changed = Signal(int)
 
-    def __init__(self, log_util) -> None:
+    def __init__(self, log_util: LogUtil) -> None:
         super().__init__()
         self.log_util = log_util
         self.state = AppState()
         self.log_util.debug(f"__init__ {self.__class__.__name__}")
 
-    def set_root_folder(self, folder_paths: list[str]) -> None:
+    def set_root_folder(self, folder_paths: list[str] | str) -> None:
         """Accept a single folder path or an iterable of folder paths.
 
         When given an iterable, the controller will iterate and emit the

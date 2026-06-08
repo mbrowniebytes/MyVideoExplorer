@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import Any
 
 from src.utils.file_util_model import FileUtilModel
 from src.utils.log_util import LogUtil
@@ -18,7 +19,7 @@ class FileUtil:
 
         self.log_util.debug(f"__init__ {self.__class__.__name__}")
 
-    def _scan_directory(self, path: Path) -> list[os.DirEntry]:
+    def _scan_directory(self, path: Path) -> list[os.DirEntry[str]]:
         """Safely scan a directory and return entries sorted by name."""
         try:
             return sorted(os.scandir(path), key=lambda e: e.name)

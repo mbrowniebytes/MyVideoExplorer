@@ -57,6 +57,7 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
 follow_imports = "silent"
+explicit_package_bases = true
 
 [tool.pytest.ini_options]
 minversion = "9.0"

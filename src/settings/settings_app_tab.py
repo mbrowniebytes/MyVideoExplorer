@@ -17,7 +17,7 @@ from src.utils.log_util import LogUtil
 
 
 class SettingsAppTab(SettingsBaseTab):
-    def __init__(self, state: SettingsState, log_util: LogUtil, parent=None):
+    def __init__(self, state: SettingsState, log_util: LogUtil, parent: QWidget | None = None) -> None:
         super().__init__(log_util, parent)
         self.log_util = log_util
         self.state = state
@@ -28,7 +28,7 @@ class SettingsAppTab(SettingsBaseTab):
         self._build_ui()
         self.layout.addStretch()
 
-    def _build_ui(self):
+    def _build_ui(self) -> None:
         # App Settings group
         app_group = QGroupBox("App Settings")
         app_layout = QFormLayout(app_group)
@@ -79,7 +79,7 @@ class SettingsAppTab(SettingsBaseTab):
 
         self.logging_level_combo.currentIndexChanged.connect(self._on_setting_changed)
 
-    def reset_settings(self):
+    def reset_settings(self) -> None:
         """Reset settings for this tab."""
         self.state.load_app()
         # Refresh combo box
@@ -91,7 +91,7 @@ class SettingsAppTab(SettingsBaseTab):
         self.sig_saved.emit()
         print("App Settings reset")
 
-    def _save_app_settings(self):
+    def _save_app_settings(self) -> None:
         """Save only App tab settings."""
         # Get current logging level
         current_index = self.logging_level_combo.currentIndex()
