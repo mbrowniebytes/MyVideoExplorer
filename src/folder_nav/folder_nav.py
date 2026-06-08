@@ -19,19 +19,19 @@ class FolderNav(BaseWidget):
     sig_selected_items = Signal(list)
     sig_genre_changed = Signal(str)
 
-    def __init__(self, folder_nav_filters: FolderFilters, log_util) -> None:
+    def __init__(self, folder_filter_widget: FolderFilters, log_util) -> None:
         super().__init__(log_util)
         self.root_folders: list[str] = []
-        self.folder_nav_filters = folder_nav_filters
+        self.folder_filter_widget = folder_filter_widget
         self._signals_connected = False
 
     def build(self) -> FolderNav:
         """Builds the navigation UI and connects internal signals."""
-        self.folder_nav_filters.build()
+        self.folder_filter_widget.build()
 
         layout = self.set_compact_layout(QVBoxLayout)
         layout.setSpacing(10)
-        layout.addWidget(self.folder_nav_filters)
+        layout.addWidget(self.folder_filter_widget)
 
         self._connect_sigs()
         return self
@@ -47,9 +47,9 @@ class FolderNav(BaseWidget):
     def _connect_sigs(self) -> None:
         if self._signals_connected:
             return
-        self.folder_nav_filters.sig_root_folder.connect(self._handle_root_folder)
-        self.folder_nav_filters.sig_apply_filters.connect(self.apply_filters)
-        self.folder_nav_filters.sig_genre_changed.connect(self._handle_genre_changed)
+        self.folder_filter_widget.sig_root_folder.connect(self._handle_root_folder)
+        self.folder_filter_widget.sig_apply_filters.connect(self.apply_filters)
+        self.folder_filter_widget.sig_genre_changed.connect(self._handle_genre_changed)
         self._signals_connected = True
 
     def set_root_folder(self, paths: list[str]) -> None:
@@ -57,7 +57,7 @@ class FolderNav(BaseWidget):
 
         print(f"folder nav: set_root_folder: paths:{paths}")
         self.root_folders = paths
-        self.folder_nav_filters.root_folders = paths
+        self.folder_filter_widget.root_folders = paths
 
         # Defer UI rebuild to the event loop to avoid rebuilding during
         # signal processing; ensure nav combo and media buttons reflect
@@ -66,10 +66,10 @@ class FolderNav(BaseWidget):
         def _refresh_filters() -> None:
             try:
                 # Rebuild nav combo (labels) and saved filters combo
-                self.folder_nav_filters.build_nav_combo()
-                # self.folder_nav_filters._refresh_saved_filters_combo()
+                self.folder_filter_widget.build_nav_combo()
+                # self.folder_filter_widget._refresh_saved_filters_combo()
                 # Rebuild media buttons to reflect current settings and roots
-                self.folder_nav_filters.media_filter.refresh_buttons()
+                self.folder_filter_widget.media_filter_widget.refresh_buttons()
 
                 self.apply_filters()
             except Exception:
@@ -84,7 +84,7 @@ class FolderNav(BaseWidget):
         """Applies filters and emits results."""
         # Let FolderNavFilters choose a default root (first configured) when
         # no explicit folder is passed.
-        filtered_items = self.folder_nav_filters.apply_filters()
+        filtered_items = self.folder_filter_widget.apply_filters()
         # print(f"folder nav: apply_filters: filtered_items:{len(filtered_items)}")
         self.sig_selected_items.emit(filtered_items)
         self.log_util.debug(f"sig_selected_items emitted with {len(filtered_items)} items")
@@ -95,4 +95,4 @@ class FolderNav(BaseWidget):
         font = QFont(APP_THEME.font_family, APP_THEME.font_size - 15)
         self.setFont(font)
 
-        self.folder_nav_filters.apply_theme()
+        self.folder_filter_widget.apply_theme()
