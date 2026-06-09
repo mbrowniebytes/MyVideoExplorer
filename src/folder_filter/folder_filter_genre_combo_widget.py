@@ -10,5 +10,5 @@ class GenreComboWidget(QComboBox):
         self.addItem("-none-")
         for genre in self.genres:
             self.addItem(genre)
-        
+
         self.currentTextChanged.connect(self.sig_genre_changed.emit)

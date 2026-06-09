@@ -30,7 +30,7 @@ class FileList(BaseWidget):
     def build(self) -> QWidget:
         self._container = self._build_container()
         layout = QVBoxLayout(self._container)
-        
+
         self.title_widget = self._build_title_widget()
         layout.addWidget(self.title_widget)
         layout.addWidget(self.file_view)

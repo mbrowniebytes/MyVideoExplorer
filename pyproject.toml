@@ -11,14 +11,14 @@ requires-python = ">=3.14"
 dependencies = [
     "PySide6>=6.11.1",
     "qtawesome>=1.4.2",
-    "structlog>=25.5.0",
+    "structlog>=26.1.0",
     "psutil>=7.2.2",
 ]
 
 [project.optional-dependencies]
 dev = [
     # Linting and formatting
-    "ruff>=0.15.13",
+    "ruff>=0.15.16",
     "black>=26.5.1",
     "mypy>=2.1.0",
     
@@ -26,7 +26,7 @@ dev = [
     "pytest>=9.0.3",
     "pytest-qt>=4.5.0",
     "pytest-cov>=4.1.0",
-    "pytest-asyncio>=1.4.0a2",
+    "pytest-asyncio>=1.4.0",
     
     # Additional quality tools
     "isort>=8.0.1",

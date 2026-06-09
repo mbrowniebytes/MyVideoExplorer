@@ -8,11 +8,11 @@ features, settings, configs may change without notice and with breaking changes
 
 Explore and play ~~your~~ ~~.. my~~ ~~..~~ your videos.
 
-An alternative to Kodi, Plex which tend to focus on just poster views of videos. If you do not recognize the poster, to figure out what the video is about, you often have to play part of the video or search the internet.
+An alternative to **Kodi** or **Plex**, which primarily emphasize poster‑style views of your videos. If you don’t recognize a poster, you often have to play part of the video or search online just to figure out what the video is.
 
-An alternative to Windows Explorer which tends to focus on the file views, requiring double clicking each file to view the posters or movie.nfo.
+An alternative to **Windows Explorer**, which focuses on file listings and requires opening each file to see posters or metadata like movie.nfo.
 
-MyVideoExplorer sits in between.  A simple video browser which allows you to simply scroll through your videos while showing you enough meta info to help determine if you want to play the video or not today.
+**MyVideoExplorer** sits comfortably in the middle. It’s a simple, streamlined video browser that lets you scroll through your collection while displaying enough metadata to quickly decide if it’s the video you want to watch today.
 
 Screenshot:
 ![MyVideoExplorer Screenshot](doc/MyVideoExplorer-screenshot.png)
@@ -45,10 +45,10 @@ Screenshot:
 - and more
 
 ### movie.nfo
-Use [Kodi](https://github.com/xbmc/xbmc) or better [MediaElch](https://github.com/komet/mediaelch) to create a movie.nfo files per video folder.  
+Use [Kodi](https://github.com/xbmc/xbmc) or better [MediaElch](https://github.com/komet/mediaelch) to create a movie.nfo file per video folder.  
 
 ---
-## Development Notes
+## Development
 
 python 3.14  
 pyside 6.11

@@ -1,4 +1,4 @@
-from typing import Any, Callable
+from collections.abc import Callable
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QPushButton, QWidget

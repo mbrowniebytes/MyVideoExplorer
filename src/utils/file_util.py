@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any
 
 from src.utils.file_util_model import FileUtilModel
 from src.utils.log_util import LogUtil

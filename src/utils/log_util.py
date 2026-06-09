@@ -2,12 +2,12 @@
 import datetime
 import logging
 import os
-import shutil
 import traceback
 import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Any, Callable, Mapping, MutableMapping
+from typing import Any
+from collections.abc import Callable, Mapping, MutableMapping
 
 # Use structlog for structured logging output
 import structlog
@@ -380,7 +380,7 @@ class LogUtil:
     def concat_files(self, source_files: list[str], destination_file: str) -> None:
         with open(destination_file, 'a') as dest:
             for filename in source_files:
-                with open(filename, 'r') as src:
+                with open(filename) as src:
                     content = src.read()
                     dest.write(content)
                     if not content.endswith('\n'):
