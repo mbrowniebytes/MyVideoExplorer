@@ -36,7 +36,7 @@ class AppContainer:
         settings_app_file = cfg_dir / "settings_app.json"
         app_data = json_util.load_json(defaults_app_file)
         app_data.update(json_util.load_json(settings_app_file))
-        log_level = app_data.get("log_level", "info")
+        log_level = app_data.get("log_level", "error")
 
         self.log_util = log_util.configure(log_level)
         self.log_util.log_memory("Application starting...")

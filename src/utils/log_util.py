@@ -31,7 +31,7 @@ class LogUtil:
         # "critical": logging.CRITICAL,
     }
 
-    DEFAULT_LOG_LEVEL = "info"
+    DEFAULT_LOG_LEVEL = "error"
     MAX_BACKUPS = 5
     ROTATION_PERIOD = "M" # "D"  # Daily rotation
     MAX_BYTES = 10 * 1024 * 1024  # 10 MB
@@ -48,7 +48,7 @@ class LogUtil:
 
         self.log_level = self.DEFAULT_LOG_LEVEL
         self._logger_initialized = False
-        self._file_handler: RotatingFileHandler | None = None
+        self._file_handler = RotatingFileHandler(self.LOG_FILE)
 
         # date_str = datetime.datetime.now().strftime("%Y-%m-%d")
         # self.LOG_FILE = LOG_DIR / f"app-{date_str}.log"
@@ -160,7 +160,7 @@ class LogUtil:
         base_filename, ext, date = default_name.split(".")
         return f"{base_filename}.{date}.{ext}"
 
-    def configure(self, level_str: str) -> "LogUtil":
+    def configure(self, level_str: str) -> LogUtil:
         """
         Configure the root logger and file handler.
 
@@ -199,7 +199,7 @@ class LogUtil:
             maxBytes=self.MAX_BYTES,
             backupCount=self.MAX_BACKUPS,
             encoding="utf-8",
-            delay=True, # required else perms/timing issue
+            delay=True,  # required else perms/timing issue
         )
 
         processors: list[
@@ -209,7 +209,8 @@ class LogUtil:
             ]
         ] = [
             structlog.stdlib.add_log_level,
-            structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S"),
+            structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S", utc=False),
+            # structlog.processors.TimeStamper(fmt="iso"),
             self._caller_info_processor,
             structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
         ]
@@ -377,11 +378,12 @@ class LogUtil:
         open(self.LOG_FILE, "w").close()
 
     def concat_files(self, source_files: list[str], destination_file: str) -> None:
-        with open(destination_file, 'wb') as dest:
-            for file in source_files:
-                with open(file, 'rb') as src:
-                    shutil.copyfileobj(src, dest)
-                    dest.write(b"\n")
-
+        with open(destination_file, 'a') as dest:
+            for filename in source_files:
+                with open(filename, 'r') as src:
+                    content = src.read()
+                    dest.write(content)
+                    if not content.endswith('\n'):
+                        dest.write('\n')
 
 

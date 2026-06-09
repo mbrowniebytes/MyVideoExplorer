@@ -22,7 +22,7 @@ class App:
         container: AppContainer,
     ) -> None:
         super().__init__()
-        self.window: QMainWindow | None = None
+        self.window: QMainWindow = QMainWindow()
         self.app = app
         self.container = container
         self.controller = container.controller
@@ -35,7 +35,6 @@ class App:
         self.media_info = container.media_info
 
     def build(self) -> QMainWindow:
-        self.window = QMainWindow()
         self.window.setWindowTitle("MyVideoExplorer")
         self.window.resize(1400, 900)
         self.window.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
