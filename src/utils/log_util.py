@@ -44,8 +44,9 @@ class LogUtil:
 
         Args:
             log_level: Optional initial log level (defaults to DEFAULT_LOG_LEVEL).
-        """
-
+        """        """Create log directory and defaults split files if they don't exist."""
+        if not LOG_DIR.exists():
+            LOG_DIR.mkdir(parents=True)
         self.log_level = self.DEFAULT_LOG_LEVEL
         self._logger_initialized = False
         self._file_handler = RotatingFileHandler(self.LOG_FILE)
@@ -309,6 +310,9 @@ class LogUtil:
     ) -> None:
         """Convenience method to log an ERROR level message."""
         self.log_message(level="error", message=message, extra_info=extra_info)
+        # Flush on error to ensure it's written to disk before a potential crash
+        if self._file_handler:
+            self._file_handler.flush()
 
     def get_active_handlers(self) -> list[logging.Handler]:
         """Return a list of active handlers on the root logger."""
@@ -332,19 +336,39 @@ class LogUtil:
             sys.__excepthook__(exc_type, exc_value, exc_traceback)
             return
 
-        self.error(
-            "Uncaught exception",
-            extra_info={
-                "exc_type": str(exc_type),
-                "exc_value": str(exc_value),
-            },
-        )
-        # Also log traceback
-        tb_str = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
-        # could be debug
-        # log as error so have context with errors
-        # traceback already prepends: Traceback (most recent call last):
-        self.error(f"{tb_str}")
+        try:
+            self.error(
+                "Uncaught exception",
+                extra_info={
+                    "exc_type": str(exc_type),
+                    "exc_value": str(exc_value),
+                },
+            )
+            # Also log traceback
+            tb_str = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+            # could be debug
+            # log as error so have context with errors
+            # traceback already prepends: Traceback (most recent call last):
+            self.error(f"{tb_str}")
+        except Exception as handler_exception:
+            # If exception handling itself fails, write directly to file
+            try:
+                log_file = self.LOG_FILE
+                log_file.parent.mkdir(parents=True, exist_ok=True)
+                with open(log_file, "a", encoding="utf-8") as f:
+                    f.write(f"CRITICAL: Exception in exception handler: {handler_exception}\n")
+                    f.write(f"Original exception: {exc_type.__name__}: {exc_value}\n")
+                    f.write(traceback.format_exc())
+                    f.write("\n")
+            except Exception:
+                pass  # Silently fail if we can't log
+        finally:
+            # Always flush to ensure data is written
+            if self._file_handler:
+                try:
+                    self._file_handler.flush()
+                except Exception:
+                    pass
 
     def cleanup(self) -> None:
         """Manage daily backups of a file, keeping up to max_backups."""

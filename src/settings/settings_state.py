@@ -61,19 +61,22 @@ class SettingsState(QObject):
 
         # Load App Settings
         app_data = self.json_util.load_json(DEFAULTS_APP_FILE)
-        app_data.update(self.json_util.load_json(SETTINGS_APP_FILE))
+        if SETTINGS_APP_FILE.exists():
+            app_data.update(self.json_util.load_json(SETTINGS_APP_FILE))
 
         self.log_level = app_data.get("log_level", self.log_level)
 
         # Load UI Settings
         ui_data = self.json_util.load_json(DEFAULTS_UI_FILE)
-        ui_data.update(self.json_util.load_json(SETTINGS_UI_FILE))
+        if SETTINGS_UI_FILE.exists():
+            ui_data.update(self.json_util.load_json(SETTINGS_UI_FILE))
 
         APP_THEME.font_size = ui_data.get("font_size", APP_THEME.font_size)
 
         # Load Media Settings
         media_data = self.json_util.load_json(DEFAULTS_MEDIA_FILE)
-        media_data.update(self.json_util.load_json(SETTINGS_MEDIA_FILE))
+        if SETTINGS_MEDIA_FILE.exists():
+            media_data.update(self.json_util.load_json(SETTINGS_MEDIA_FILE))
         self.folder_configs = media_data.get("folder_configs", self.folder_configs)
 
         # Ensure each folder config has an icon
@@ -83,7 +86,8 @@ class SettingsState(QObject):
 
         # Load Filter Settings
         filter_data = self.json_util.load_json(DEFAULTS_FILTER_FILE)
-        filter_data.update(self.json_util.load_json(SETTINGS_FILTER_FILE))
+        if SETTINGS_FILTER_FILE.exists():
+            filter_data.update(self.json_util.load_json(SETTINGS_FILTER_FILE))
         self.saved_filters = filter_data.get("saved_filters", self.saved_filters)
 
         # Migration: if saved_filters is a dict, convert it to a list of dicts
@@ -144,13 +148,15 @@ class SettingsState(QObject):
     def load_app(self) -> None:
         """Reload App settings from file."""
         app_data = self.json_util.load_json(DEFAULTS_APP_FILE)
-        app_data.update(self.json_util.load_json(SETTINGS_APP_FILE))
+        if SETTINGS_APP_FILE.exists():
+            app_data.update(self.json_util.load_json(SETTINGS_APP_FILE))
         self.log_level = app_data.get("log_level", self.log_level)
 
     def load_media(self) -> None:
         """Reload Media settings from file."""
         media_data = self.json_util.load_json(DEFAULTS_MEDIA_FILE)
-        media_data.update(self.json_util.load_json(SETTINGS_MEDIA_FILE))
+        if SETTINGS_MEDIA_FILE.exists():
+            media_data.update(self.json_util.load_json(SETTINGS_MEDIA_FILE))
         self.folder_configs = media_data.get("folder_configs", self.folder_configs)
         # Ensure each folder config has an icon
         for config in self.folder_configs:
@@ -160,7 +166,8 @@ class SettingsState(QObject):
     def load_filters(self) -> None:
         """Reload Filter settings from file."""
         filter_data = self.json_util.load_json(DEFAULTS_FILTER_FILE)
-        filter_data.update(self.json_util.load_json(SETTINGS_FILTER_FILE))
+        if SETTINGS_FILTER_FILE.exists():
+            filter_data.update(self.json_util.load_json(SETTINGS_FILTER_FILE))
         self.saved_filters = filter_data.get("saved_filters", self.saved_filters)
         # Migration: if saved_filters is a dict, convert it to a list of dicts
         if isinstance(self.saved_filters, dict):

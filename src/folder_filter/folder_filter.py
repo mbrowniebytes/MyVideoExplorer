@@ -84,7 +84,6 @@ class FolderFilters(BaseWidget):
         add_filter_layout.addWidget(self.filter_type_combo)
         add_filter_layout.addWidget(self.add_filter_button)
         add_filter_layout.addWidget(self.apply_button)
-        add_filter_layout.addWidget(self.genre_combo)
 
         # Add saved filters row
         saved_filters_layout = QHBoxLayout()

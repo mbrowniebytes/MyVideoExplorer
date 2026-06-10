@@ -30,63 +30,76 @@ class AppContainer:
     def __init__(self) -> None:
         # Load saved log level
         log_util = LogUtil().configure("error")
-        json_util = JsonUtil(log_util)
-        cfg_dir = Path("cfg")
-        defaults_app_file = cfg_dir / "defaults_app.json"
-        settings_app_file = cfg_dir / "settings_app.json"
-        app_data = json_util.load_json(defaults_app_file)
-        app_data.update(json_util.load_json(settings_app_file))
-        log_level = app_data.get("log_level", "error")
+        self.log_util = log_util  # Set early so available even if initialization fails
 
-        self.log_util = log_util.configure(log_level)
-        self.log_util.log_memory("Application starting...")
+        try:
+            json_util = JsonUtil(log_util)
+            cfg_dir = Path("cfg")
+            defaults_app_file = cfg_dir / "defaults_app.json"
+            settings_app_file = cfg_dir / "settings_app.json"
+            app_data = json_util.load_json(defaults_app_file)
+            app_data.update(json_util.load_json(settings_app_file))
+            log_level = app_data.get("log_level", "error")
 
-        self.settings = Settings(self.log_util)
+            self.log_util = log_util.configure(log_level)
+            self.log_util.log_memory("Application starting...")
+        except Exception as e:
+            self.log_util.error(f"Error loading configuration: {e}")
+            raise
 
+        try:
+            self.settings = Settings(self.log_util)
+        except Exception as e:
+            self.log_util.error(f"Error initializing Settings: {e}")
+            raise
 
-        self.json_util = JsonUtil(self.log_util)
-        self.file_util = FileUtil(self.log_util)
-        self.nfo_parse_util = NfoParseUtil(self.file_util, self.log_util)
-        self.str_util = StrUtil(self.log_util)
+        try:
+            self.json_util = JsonUtil(self.log_util)
+            self.file_util = FileUtil(self.log_util)
+            self.nfo_parse_util = NfoParseUtil(self.file_util, self.log_util)
+            self.str_util = StrUtil(self.log_util)
 
-        self.controller = AppController(self.log_util)
+            self.controller = AppController(self.log_util)
 
-        self.folder_nav_filters_filter = FolderFilterFilter(
-            self.nfo_parse_util, self.settings.settings_data_model.folder_configs, self.log_util
-        )
-        self.folder_nav_filters = FolderFilters(
-            self.folder_nav_filters_filter, self.file_util, self.settings, self.log_util
-        )
-        self.folder_nav = FolderNav(self.folder_nav_filters, self.log_util)
+            self.folder_nav_filters_filter = FolderFilterFilter(
+                self.nfo_parse_util, self.settings.settings_data_model.folder_configs, self.log_util
+            )
+            self.folder_nav_filters = FolderFilters(
+                self.folder_nav_filters_filter, self.file_util, self.settings, self.log_util
+            )
+            self.folder_nav = FolderNav(self.folder_nav_filters, self.log_util)
 
-        self.folder_list = FolderList(self.file_util, self.settings, self.log_util)
-        self.file_list = FileList(self.file_util, self.log_util)
+            self.folder_list = FolderList(self.file_util, self.settings, self.log_util)
+            self.file_list = FileList(self.file_util, self.log_util)
 
-        self.media_info_view = MediaInfoView(self.nfo_parse_util, self.str_util, self.log_util)
-        self.media_info_side_view = MediaInfoSideView(
-            self.nfo_parse_util, self.str_util, self.log_util
-        )
-        self.media_info = MediaInfo(
-            self.media_info_view, self.media_info_side_view, self.log_util
-        )
+            self.media_info_view = MediaInfoView(self.nfo_parse_util, self.str_util, self.log_util)
+            self.media_info_side_view = MediaInfoSideView(
+                self.nfo_parse_util, self.str_util, self.log_util
+            )
+            self.media_info = MediaInfo(
+                self.media_info_view, self.media_info_side_view, self.log_util
+            )
 
-        self.image_list_view = ImageListView(
-            self.str_util, self.media_info_side_view, self.file_list, self.log_util
-        )
-        self.image_list = ImageList(
-            self.file_util,
-            self.nfo_parse_util,
-            self.str_util,
-            self.image_list_view,
-            self.file_list,
-            self.log_util,
-        )
+            self.image_list_view = ImageListView(
+                self.str_util, self.media_info_side_view, self.file_list, self.log_util
+            )
+            self.image_list = ImageList(
+                self.file_util,
+                self.nfo_parse_util,
+                self.str_util,
+                self.image_list_view,
+                self.file_list,
+                self.log_util,
+            )
 
-        self.video_player = VideoPlayer(self.file_util, self.log_util)
+            self.video_player = VideoPlayer(self.file_util, self.log_util)
 
-        self.media_info_tabs = MediaInfoTabs(self.log_util)
+            self.media_info_tabs = MediaInfoTabs(self.log_util)
 
-        self._wire_all_signals()
+            self._wire_all_signals()
+        except Exception as e:
+            self.log_util.error(f"Error during component initialization: {e}", extra_info={"component_error": str(e)})
+            raise
 
     def _wire_all_signals(self) -> None:
         """

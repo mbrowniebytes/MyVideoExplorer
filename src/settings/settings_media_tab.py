@@ -356,6 +356,7 @@ class SettingsMediaTab(SettingsBaseTab):
         # paths = self._get_valid_media_paths()
         # self.sig_root_folders_changed.emit(paths)
         self._on_setting_changed()
+        self.state.sig_settings_changed.emit()
 
     def _on_folder_selected(
         self, value: str, folder_edit: QLineEdit, folder_config: dict[str, Any]
@@ -381,6 +382,9 @@ class SettingsMediaTab(SettingsBaseTab):
 
         self.sig_changed.emit()
 
+        paths = self._get_valid_media_paths()
+        self.sig_root_folders_changed.emit(paths)
+
         QTimer.singleShot(
             100,
             lambda: self._click_new_folder_label(new_config),
@@ -404,7 +408,7 @@ class SettingsMediaTab(SettingsBaseTab):
         reply = QMessageBox.question(
             self,
             "Confirm removal",
-            f"Confirm removal of Media Folder config\n{label}: {path}?",
+            f"Remove Media Folder config\n{label}: {path}?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -416,12 +420,11 @@ class SettingsMediaTab(SettingsBaseTab):
             self.state.folder_configs.remove(folder_config)
 
             self._refresh_folder_nav_settings()
-            # self.sig_changed.emit()
-            # self.log_util.debug("sig_changed emitted")
-            # paths = self._get_valid_media_paths()
-            # print(f"_remove_folder: paths:{paths}")
-            # self.sig_root_folders_changed.emit(paths)
-            # self.log_util.debug(f"sig_root_folders_changed emitted with paths: {paths}")
+            self._on_setting_changed()
+            self.state.sig_settings_changed.emit()
+
+            paths = self._get_valid_media_paths()
+            self.sig_root_folders_changed.emit(paths)
 
         self.highlight_save_button()
 
@@ -430,6 +433,7 @@ class SettingsMediaTab(SettingsBaseTab):
         self.state.save_media()
         self.reset_save_button()
         self.sig_saved.emit()
+        self.state.sig_settings_changed.emit()
         print("Media Settings saved")
 
     def apply_theme(self) -> None:

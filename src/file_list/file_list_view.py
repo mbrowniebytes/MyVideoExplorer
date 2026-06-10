@@ -22,7 +22,7 @@ class FileListView(QListWidget):
         self.setViewMode(QListWidget.ViewMode.ListMode)
         self.setFlow(QListWidget.Flow.LeftToRight)
         self.setWrapping(False)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setSpacing(10)
 

@@ -5,7 +5,7 @@ a = Analysis(
     pathex=['./'],
     binaries=[],
     datas=[
-        ( 'doc/README.md', 'doc' ),
+        ( 'README.md', './' ),
         ( 'cfg/defaults*.json', 'cfg' ),
     ],
     hiddenimports=[],
@@ -41,6 +41,7 @@ exe = EXE(
         'qwindows.dll',
     ],
     console=False,
+    icon='assets/app.ico',
     onefile=False,
 )
 

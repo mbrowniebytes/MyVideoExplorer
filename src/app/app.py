@@ -1,7 +1,8 @@
 import os
+from pathlib import Path
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QFont, QIcon, QPixmap
 from PySide6.QtWidgets import (
     QMainWindow,
     QWidget,
@@ -35,6 +36,7 @@ class App:
         self.media_info = container.media_info
 
     def build(self) -> QMainWindow:
+        self._create_app_icon()
         self.window.setWindowTitle("MyVideoExplorer")
         self.window.resize(1400, 900)
         self.window.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
@@ -65,6 +67,15 @@ class App:
         self._initialize_app_state()
 
         return self.window
+
+    def _create_app_icon(self):
+        path_to_icon = (
+            "assets/app.png"
+        )
+        pixmap = QPixmap()
+        pixmap.loadFromData(Path(path_to_icon).read_bytes())
+        appIcon = QIcon(pixmap)
+        self.app.setWindowIcon(appIcon)
 
     def _create_left_panel(self) -> QWidget:
         folder_nav_widget = self.folder_nav.build()
