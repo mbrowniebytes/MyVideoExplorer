@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import os
+import threading
 from pathlib import Path
+from collections.abc import Callable
 
 from src.utils.file_util_model import FileUtilModel
 from src.utils.log_util import LogUtil
@@ -11,17 +13,18 @@ from src.utils.file_util_type import FileUtilType
 class FileUtil:
     """Utility class for filesystem traversal, classification, and metadata extraction."""
 
-
     def __init__(self, log_util: LogUtil) -> None:
         self.log_util = log_util
         self.file_type = FileUtilType()
+        self._scan_lock = threading.Lock()
 
         self.log_util.debug(f"__init__ {self.__class__.__name__}")
 
     def _scan_directory(self, path: Path) -> list[os.DirEntry[str]]:
         """Safely scan a directory and return entries sorted by name."""
         try:
-            return sorted(os.scandir(path), key=lambda e: e.name)
+            with self._scan_lock:
+                return sorted(os.scandir(path), key=lambda e: e.name)
         except OSError as e:
             if self.log_util:
                 self.log_util.error(f"Failed to scan directory {path}: {e}")
@@ -52,8 +55,13 @@ class FileUtil:
         """Return only file children of a path."""
         return [item for item in self.list_directory(path) if item.is_file]
 
-    def get_files_from_path(self, path: str, depth: int = 0) -> list[FileUtilModel]:
-        """Recursively collect directory and file metadata for a path."""
+    def _get_files_from_path(
+        self,
+        path: str,
+        depth: int = 0,
+        callback: Callable[[list[FileUtilModel]], None] | None = None
+    ) -> list[FileUtilModel]:
+        """Asynchronously collect directory and file metadata for a path."""
         target = Path(path)
         if not target.is_dir():
             return []
@@ -62,13 +70,52 @@ class FileUtil:
         for entry in self._scan_directory(target):
             try:
                 if entry.is_dir(follow_symlinks=False):
-                    items.append(self.build_folder_item(entry.path, depth=depth))
-                    items.extend(self.get_files_from_path(entry.path, depth + 1))
+                    folder_item = self.build_folder_item(entry.path, depth=depth)
+                    items.append(folder_item)
+                    # Recursively get files from subdirectory
+                    sub_items = self._get_files_from_path(
+                        entry.path,
+                        depth + 1,
+                        callback
+                    )
+                    items.extend(sub_items)
                 elif entry.is_file(follow_symlinks=False):
                     items.append(self.build_file_item(entry.path, depth=depth))
             except OSError:
                 continue
+
+        if callback:
+            callback(items)
+
         return items
+
+    def get_files_from_path(
+        self,
+        path: str,
+        depth: int = 0,
+        on_complete: Callable[[list[FileUtilModel]], None] | None = None
+    ) -> list[FileUtilModel]:
+        """Asynchronously collect directory and file metadata for a path."""
+        result_container = []
+        result_container.append([])
+        def thread_worker():
+            try:
+                items = self._get_files_from_path(path, depth, on_complete)
+                result_container[0] = items
+            except Exception as e:
+                result_container[0] = []
+                err = f"Error iterating files from path: '{path}': {e}"
+                result_container.append(err)
+
+        thread = threading.Thread(target=thread_worker)
+        thread.start()
+        thread.join()  # Wait for the thread to finish
+
+        # Print error details if parsing failed
+        if len(result_container) > 1:
+            print(f"{result_container[1]}")
+
+        return result_container[0]
 
     def get_images_from_folder(self, folder_path: str) -> tuple[list[str], str | None]:
         """Return all image paths and the first poster image path if found."""

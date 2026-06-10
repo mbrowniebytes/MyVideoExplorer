@@ -26,7 +26,7 @@ class ThemeConfig:
     color_border_icon: str = "rgba(111, 111, 111, 200)"
     color_interaction_hover: str = "rgba(59, 130, 246, 25)"
     color_interaction_pressed: str = "rgba(59, 130, 246, 40)"
-    color_interaction_selected: str = "#2B62C6"
+    color_interaction_selected: str = "#2B6296"
     color_interaction_selected_text: str = "#FFFFFF"
 
     # Scrollbar & Splitters

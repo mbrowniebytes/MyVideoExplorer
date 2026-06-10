@@ -51,7 +51,17 @@ class FolderListView(QListWidget):
     def add_folder_item(
         self, item: FileUtilModel, icon_name: str = "fa5s.folder"
     ) -> None:
-        prefix = "  " * item.depth + "└─ "
+        prefix = "  " * item.depth
+        if item.depth > 0:
+            # prefix += "└─ "
+            # prefix += "⤷ "
+            # prefix += "." * item.depth
+            # prefix += "―" * item.depth
+            # prefix += "→"
+            prefix += "・" * item.depth
+        prefix += " "
+
+
         icon = APP_THEME.icon(icon_name, color=APP_THEME.text_color)
         list_item = QListWidgetItem(icon, f"{prefix}{item.name}")
         list_item.setData(Qt.ItemDataRole.UserRole, item.full_path)

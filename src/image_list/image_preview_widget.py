@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtGui import QFont, QPixmap
-from PySide6.QtWidgets import QWidget, QVBoxLayout
+from PySide6.QtWidgets import QVBoxLayout
 
 from src.image_list.image_label import ImageLabel
 from src.theme.theme import APP_THEME
+from src.utils.log_util import LogUtil
 from src.widgets.base_widget import BaseWidget
 
 _NO_IMAGE_FOUND = """
@@ -24,8 +25,8 @@ class ImagePreviewWidget(BaseWidget):
     sig_right_click = Signal()
     sig_double_click = Signal()
 
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
+    def __init__(self, log_util:LogUtil) -> None:
+        super().__init__(log_util)
         self.timer = QTimer()
         self.timer.setSingleShot(True)
         self.timer.timeout.connect(self.apply_scaled_pixmap)

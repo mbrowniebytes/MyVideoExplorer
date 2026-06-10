@@ -30,8 +30,9 @@ class MediaInfoSideView(BaseWidget):
         self.current_movie_info: dict = {}
         self.current_view_mode = MEDIA_INFO_VIEW_MODE_IMAGE_LIST
 
-        self.side_content_widget: MediaInfoSideContentWidget | None = None
-        self.empty_nfo_placeholder_widget: LabelValueWidget | None = None
+        self.side_content_widget = MediaInfoSideContentWidget(self.str_util)
+
+        self.empty_nfo_placeholder_widget = LabelValueWidget("", "")
 
         self.plot_section = MediaInfoPlotSection()
 
@@ -138,4 +139,4 @@ class MediaInfoSideView(BaseWidget):
         self.side_content_widget.sig_play_video_requested.connect(self.play_video)
 
         self.media_info_side_layout.addWidget(self.side_content_widget)
-        self.media_info_side_layout.addStretch()
+        # self.media_info_side_layout.addStretch()

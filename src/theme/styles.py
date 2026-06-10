@@ -66,7 +66,7 @@ class StyleFactory:
                 color: {c.color_interaction_selected_text};
             }}
             QListWidget::item:hover {{
-                background: {c.color_interaction_hover};
+                background: {c.color_interaction_selected};
             }}
         """
 

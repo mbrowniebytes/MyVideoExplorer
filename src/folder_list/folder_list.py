@@ -27,6 +27,8 @@ class FolderList(BaseWidget):
 
     def __init__(self, file_util: FileUtil, settings: Settings, log_util) -> None:
         super().__init__(log_util)
+        self.help_icon = QLabel()
+        self.title_label = QLabel()
         self.folder_view = FolderListView()
         self.file_util = file_util
         self.settings = settings

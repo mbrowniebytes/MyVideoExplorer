@@ -1,8 +1,8 @@
 import os
+import threading
 from math import floor
 from typing import Any
 from xml.etree import ElementTree
-
 from src.utils.file_util import FileUtil
 
 
@@ -90,23 +90,40 @@ class NfoParseUtil:
             print(f"NfoUtil: NFO file does not exist: {nfo_file}")
             return None
 
-        try:
-            tree = ElementTree.parse(nfo_file)
-            root = tree.getroot()
+        # We'll run the blocking code in a thread and return the result (synchronously)
+        result_container = []
+        result_container.append(None)
+        def thread_worker():
+            try:
+                tree = ElementTree.parse(nfo_file)
+                root = tree.getroot()
 
-            movie_info = self.create_empty_movie_info()
-            self.extract_media_metadata(root, movie_info)
-            return self.normalize_movie_info(movie_info)
+                movie_info = self.create_empty_movie_info()
+                self.extract_media_metadata(root, movie_info)
+                result_container[0] = self.normalize_movie_info(movie_info)
+            except ElementTree.ParseError as e:
+                result_container[0] = None
+                err = f"Error parsing NFO file '{nfo_file}': {e}"
+                result_container.append(err)
+            except OSError as e:
+                result_container[0] = None
+                err = f"Error reading NFO file '{nfo_file}': {e}"
+                result_container.append(err)
+            except Exception as e:
+                # Store exception for detailed printing later
+                result_container[0] = None
+                err = f"Unexpected error parsing NFO file '{nfo_file}': {e}"
+                result_container.append(err)
 
-        except ElementTree.ParseError as e:
-            print(f"Error parsing NFO file '{nfo_file}': {e}")
-            return None
-        except OSError as e:
-            print(f"Error reading NFO file '{nfo_file}': {e}")
-            return None
-        except Exception as e:
-            print(f"Unexpected error parsing NFO file '{nfo_file}': {e}")
-            return None
+        thread = threading.Thread(target=thread_worker)
+        thread.start()
+        thread.join()  # Wait for the thread to finish
+
+        # Print error details if parsing failed
+        if len(result_container) > 1 and result_container[0] is None:
+            print(f"{result_container[1]}")
+
+        return result_container[0]
 
     def create_empty_movie_info(self) -> dict[str, Any]:
         """Create an empty movie info dictionary following the schema."""
@@ -121,6 +138,9 @@ class NfoParseUtil:
         """Extract all media metadata from XML root into movie info."""
         if movie_info is None:
             movie_info = self.create_empty_movie_info()
+
+        # dev test
+        # sleep(2)
 
         # Parse all metadata sections in logical order
         self._parse_basic_fields(root, movie_info)

@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QLabel, QWidget, QHBoxLayout
+from PySide6.QtWidgets import QLabel, QHBoxLayout
 from src.theme.theme import APP_THEME
 from PySide6.QtGui import QFont
 
+from src.utils.log_util import LogUtil
+from src.widgets.base_widget import BaseWidget
 
-class ImageTitleWidget(QWidget):
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
+
+class ImageTitleWidget(BaseWidget):
+    def __init__(self, log_util:LogUtil) -> None:
+        super().__init__(log_util)
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 5, 0, 5)
         layout.setSpacing(5)
@@ -17,7 +20,10 @@ class ImageTitleWidget(QWidget):
         self.title_label.setAlignment(
             Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
         )
-        self.title_label.setStyleSheet(APP_THEME.title_label_qss())
+        self.title_label.setStyleSheet(
+            APP_THEME.title_label_qss()
+        )
+        self.update_title("")
 
         self.help_icon = QLabel("?")
         self.help_icon.setFixedSize(20, 20)
@@ -37,6 +43,8 @@ class ImageTitleWidget(QWidget):
         layout.addWidget(self.help_icon)
 
     def update_title(self, title: str) -> None:
+        if title == "":
+            title = f"{" ":<40}"
         if self.title_label.text() == title:
             return
         self.title_label.setText(title)
