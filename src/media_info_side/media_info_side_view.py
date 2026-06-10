@@ -31,13 +31,22 @@ class MediaInfoSideView(BaseWidget):
         self.current_view_mode = MEDIA_INFO_VIEW_MODE_IMAGE_LIST
 
         self.side_content_widget = MediaInfoSideContentWidget(self.str_util)
+        self.side_content_widget.hide()
+        self.side_content_widget.sig_play_video_requested.connect(self.play_video)
 
-        self.empty_nfo_placeholder_widget = LabelValueWidget("", "")
+        self.empty_nfo_placeholder_widget = LabelValueWidget(
+            name="",
+            value="No NFO data found",
+            orientation=Qt.Orientation.Vertical,
+        )
 
         self.plot_section = MediaInfoPlotSection()
 
         self.media_info_side_layout = self.set_compact_layout(QVBoxLayout)
         self.media_info_side_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        self.media_info_side_layout.addWidget(self.side_content_widget)
+        self.media_info_side_layout.addWidget(self.empty_nfo_placeholder_widget)
 
         self.setFixedWidth(85)
 
@@ -69,17 +78,9 @@ class MediaInfoSideView(BaseWidget):
 
     def clear_nfo(self) -> None:
         """Clear current NFO widgets and display an empty-data placeholder."""
-        self.clear_layout(self.media_info_side_layout)
-        self.side_content_widget = None
-
+        self.side_content_widget.hide()
         self.plot_section.build("")
-
-        self.empty_nfo_placeholder_widget = LabelValueWidget(
-            name="",
-            value="No NFO data found",
-            orientation=Qt.Orientation.Vertical,
-        )
-        self.media_info_side_layout.addWidget(self.empty_nfo_placeholder_widget)
+        self.empty_nfo_placeholder_widget.show()
 
     def build_nfo(self, movie_info: dict) -> None:
         """Backward-compatible wrapper for updating from a movie info dictionary."""
@@ -130,13 +131,8 @@ class MediaInfoSideView(BaseWidget):
             self.empty_nfo_placeholder_widget.setFont(application_font)
 
     def _ensure_side_content_widget(self) -> None:
-        if self.side_content_widget is not None:
+        if self.side_content_widget.isVisible():
             return
 
-        self.clear_layout(self.media_info_side_layout)
-
-        self.side_content_widget = MediaInfoSideContentWidget(self.str_util)
-        self.side_content_widget.sig_play_video_requested.connect(self.play_video)
-
-        self.media_info_side_layout.addWidget(self.side_content_widget)
-        # self.media_info_side_layout.addStretch()
+        self.empty_nfo_placeholder_widget.hide()
+        self.side_content_widget.show()
