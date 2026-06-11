@@ -1,6 +1,7 @@
 from collections.abc import Callable
 
 from PySide6.QtCore import Signal
+from src.app.app_signals_model import SignalFlow, SignalPayload
 from PySide6.QtWidgets import QPushButton, QWidget
 from src.theme.theme import APP_THEME
 from src.utils.log_util import LogUtil
@@ -9,8 +10,8 @@ from src.widgets.base_widget import BaseWidget
 
 class SettingsBaseTab(BaseWidget):
     """Base class for settings tabs to provide standard signaling and save button behavior."""
-    sig_changed = Signal()
-    sig_saved = Signal()
+    sig_changed = Signal(object)
+    sig_saved = Signal(object)
 
     def __init__(self, log_util: LogUtil | None = None, parent: QWidget | None = None) -> None:
         super().__init__(log_util, parent)
@@ -21,7 +22,14 @@ class SettingsBaseTab(BaseWidget):
 
     def _on_setting_changed(self) -> None:
         """Emit change signal when a setting is modified."""
-        self.sig_changed.emit()
+        payload = SignalPayload(
+            data=None,
+            sender=self.__class__.__name__,
+            name="Setting Changed",
+            description="Emitted when a setting is changed in the tab.",
+            flow=SignalFlow.USER_INPUT,
+        )
+        self.sig_changed.emit(payload)
         self.highlight_save_button()
 
     def _build_reset_button(self, label: str, callback: Callable[[], None]) -> QPushButton:

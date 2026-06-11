@@ -1,5 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
+from src.app.app_signals_model import SignalPayload, SignalFlow
 from src.folder_nav.folder_nav import FolderNav
 from src.folder_filter.folder_filter import FolderFilters
 from src.settings.settings import Settings
@@ -54,19 +55,33 @@ class TestFolderNav:
                 folder_nav.apply_filters()
 
             mock_apply.assert_called()
-            assert blocker.args[0] == mock_items
+            assert blocker.args[0].data == mock_items
 
     def test_signal_forwarding(self, folder_nav, qtbot):
         """Verify signals from sub-widgets are forwarded."""
         # Test sig_root_folder forwarding (emitted by filters when folder is selected from combo)
         with qtbot.waitSignal(folder_nav.sig_root_folder) as blocker:
-            folder_nav.folder_filter_widget.sig_root_folder.emit("/emitted/path")
-        assert blocker.args[0] == "/emitted/path"
+            payload = SignalPayload(
+                data="/emitted/path",
+                sender="Test",
+                name="Test",
+                description="Test",
+                flow=SignalFlow.USER_INPUT,
+            )
+            folder_nav.folder_filter_widget.sig_root_folder.emit(payload)
+        assert blocker.args[0].data == "/emitted/path"
 
         # Test sig_genre_changed forwarding
         with qtbot.waitSignal(folder_nav.sig_genre_changed) as blocker:
-            folder_nav.folder_filter_widget.sig_genre_changed.emit("Action")
-        assert blocker.args[0] == "Action"
+            payload = SignalPayload(
+                data="Action",
+                sender="Test",
+                name="Test",
+                description="Test",
+                flow=SignalFlow.USER_INPUT,
+            )
+            folder_nav.folder_filter_widget.sig_genre_changed.emit(payload)
+        assert blocker.args[0].data == "Action"
 
     def test_apply_theme(self, folder_nav):
         """Verify theme application calls sub-widgets."""

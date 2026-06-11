@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 from src.media_info.media_info import MediaInfo
 from src.media_info.media_info_view import MediaInfoView
 from src.media_info_side.media_info_side_view import MediaInfoSideView
+from src.app.app_signals_model import SignalPayload, SignalFlow
 from src.utils.nfo_parse_util import NfoParseUtil
 from src.utils.str_util import StrUtil
 
@@ -40,12 +41,26 @@ class TestMediaInfo:
 
     def test_play_video_signal_forwarding_from_view(self, media_info, qtbot):
         with qtbot.waitSignal(media_info.sig_play_video) as blocker:
-            media_info.media_info_view.sig_info_play_video_btn_clicked.emit()
+            payload = SignalPayload(
+                data=None,
+                sender="Test",
+                name="Test",
+                description="Test",
+                flow=SignalFlow.USER_INPUT,
+            )
+            media_info.media_info_view.sig_info_play_video_btn_clicked.emit(payload)
         assert blocker.signal_triggered
 
     def test_play_video_signal_forwarding_from_side_view(self, media_info, qtbot):
         with qtbot.waitSignal(media_info.sig_play_video) as blocker:
-            media_info.media_info_side_view.sig_info_side_play_video_btn_clicked.emit()
+            payload = SignalPayload(
+                data=None,
+                sender="Test",
+                name="Test",
+                description="Test",
+                flow=SignalFlow.USER_INPUT,
+            )
+            media_info.media_info_side_view.sig_info_side_play_video_btn_clicked.emit(payload)
         assert blocker.signal_triggered
 
     def test_apply_theme(self, media_info):

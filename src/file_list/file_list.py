@@ -1,6 +1,7 @@
 import os
 
 from PySide6.QtCore import QSize, Qt, QUrl, Signal
+from src.app.app_signals_model import SignalPayload
 from PySide6.QtGui import QDesktopServices, QFont
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -17,7 +18,7 @@ from src.widgets.base_widget import BaseWidget
 
 
 class FileList(BaseWidget):
-    sig_file_selected_intent = Signal(str)
+    sig_file_selected_intent = Signal(object)
 
     def __init__(self, file_util: FileUtil, log_util) -> None:
         super().__init__(log_util)
@@ -59,6 +60,14 @@ class FileList(BaseWidget):
         self.help_icon.setFixedSize(16, 16)
         self.help_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
+        tooltip = (
+            "File List Usage:\n"
+            "- Double-click video to play it\n"
+            "- Single-click, selected image will be shown above\n"
+            "- Use the scrollbar or mouse wheel to browse files"
+        )
+        self.help_icon.setToolTip(tooltip)
+
         self.explorer_button = QToolButton()
         self.explorer_button.setText("Open Folder")
         # self.explorer_button.setToolButtonStyle(
@@ -88,9 +97,9 @@ class FileList(BaseWidget):
         if folder_path and os.path.exists(folder_path):
             QDesktopServices.openUrl(QUrl.fromLocalFile(folder_path))
 
-    def _handle_file_selected_intent(self, file_path: str) -> None:
-        self.sig_file_selected_intent.emit(file_path)
-        self.log_util.debug(f"sig_file_selected_intent emitted for: {file_path}")
+    def _handle_file_selected_intent(self, payload: SignalPayload) -> None:
+        self.sig_file_selected_intent.emit(payload)
+        self.log_util.debug(f"sig_file_selected_intent emitted for: {payload.data}")
 
     def connect_sigs(self):
         if self._signals_connected:
@@ -113,7 +122,6 @@ class FileList(BaseWidget):
 
         if not folder_path:
             self.title_label.setText("Folder Contents:")
-            self.help_icon.setToolTip("")
             self.explorer_button.setVisible(False)
             return
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import pathlib
 
 from PySide6.QtCore import Signal
+from src.app.app_signals_model import SignalPayload, SignalFlow
 from PySide6.QtGui import QFont
 
 from src.file_list.file_list import FileList
@@ -18,10 +19,10 @@ from src.widgets.base_widget import BaseWidget
 
 class ImageList(BaseWidget):
 
-    sig_wheel_step = Signal(int)
-    sig_right_click = Signal()
-    sig_double_click = Signal()
-    sig_image_selected_intent = Signal(str)
+    sig_wheel_step = Signal(object)
+    sig_right_click = Signal(object)
+    sig_double_click = Signal(object)
+    sig_image_selected_intent = Signal(object)
 
     def __init__(
         self,
@@ -62,16 +63,37 @@ class ImageList(BaseWidget):
         self.clear_nfo()
         return self.image_list
 
-    def _handle_wheel_step(self, step: int) -> None:
-        self.sig_wheel_step.emit(step)
-        self.log_util.debug(f"sig_wheel_step emitted with: {step}")
+    def _handle_wheel_step(self, payload: SignalPayload) -> None:
+        new_payload = SignalPayload(
+            data=payload.data,
+            sender=self.__class__.__name__,
+            name="Wheel Step",
+            description="Emitted when mouse wheel moves in ImageList.",
+            flow=SignalFlow.COMPONENT_INTERACTION,
+        )
+        self.sig_wheel_step.emit(new_payload)
+        self.log_util.debug(f"sig_wheel_step emitted with: {payload.data}")
 
-    def _handle_right_click(self) -> None:
-        self.sig_right_click.emit()
+    def _handle_right_click(self, payload: SignalPayload) -> None:
+        new_payload = SignalPayload(
+            data=None,
+            sender=self.__class__.__name__,
+            name="Right Click",
+            description="Emitted when right click in ImageList.",
+            flow=SignalFlow.COMPONENT_INTERACTION,
+        )
+        self.sig_right_click.emit(new_payload)
         self.log_util.debug("sig_right_click emitted")
 
-    def _handle_double_click(self) -> None:
-        self.sig_double_click.emit()
+    def _handle_double_click(self, payload: SignalPayload) -> None:
+        new_payload = SignalPayload(
+            data=None,
+            sender=self.__class__.__name__,
+            name="Double Click",
+            description="Emitted when double click in ImageList.",
+            flow=SignalFlow.COMPONENT_INTERACTION,
+        )
+        self.sig_double_click.emit(new_payload)
         self.log_util.debug("sig_double_click emitted")
 
     def _connect_internal_sigs(self):
@@ -106,7 +128,14 @@ class ImageList(BaseWidget):
         self.selected_image_index = new_index
         self.selected_image_path = image_path
         self.image_list_view.load_pixmap(image_path)
-        self.sig_image_selected_intent.emit(image_path)
+        payload = SignalPayload(
+            data=image_path,
+            sender=self.__class__.__name__,
+            name="Image Selected Intent",
+            description="Emitted when an image selection is intended.",
+            flow=SignalFlow.USER_INPUT,
+        )
+        self.sig_image_selected_intent.emit(payload)
         self.log_util.debug(f"sig_image_selected_intent emitted for: {image_path}")
 
     def clear_nfo(self) -> None:

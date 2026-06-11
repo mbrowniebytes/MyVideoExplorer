@@ -17,7 +17,7 @@ class TestFolderPicker:
         with qtbot.waitSignal(folder_picker.sig_selected_folder) as blocker:
             folder_picker.selected_folder = "/new/path"
         assert folder_picker.selected_folder == "/new/path"
-        assert blocker.args[0] == "/new/path"
+        assert blocker.args[0].data == "/new/path"
 
     def test_selected_folder_setter_no_duplicates(self, folder_picker, qtbot):
         folder_picker.selected_folder = "/path"

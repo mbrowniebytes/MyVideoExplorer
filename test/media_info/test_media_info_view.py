@@ -99,8 +99,7 @@ class TestMediaInfoView:
         ) as blocker:
             media_info_view.play_video()
 
-        # No args for this signal usually, just verification it was emitted
-        assert blocker.signal_triggered
+        assert blocker.args[0].data is None
 
     def test_apply_theme(self, media_info_view, mock_nfo_data):
         media_info_view.build_from_movie_info(mock_nfo_data)

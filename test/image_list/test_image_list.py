@@ -48,7 +48,7 @@ class TestImageList:
         with qtbot.waitSignal(image_list.sig_image_selected_intent) as blocker:
             image_list.request_next_image(1)
 
-        assert blocker.args == ["img2.jpg"]
+        assert blocker.args[0].data == "img2.jpg"
         assert image_list.selected_image_index == 1
         assert image_list.selected_image_path == "img2.jpg"
         image_list.image_list_view.load_pixmap.assert_called_with("img2.jpg")

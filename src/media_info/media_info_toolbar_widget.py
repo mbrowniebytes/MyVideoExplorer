@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Signal
+from src.app.app_signals_model import SignalPayload, SignalFlow
 from PySide6.QtWidgets import QHBoxLayout, QPushButton, QWidget
 
 from src.media_info_section.media_info_section_definitions import get_media_info_toolbar_section_definitions
@@ -8,8 +9,8 @@ from src.theme.theme import APP_THEME
 
 
 class MediaInfoToolbarWidget(QWidget):
-    sig_section_visibility_toggle_requested = Signal(str)
-    sig_play_video_requested = Signal()
+    sig_section_visibility_toggle_requested = Signal(object)
+    sig_play_video_requested = Signal(object)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -49,20 +50,39 @@ class MediaInfoToolbarWidget(QWidget):
         section_toggle_button.setFixedSize(100, 25)
         section_toggle_button.setStyleSheet(APP_THEME.small_button_qss())
         section_toggle_button.clicked.connect(
-            lambda _checked=False, selected_section_id=section_id: (
-                self.sig_section_visibility_toggle_requested.emit(selected_section_id)
-            )
+            lambda _: self._on_section_toggle_clicked(section_id)
         )
 
         self.section_toggle_buttons_by_id[section_id] = section_toggle_button
         self.toolbar_layout.addWidget(section_toggle_button)
         return section_toggle_button
 
+    def _on_section_toggle_clicked(self, section_id: str) -> None:
+        self.sig_section_visibility_toggle_requested.emit(
+            SignalPayload(
+                data=section_id,
+                sender=self.__class__.__name__,
+                name="Section Visibility Toggle",
+                description=f"Toggled visibility for section: {section_id}",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
+
     def _add_play_button(self) -> QPushButton:
         play_video_button = QPushButton("▶")
         play_video_button.setMinimumWidth(40)
         play_video_button.setStyleSheet(APP_THEME.small_button_qss())
-        play_video_button.clicked.connect(self.sig_play_video_requested.emit)
+        play_video_button.clicked.connect(
+            lambda: self.sig_play_video_requested.emit(
+                SignalPayload(
+                    data=None,
+                    sender=self.__class__.__name__,
+                    name="Play Video Requested",
+                    description="Emitted when play video button is clicked in toolbar.",
+                    flow=SignalFlow.USER_INPUT,
+                )
+            )
+        )
 
         self.toolbar_layout.addStretch(1)
         self.toolbar_layout.addWidget(play_video_button)

@@ -36,6 +36,7 @@ class ImageTitleWidget(BaseWidget):
             "- Double click on image to play media\n"
             "- Right click to scroll through images in current folder"
         )
+        self.help_icon.installEventFilter(self)
 
         layout.addStretch()
         layout.addWidget(self.title_label)

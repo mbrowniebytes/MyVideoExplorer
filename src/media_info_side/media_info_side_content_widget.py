@@ -12,7 +12,7 @@ from src.utils.str_util import StrUtil
 class MediaInfoSideContentWidget(QFrame):
     """Reusable framed side panel content for media metadata and quick actions."""
 
-    sig_play_video_requested = Signal()
+    sig_play_video_requested = Signal(object)
 
     def __init__(self, str_util: StrUtil, parent: QFrame | None = None) -> None:
         super().__init__(parent)
@@ -29,7 +29,7 @@ class MediaInfoSideContentWidget(QFrame):
         self.content_layout.addWidget(self.facts_widget)
 
         self.header_widget.sig_play_video_requested.connect(
-            self.sig_play_video_requested.emit
+            lambda p: self.sig_play_video_requested.emit(p)
         )
 
         self.apply_theme()

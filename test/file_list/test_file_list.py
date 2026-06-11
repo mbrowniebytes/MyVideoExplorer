@@ -69,7 +69,7 @@ class TestFileList:
         with qtbot.waitSignal(file_list.sig_file_selected_intent) as blocker:
             file_list.file_view.itemClicked.emit(item)
 
-        assert blocker.args[0] == "/path/to/video1.mp4"
+        assert blocker.args[0].data == "/path/to/video1.mp4"
 
     def test_refresh(self, file_list, mock_file_items):
         """Verify refresh calls update_file_list."""

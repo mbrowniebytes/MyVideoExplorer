@@ -3,6 +3,7 @@ from typing import Any
 
 from PySide6.QtCore import QObject, Signal
 
+from src.app.app_signals_model import SignalFlow, SignalPayload
 from src.utils.json_util import JsonUtil
 from src.theme.theme import APP_THEME
 
@@ -20,7 +21,7 @@ DEFAULTS_FILTER_FILE = CFG_DIR / "defaults_filter.json"
 
 
 class SettingsState(QObject):
-    sig_settings_changed = Signal()
+    sig_settings_changed = Signal(object)
 
     def __init__(self, log_util: Any) -> None:
         super().__init__()
@@ -145,6 +146,16 @@ class SettingsState(QObject):
         self.json_util.backup_file(SETTINGS_FILTER_FILE, max_backups=5)
         self.json_util.save_json(SETTINGS_FILTER_FILE, filter_settings)
 
+        self.sig_settings_changed.emit(
+            SignalPayload(
+                data=None,
+                sender=self.__class__.__name__,
+                name="Settings Changed",
+                description="Filter settings were saved.",
+                flow=SignalFlow.COMPONENT_INTERACTION,
+            )
+        )
+
     def load_app(self) -> None:
         """Reload App settings from file."""
         app_data = self.json_util.load_json(DEFAULTS_APP_FILE)
@@ -191,13 +202,29 @@ class SettingsState(QObject):
             self.saved_filters.append({"name": name, "filters": filter_cfg})
 
         self.save_filters()
-        self.sig_settings_changed.emit()
+        self.sig_settings_changed.emit(
+            SignalPayload(
+                data=None,
+                sender=self.__class__.__name__,
+                name="Settings Changed",
+                description="Filter settings were changed.",
+                flow=SignalFlow.COMPONENT_INTERACTION,
+            )
+        )
 
     def delete_filter(self, name: str) -> None:
         """Deletes a named filter configuration."""
         self.saved_filters = [f for f in self.saved_filters if f.get("name") != name]
         self.save_filters()
-        self.sig_settings_changed.emit()
+        self.sig_settings_changed.emit(
+            SignalPayload(
+                data=None,
+                sender=self.__class__.__name__,
+                name="Settings Changed",
+                description="Filter settings were deleted.",
+                flow=SignalFlow.COMPONENT_INTERACTION,
+            )
+        )
 
     def save_settings(self) -> None:
         """Save all tabs' settings (legacy method for backward compatibility)."""

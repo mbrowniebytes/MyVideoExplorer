@@ -89,7 +89,7 @@ class TestFolderList:
             folder_list.select_next_folder(1)
 
         assert folder_list.folder_view.currentRow() == 1
-        assert blocker.args[0] == "/path/to/Folder B"
+        assert blocker.args[0].data == "/path/to/Folder B"
 
     def test_on_folder_item_clicked(self, folder_list, mock_folder_items, qtbot):
         """Verify signal emission on item click."""
@@ -100,7 +100,7 @@ class TestFolderList:
         with qtbot.waitSignal(folder_list.folder_view.sig_folder_selected) as blocker:
             folder_list.folder_view.itemClicked.emit(item)
 
-        assert blocker.args[0] == "/path/to/Folder A"
+        assert blocker.args[0].data == "/path/to/Folder A"
 
     def test_nested_folder_prefixes(self, folder_list, mock_nested_folder_items):
         """Verify that depth translates to prefixes in the list."""
@@ -109,9 +109,9 @@ class TestFolderList:
         assert folder_list.folder_view.count() == 2
 
         # Root (depth 0)
-        assert folder_list.folder_view.item(0).text() == "└─ Root"
+        assert folder_list.folder_view.item(0).text() == " Root"
         # Subfolder (depth 1)
-        assert folder_list.folder_view.item(1).text() == "  └─ Subfolder"
+        assert folder_list.folder_view.item(1).text() == "  ・ Subfolder"
 
     def test_refresh_asynchronous(self, folder_list, qtbot):
         """Verify refresh method triggers update via timer."""

@@ -125,7 +125,7 @@ class TestFolderNavFilters:
         combo = nav_filters.filter_table.cellWidget(0, 1)
         with qtbot.waitSignal(nav_filters.sig_genre_changed) as blocker:
             combo.setCurrentText("Sci-Fi")
-        assert blocker.args[0] == "Sci-Fi"
+        assert blocker.args[0].data == "Sci-Fi"
 
     def test_media_changed_signal(self, nav_filters, qtbot):
         """Verify media combo change emits root folder signal."""
@@ -134,7 +134,7 @@ class TestFolderNavFilters:
         with qtbot.waitSignal(nav_filters.sig_root_folder) as blocker:
             # Index 0 is "- Select Folder -", 1 is "Movies"
             combo.setCurrentIndex(1)
-        assert blocker.args[0] == "movies"
+        assert blocker.args[0].data == "movies"
 
     def test_save_filter(self, nav_filters, settings_mock, qtbot):
         """Verify saving a filter."""

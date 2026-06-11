@@ -3,8 +3,9 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QTabBar, QTabWidget, QVBoxLayout, QWidget
-
+from src.app.app_signals_model import SignalFlow, SignalPayload
 from src.settings.settings_app_tab import SettingsAppTab
+from src.settings.settings_base_tab import SettingsBaseTab
 from src.settings.settings_filter_tab import SettingsFilterTab
 from src.settings.settings_media_tab import SettingsMediaTab
 from src.settings.settings_state import SettingsState
@@ -18,7 +19,7 @@ from src.widgets.right_aligned_tab_bar import RightAlignedTabBar
 class Settings(BaseWidget):
     """Container widget for application settings, managing tabs and state persistence."""
 
-    sig_dirty_changed = Signal(bool)
+    sig_dirty_changed = Signal(object)
 
     def __init__(self, log_util: LogUtil | None = None) -> None:
         super().__init__(log_util)
@@ -38,7 +39,7 @@ class Settings(BaseWidget):
         )
 
         # Group tabs for centralized management (DRY principle)
-        self.managed_tabs: list[QWidget] = [
+        self.managed_tabs: list[SettingsBaseTab] = [
             self.app_settings_tab,
             self.ui_settings_tab,
             self.media_settings_tab,
@@ -86,23 +87,44 @@ class Settings(BaseWidget):
 
     def _connect_signals(self) -> None:
         """Wires up signals between tabs, state, and the container."""
-        self.settings_data_model.sig_settings_changed.connect(self.apply_theme)
+        self.settings_data_model.sig_settings_changed.connect(lambda p: self.apply_theme())
 
         for tab in self.managed_tabs:
             # Use default argument to capture current loop variable correctly
-            tab.sig_changed.connect(lambda t=tab: self._mark_tab_dirty(t))
+            tab.sig_changed.connect(lambda _, t=tab: self._mark_tab_dirty(t))
             tab.sig_saved.connect(self._check_all_tabs_saved)
 
-    def _mark_tab_dirty(self, tab: QWidget) -> None:
+    def _mark_tab_dirty(self, tab: SettingsBaseTab) -> None:
         """Marks a specific tab as dirty and notifies the container."""
-        if hasattr(tab, "highlight_save_button"):
-            tab.highlight_save_button()
-        self.sig_dirty_changed.emit(True)
+        tab.highlight_save_button()
+        self.sig_dirty_changed.emit(
+            SignalPayload(
+                data=True,
+                sender=self.__class__.__name__,
+                name="Dirty Changed",
+                description="Settings tab state changed to dirty.",
+                flow=SignalFlow.COMPONENT_INTERACTION,
+            )
+        )
 
     def _check_all_tabs_saved(self) -> None:
         """Checks if all tabs are clean. Emits False if no dirty tabs remain."""
-        if not any(getattr(t, "is_dirty", False) for t in self.managed_tabs):
-            self.sig_dirty_changed.emit(False)
+        is_dirty = False
+        for t in self.managed_tabs:
+            if t.is_dirty:
+                is_dirty = True
+                break
+
+        if not is_dirty:
+            self.sig_dirty_changed.emit(
+                SignalPayload(
+                    data=False,
+                    sender=self.__class__.__name__,
+                    name="Dirty Changed",
+                    description="Settings tab state changed to clean.",
+                    flow=SignalFlow.COMPONENT_INTERACTION,
+                )
+            )
 
     def save_all_settings(self) -> None:
         """Persists settings from all tabs and resets dirty states."""

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
+from src.app.app_signals_model import SignalPayload, SignalFlow
 from PySide6.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget
 
 from src.theme.theme import APP_THEME
@@ -9,7 +10,7 @@ from src.theme.theme import APP_THEME
 class MediaInfoSideHeaderWidget(QWidget):
     """Compact side header with quick actions for the selected media item."""
 
-    sig_play_video_requested = Signal()
+    sig_play_video_requested = Signal(object)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -20,7 +21,17 @@ class MediaInfoSideHeaderWidget(QWidget):
 
         self.play_video_button = QPushButton("▶")
         self.play_video_button.setMinimumWidth(40)
-        self.play_video_button.clicked.connect(self.sig_play_video_requested.emit)
+        self.play_video_button.clicked.connect(
+            lambda: self.sig_play_video_requested.emit(
+                SignalPayload(
+                    data=None,
+                    sender=self.__class__.__name__,
+                    name="Play Video Requested",
+                    description="Emitted when play video button is clicked in side header.",
+                    flow=SignalFlow.USER_INPUT,
+                )
+            )
+        )
 
         self.title_label = QLabel("NFO")
         self.title_label.setWordWrap(False)

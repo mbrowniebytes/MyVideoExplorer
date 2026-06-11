@@ -1,5 +1,6 @@
 from pathlib import Path
 from src.app.app_controller import AppController
+from src.app.app_signals import SignalRegistry
 from src.file_list.file_list import FileList
 from src.folder_list.folder_list import FolderList
 from src.folder_nav.folder_nav import FolderNav
@@ -59,7 +60,8 @@ class AppContainer:
             self.nfo_parse_util = NfoParseUtil(self.file_util, self.log_util)
             self.str_util = StrUtil(self.log_util)
 
-            self.controller = AppController(self.log_util)
+            self.signals = SignalRegistry()
+            self.controller = AppController(self.log_util, self.signals)
 
             self.folder_nav_filters_filter = FolderFilterFilter(
                 self.nfo_parse_util, self.settings.settings_data_model.folder_configs, self.log_util
@@ -112,58 +114,57 @@ class AppContainer:
 
     def _wire_user_inputs(self) -> None:
         """User interactions → Controller state."""
-        self.folder_nav.sig_root_folder.connect(self.controller.set_root_folder)
-        self.folder_nav.sig_selected_folder.connect(self.controller.sig_selected_folder)
+        self.folder_nav.sig_root_folder.connect(lambda p: self.controller.set_root_folder(p.data))
+        self.folder_nav.sig_selected_folder.connect(lambda p: self.controller.set_current_folder(p.data))
 
         self.folder_list.sig_folder_selected_intent.connect(
-            self.controller.set_current_folder
+            lambda p: self.controller.set_current_folder(p.data)
         )
 
         self.file_list.sig_file_selected_intent.connect(
-            self.controller.set_current_file
+            lambda payload: self.controller.set_current_file(payload.data)
         )
 
         self.image_list.sig_image_selected_intent.connect(
-            self.controller.set_current_file
+            lambda p: self.controller.set_current_file(p.data)
         )
 
         self.media_info_tabs.sig_tab_selection_changed.connect(self.controller.set_current_tab)
 
-        self.settings.media_settings_tab.sig_changed.connect(self.folder_list.refresh_icons)
-        self.settings.media_settings_tab.sig_root_folders_changed.connect(self.controller.set_root_folder)
+        self.settings.media_settings_tab.sig_changed.connect(lambda p: self.folder_list.refresh_icons())
+        self.settings.media_settings_tab.sig_root_folders_changed.connect(lambda p: self.controller.set_root_folder(p.data))
 
 
     def _wire_controller_outputs(self) -> None:
         """Controller state changes → Component refreshes."""
-        self.controller.sig_root_folder.connect(self._on_set_root_folder)
+        self.signals.sig_root_folder.connect(lambda p: self._on_set_root_folder(p.data))
         # New: handle list of root folders so FolderNav can display all roots
-        if hasattr(self.controller, "sig_root_folders"):
-            self.controller.sig_root_folders.connect(self.folder_nav.set_root_folder)
+        self.signals.sig_root_folders.connect(lambda p: self.folder_nav.set_root_folder(p.data))
 
-        self.controller.sig_selected_folder.connect(self._on_folder_selected)
+        self.signals.sig_selected_folder.connect(lambda p: self._on_folder_selected(p.data))
 
-        self.controller.sig_file_changed.connect(self.file_list.set_selected_file)
-        self.controller.sig_file_changed.connect(self.media_info.set_image_path)
-        self.controller.sig_file_changed.connect(self.image_list.update_image_from_item)
+        self.signals.sig_file_changed.connect(lambda p: self.file_list.set_selected_file(p.data))
+        self.signals.sig_file_changed.connect(lambda p: self.media_info.set_image_path(p.data))
+        self.signals.sig_file_changed.connect(lambda p: self.image_list.update_image_from_item(p.data))
 
-        self.controller.sig_image_changed.connect(self.image_list.set_selected_image)
+        self.signals.sig_image_changed.connect(lambda p: self.image_list.set_selected_image(p.data))
 
-        self.controller.sig_tab_changed.connect(self._on_tab_changed)
+        self.signals.sig_tab_changed.connect(lambda p: self._on_tab_changed(p.data))
 
-        self.settings.settings_data_model.sig_settings_changed.connect(self.folder_list.refresh_icons)
+        self.settings.settings_data_model.sig_settings_changed.connect(lambda p: self.folder_list.refresh_icons())
         # When media folders are deleted in settings, update controller root_folders
         if hasattr(self.settings, "media_tab") and hasattr(self.settings.media_tab, "sig_root_folders_changed"):
-            self.settings.media_tab.sig_root_folders_changed.connect(self.controller.set_root_folder)
+            self.settings.media_tab.sig_root_folders_changed.connect(lambda p: self.controller.set_root_folder(p.data))
 
     def _wire_component_interactions(self) -> None:
         """Component-to-component interactions (local, not via controller)."""
-        self.image_list.sig_wheel_step.connect(self.folder_list.select_next_folder)
-        self.image_list.sig_right_click.connect(self.image_list.request_next_image)
+        self.image_list.sig_wheel_step.connect(lambda p: self.folder_list.select_next_folder(p.data))
+        self.image_list.sig_right_click.connect(lambda p: self.image_list.request_next_image())
 
-        self.image_list.sig_double_click.connect(self._play_video_from_current_folder)
-        self.media_info.sig_play_video.connect(self._play_video_from_current_folder)
+        self.image_list.sig_double_click.connect(lambda p: self._play_video_from_current_folder())
+        self.media_info.sig_play_video.connect(lambda p: self._play_video_from_current_folder())
 
-        self.folder_nav.sig_selected_items.connect(self._on_filtered_items)
+        self.folder_nav.sig_selected_items.connect(lambda p: self._on_filtered_items(p.data))
 
     def _on_tab_changed(self, tab_index: int) -> None:
         """Bridge: translate controller signal to component method."""

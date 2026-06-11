@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
+from src.app.app_signals_model import SignalPayload, SignalFlow
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QVBoxLayout
 
@@ -19,7 +20,7 @@ class MediaInfoSideView(BaseWidget):
     Side view displaying metadata and quick actions for a media item.
     """
 
-    sig_info_side_play_video_btn_clicked = Signal()
+    sig_info_side_play_video_btn_clicked = Signal(object)
 
     def __init__(self, nfo_parse_util: NfoParseUtil, str_util: StrUtil, log_util) -> None:
         super().__init__(log_util)
@@ -111,9 +112,17 @@ class MediaInfoSideView(BaseWidget):
         # Backward-compatible alias.
         self.view_mode = self.current_view_mode
 
-    def play_video(self) -> None:
+    def play_video(self, payload: SignalPayload = None) -> None:
         """Emit the side-view play-video signal."""
-        self.sig_info_side_play_video_btn_clicked.emit()
+        self.sig_info_side_play_video_btn_clicked.emit(
+            SignalPayload(
+                data=None,
+                sender=self.__class__.__name__,
+                name="Play Video Requested",
+                description="Emitted when play video button is clicked in side view.",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
 
     def apply_theme(self) -> None:
         """Apply theme to this view and child widgets."""

@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 
 from src.settings.settings_base_tab import SettingsBaseTab
 from src.settings.settings_state import SettingsState
+from src.app.app_signals_model import SignalFlow, SignalPayload
 from src.theme.theme import APP_THEME
 from src.utils.log_util import LogUtil
 
@@ -88,7 +89,15 @@ class SettingsAppTab(SettingsBaseTab):
         if index >= 0:
             self.logging_level_combo.setCurrentIndex(index)
         self.reset_save_button()
-        self.sig_saved.emit()
+        self.sig_saved.emit(
+            SignalPayload(
+                data=None,
+                sender=self.__class__.__name__,
+                name="App Settings Reset",
+                description="App settings were reset to defaults.",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
         print("App Settings reset")
 
     def _save_app_settings(self) -> None:
@@ -101,5 +110,13 @@ class SettingsAppTab(SettingsBaseTab):
 
         self.state.save_app()
         self.reset_save_button()
-        self.sig_saved.emit()
+        self.sig_saved.emit(
+            SignalPayload(
+                data=None,
+                sender=self.__class__.__name__,
+                name="App Settings Saved",
+                description="App settings were saved.",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
         print("App Settings saved")

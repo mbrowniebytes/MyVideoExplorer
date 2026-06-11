@@ -14,6 +14,7 @@ from PySide6.QtCore import Qt
 
 from src.settings.settings_base_tab import SettingsBaseTab
 from src.settings.settings_state import SettingsState
+from src.app.app_signals_model import SignalFlow, SignalPayload
 from src.theme.theme import APP_THEME
 from src.utils.log_util import LogUtil
 
@@ -90,7 +91,15 @@ class SettingsUITab(SettingsBaseTab):
         self.font_size_spinbox.setValue(APP_THEME.font_size)
         APP_THEME.refresh_theme()
         self.reset_save_button()
-        self.sig_saved.emit()
+        self.sig_saved.emit(
+            SignalPayload(
+                data=None,
+                sender=self.__class__.__name__,
+                name="UI Settings Reset",
+                description="UI settings were reset to defaults.",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
         print("UI Settings reset")
 
     def _on_font_size_changed(self, value: int) -> None:
@@ -104,14 +113,30 @@ class SettingsUITab(SettingsBaseTab):
             APP_THEME.refresh_theme()
         finally:
             self.font_size_spinbox.blockSignals(False)
-        self.state.sig_settings_changed.emit()
+        self.state.sig_settings_changed.emit(
+            SignalPayload(
+                data=value,
+                sender=self.__class__.__name__,
+                name="Settings Changed",
+                description="Font size was changed.",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
         self._on_setting_changed()
 
     def _save_ui_settings(self) -> None:
         """Save only UI tab settings."""
         self.state.save_ui()
         self.reset_save_button()
-        self.sig_saved.emit()
+        self.sig_saved.emit(
+            SignalPayload(
+                data=None,
+                sender=self.__class__.__name__,
+                name="UI Settings Saved",
+                description="UI settings were saved.",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
         print("UI Settings saved")
 
     def apply_theme(self) -> None:

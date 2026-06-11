@@ -194,7 +194,8 @@ class StyleFactory:
         color = c.color_text_primary
         weight = "normal"
         padding = "0px"
-        extra = ""
+        extra_label = ""
+        extra_qss = ""
 
         if variant == "small":
             size -= 3
@@ -202,7 +203,7 @@ class StyleFactory:
             color = c.color_text_secondary
         elif variant == "field_value":
             color = c.color_text_field_value
-            extra = f"""
+            extra_label = f"""
                 border-radius: 8px;
                 border-bottom: 1px solid {c.color_section_divider};
             """
@@ -210,15 +211,20 @@ class StyleFactory:
             size += 10
             weight = "700"
             padding = "4px 0px 12px 0px"
-            extra = f"""
+            extra_label = f"""
                 border-radius: 8px;
                 border-bottom: 2px solid {c.color_border_default};
             """
         elif variant == "help_icon":
-            size -= 3
-            extra = f"""
+            size -= 2
+            extra_label = f"""
                 border-radius: 6px;
                 border: 2px solid {c.color_border_icon};
+            """
+            extra_qss = f"""
+                QLabel:hover {{
+                    border: 2px solid {c.color_border_highlight};
+                }}
             """
 
         return f"""
@@ -228,15 +234,16 @@ class StyleFactory:
                  font-size: {size}px;
                  font-weight: {weight};
                  padding: {padding};
-                 {extra}
+                 {extra_label}
              }}
              QToolTip {{
                  background-color: {c.color_surface_primary};
                  color: {c.color_text_primary};
-                 border: 1px solid {c.color_border_default};
+                 border: 2px solid {c.color_border_highlight};
                  font-size: {c.font_size_base - 2}px;
                  padding: 5px;
              }}
+             {extra_qss}
          """
 
     @staticmethod

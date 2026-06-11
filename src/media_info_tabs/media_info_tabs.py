@@ -90,7 +90,7 @@ class MediaInfoTabs(BaseWidget):
 
     def _add_settings_tab(self, settings: Settings) -> None:
         self.settings_tab_index = self._add_content_tab(settings.build(), self.LABEL_SETTINGS)
-        settings.sig_dirty_changed.connect(self._on_settings_dirty_changed)
+        settings.sig_dirty_changed.connect(lambda p: self._on_settings_dirty_changed(p.data))
 
     def _on_settings_dirty_changed(self, is_dirty: bool) -> None:
         label = self.LABEL_SETTINGS_DIRTY if is_dirty else self.LABEL_SETTINGS

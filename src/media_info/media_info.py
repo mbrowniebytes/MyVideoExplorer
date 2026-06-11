@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Signal
+from src.app.app_signals_model import SignalPayload, SignalFlow
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from src.media_info_side.media_info_side_view import MediaInfoSideView
@@ -11,7 +12,7 @@ from src.widgets.base_widget import BaseWidget
 
 
 class MediaInfo(BaseWidget):
-    sig_play_video = Signal(str)
+    sig_play_video = Signal(object)
 
     def __init__(
         self,
@@ -95,8 +96,16 @@ class MediaInfo(BaseWidget):
             and self.current_tab_index == tab_index
         )
 
-    def _emit_play_video_requested(self) -> None:
-        self.sig_play_video.emit(self.current_image_path)
+    def _emit_play_video_requested(self, payload: SignalPayload = None) -> None:
+        self.sig_play_video.emit(
+            SignalPayload(
+                data=self.current_image_path,
+                sender=self.__class__.__name__,
+                name="Play Video Requested",
+                description="Emitted when play video is requested from child views.",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
 
         self.log_util.debug(
             f"MediaInfo play video requested for image path: {self.current_image_path}"

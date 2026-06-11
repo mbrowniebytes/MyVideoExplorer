@@ -20,13 +20,14 @@ from PySide6.QtWidgets import (
 
 from src.settings.settings_base_tab import SettingsBaseTab
 from src.settings.settings_state import SettingsState
+from src.app.app_signals_model import SignalFlow, SignalPayload
 from src.theme.theme import APP_THEME
 from src.utils.log_util import LogUtil
 from src.widgets.folder_picker_widget import FolderPickerWidget
 
 
 class SettingsMediaTab(SettingsBaseTab):
-    sig_root_folders_changed = Signal(list)
+    sig_root_folders_changed = Signal(object)
 
     def __init__(self, state: SettingsState, log_util: LogUtil, parent: QWidget | None = None) -> None:
         super().__init__(log_util, parent)
@@ -112,7 +113,15 @@ class SettingsMediaTab(SettingsBaseTab):
         self.state.load_media()
         self._refresh_folder_nav_settings()
         self.reset_save_button()
-        self.sig_saved.emit()
+        self.sig_saved.emit(
+            SignalPayload(
+                data=None,
+                sender=self.__class__.__name__,
+                name="Media Settings Reset",
+                description="Media settings were reset to defaults.",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
         print("Media Settings reset")
 
     def _refresh_folder_nav_settings(self) -> None:
@@ -284,7 +293,7 @@ class SettingsMediaTab(SettingsBaseTab):
         browse_btn.clicked.connect(folder_picker.pick_folder)
 
         folder_picker.sig_selected_folder.connect(
-            lambda val: self._on_folder_selected(val, folder_edit, folder_config)
+            lambda payload: self._on_folder_selected(payload.data, folder_edit, folder_config)
         )
 
         container = QWidget()
@@ -351,12 +360,20 @@ class SettingsMediaTab(SettingsBaseTab):
         if folder_config.get(key) == value:
             return
         folder_config[key] = value
-        self.sig_changed.emit()
+        self._on_setting_changed()
 
         # paths = self._get_valid_media_paths()
         # self.sig_root_folders_changed.emit(paths)
         self._on_setting_changed()
-        self.state.sig_settings_changed.emit()
+        self.state.sig_settings_changed.emit(
+            SignalPayload(
+                data=None,
+                sender=self.__class__.__name__,
+                name="Settings Changed",
+                description="Media settings changed.",
+                flow=SignalFlow.COMPONENT_INTERACTION,
+            )
+        )
 
     def _on_folder_selected(
         self, value: str, folder_edit: QLineEdit, folder_config: dict[str, Any]
@@ -365,9 +382,17 @@ class SettingsMediaTab(SettingsBaseTab):
         folder_edit.setText(value)
         folder_edit.blockSignals(False)
         folder_config["path"] = value
-        self.sig_changed.emit()
+        self._on_setting_changed()
         paths = self._get_valid_media_paths()
-        self.sig_root_folders_changed.emit(paths)
+        self.sig_root_folders_changed.emit(
+            SignalPayload(
+                data=paths,
+                sender=self.__class__.__name__,
+                name="Root Folders Changed",
+                description="Media root folders were updated.",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
         self._on_setting_changed()
 
     def _add_folder(self) -> None:
@@ -380,10 +405,18 @@ class SettingsMediaTab(SettingsBaseTab):
         self.state.folder_configs.append(new_config)
         self._refresh_folder_nav_settings()
 
-        self.sig_changed.emit()
+        self._on_setting_changed()
 
         paths = self._get_valid_media_paths()
-        self.sig_root_folders_changed.emit(paths)
+        self.sig_root_folders_changed.emit(
+            SignalPayload(
+                data=paths,
+                sender=self.__class__.__name__,
+                name="Root Folders Changed",
+                description="Media root folders were updated.",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
 
         QTimer.singleShot(
             100,
@@ -421,10 +454,26 @@ class SettingsMediaTab(SettingsBaseTab):
 
             self._refresh_folder_nav_settings()
             self._on_setting_changed()
-            self.state.sig_settings_changed.emit()
+            self.state.sig_settings_changed.emit(
+                SignalPayload(
+                    data=None,
+                    sender=self.__class__.__name__,
+                    name="Settings Changed",
+                    description="Media settings changed.",
+                    flow=SignalFlow.COMPONENT_INTERACTION,
+                )
+            )
 
             paths = self._get_valid_media_paths()
-            self.sig_root_folders_changed.emit(paths)
+            self.sig_root_folders_changed.emit(
+                SignalPayload(
+                    data=paths,
+                    sender=self.__class__.__name__,
+                    name="Root Folders Changed",
+                    description="Media root folders were updated.",
+                    flow=SignalFlow.USER_INPUT,
+                )
+            )
 
         self.highlight_save_button()
 
@@ -432,8 +481,15 @@ class SettingsMediaTab(SettingsBaseTab):
         """Save only Media tab settings."""
         self.state.save_media()
         self.reset_save_button()
-        self.sig_saved.emit()
-        self.state.sig_settings_changed.emit()
+        self.sig_saved.emit(
+            SignalPayload(
+                data=None,
+                sender=self.__class__.__name__,
+                name="Media Settings Saved",
+                description="Media settings were saved.",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
         print("Media Settings saved")
 
     def apply_theme(self) -> None:

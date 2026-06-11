@@ -1,4 +1,5 @@
 from PySide6.QtCore import Qt, QTimer, Signal
+from src.app.app_signals_model import SignalPayload
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -23,7 +24,7 @@ _EMPTY_STATE_NO_MEDIA_FOLDERS = (
 
 
 class FolderList(BaseWidget):
-    sig_folder_selected_intent = Signal(str)
+    sig_folder_selected_intent = Signal(object)
 
     def __init__(self, file_util: FileUtil, settings: Settings, log_util) -> None:
         super().__init__(log_util)
@@ -111,9 +112,9 @@ class FolderList(BaseWidget):
         self.folder_view.show_loading_state()
         QTimer.singleShot(0, lambda: self.update_folder_list_by_path(folder_path))
 
-    def _handle_folder_selected_intent(self, folder_path: str) -> None:
-        self.sig_folder_selected_intent.emit(folder_path)
-        self.log_util.debug(f"sig_folder_selected_intent emitted for: {folder_path}")
+    def _handle_folder_selected_intent(self, payload: SignalPayload) -> None:
+        self.sig_folder_selected_intent.emit(payload)
+        self.log_util.debug(f"sig_folder_selected_intent emitted for: {payload.data}")
 
     def connect_sigs(self):
         if self._signals_connected:

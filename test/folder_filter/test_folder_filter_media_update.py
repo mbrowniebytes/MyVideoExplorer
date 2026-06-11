@@ -22,8 +22,17 @@ def test_refresh_on_signal(qtbot):
             # Update label
             state.folder_configs[0]["label"] = "NewMedia"
 
+            from src.app.app_signals_model import SignalPayload, SignalFlow
             # Emit signal - this is what SHOULD happen when saving settings
-            state.sig_settings_changed.emit()
+            state.sig_settings_changed.emit(
+                SignalPayload(
+                    data=None,
+                    sender="Test",
+                    name="Settings Changed",
+                    description="Settings changed.",
+                    flow=SignalFlow.COMPONENT_INTERACTION,
+                )
+            )
 
             # Check if button updated
             assert folder_filter.media_button_group[0].text() == "NewM"

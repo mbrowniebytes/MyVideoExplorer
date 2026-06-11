@@ -39,6 +39,7 @@ Screenshot:
 - track played count, last played
 - add filters for nfo, tags, played
 - more ui settings
+- play episodes
 - ffmpeg info
 - export db
 - import db backup and compare

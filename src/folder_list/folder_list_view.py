@@ -1,13 +1,14 @@
 import os
 from PySide6.QtCore import Signal, Qt
 from PySide6.QtWidgets import QListWidget, QListWidgetItem
+from src.app.app_signals_model import SignalPayload, SignalFlow
 
 from src.theme.theme import APP_THEME
 from src.utils.file_util_model import FileUtilModel
 
 
 class FolderListView(QListWidget):
-    sig_folder_selected = Signal(str)
+    sig_folder_selected = Signal(object)
 
     def __init__(self) -> None:
         super().__init__()
@@ -20,7 +21,14 @@ class FolderListView(QListWidget):
         folder_path = item.data(Qt.ItemDataRole.UserRole)
         if folder_path:
             # Emit first to let controller update
-            self.sig_folder_selected.emit(folder_path)
+            payload = SignalPayload(
+                data=folder_path,
+                sender=self.__class__.__name__,
+                name="Folder Selected",
+                description="Emitted when a folder is selected in FolderListView.",
+                flow=SignalFlow.USER_INPUT,
+            )
+            self.sig_folder_selected.emit(payload)
 
     def show_loading_state(self) -> None:
         self.clear()
@@ -122,4 +130,11 @@ class FolderListView(QListWidget):
 
         self.setCurrentRow(new_row)
         self.scrollToItem(item)
-        self.sig_folder_selected.emit(folder_path)
+        payload = SignalPayload(
+            data=folder_path,
+            sender=self.__class__.__name__,
+            name="Folder Selected",
+            description="Emitted when a folder is selected in FolderListView.",
+            flow=SignalFlow.USER_INPUT,
+        )
+        self.sig_folder_selected.emit(payload)

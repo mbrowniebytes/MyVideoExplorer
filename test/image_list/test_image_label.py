@@ -33,7 +33,7 @@ class TestImageLabel:
                 False,
             )
             image_label.wheelEvent(event)
-        assert blocker.args[0] == -1
+        assert blocker.args[0].data == -1
 
         with qtbot.waitSignal(image_label.sig_wheel_step) as blocker:
             # Negative delta (scroll down) -> step 1
@@ -48,7 +48,7 @@ class TestImageLabel:
                 False,
             )
             image_label.wheelEvent(event)
-        assert blocker.args[0] == 1
+        assert blocker.args[0].data == 1
 
     def test_mouse_press_right_button_emits_signal(self, image_label, qtbot):
         with qtbot.waitSignal(image_label.sig_right_click) as blocker:

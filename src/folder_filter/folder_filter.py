@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, QSize, Signal
+from src.app.app_signals_model import SignalPayload, SignalFlow
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QComboBox,
@@ -24,8 +25,8 @@ from src.widgets.base_widget import BaseWidget
 
 class FolderFilters(BaseWidget):
     sig_apply_filters = Signal()
-    sig_genre_changed = Signal(str)
-    sig_root_folder = Signal(str)
+    sig_genre_changed = Signal(object)
+    sig_root_folder = Signal(object)
 
     GENRES = sorted(
         ["Action", "Comedy", "Sci-Fi", "Mystery", "Thriller", "Drama", "Adventure"]
@@ -105,17 +106,25 @@ class FolderFilters(BaseWidget):
 
 
     def build_nav_combo(self) -> None:
-        self.nav_combo = QComboBox()
+        if not hasattr(self, 'nav_combo'):
+            self.nav_combo = QComboBox()
+            APP_THEME.setup_combo_box(self.nav_combo)
+            self.nav_combo.currentIndexChanged.connect(self._handle_media_selection)
+
+        self.nav_combo.blockSignals(True)
         self.nav_combo.clear()
         self.nav_combo.addItem("- Select Folder -", userData="")
         for config in self.settings.settings_data_model.folder_configs:
-            label = config["label"]
+            label = config.get("label", "")
+            if not label:
+                label = config.get("path", "")
             self.nav_combo.addItem(label, userData=config["path"])
 
         self.nav_combo.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
         )
         self.nav_combo.setMinimumHeight(40)
+        self.nav_combo.blockSignals(False)
 
     def _build_filter_type_combo(self) -> None:
         self.filter_type_combo = QComboBox()
@@ -200,14 +209,14 @@ class FolderFilters(BaseWidget):
         self.save_filter_button.clicked.connect(self._save_filter_clicked)
         # self.delete_filter_button.clicked.connect(self._delete_filter_clicked)
         self.saved_filters_combo.currentIndexChanged.connect(self._load_saved_filter)
-        self.genre_combo.sig_genre_changed.connect(self.sig_genre_changed.emit)
-        self.nav_combo.currentIndexChanged.connect(self._handle_media_selection)
-        self.filter_table.sig_genre_changed.connect(self.sig_genre_changed.emit)
-        self.filter_table.sig_root_folder.connect(self.sig_root_folder.emit)
+        self.genre_combo.sig_genre_changed.connect(lambda payload: self.sig_genre_changed.emit(payload))
+        self.filter_table.sig_genre_changed.connect(lambda payload: self.sig_genre_changed.emit(payload))
+        self.filter_table.sig_root_folder.connect(lambda payload: self.sig_root_folder.emit(payload))
 
         def refresh_all():
             self.build_nav_combo()
             self._refresh_saved_filters_combo()
+            self._load_saved_filter(self.saved_filters_combo.currentIndex())
 
         self.settings.settings_data_model.sig_settings_changed.connect(refresh_all)
 
@@ -219,7 +228,14 @@ class FolderFilters(BaseWidget):
         if not path_from_settings:
             return
 
-        self.sig_root_folder.emit(path_from_settings)
+        payload = SignalPayload(
+            data=path_from_settings,
+            sender=self.__class__.__name__,
+            name="Root Folder Changed",
+            description="Emitted when a root folder is selected in FolderFilter.",
+            flow=SignalFlow.USER_INPUT,
+        )
+        self.sig_root_folder.emit(payload)
 
     def _add_filter_clicked(self) -> None:
         filter_type = self.filter_type_combo.currentText().strip()

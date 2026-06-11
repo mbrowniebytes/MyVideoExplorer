@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Signal
+from src.app.app_signals_model import SignalPayload, SignalFlow
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget
 
@@ -30,7 +31,7 @@ from src.widgets.base_widget import BaseWidget
 
 
 class MediaInfoView(BaseWidget):
-    sig_info_play_video_btn_clicked = Signal()
+    sig_info_play_video_btn_clicked = Signal(object)
 
     def __init__(
         self,
@@ -63,7 +64,7 @@ class MediaInfoView(BaseWidget):
         self.main_layout.addWidget(self.scroll_content_widget)
 
         self.toolbar_widget.sig_section_visibility_toggle_requested.connect(
-            self._toggle_section
+            lambda p: self._toggle_section(p.data)
         )
         self.toolbar_widget.sig_play_video_requested.connect(self.play_video)
 
@@ -112,8 +113,16 @@ class MediaInfoView(BaseWidget):
         if self.movie_info:
             self.build_from_movie_info(self.movie_info)
 
-    def play_video(self) -> None:
-        self.sig_info_play_video_btn_clicked.emit()
+    def play_video(self, payload: SignalPayload = None) -> None:
+        self.sig_info_play_video_btn_clicked.emit(
+            SignalPayload(
+                data=None,
+                sender=self.__class__.__name__,
+                name="Play Video Requested",
+                description="Emitted when play video button is clicked in view.",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
 
     def apply_theme(self) -> None:
         application_font = QFont(APP_THEME.font_family, APP_THEME.font_size)

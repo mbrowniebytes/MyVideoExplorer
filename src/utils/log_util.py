@@ -31,7 +31,7 @@ class LogUtil:
         # "critical": logging.CRITICAL,
     }
 
-    DEFAULT_LOG_LEVEL = "error"
+    DEFAULT_LOG_LEVEL = "info"
     MAX_BACKUPS = 5
     ROTATION_PERIOD = "M" # "D"  # Daily rotation
     MAX_BYTES = 10 * 1024 * 1024  # 10 MB

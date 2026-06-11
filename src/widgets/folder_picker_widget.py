@@ -7,12 +7,13 @@ from PySide6.QtWidgets import (
     QToolButton,
     QSizePolicy,
 )
+from src.app.app_signals_model import SignalPayload, SignalFlow
 from src.theme.theme import APP_THEME
 from src.widgets.base_widget import BaseWidget
 
 
 class FolderPickerWidget(BaseWidget):
-    sig_selected_folder = Signal(str)
+    sig_selected_folder = Signal(object)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent=parent)
@@ -48,7 +49,14 @@ class FolderPickerWidget(BaseWidget):
         if self._selected_folder == value:
             return
         self._selected_folder = value
-        self.sig_selected_folder.emit(value)
+        payload = SignalPayload(
+            data=value,
+            sender=self.__class__.__name__,
+            name="Selected Folder Changed",
+            description="Emitted when the selected folder changes in FolderPickerWidget.",
+            flow=SignalFlow.USER_INPUT,
+        )
+        self.sig_selected_folder.emit(payload)
 
     def pick_folder(self) -> None:
         """Open a dialog to select a folder and store the result."""

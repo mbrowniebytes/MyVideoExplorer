@@ -10,6 +10,7 @@ class ThemeConfig:
 
     # Color Palette - Backgrounds
     color_background_main: str = "#111111"
+    color_background_gradient: str = "#131613"
     color_surface_primary: str = "rgba(59, 89, 99, 99)"
     color_surface_alternate: str = "#151B21"
     color_surface_disabled: str = "rgba(128, 128, 128, 128)"
@@ -28,6 +29,10 @@ class ThemeConfig:
     color_interaction_pressed: str = "rgba(59, 130, 246, 40)"
     color_interaction_selected: str = "#2B6296"
     color_interaction_selected_text: str = "#FFFFFF"
+
+    # Highlight QPixmap inside QLabel
+    color_interaction_pixmap: str = "#2B6296CC"
+    size_interaction_pixmap: int = 7
 
     # Scrollbar & Splitters
     color_scrollbar_background: str = "#1E1E1E"

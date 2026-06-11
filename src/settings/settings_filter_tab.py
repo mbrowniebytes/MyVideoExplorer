@@ -18,6 +18,7 @@ from src.folder_filter.folder_filter_table import FolderFilterTable
 
 from src.settings.settings_base_tab import SettingsBaseTab
 from src.settings.settings_state import SettingsState
+from src.app.app_signals_model import SignalFlow, SignalPayload
 from src.theme.theme import APP_THEME
 from src.utils.log_util import LogUtil
 
@@ -91,7 +92,15 @@ class SettingsFilterTab(SettingsBaseTab):
         self.state.load_filters()
         self._refresh_filters()
         self.reset_save_button()
-        self.sig_saved.emit()
+        self.sig_saved.emit(
+            SignalPayload(
+                data=None,
+                sender=self.__class__.__name__,
+                name="Filter Settings Reset",
+                description="Filter settings were reset to defaults.",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
         print("Filters Settings reset")
 
 
@@ -126,6 +135,7 @@ class SettingsFilterTab(SettingsBaseTab):
 
         name_edit = QLineEdit(filter_cfg.get("name", ""))
         name_edit.setPlaceholderText("Filter Name")
+        name_edit.textChanged.connect(self._on_setting_changed)
         name_layout.addWidget(name_edit)
 
         # Filter type combo
@@ -157,6 +167,7 @@ class SettingsFilterTab(SettingsBaseTab):
         filters_data = filter_cfg.get("filters") or []
         for f in filters_data:
             filter_table.add_filter(f.get("filter", ""), f.get("value", ""))
+        filter_table.cellChanged.connect(self._on_setting_changed)
         layout.addWidget(filter_table)
 
         container.name_edit = name_edit
@@ -216,5 +227,13 @@ class SettingsFilterTab(SettingsBaseTab):
         self._update_state_from_ui()
         self.state.save_filters()
         self.reset_save_button()
-        self.sig_saved.emit()
+        self.sig_saved.emit(
+            SignalPayload(
+                data=None,
+                sender=self.__class__.__name__,
+                name="Filter Settings Saved",
+                description="Filter settings were saved.",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
         print("Filters Settings saved")
