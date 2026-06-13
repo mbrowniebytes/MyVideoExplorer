@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 
 from src.app.app_container import AppContainer
 from src.theme.theme import APP_THEME
+from src.utils.file_util import FileUtil
 
 
 class App:
@@ -69,9 +70,7 @@ class App:
         return self.window
 
     def _create_app_icon(self):
-        path_to_icon = (
-            "assets/app.png"
-        )
+        path_to_icon = FileUtil.get_resource_path("assets/app.png")
         pixmap = QPixmap()
         pixmap.loadFromData(Path(path_to_icon).read_bytes())
         appIcon = QIcon(pixmap)

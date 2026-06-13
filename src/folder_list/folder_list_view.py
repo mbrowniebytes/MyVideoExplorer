@@ -32,8 +32,9 @@ class FolderListView(QListWidget):
 
     def show_loading_state(self) -> None:
         self.clear()
-        loading_item = QListWidgetItem(self._loading_state_text)
+        loading_item = QListWidgetItem(f"\n\n\n {self._loading_state_text}")
         loading_item.setFlags(Qt.ItemFlag.NoItemFlags)
+        loading_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         self.addItem(loading_item)
 
     def show_empty_state(self, root_path: str = "", message: str = "") -> None:

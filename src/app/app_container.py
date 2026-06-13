@@ -137,7 +137,7 @@ class AppContainer:
 
     def _wire_controller_outputs(self) -> None:
         """Controller state changes → Component refreshes."""
-        self.signals.sig_root_folder.connect(lambda p: self._on_set_root_folder(p.data))
+        # self.signals.sig_root_folder.connect(lambda p: self._on_set_root_folder(p.data))
         # New: handle list of root folders so FolderNav can display all roots
         self.signals.sig_root_folders.connect(lambda p: self.folder_nav.set_root_folder(p.data))
 
@@ -177,10 +177,10 @@ class AppContainer:
     def _on_filtered_items(self, items: list[FileUtilModel]) -> None:
         self.folder_list.update_folder_list_by_items(items)
 
-    def _on_set_root_folder(self, folder_path: str) -> None:
-        # print(f"_on_set_root_folder:{folder_path}")
-        self.folder_nav.set_root_folder([folder_path])
-        self.folder_list.refresh(folder_path, force=True)
+    # def _on_set_root_folder(self, folder_path: str) -> None:
+    #     # print(f"_on_set_root_folder:{folder_path}")
+    #     self.folder_nav.set_root_folder([folder_path])
+    #     self.folder_list.refresh(folder_path, force=True)
 
     def _on_folder_selected(self, folder_path: str) -> None:
         # We still want to avoid circular updates if everything is already in sync

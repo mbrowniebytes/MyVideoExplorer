@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import os
+import sys
 import threading
 from pathlib import Path
 from collections.abc import Callable
+from time import sleep
 
 from src.utils.file_util_model import FileUtilModel
 from src.utils.log_util import LogUtil
@@ -12,6 +14,17 @@ from src.utils.file_util_type import FileUtilType
 
 class FileUtil:
     """Utility class for filesystem traversal, classification, and metadata extraction."""
+
+    @staticmethod
+    def get_resource_path(relative_path: str) -> str:
+        """Get absolute path to resource, works for dev and for PyInstaller."""
+        try:
+            # PyInstaller creates a temp folder and stores path in _MEIPASS
+            base_path = sys._MEIPASS
+        except Exception:
+            base_path = os.path.abspath(".")
+
+        return os.path.join(base_path, relative_path)
 
     def __init__(self, log_util: LogUtil) -> None:
         self.log_util = log_util
@@ -69,6 +82,9 @@ class FileUtil:
         items: list[FileUtilModel] = []
         for entry in self._scan_directory(target):
             try:
+                # dev test large qty folders
+                if not getattr(sys, 'frozen', False):
+                    sleep(0.005)
                 if entry.is_dir(follow_symlinks=False):
                     folder_item = self.build_folder_item(entry.path, depth=depth)
                     items.append(folder_item)

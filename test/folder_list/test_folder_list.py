@@ -23,7 +23,8 @@ class TestFolderList:
 
     def test_ui_initialization(self, folder_list):
         """Verify that UI components are correctly initialized."""
-        assert folder_list.folder_view.count() == 0
+        # Loading...
+        assert folder_list.folder_view.count() == 1
         # Check if title label exists in layout (indirectly via build)
         assert folder_list._container.objectName() == "folderListContainer"
 
@@ -31,7 +32,7 @@ class TestFolderList:
         """Verify loading state displays correct text."""
         folder_list.folder_view.show_loading_state()
         assert folder_list.folder_view.count() == 1
-        assert folder_list.folder_view.item(0).text() == "Loading..."
+        assert folder_list.folder_view.item(0).text().find("Loading...")  != -1
         assert folder_list.folder_view.item(0).flags() == Qt.ItemFlag.NoItemFlags
 
     def test_show_empty_state_no_path(self, folder_list):
@@ -129,7 +130,7 @@ class TestFolderList:
             folder_list.refresh(test_path, force=True)
 
         # Should show loading first
-        assert folder_list.folder_view.item(0).text() == "Loading..."
+        assert folder_list.folder_view.item(0).text().find("Loading...")  != -1
 
         # Manually trigger the update to bypass timer issues in test
         with patch("src.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):

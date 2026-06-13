@@ -69,7 +69,7 @@ class FolderList(BaseWidget):
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
 
-        self.refresh("")
+        QTimer.singleShot(0, lambda: self.refresh(""))
 
         self.connect_sigs()
         return self._container
@@ -110,7 +110,9 @@ class FolderList(BaseWidget):
                 return
 
         self.folder_view.show_loading_state()
-        QTimer.singleShot(0, lambda: self.update_folder_list_by_path(folder_path))
+
+        # folder_Filter.apply_filters also loading
+        # QTimer.singleShot(250, lambda: self.update_folder_list_by_path(folder_path))
 
     def _handle_folder_selected_intent(self, payload: SignalPayload) -> None:
         self.sig_folder_selected_intent.emit(payload)

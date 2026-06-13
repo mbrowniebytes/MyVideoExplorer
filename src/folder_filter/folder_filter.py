@@ -302,8 +302,10 @@ class FolderFilters(BaseWidget):
         # print(f"apply_filters: folder_paths: {folder_paths}")
 
         for folder_path in folder_paths:
-            if folder_path:
-                items.extend(self.file_util.get_files_from_path(folder_path))
+            if not folder_path:
+                continue
+            path_items = self.file_util.get_files_from_path(folder_path)
+            items.extend(path_items)
         filters = self.filter_table.collect_filters()
 
         # Add active media buttons to filters

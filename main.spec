@@ -7,6 +7,7 @@ a = Analysis(
     datas=[
         ( 'README.md', './' ),
         ( 'cfg/defaults*.json', 'cfg' ),
+        ( 'assets/app.png', 'assets' ),
     ],
     hiddenimports=[],
     hookspath=[],
@@ -33,9 +34,9 @@ exe = EXE(
     [],
     exclude_binaries=True,
     name='MyVideoExplorer',
-    debug=True,
+    debug=False,
     bootloader_ignore_signals=False,
-    strip=False,
+    strip=True,
     upx=True,
     upx_exclude=[
         'qwindows.dll',
@@ -50,7 +51,7 @@ coll = COLLECT(
     a.binaries,
     a.zipfiles,
     a.datas,
-    strip=False,
+    strip=True,
     upx=True,
     upx_exclude=[
         'qwindows.dll',

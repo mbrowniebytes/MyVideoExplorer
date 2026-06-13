@@ -25,9 +25,6 @@ class FolderNav(BaseWidget):
         self.root_folders: list[str] = []
         self.folder_filter_widget = folder_filter_widget
         self._signals_connected = False
-        self._refresh_timer = QTimer(self)
-        self._refresh_timer.setSingleShot(True)
-        self._refresh_timer.timeout.connect(self._refresh_filters)
 
     def build(self) -> FolderNav:
         """Builds the navigation UI and connects internal signals."""
@@ -66,8 +63,8 @@ class FolderNav(BaseWidget):
         # Defer UI rebuild to the event loop to avoid rebuilding during
         # signal processing; ensure nav combo and media buttons reflect
         # the full list of configured roots.
-
-        self._refresh_timer.start(0)
+        self._refresh_filters()
+        # QTimer.singleShot(250, lambda: self._refresh_filters)
 
     def _refresh_filters(self) -> None:
         try:
@@ -77,7 +74,8 @@ class FolderNav(BaseWidget):
             # Rebuild media buttons to reflect current settings and roots
             self.folder_filter_widget.media_filter_widget.refresh_buttons()
 
-            self.apply_filters()
+            QTimer.singleShot(250, lambda:
+            self.apply_filters())
         except Exception as e:
             self.log_util.error(f"Error in _refresh_filters: {e}")
             # Safe-guard: don't crash if methods are not present yet
