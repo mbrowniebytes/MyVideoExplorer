@@ -5,7 +5,7 @@ from pathlib import Path
 class FileUtilType:
     """Strategy class for file type classification based on extensions and naming conventions."""
 
-    VIDEO_EXTS = frozenset({".mkv", ".mp4", ".avi", ".ts", ".mpg", ".mpeg"})
+    VIDEO_EXTS = frozenset({".mkv", ".mp4", ".avi", ".ts", ".mpg", ".mpeg", ".m4v"})
     IMAGE_EXTS = frozenset({".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp"})
     NFO_EXTS = frozenset({".nfo", ".xml"})
 

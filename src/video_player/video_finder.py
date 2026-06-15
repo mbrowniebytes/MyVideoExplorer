@@ -7,7 +7,7 @@ from src.utils.log_util import LogUtil
 class VideoFinder:
     """Utility class to locate video files within the file system."""
 
-    VIDEO_EXTS = frozenset({".mkv", ".mp4", ".avi", ".ts", ".mpg", ".mpeg"})
+    VIDEO_EXTS = frozenset({".mkv", ".mp4", ".avi", ".ts", ".mpg", ".mpeg", ".m4v"})
 
     def __init__(self, log_util:LogUtil) -> None:
         self.log_util = log_util
