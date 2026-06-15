@@ -1,7 +1,16 @@
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QSizePolicy
+from __future__ import annotations
+
+
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QSizePolicy, QVBoxLayout
+
 from src.theme.theme import APP_THEME
 from src.utils.str_util import StrUtil
 from src.widgets.label_value_widget import LabelValueWidget
+
+
+type MediaInfoField = tuple[str, object]
+type MediaInfoFieldRow = list[MediaInfoField]
+type MediaInfoFieldRows = list[MediaInfoFieldRow]
 
 
 class MediaInfoCommonSection(QFrame):

@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -8,8 +8,8 @@ class AppState:
     current_image: str = ""
     current_tab: int = 0
     root_folder: str = ""
-    root_folders: list[str] = None
+    root_folders: list[str] = field(default_factory=list)
 
     def __post_init__(self) -> None:
-        if self.root_folders is None:
+        if not self.root_folders:
             self.root_folders = []

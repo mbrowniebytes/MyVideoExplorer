@@ -98,11 +98,11 @@ sha256 = "c2c6863aa80ec18c0f82cea3417837b279cdc60024ac17123461dc9042577df7"
 
 [[packages]]
 name = "structlog"
-version = "25.5.0"
+version = "26.1.0"
 
 [[packages.wheels]]
-name = "structlog-25.5.0-py3-none-any.whl"
-url = "https://files.pythonhosted.org/packages/a8/45/a132b9074aa18e799b891b91ad72133c98d8042c70f6240e4c5f9dabee2f/structlog-25.5.0-py3-none-any.whl"
+name = "structlog-26.1.0-py3-none-any.whl"
+url = "https://files.pythonhosted.org/packages/a9/18/489c97b834dfff9cf2fc2507cede4bcd4b11e67f84bc462acd1992496f86/structlog-26.1.0-py3-none-any.whl"
 
 [packages.wheels.hashes]
-sha256 = "a8453e9b9e636ec59bd9e79bbd4a72f025981b3ba0f5837aebf48f02f37a7f9f"
+sha256 = "e081a26d6c373e6d201eca24eede26d8ffab07f88f477822e679183428d3d91e"

@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QComboBox,
     QFormLayout,
@@ -7,21 +7,21 @@ from PySide6.QtWidgets import (
     QPushButton,
     QVBoxLayout,
     QWidget,
+    QSizePolicy,
 )
 
+from src.settings.settings_base_tab import SettingsBaseTab
+from src.settings.settings_state import SettingsState
+from src.app.app_signals_model import SignalFlow, SignalPayload
 from src.theme.theme import APP_THEME
 from src.utils.log_util import LogUtil
 
 
-class SettingsAppTab(QWidget):
-    sig_changed = Signal()
-    sig_saved = Signal()
-
-    def __init__(self, state, log_util):
-        super().__init__()
+class SettingsAppTab(SettingsBaseTab):
+    def __init__(self, state: SettingsState, log_util: LogUtil, parent: QWidget | None = None) -> None:
+        super().__init__(log_util, parent)
         self.log_util = log_util
         self.state = state
-        self.is_dirty = False
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(10, 10, 10, 10)
         self.layout.setSpacing(15)
@@ -29,7 +29,7 @@ class SettingsAppTab(QWidget):
         self._build_ui()
         self.layout.addStretch()
 
-    def _build_ui(self):
+    def _build_ui(self) -> None:
         # App Settings group
         app_group = QGroupBox("App Settings")
         app_layout = QFormLayout(app_group)
@@ -59,33 +59,48 @@ class SettingsAppTab(QWidget):
         save_btn_layout = QHBoxLayout(save_btn_container)
         save_btn_layout.setContentsMargins(20, 15, 20, 15)
 
-        self.save_app_btn = QPushButton("Save App Settings")
-        self.save_app_btn.setFixedWidth(180)
-        self.save_app_btn.setStyleSheet(APP_THEME.button_qss())
-        self.save_app_btn.clicked.connect(self._save_app_settings)
+        self.save_btn = QPushButton("Save App Settings")
+        self.save_btn.setFixedWidth(180)
+        self.save_btn.setStyleSheet(APP_THEME.button_qss())
+        self.save_btn.clicked.connect(self._save_app_settings)
 
-        save_btn_layout.addWidget(self.save_app_btn)
+        self.reset_btn = self._build_reset_button("Reset App Settings", self.reset_settings)
+
+        spacer = QWidget()
+        spacer.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+        save_btn_layout.addWidget(self.reset_btn)
+        save_btn_layout.addWidget(spacer)
+        save_btn_layout.addWidget(self.save_btn)
         self.layout.addWidget(
             save_btn_container,
-            alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom,
+            alignment=Qt.AlignmentFlag.AlignBottom,
         )
 
         self.logging_level_combo.currentIndexChanged.connect(self._on_setting_changed)
 
-    def _on_setting_changed(self):
-        self.sig_changed.emit()
+    def reset_settings(self) -> None:
+        """Reset settings for this tab."""
+        self.state.load_app()
+        # Refresh combo box
+        current_level = self.state.log_level
+        index = self.logging_level_combo.findData(current_level)
+        if index >= 0:
+            self.logging_level_combo.setCurrentIndex(index)
+        self.reset_save_button()
+        self.sig_saved.emit(
+            SignalPayload(
+                data=None,
+                sender=self.__class__.__name__,
+                name="App Settings Reset",
+                description="App settings were reset to defaults.",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
+        print("App Settings reset")
 
-    def highlight_save_button(self):
-        self.is_dirty = True
-        self.save_app_btn.setStyleSheet(APP_THEME.button_qss() + APP_THEME.button_highlight_qss())
-        self.save_app_btn.setText(self.save_app_btn.text() + " *")
-
-    def reset_save_button(self):
-        self.is_dirty = False
-        self.save_app_btn.setStyleSheet(APP_THEME.button_qss())
-        self.save_app_btn.setText(self.save_app_btn.text().removesuffix("*"))
-
-    def _save_app_settings(self):
+    def _save_app_settings(self) -> None:
         """Save only App tab settings."""
         # Get current logging level
         current_index = self.logging_level_combo.currentIndex()
@@ -95,5 +110,13 @@ class SettingsAppTab(QWidget):
 
         self.state.save_app()
         self.reset_save_button()
-        self.sig_saved.emit()
+        self.sig_saved.emit(
+            SignalPayload(
+                data=None,
+                sender=self.__class__.__name__,
+                name="App Settings Saved",
+                description="App settings were saved.",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
         print("App Settings saved")

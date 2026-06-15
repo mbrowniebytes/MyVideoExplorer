@@ -5,6 +5,11 @@ import json
 
 
 class TestSettingsSplit:
+    @pytest.fixture
+    def mock_log_util(self):
+        from unittest.mock import MagicMock
+        return MagicMock()
+
     @pytest.fixture(autouse=True)
     def setup_cfg(self, tmp_path, monkeypatch):
         # Create a temporary cfg directory
@@ -38,9 +43,9 @@ class TestSettingsSplit:
 
         return cfg_dir
 
-    def test_ensure_defaults_creates_split_files(self, setup_cfg):
+    def test_ensure_defaults_creates_split_files(self, setup_cfg, mock_log_util):
         cfg_dir = setup_cfg
-        state = SettingsState()
+        state = SettingsState(mock_log_util)
         state._ensure_defaults()
 
         assert (cfg_dir / "defaults_ui.json").exists()
@@ -52,9 +57,9 @@ class TestSettingsSplit:
             ui_data = json.load(f)
             assert "font_size" in ui_data
 
-    def test_save_settings_creates_split_files(self, setup_cfg):
+    def test_save_settings_creates_split_files(self, setup_cfg, mock_log_util):
         cfg_dir = setup_cfg
-        state = SettingsState()
+        state = SettingsState(mock_log_util)
         state.folder_configs = [{"label": "Test", "path": "/test", "icon": "folder"}]
         state.save_settings()
 
@@ -66,7 +71,7 @@ class TestSettingsSplit:
             media_data = json.load(f)
             assert media_data["folder_configs"][0]["label"] == "Test"
 
-    def test_load_settings_merges_split_files(self, setup_cfg):
+    def test_load_settings_merges_split_files(self, setup_cfg, mock_log_util):
         cfg_dir = setup_cfg
 
         # Pre-create settings files
@@ -78,7 +83,7 @@ class TestSettingsSplit:
             encoding="utf-8",
         )
 
-        state = SettingsState()
+        state = SettingsState(mock_log_util)
         # _load_settings is called in __init__
 
         from src.theme.theme import APP_THEME
@@ -88,8 +93,8 @@ class TestSettingsSplit:
         # Check if icon was added by migration/ensure logic
         assert state.folder_configs[0]["icon"] == "folder"
 
-    def test_backups_for_each_file(self, setup_cfg):
-        state = SettingsState()
+    def test_backups_for_each_file(self, setup_cfg, mock_log_util):
+        state = SettingsState(mock_log_util)
 
         # Create initial settings
         state.save_settings()
@@ -110,8 +115,8 @@ class TestSettingsSplit:
             assert any("settings_media.json" in path for path in called_paths)
             assert any("settings_filter.json" in path for path in called_paths)
 
-    def test_delete_filter_logic(self, setup_cfg):
-        state = SettingsState()
+    def test_delete_filter_logic(self, setup_cfg, mock_log_util):
+        state = SettingsState(mock_log_util)
         state.saved_filters = [
             {"name": "Filter1", "filters": []},
             {"name": "Filter2", "filters": []},

@@ -23,8 +23,8 @@ class TestFolderList:
 
     def test_ui_initialization(self, folder_list):
         """Verify that UI components are correctly initialized."""
-        assert folder_list.folder_picker.pick_button.text() == "Select Folder"
-        assert folder_list.folder_view.count() == 0
+        # Loading...
+        assert folder_list.folder_view.count() == 1
         # Check if title label exists in layout (indirectly via build)
         assert folder_list._container.objectName() == "folderListContainer"
 
@@ -32,7 +32,7 @@ class TestFolderList:
         """Verify loading state displays correct text."""
         folder_list.folder_view.show_loading_state()
         assert folder_list.folder_view.count() == 1
-        assert folder_list.folder_view.item(0).text() == "Loading..."
+        assert folder_list.folder_view.item(0).text().find("Loading...")  != -1
         assert folder_list.folder_view.item(0).flags() == Qt.ItemFlag.NoItemFlags
 
     def test_show_empty_state_no_path(self, folder_list):
@@ -90,7 +90,7 @@ class TestFolderList:
             folder_list.select_next_folder(1)
 
         assert folder_list.folder_view.currentRow() == 1
-        assert blocker.args[0] == "/path/to/Folder B"
+        assert blocker.args[0].data == "/path/to/Folder B"
 
     def test_on_folder_item_clicked(self, folder_list, mock_folder_items, qtbot):
         """Verify signal emission on item click."""
@@ -101,15 +101,7 @@ class TestFolderList:
         with qtbot.waitSignal(folder_list.folder_view.sig_folder_selected) as blocker:
             folder_list.folder_view.itemClicked.emit(item)
 
-        assert blocker.args[0] == "/path/to/Folder A"
-
-    def test_pick_folder_button_click(self, folder_list, qtbot):
-        """Verify that the select folder button triggers the picker."""
-        with patch.object(folder_list.folder_picker, "select_folder") as mock_select:
-            qtbot.mouseClick(
-                folder_list.folder_picker.pick_button, Qt.MouseButton.LeftButton
-            )
-            mock_select.assert_called_once()
+        assert blocker.args[0].data == "/path/to/Folder A"
 
     def test_nested_folder_prefixes(self, folder_list, mock_nested_folder_items):
         """Verify that depth translates to prefixes in the list."""
@@ -118,9 +110,9 @@ class TestFolderList:
         assert folder_list.folder_view.count() == 2
 
         # Root (depth 0)
-        assert folder_list.folder_view.item(0).text() == "└─ Root"
+        assert folder_list.folder_view.item(0).text() == " Root"
         # Subfolder (depth 1)
-        assert folder_list.folder_view.item(1).text() == "  └─ Subfolder"
+        assert folder_list.folder_view.item(1).text() == "  ・ Subfolder"
 
     def test_refresh_asynchronous(self, folder_list, qtbot):
         """Verify refresh method triggers update via timer."""
@@ -138,7 +130,7 @@ class TestFolderList:
             folder_list.refresh(test_path, force=True)
 
         # Should show loading first
-        assert folder_list.folder_view.item(0).text() == "Loading..."
+        assert folder_list.folder_view.item(0).text().find("Loading...")  != -1
 
         # Manually trigger the update to bypass timer issues in test
         with patch("src.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
@@ -160,10 +152,6 @@ class TestFolderList:
             folder_list.apply_theme()
 
             assert "container { color: red; }" in folder_list._container.styleSheet()
-            assert (
-                "button { color: blue; }"
-                in folder_list.folder_picker.pick_button.styleSheet()
-            )
             assert "list { color: green; }" in folder_list.folder_view.styleSheet()
             assert folder_list.folder_view.font().family() == "Arial"
             assert folder_list.folder_view.font().pointSize() == 12

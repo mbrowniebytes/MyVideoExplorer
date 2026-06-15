@@ -14,10 +14,11 @@ class TestImageList:
         file_util = MagicMock(spec=FileUtil)
         nfo_parse_util = MagicMock(spec=NfoParseUtil)
         nfo_parse_util.parse_nfo_folder.return_value = {}
-        str_util = StrUtil()
+
         view = MagicMock(spec=ImageListView)
         file_list = MagicMock(spec=FileList)
         mock_log = MagicMock()
+        str_util = MagicMock(spec=StrUtil)
 
         il = ImageList(file_util, nfo_parse_util, str_util, view, file_list, mock_log)
         il.build()
@@ -47,7 +48,7 @@ class TestImageList:
         with qtbot.waitSignal(image_list.sig_image_selected_intent) as blocker:
             image_list.request_next_image(1)
 
-        assert blocker.args == ["img2.jpg"]
+        assert blocker.args[0].data == "img2.jpg"
         assert image_list.selected_image_index == 1
         assert image_list.selected_image_path == "img2.jpg"
         image_list.image_list_view.load_pixmap.assert_called_with("img2.jpg")

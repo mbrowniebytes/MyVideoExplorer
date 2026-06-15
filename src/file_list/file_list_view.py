@@ -1,12 +1,13 @@
 from PySide6.QtCore import Signal, Qt, QSize
 from PySide6.QtGui import QIcon, QFont, QResizeEvent
 from PySide6.QtWidgets import QListWidget, QListWidgetItem
+from src.app.app_signals_model import SignalPayload, SignalFlow
 from src.theme.theme import APP_THEME
 from src.utils.file_util_model import FileUtilModel
 
 
 class FileListView(QListWidget):
-    sig_file_selected = Signal(str)
+    sig_file_selected = Signal(object)
 
     def __init__(self) -> None:
         super().__init__()
@@ -22,7 +23,7 @@ class FileListView(QListWidget):
         self.setViewMode(QListWidget.ViewMode.ListMode)
         self.setFlow(QListWidget.Flow.LeftToRight)
         self.setWrapping(False)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setSpacing(10)
 
@@ -51,7 +52,14 @@ class FileListView(QListWidget):
     def _emit_file_selected(self, item: QListWidgetItem) -> None:
         file_path = item.data(Qt.ItemDataRole.UserRole)
         if file_path:
-            self.sig_file_selected.emit(file_path)
+            payload = SignalPayload(
+                data=file_path,
+                sender=self.__class__.__name__,
+                name="File Selected",
+                description="Emitted when a file is selected in FileListView.",
+                flow=SignalFlow.USER_INPUT,
+            )
+            self.sig_file_selected.emit(payload)
 
     def add_file_item(self, item: FileUtilModel) -> None:
         icon = self._get_icon(item.file_type)

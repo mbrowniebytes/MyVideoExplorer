@@ -1,9 +1,7 @@
 import pytest
 from unittest.mock import MagicMock
-from PySide6.QtCore import Qt
-from src.folder_nav.folder_nav_filters import FolderNavFilters
-from src.folder_nav.folder_nav_filters_filter import FolderFilterEngine
-from src.settings.settings import Settings
+from src.folder_filter.folder_filter import FolderFilters
+from src.folder_filter.folder_filter_filter import FolderFilterFilter
 from src.utils.file_util import FileUtil
 from src.utils.nfo_parse_util import NfoParseUtil
 
@@ -11,8 +9,8 @@ from src.utils.nfo_parse_util import NfoParseUtil
 class TestFolderNavFilters:
     @pytest.fixture
     def settings_mock(self):
-        settings = MagicMock(spec=Settings)
-        settings.folder_configs = [
+        settings = MagicMock()
+        settings.settings_data_model.folder_configs = [
             {"label": "Movies", "path": "movies"},
             {"label": "TV Shows", "path": "tv"},
         ]
@@ -23,17 +21,17 @@ class TestFolderNavFilters:
     def nav_filters(self, qtbot, settings_mock):
         file_util = MagicMock(spec=FileUtil)
         nfo_util = MagicMock(spec=NfoParseUtil)
-        engine = FolderFilterEngine(nfo_util)
+        engine = FolderFilterFilter(nfo_util)
         engine.apply_filters = MagicMock(side_effect=engine.apply_filters)
         mock_log = MagicMock()
-        widget = FolderNavFilters(engine, file_util, settings_mock, mock_log)
+        widget = FolderFilters(engine, file_util, settings_mock, mock_log)
         widget.build()
         qtbot.addWidget(widget)
         return widget
 
     def test_ui_initialization(self, nav_filters):
         """Verify that UI components are correctly initialized."""
-        assert nav_filters.apply_button.text().strip() == "Apply Filters"
+        assert nav_filters.apply_button.toolTip().strip() == "Apply Filters"
         # Starts with 1 row (placeholder)
         assert nav_filters.filter_table.rowCount() == 1
         assert (
@@ -42,23 +40,7 @@ class TestFolderNavFilters:
         )
 
         # filter_type_combo count should be length of FILTER_TYPES
-        # plus any separators (which don't count towards count() usually,
-        # but let's see what the actual behavior is)
-        # Actually, addItem adds an item, insertSeparator adds a separator.
-        # In _build_filter_type_combo:
-        # for filter_type in FolderFilterTable.FILTER_TYPES:
-        #     if filter_type.casefold() in ("os", "nfo", "media"):
-        #         self.filter_type_combo.insertSeparator(index)
-        #         label_text = filter_type
-        #     else:
-        #         label_text = f"  {filter_type}"
-        #     self.filter_type_combo.addItem(label_text)
-        #     index += 1
-
-        # It seems the index logic might be slightly off if insertSeparator doesn't increment index,
-        # but regardless, total items should be len(FILTER_TYPES).
-        # Separators are items in QComboBox.
-
+        # plus any separators
         expected_count = len(nav_filters.filter_table.FILTER_TYPES)
         for filter_type in nav_filters.filter_table.FILTER_TYPES:
             if filter_type.casefold() in ("os", "nfo", "media"):
@@ -109,7 +91,7 @@ class TestFolderNavFilters:
     def test_apply_filters_trigger(self, nav_filters, qtbot):
         """Verify that clicking apply button emits signal."""
         with qtbot.waitSignal(nav_filters.sig_apply_filters) as blocker:
-            qtbot.mouseClick(nav_filters.apply_button, Qt.MouseButton.LeftButton)
+            nav_filters.apply_button.click()
         assert blocker.args is not None
 
     def test_apply_filters_logic(self, nav_filters):
@@ -125,12 +107,16 @@ class TestFolderNavFilters:
 
         nav_filters.file_util.get_files_from_path.assert_called_with("/root/sub")
         nav_filters.folder_nav_filters_filter.apply_filters.assert_called()
-        # Access by name for clarity
-        _, kwargs = nav_filters.folder_nav_filters_filter.apply_filters.call_args
-        assert kwargs["items"] == mock_items
+
+        # Safely extract arguments regardless of positional/keyword passing
+        call_args = nav_filters.folder_nav_filters_filter.apply_filters.call_args
+        args, kwargs = call_args
+        items_arg = kwargs.get("items", args[0] if args else None)
+        filters_arg = kwargs.get("filters", args[1] if len(args) > 1 else None)
+
+        assert items_arg == mock_items
         assert any(
-            f["filter"] == "Folder" and f["value"] == "my_movie"
-            for f in kwargs["filters"]
+            f["filter"] == "Folder" and f["value"] == "my_movie" for f in filters_arg
         )
 
     def test_genre_changed_signal(self, nav_filters, qtbot):
@@ -139,7 +125,7 @@ class TestFolderNavFilters:
         combo = nav_filters.filter_table.cellWidget(0, 1)
         with qtbot.waitSignal(nav_filters.sig_genre_changed) as blocker:
             combo.setCurrentText("Sci-Fi")
-        assert blocker.args[0] == "Sci-Fi"
+        assert blocker.args[0].data == "Sci-Fi"
 
     def test_media_changed_signal(self, nav_filters, qtbot):
         """Verify media combo change emits root folder signal."""
@@ -148,7 +134,7 @@ class TestFolderNavFilters:
         with qtbot.waitSignal(nav_filters.sig_root_folder) as blocker:
             # Index 0 is "- Select Folder -", 1 is "Movies"
             combo.setCurrentIndex(1)
-        assert blocker.args[0] == "movies"
+        assert blocker.args[0].data == "movies"
 
     def test_save_filter(self, nav_filters, settings_mock, qtbot):
         """Verify saving a filter."""
@@ -164,13 +150,15 @@ class TestFolderNavFilters:
 
     def test_load_filter(self, nav_filters, settings_mock):
         """Verify loading a filter."""
-        settings_mock.saved_filters = [
+        settings_mock.settings_data_model.saved_filters = [
             {"name": "MyFilter", "filters": [{"filter": "Folder", "value": "my_movie"}]}
         ]
         nav_filters._refresh_saved_filters_combo()
 
         index = nav_filters.saved_filters_combo.findText("MyFilter")
         nav_filters.saved_filters_combo.setCurrentIndex(index)
+
+        nav_filters._load_saved_filter(index)
 
         assert nav_filters.filter_table.rowCount() == 1
         assert nav_filters.filter_table.item(0, 0).text().strip() == "Folder"

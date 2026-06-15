@@ -5,6 +5,8 @@ from src.theme.theme import APP_THEME
 
 
 class CollapsibleBoxWidget(QWidget):
+    """A reusable collapsible box widget with a toggle button and content area."""
+
     def __init__(
         self,
         label: str = "",
@@ -12,72 +14,68 @@ class CollapsibleBoxWidget(QWidget):
         collapsed: bool = False,
     ) -> None:
         super().__init__(parent)
-        self.layout: QVBoxLayout | None = None
-        self.content_area: QWidget | None = None
-        self.toggle_button: QPushButton | None = None
+
+        # Eager initialization removes the need for redundant None checks later
         self.label = label
+        self.toggle_button = QPushButton(self.label)
+        self.content_area = QWidget(self)
+        self.layout = QVBoxLayout(self)
+        self.content_layout = QVBoxLayout()
+
         self.collapsed = collapsed
 
-        self.build()
+        self._setup_ui()
+        self._apply_initial_state()
 
-    def build(self) -> None:
-        self._build_toggle_button()
-        self._build_content_area()
-        self._build_layout()
-        self._apply_style()
-        self._apply_collapsed_state()
-
-    def _build_toggle_button(self) -> None:
-        self.toggle_button = QPushButton(self.label, self)
+    def _setup_ui(self) -> None:
+        """Configure layouts, widget properties, and signal connections."""
+        # Toggle button configuration
         self.toggle_button.setCheckable(True)
         self.toggle_button.clicked.connect(self._toggle_content)
 
-    def _build_content_area(self) -> None:
-        self.content_area = QWidget(self)
-
-    def _build_layout(self) -> None:
-        self.layout = QVBoxLayout(self)
+        # Main layout configuration
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
+        self.layout.addWidget(self.toggle_button)
+        self.layout.addWidget(self.content_area)
 
-        if self.toggle_button is not None:
-            self.layout.addWidget(self.toggle_button)
+        # Assign layout to content area immediately for consistent behavior
+        self.content_area.setLayout(self.content_layout)
 
-        if self.content_area is not None:
-            self.layout.addWidget(self.content_area)
+    def _apply_initial_state(self) -> None:
+        """Apply initial collapsed state and default styling."""
+        self._set_collapsed(self.collapsed)
+        self.toggle_button.setStyleSheet(APP_THEME.button_qss())
 
-    def _apply_style(self) -> None:
-        if self.toggle_button is not None:
-            self.toggle_button.setStyleSheet(APP_THEME.button_qss())
+    def _set_collapsed(self, collapsed: bool) -> None:
+        """Synchronize UI elements with the collapsed state.
 
-    def _apply_collapsed_state(self) -> None:
-        if self.toggle_button is not None:
-            self.toggle_button.setChecked(not self.collapsed)
-
-        if self.content_area is not None:
-            self.content_area.setVisible(not self.collapsed)
+        Using a single method ensures button check-state and content visibility
+        always remain in sync, preventing UI desync bugs.
+        """
+        self.collapsed = collapsed
+        self.toggle_button.setChecked(not collapsed)
+        self.content_area.setVisible(not collapsed)
 
     def _toggle_content(self) -> None:
-        if self.content_area is None:
-            return
-        visible = not self.content_area.isVisible()
-        self.content_area.setVisible(visible)
+        """Handle toggle button click by flipping the collapsed state."""
+        self._set_collapsed(not self.collapsed)
 
     def add_widget(self, widget: QWidget) -> None:
-        """Convenience method to add widgets to content area."""
-        if self.content_area is None:
-            return
-
-        if self.content_area.layout() is None:
-            self.content_area.setLayout(QVBoxLayout())
-
-        layout = self.content_area.layout()
-        if layout is not None:
-            layout.addWidget(widget)
+        """Add a widget to the content area layout."""
+        self.content_layout.addWidget(widget)
 
     def apply_theme(self) -> None:
-        self.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
-        self.setStyleSheet(APP_THEME.container_qss())
+        """Apply application theme fonts and styles to relevant widgets.
 
-        for child in self.findChildren(QWidget):
-            child.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
+        Note: Applies styling only to direct children to avoid overriding
+        nested widget styles or causing performance issues with findChildren().
+        Global theming should ideally be handled at the QApplication level.
+        """
+        font = QFont(APP_THEME.font_family, APP_THEME.font_size)
+
+        self.setFont(font)
+        self.toggle_button.setFont(font)
+        self.content_area.setFont(font)
+
+        self.setStyleSheet(APP_THEME.container_qss())

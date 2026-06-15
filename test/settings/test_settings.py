@@ -20,7 +20,7 @@ class TestSettings:
                 with patch("src.theme.theme.Theme.refresh_theme"):
                     mock_log_util = MagicMock()
                     s = Settings(mock_log_util)
-                    s.state.folder_configs = [{"label": "Test", "path": "/test"}]
+                    s.settings_data_model.folder_configs = [{"label": "Test", "path": "/test"}]
                     # Mock only the problematic UI components that cause Segfaults
                     # Bypassing build to avoid Segfaults
                     with patch.object(s, "build"):
@@ -30,31 +30,31 @@ class TestSettings:
 
     def test_initialization(self, settings):
         # Adjusting to actual Settings attribute if it exists, or just check folder_configs
-        assert len(settings.state.folder_configs) == 1
+        assert len(settings.settings_data_model.folder_configs) == 1
 
     def test_add_folder(self, settings):
-        initial_count = len(settings.state.folder_configs)
+        initial_count = len(settings.settings_data_model.folder_configs)
         # Mock refresh_folder_nav_settings as it depends on UI
-        with patch.object(settings.media_tab, "_refresh_folder_nav_settings"):
-            settings.media_tab._add_folder()
-        assert len(settings.state.folder_configs) == initial_count + 1
+        with patch.object(settings.media_settings_tab, "_refresh_folder_nav_settings"):
+            settings.media_settings_tab._add_folder()
+        assert len(settings.settings_data_model.folder_configs) == initial_count + 1
         # The code uses "New Folder" in _add_folder
-        assert settings.state.folder_configs[-1]["label"] == "New Media"
+        assert settings.settings_data_model.folder_configs[-1]["label"] == "New Media"
 
     def test_remove_folder(self, settings):
-        config = settings.state.folder_configs[0]
+        config = settings.settings_data_model.folder_configs[0]
         # Mock refresh_folder_nav_settings and QMessageBox
-        with patch.object(settings.media_tab, "_refresh_folder_nav_settings"):
+        with patch.object(settings.media_settings_tab, "_refresh_folder_nav_settings"):
             with patch("PySide6.QtWidgets.QMessageBox.question", return_value=0x00004000): # Yes
-                settings.media_tab._remove_folder(config)
-        assert len(settings.state.folder_configs) == 0
+                settings.media_settings_tab._remove_folder(config)
+        assert len(settings.settings_data_model.folder_configs) == 0
 
     def test_font_size_changed(self, settings, qtbot):
         from src.theme.theme import APP_THEME
 
         initial_size = APP_THEME.font_size
         try:
-            settings.ui_tab._on_font_size_changed(initial_size + 2)
+            settings.ui_settings_tab._on_font_size_changed(initial_size + 2)
             assert APP_THEME.font_size == initial_size + 2
         finally:
             APP_THEME.font_size = initial_size

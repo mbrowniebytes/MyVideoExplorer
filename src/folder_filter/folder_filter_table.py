@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
 )
 
+from src.app.app_signals_model import SignalPayload, SignalFlow
 from src.theme.theme import APP_THEME
 
 
@@ -31,8 +32,8 @@ class FolderFilterTable(QTableWidget):
         # "Plot",
     ]
 
-    sig_genre_changed = Signal(str)
-    sig_root_folder = Signal(str)
+    sig_genre_changed = Signal(object)
+    sig_root_folder = Signal(object)
 
     def __init__(self, genres: list[str], folder_configs: list[dict]):
         super().__init__()
@@ -122,7 +123,7 @@ class FolderFilterTable(QTableWidget):
             if filter_value:
                 combo.setCurrentText(filter_value)
             APP_THEME.setup_combo_box(combo)
-            combo.currentTextChanged.connect(self.sig_genre_changed.emit)
+            combo.currentTextChanged.connect(self._on_genre_changed)
             self.setCellWidget(row_nbr, 1, combo)
             return
 
@@ -140,11 +141,7 @@ class FolderFilterTable(QTableWidget):
                 if index != -1:
                     combo.setCurrentIndex(index)
             APP_THEME.setup_combo_box(combo)
-            combo.currentIndexChanged.connect(
-                lambda idx: (
-                    self.sig_root_folder.emit(combo.itemData(idx)) if idx > 0 else None
-                )
-            )
+            combo.currentIndexChanged.connect(lambda idx: self._on_root_folder_changed(idx, combo))
             self.setCellWidget(row_nbr, 1, combo)
             return
 
@@ -229,3 +226,24 @@ class FolderFilterTable(QTableWidget):
     def apply_theme(self) -> None:
         self.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
         self.setStyleSheet(APP_THEME.table_qss())
+
+    def _on_genre_changed(self, genre: str):
+        payload = SignalPayload(
+            data=genre,
+            sender=self.__class__.__name__,
+            name="Genre Changed",
+            description="Emitted when the genre changes in FolderFilterTable.",
+            flow=SignalFlow.USER_INPUT,
+        )
+        self.sig_genre_changed.emit(payload)
+
+    def _on_root_folder_changed(self, idx: int, combo: QComboBox):
+        if idx > 0:
+            payload = SignalPayload(
+                data=combo.itemData(idx),
+                sender=self.__class__.__name__,
+                name="Root Folder Changed",
+                description="Emitted when a root folder is selected in FolderFilterTable.",
+                flow=SignalFlow.USER_INPUT,
+            )
+            self.sig_root_folder.emit(payload)

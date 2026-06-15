@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from src.media_info.media_info_side_view import MediaInfoSideView
+from src.media_info_side.media_info_side_view import MediaInfoSideView
 from src.utils.nfo_parse_util import NfoParseUtil
 from src.utils.str_util import StrUtil
 
@@ -49,7 +49,7 @@ class TestMediaInfoSideView:
 
         # Verify plot text
         assert (
-            media_info_side_view.plot_section.plot_text.toPlainText()
+            media_info_side_view.plot_section.get_plot_text().toPlainText()
             == mock_nfo_data["plot"]
         )
 
@@ -83,7 +83,7 @@ class TestMediaInfoSideView:
 
     def test_apply_theme(self, media_info_side_view, mock_nfo_data):
         media_info_side_view.build_from_movie_info(mock_nfo_data)
-        with patch("src.media_info.media_info_side_view.APP_THEME") as mock_theme:
+        with patch("src.media_info_side.media_info_side_view.APP_THEME") as mock_theme:
             mock_theme.font_family = "Verdana"
             mock_theme.font_size = 10
             mock_theme.container_qss.return_value = "background: red;"

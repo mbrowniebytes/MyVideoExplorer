@@ -17,7 +17,7 @@ class TestFolderPicker:
         with qtbot.waitSignal(folder_picker.sig_selected_folder) as blocker:
             folder_picker.selected_folder = "/new/path"
         assert folder_picker.selected_folder == "/new/path"
-        assert blocker.args[0] == "/new/path"
+        assert blocker.args[0].data == "/new/path"
 
     def test_selected_folder_setter_no_duplicates(self, folder_picker, qtbot):
         folder_picker.selected_folder = "/path"
@@ -27,12 +27,12 @@ class TestFolderPicker:
     def test_select_folder_dialog(self, folder_picker, qtbot):
         with patch("PySide6.QtWidgets.QFileDialog.getExistingDirectory") as mock_dialog:
             mock_dialog.return_value = "/selected/path"
-            folder_picker.select_folder()
+            folder_picker.pick_folder()
             assert folder_picker.selected_folder == "/selected/path"
 
     def test_select_folder_cancelled(self, folder_picker, qtbot):
         folder_picker.selected_folder = "/initial"
         with patch("PySide6.QtWidgets.QFileDialog.getExistingDirectory") as mock_dialog:
             mock_dialog.return_value = ""
-            folder_picker.select_folder()
+            folder_picker.pick_folder()
             assert folder_picker.selected_folder == "/initial"

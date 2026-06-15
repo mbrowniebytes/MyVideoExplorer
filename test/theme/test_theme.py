@@ -1,6 +1,7 @@
 import pytest
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QListWidget, QWidget
+from PySide6.QtCore import QSize
 from src.theme.theme import Theme
 
 
@@ -30,7 +31,10 @@ class TestTheme:
         lw = QListWidget()
         qtbot.addWidget(lw)
         theme.setup_list_widget(lw)
-        assert lw.font().family() == theme.font_family
+
+        # Verify icon size is set
+        assert lw.iconSize() == QSize(theme.icon_size, theme.icon_size)
+        assert lw.styleSheet() != ""
 
     def test_refresh_theme(self, theme, qtbot):
         from PySide6.QtWidgets import QApplication, QLabel

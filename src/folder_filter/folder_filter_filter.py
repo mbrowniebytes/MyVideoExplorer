@@ -5,12 +5,13 @@ from PySide6.QtWidgets import QWidget
 
 from src.theme.theme import APP_THEME
 from src.utils.file_util_model import FileUtilModel
+from src.utils.log_util import LogUtil
 from src.utils.nfo_parse_util import NfoParseUtil
 
 
-class FolderFilterEngine:
+class FolderFilterFilter:
     def __init__(
-        self, nfo_parse_util: NfoParseUtil, folder_configs: list[dict] = None, log_util=None
+        self, nfo_parse_util: NfoParseUtil, folder_configs: list[dict] = None, log_util: LogUtil = None
     ):
         self.log_util = log_util
         self.nfo_parse_util = nfo_parse_util
@@ -195,7 +196,7 @@ class FolderFilterEngine:
     def _matches_genre(movie_info: dict, genre: str) -> bool:
         if not genre:
             return False
-        return FolderFilterEngine._contains_any(movie_info.get("genres", []), genre)
+        return FolderFilterFilter._contains_any(movie_info.get("genres", []), genre)
 
     @staticmethod
     def _contains_any(values: list[str], needle: str) -> bool:

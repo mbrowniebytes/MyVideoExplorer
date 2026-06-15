@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import QObject
 
 from src.app.app_state import AppState
+from src.app.app_signals import SignalRegistry
+from src.utils.log_util import LogUtil
 
 
 class AppController(QObject):
@@ -12,20 +14,14 @@ class AppController(QObject):
     Emits specific signals so subscribers only react to what changed.
     """
 
-    sig_root_folder = Signal(str)
-    sig_root_folders = Signal(list)
-    sig_selected_folder = Signal(str)
-    sig_file_changed = Signal(str)
-    sig_image_changed = Signal(str)
-    sig_tab_changed = Signal(int)
-
-    def __init__(self, log_util) -> None:
+    def __init__(self, log_util: LogUtil, signals: SignalRegistry) -> None:
         super().__init__()
         self.log_util = log_util
+        self.signals = signals
         self.state = AppState()
         self.log_util.debug(f"__init__ {self.__class__.__name__}")
 
-    def set_root_folder(self, folder_paths: list[str]) -> None:
+    def set_root_folder(self, folder_paths: list[str] | str) -> None:
         """Accept a single folder path or an iterable of folder paths.
 
         When given an iterable, the controller will iterate and emit the
@@ -56,7 +52,8 @@ class AppController(QObject):
 
         # Emit a single signal with all roots so FolderNav can show them all at once
         # if valid_paths:
-        self.sig_root_folders.emit(valid_paths)
+        payload = self.signals.create_payload("sig_root_folders", valid_paths, self.__class__.__name__)
+        self.signals.sig_root_folders.emit(payload)
         self.log_util.debug(f"sig_root_folders emitted for: {valid_paths}")
 
         # Also keep emitting per-root signals for backward compatibility so
@@ -66,14 +63,15 @@ class AppController(QObject):
             # self.sig_selected_folder.emit(vp)
 
     def set_current_folder(self, folder_path: str, force: bool = False) -> None:
-        self.log_util.debug(f"Attempting to set folder: {folder_path}")
+        # self.log_util.debug(f"Attempting to set folder: {folder_path}")
         try:
             if not force and self.state.current_folder == folder_path:
                 return
             self.state.current_folder = folder_path
             self.state.current_file = ""
             self.state.current_image = ""
-            self.sig_selected_folder.emit(folder_path)
+            payload = self.signals.create_payload("sig_selected_folder", folder_path, self.__class__.__name__)
+            self.signals.sig_selected_folder.emit(payload)
             self.log_util.debug(f"sig_selected_folder emitted for: {folder_path}")
         except Exception as e:
             self.log_util.error(f"Error setting current folder: {str(e)}")
@@ -84,7 +82,8 @@ class AppController(QObject):
             if self.state.current_file == file_path:
                 return
             self.state.current_file = file_path
-            self.sig_file_changed.emit(file_path)
+            payload = self.signals.create_payload("sig_file_changed", file_path, self.__class__.__name__)
+            self.signals.sig_file_changed.emit(payload)
             self.log_util.debug(f"sig_file_changed emitted for: {file_path}")
         except Exception as e:
             self.log_util.error(f"Error setting current file: {str(e)}")
@@ -93,20 +92,24 @@ class AppController(QObject):
         if self.state.current_image == image_path:
             return
         self.state.current_image = image_path
-        self.sig_image_changed.emit(image_path)
+        payload = self.signals.create_payload("sig_image_changed", image_path, self.__class__.__name__)
+        self.signals.sig_image_changed.emit(payload)
         self.log_util.debug(f"sig_image_changed emitted for: {image_path}")
 
     def set_current_tab(self, tab_index: int) -> None:
         if self.state.current_tab == tab_index:
             return
         self.state.current_tab = tab_index
-        self.sig_tab_changed.emit(tab_index)
+        payload = self.signals.create_payload("sig_tab_changed", tab_index, self.__class__.__name__)
+        self.signals.sig_tab_changed.emit(payload)
         self.log_util.debug(f"sig_tab_changed emitted for: {tab_index}")
 
     def emit_current_selection(self) -> None:
         if self.state.current_folder:
-            self.sig_selected_folder.emit(self.state.current_folder)
+            payload = self.signals.create_payload("sig_selected_folder", self.state.current_folder, self.__class__.__name__)
+            self.signals.sig_selected_folder.emit(payload)
             self.log_util.debug(f"sig_selected_folder emitted for: {self.state.current_folder}")
         if self.state.current_file:
-            self.sig_file_changed.emit(self.state.current_file)
+            payload = self.signals.create_payload("sig_file_changed", self.state.current_file, self.__class__.__name__)
+            self.signals.sig_file_changed.emit(payload)
             self.log_util.debug(f"sig_file_changed emitted for: {self.state.current_file}")

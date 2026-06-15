@@ -1,14 +1,30 @@
 from PySide6.QtWidgets import QTabBar
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QSize
 
 
 class RightAlignedTabBar(QTabBar):
-    def __init__(self, parent=None, spacer_index: int | None = None):
+    """
+    A custom QTabBar implementation designed to support right-aligned tab layouts.
+    This component is intended to be used within a QTabWidget or a custom layout
+    where tab positioning needs to be controlled.
+    """
+
+    def __init__(self, parent=None, spacer_index: int | None = None) -> None:
         super().__init__(parent)
         self.setExpanding(True)
         self._spacer_index = spacer_index
 
-    def tabSizeHint(self, index: int):
+    def tabSizeHint(self, index: int) -> QSize:
+        """
+        Returns the size hint for the tab at the given index.
+
+        Args:
+            index: The index of the tab.
+
+         Returns:
+             QSize: The recommended size for the tab.
+         """
+
         size = super().tabSizeHint(index)
 
         # Determine spacer index: use provided one or default to count - 2

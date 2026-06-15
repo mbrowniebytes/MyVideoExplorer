@@ -4,6 +4,7 @@ import pathlib
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Qt, Signal
+from src.app.app_signals_model import SignalPayload, SignalFlow
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -17,7 +18,7 @@ if TYPE_CHECKING:
     from src.file_list.file_list import FileList
 
 from src.image_list.image_preview_widget import ImagePreviewWidget
-from src.media_info.media_info_side_view import MediaInfoSideView
+from src.media_info_side.media_info_side_view import MediaInfoSideView
 from src.theme.theme import APP_THEME
 from src.utils.str_util import StrUtil
 from src.widgets.base_widget import BaseWidget
@@ -28,9 +29,9 @@ class ImageListView(BaseWidget):
     View for displaying an image and its related metadata.
     """
 
-    sig_wheel_step = Signal(int)
-    sig_right_click = Signal()
-    sig_double_click = Signal()
+    sig_wheel_step = Signal(object)
+    sig_right_click = Signal(object)
+    sig_double_click = Signal(object)
 
     def __init__(
         self,
@@ -44,8 +45,8 @@ class ImageListView(BaseWidget):
         self.media_info_side_view = media_info_side_view
         self.file_list = file_list
 
-        self.title_widget = ImageTitleWidget()
-        self.preview_widget = ImagePreviewWidget()
+        self.title_widget = ImageTitleWidget(log_util)
+        self.preview_widget = ImagePreviewWidget(log_util)
         self.plot_text = self.media_info_side_view.get_plot_section().get_plot_text()
 
     def build(self) -> ImageListView:
@@ -55,16 +56,38 @@ class ImageListView(BaseWidget):
         self._build_ui()
         return self
 
-    def _handle_wheel_step(self, step: int) -> None:
-        self.sig_wheel_step.emit(step)
+    def _handle_wheel_step(self, payload: SignalPayload) -> None:
+        step = payload.data
+        new_payload = SignalPayload(
+            data=step,
+            sender=self.__class__.__name__,
+            name="Wheel Step",
+            description="Emitted when mouse wheel moves in ImageListView.",
+            flow=SignalFlow.USER_INPUT,
+        )
+        self.sig_wheel_step.emit(new_payload)
         self.log_util.debug(f"sig_wheel_step emitted with: {step}")
 
-    def _handle_right_click(self) -> None:
-        self.sig_right_click.emit()
+    def _handle_right_click(self, payload: SignalPayload) -> None:
+        new_payload = SignalPayload(
+            data=None,
+            sender=self.__class__.__name__,
+            name="Right Click",
+            description="Emitted when right click in ImageListView.",
+            flow=SignalFlow.USER_INPUT,
+        )
+        self.sig_right_click.emit(new_payload)
         self.log_util.debug("sig_right_click emitted")
 
-    def _handle_double_click(self) -> None:
-        self.sig_double_click.emit()
+    def _handle_double_click(self, payload: SignalPayload) -> None:
+        new_payload = SignalPayload(
+            data=None,
+            sender=self.__class__.__name__,
+            name="Double Click",
+            description="Emitted when double click in ImageListView.",
+            flow=SignalFlow.USER_INPUT,
+        )
+        self.sig_double_click.emit(new_payload)
         self.log_util.debug("sig_double_click emitted")
 
     def _build_ui(self) -> None:

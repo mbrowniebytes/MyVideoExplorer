@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Main entry point for the application."""
-import logging
+import datetime
 import sys
 import traceback
+from pathlib import Path
+from PySide6 import QtAsyncio
+
 
 from PySide6.QtWidgets import (
     QApplication,
@@ -12,41 +15,66 @@ from src.app.app import App
 from src.app.app_container import AppContainer
 
 
+# Emergency fallback logging for when normal logging fails
+def _emergency_log(message: str, exc_info: bool = False) -> None:
+    """Write to log file immediately without relying on configured handlers."""
+    log_dir = Path("log")
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_file = log_dir / "app.log"
+    try:
+        with open(log_file, "a", encoding="utf-8") as f:
+            # Try to get timestamp from event loop, but don't fail if it doesn't exist
+            date_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            f.write(f"{date_str} - EMERGENCY - {message}\n")
+            if exc_info:
+                f.write(traceback.format_exc())
+                f.write("\n")
+            f.flush()
+    except Exception:
+        pass  # If emergency logging fails, nothing we can do
+
+
 def main() -> int:
     """Application entry point."""
+    container = None
     try:
         qapp = QApplication(sys.argv)
+
+        # Create and configure logging FIRST, before anything else
         container = AppContainer()
 
+        # Set up exception hooks BEFORE initializing the app UI
         sys.excepthook = container.log_util.handle_exception
 
         app = App(qapp, container)
         window = app.build()
         window.show()
 
-        result = qapp.exec()
+        # result = qapp.exec()
+        result = QtAsyncio.run()
 
         container.log_util.log_memory("Application closing...")
         container.log_util.close()
 
         return result
     except Exception as e:
-        if getattr(sys, 'frozen', False):
-            # deployed, log exception
-            # date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-            # log_file = f"log/app-{date_str}.log"
-            log_file = "log/app.log"
-            logging.root.handlers.clear()
-            logging.basicConfig(
-                filename=log_file,
-                filemode="a",
-                format="%(asctime)s - %(levelname)s - %(message)s [%(filename)s:%(lineno)d] %(extra)s",
-                datefmt="%Y-%m-%d %H:%M:%S",
-                level=logging.INFO,
-            )
-            logging.error("exception in main", extra={"extra":traceback.format_exc()})
+        # Emergency logging if container isn't initialized
+        if container is None:
+            _emergency_log(f"Exception during container initialization: {str(e)}", exc_info=True)
         else:
-            # dev, just raise in ide
+            # Container exists, use configured logging
+            container.log_util.error(
+                "Exception in main",
+                extra_info={
+                    "exc_type": type(e).__name__,
+                    "exc_value": str(e),
+                }
+            )
+            tb_str = "".join(traceback.format_exception(type(e), e, e.__traceback__))
+            container.log_util.error(f"{tb_str}")
+
+        if not getattr(sys, 'frozen', False):
+            # dev, raise in ide
             raise e
     return -1
 

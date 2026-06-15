@@ -26,7 +26,7 @@ class FolderFilterMedia(QWidget):
         self.media_layout.addWidget(self.all_none_button)
 
         self._build_buttons()
-        self.settings.sig_changed.connect(self.refresh_buttons)
+        self.settings.settings_data_model.sig_settings_changed.connect(self.refresh_buttons)
 
     def _build_buttons(self) -> None:
         # Map labels to their associated paths and icons (handle multiple paths per label)
@@ -36,7 +36,7 @@ class FolderFilterMedia(QWidget):
             {}
         )  # label -> [(path, icon_name), ...]
 
-        for config in self.settings.folder_configs:
+        for config in self.settings.settings_data_model.folder_configs:
             label = config.get("label", "")
             path = config.get("path", "")
             if not path:

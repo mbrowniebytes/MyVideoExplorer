@@ -1,69 +1,55 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QFont, QPixmap
-from PySide6.QtWidgets import (
-    QFrame,
-    QHBoxLayout,
-    QLabel,
-    QPushButton,
-    QScrollArea,
-    QSizePolicy,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtCore import Signal
+from src.app.app_signals_model import SignalPayload, SignalFlow
+from PySide6.QtGui import QFont
+from PySide6.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget
 
+from src.media_info_section.media_info_section_actors import MediaInfoActorsSection
+from src.media_info_section.media_info_section_common import MediaInfoCommonSection
+from src.media_info_section.media_info_section_details import MediaInfoDetailsSection
+from src.media_info_section.media_info_section_plot import MediaInfoPlotSection
+from src.media_info.media_info_scroll_content_widget import MediaInfoScrollContentWidget
+from src.media_info_section.media_info_section_definitions import (
+    MEDIA_INFO_SECTION_ACTORS,
+    MEDIA_INFO_SECTION_AUDIOS,
+    MEDIA_INFO_SECTION_COMMON,
+    MEDIA_INFO_SECTION_IDS,
+    MEDIA_INFO_SECTION_PLOT,
+    MEDIA_INFO_SECTION_SUBTITLES,
+    MEDIA_INFO_SECTION_VIDEOS,
+    MEDIA_INFO_SECTIONS_HIDDEN_IN_IMAGE_LIST,
+    MEDIA_INFO_VIEW_MODE_DEFAULT,
+    MEDIA_INFO_VIEW_MODE_IMAGE_LIST,
+)
+from src.media_info.media_info_toolbar_widget import MediaInfoToolbarWidget
+from src.theme.theme import APP_THEME
+from src.utils.log_util import LogUtil
 from src.utils.nfo_parse_util import NfoParseUtil
 from src.utils.str_util import StrUtil
-from src.theme.theme import APP_THEME
-from src.media_info.media_info_common_section import MediaInfoCommonSection
-from src.media_info.media_info_plot_section import MediaInfoPlotSection
-from src.media_info.media_info_details_section import MediaInfoDetailsSection
-from src.media_info.media_info_actors_section import MediaInfoActorsSection
+from src.widgets.base_widget import BaseWidget
 
 
-class MediaInfoView(QWidget):
-    sig_info_play_video_btn_clicked = Signal()
+class MediaInfoView(BaseWidget):
+    sig_info_play_video_btn_clicked = Signal(object)
 
-    def __init__(self, nfo_parse_util: NfoParseUtil, str_util: StrUtil, log_util=None) -> None:
-        super().__init__()
-        self.log_util = log_util
-        if self.log_util:
-            self.log_util.debug(f"__init__ {self.__class__.__name__}")
-
-        self.section_widgets: dict[str, QFrame] = {}
-        self.toggle_layout = QHBoxLayout()
-        self.toggle_layout.setContentsMargins(0, 0, 0, 0)
-
-        self.content_container = QWidget()
-        self.content_container.setStyleSheet(APP_THEME.container_qss())
-
-        self.media_info_layout = QVBoxLayout(self.content_container)
-        self.media_info_layout.setContentsMargins(0, 0, 0, 0)
-        self.media_info_layout.setSpacing(4)
-        self.media_info_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-
-        self.scroll_area = QScrollArea()
-        self.scroll_area.setWidget(self.content_container)
-        self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setHorizontalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
-        )
-        self.scroll_area.setVerticalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAsNeeded
-        )
-
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.addLayout(self.toggle_layout)
-        main_layout.addWidget(self.scroll_area)
+    def __init__(
+        self,
+        nfo_parse_util: NfoParseUtil,
+        str_util: StrUtil,
+        log_util: LogUtil,
+    ) -> None:
+        super().__init__(log_util)
 
         self.nfo_parse_util = nfo_parse_util
         self.str_util = str_util
-        self.movie_info: dict = {}
-        self.view_mode = "media_info"
 
-        # Initialize sub-sections
+        self.movie_info: dict = {}
+        self.view_mode = MEDIA_INFO_VIEW_MODE_DEFAULT
+
+        self.toolbar_widget = MediaInfoToolbarWidget()
+        self.scroll_content_widget = MediaInfoScrollContentWidget()
+
         self.common_section = MediaInfoCommonSection(self.str_util)
         self.plot_section = MediaInfoPlotSection()
         self.ids_section = MediaInfoDetailsSection()
@@ -72,182 +58,159 @@ class MediaInfoView(QWidget):
         self.subtitles_section = MediaInfoDetailsSection()
         self.actors_section = MediaInfoActorsSection()
 
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.addWidget(self.toolbar_widget)
+        self.main_layout.addWidget(self.scroll_content_widget)
+
+        self.toolbar_widget.sig_section_visibility_toggle_requested.connect(
+            lambda p: self._toggle_section(p.data)
+        )
+        self.toolbar_widget.sig_play_video_requested.connect(self.play_video)
+
+        # Backward-compatible aliases for existing tests/callers.
+        self.section_widgets = self.scroll_content_widget.section_widgets_by_id
+        self.toggle_layout = self.toolbar_widget.toolbar_layout
+        self.content_container = self.scroll_content_widget.content_container_widget
+        self.media_info_layout = self.scroll_content_widget.section_layout
+        self.scroll_area = self.scroll_content_widget.scroll_area
+
     def refresh(self, folder_path: str) -> None:
-        nfo = self.nfo_parse_util.parse_nfo(folder_path=folder_path)
-        self.set_movie_info(nfo)
+        parsed_movie_info = self.nfo_parse_util.parse_nfo(folder_path=folder_path)
+        self.set_movie_info(parsed_movie_info)
 
     def set_movie_info(self, movie_info: dict) -> None:
         if self.movie_info == movie_info:
             return
+
         self.movie_info = movie_info
         self.build_from_movie_info(movie_info)
 
     def build(self, folder_path: str) -> None:
         self.setStyleSheet(APP_THEME.container_qss())
-        nfo = self.nfo_parse_util.parse_nfo(folder_path=folder_path)
-        self.set_movie_info(nfo)
+        parsed_movie_info = self.nfo_parse_util.parse_nfo(folder_path=folder_path)
+        self.set_movie_info(parsed_movie_info)
 
     def clear_nfo(self) -> None:
-        self._clear_layout(self.media_info_layout)
-        self._clear_layout(self.toggle_layout)
-        self.section_widgets.clear()
+        self.scroll_content_widget.clear_for_empty_nfo()
+        self.toolbar_widget.rebuild_for_view_mode(self.view_mode)
 
-        placeholder = QLabel("No NFO data found")
-        placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        placeholder.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
-        )
-        self._show_placeholder(placeholder, "No NFO data found")
-        self.media_info_layout.addWidget(placeholder)
-
-    def build_from_movie_info(self, nfo: dict) -> None:
-        """Builds all UI components from the movie info dictionary."""
-        if not nfo:
+    def build_from_movie_info(self, movie_info: dict) -> None:
+        if not movie_info:
             self.clear_nfo()
             return
 
-        # Ensure toggle buttons are built
-        if self.toggle_layout.count() == 0:
-            self._build_toggle_buttons()
-
-        # Update or add sections
-        self._ensure_sections_built(nfo)
-
-    def _ensure_sections_built(self, nfo: dict) -> None:
-        """Ensures all sections are built and added to the layout."""
-        # 1. Common Section
-        self.common_section.build(nfo, self.view_mode)
-        if "section_common" not in self.section_widgets:
-            self._add_section("section_common", self.common_section)
-
-        # 2. IDs Section
-        self.ids_section.build_ids(nfo.get("ids", []))
-        if "section_ids" not in self.section_widgets:
-            self._add_section("section_ids", self.ids_section)
-
-        # 3. Plot Section
-        self.plot_section.build(nfo.get("plot", ""))
-        if "section_plot" not in self.section_widgets:
-            self._add_section("section_plot", self.plot_section)
-
-        if self.view_mode != "image_list":
-            # 4. Videos Section
-            self.videos_section.build_videos(nfo.get("videos", []))
-            if "section_videos" not in self.section_widgets:
-                self._add_section("section_videos", self.videos_section)
-
-            # 5. Audios Section
-            self.audios_section.build_audios(nfo.get("audios", []))
-            if "section_audios" not in self.section_widgets:
-                self._add_section("section_audios", self.audios_section)
-
-            # 6. Subtitles Section
-            self.subtitles_section.build_subtitles(nfo.get("subtitles", []))
-            if "section_subtitles" not in self.section_widgets:
-                self._add_section("section_subtitles", self.subtitles_section)
-        else:
-            # Remove sections not used in image_list if they were there
-            for sid in ["section_videos", "section_audios", "section_subtitles"]:
-                if sid in self.section_widgets:
-                    widget = self.section_widgets.pop(sid)
-                    self.media_info_layout.removeWidget(widget)
-                    widget.setParent(None)
-
-        # 7. Actors Section
-        self.actors_section.build(nfo.get("actors", []))
-        if "section_actors" not in self.section_widgets:
-            self._add_section("section_actors", self.actors_section)
-
-        # Ensure stretch is at the end
-        if (
-            self.media_info_layout.itemAt(
-                self.media_info_layout.count() - 1
-            ).spacerItem()
-            is None
-        ):
-            self.media_info_layout.addStretch()
-
-    def _add_section(self, name: str, widget: QFrame) -> None:
-        self.section_widgets[name] = widget
-        # The Actors section gets a stretch factor of 1, others 0
-        stretch = 1 if name == "section_actors" else 0
-        self.media_info_layout.addWidget(widget, stretch)
+        self.toolbar_widget.rebuild_for_view_mode(self.view_mode)
+        self._build_or_update_sections(movie_info)
 
     def set_view_mode(self, mode: str) -> None:
+        if self.view_mode == mode:
+            return
+
         self.view_mode = mode
+        self.toolbar_widget.rebuild_for_view_mode(self.view_mode)
 
-    def _show_placeholder(self, widget: QLabel, text: str) -> None:
-        widget.setPixmap(QPixmap())
-        widget.setText(text)
+        if self.movie_info:
+            self.build_from_movie_info(self.movie_info)
 
-    def _build_toggle_buttons(self) -> None:
-        sections = [
-            ("section_common", "Common"),
-            ("section_plot", "Plot"),
-            ("section_ids", "IDs"),
-        ]
-        if self.view_mode != "image_list":
-            sections += [
-                ("section_videos", "Videos"),
-                ("section_audios", "Audios"),
-                ("section_subtitles", "Subtitles"),
-            ]
-        sections.append(("section_actors", "Actors"))
-
-        for section_id, label in sections:
-            self._add_toggle_button(section_id, label)
-
-        self._add_play_button()
-
-    def _add_toggle_button(self, section_id: str, label: str) -> QPushButton:
-        btn = QPushButton(label)
-        btn.setCheckable(True)
-        btn.setChecked(True)
-        btn.setFixedSize(100, 25)
-        btn.clicked.connect(lambda: self._toggle_section(section_id))
-        btn.setStyleSheet(APP_THEME.small_button_qss())
-        self.toggle_layout.addWidget(btn)
-        return btn
-
-    def _toggle_section(self, section_id: str) -> None:
-        widget = self.section_widgets.get(section_id)
-        if widget:
-            widget.setVisible(not widget.isVisible())
-
-    def _add_play_button(self) -> None:
-        play_btn = QPushButton("▶")
-        play_btn.setMinimumWidth(40)
-        play_btn.setStyleSheet(APP_THEME.small_button_qss())
-        play_btn.clicked.connect(self.play_video)
-        self.toggle_layout.addStretch(1)
-        self.toggle_layout.addWidget(play_btn)
-
-    def play_video(self) -> None:
-        self.sig_info_play_video_btn_clicked.emit()
-
-    def _clear_layout(self, layout) -> None:
-        while layout.count():
-            item = layout.takeAt(0)
-            if item.widget():
-                # We do NOT deleteLater() here if the widget is one of our persistent sections
-                # To be safe and simple, we just setParent(None) for all widgets
-                item.widget().setParent(None)
-            elif item.layout():
-                self._clear_layout(item.layout())
+    def play_video(self, payload: SignalPayload = None) -> None:
+        self.sig_info_play_video_btn_clicked.emit(
+            SignalPayload(
+                data=None,
+                sender=self.__class__.__name__,
+                name="Play Video Requested",
+                description="Emitted when play video button is clicked in view.",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
 
     def apply_theme(self) -> None:
-        font = QFont(APP_THEME.font_family, APP_THEME.font_size)
-        self.setStyleSheet(APP_THEME.container_qss())
-        self.setFont(font)
+        application_font = QFont(APP_THEME.font_family, APP_THEME.font_size)
 
+        self.setStyleSheet(APP_THEME.container_qss())
+        self.setFont(application_font)
+
+        self.toolbar_widget.apply_theme()
+        self.scroll_content_widget.apply_theme()
         self.plot_section.apply_theme()
 
-        self._refresh_child_fonts(self, font)
+        self._refresh_child_fonts(application_font)
 
-    def _refresh_child_fonts(self, widget: QWidget, font: QFont) -> None:
-        for child in widget.findChildren(QWidget):
-            if isinstance(child, (QLabel, QPushButton)):
-                child.setFont(font)
-            # SimpleTable handles its own theme
-            if hasattr(child, "apply_theme") and child != self:
-                child.apply_theme()
+    def _build_or_update_sections(self, movie_info: dict) -> None:
+        self._build_common_section(movie_info)
+        self._build_ids_section(movie_info)
+        self._build_plot_section(movie_info)
+        self._build_media_stream_sections(movie_info)
+        self._build_actors_section(movie_info)
+
+        self.scroll_content_widget.ensure_trailing_stretch()
+
+    def _build_common_section(self, movie_info: dict) -> None:
+        self.common_section.build(movie_info, self.view_mode)
+        self.scroll_content_widget.add_section_if_missing(
+            MEDIA_INFO_SECTION_COMMON,
+            self.common_section,
+        )
+
+    def _build_ids_section(self, movie_info: dict) -> None:
+        self.ids_section.build_ids(movie_info.get("ids", []))
+        self.scroll_content_widget.add_section_if_missing(
+            MEDIA_INFO_SECTION_IDS,
+            self.ids_section,
+        )
+
+    def _build_plot_section(self, movie_info: dict) -> None:
+        self.plot_section.build(movie_info.get("plot", ""))
+        self.scroll_content_widget.add_section_if_missing(
+            MEDIA_INFO_SECTION_PLOT,
+            self.plot_section,
+        )
+
+    def _build_media_stream_sections(self, movie_info: dict) -> None:
+        if self.view_mode == MEDIA_INFO_VIEW_MODE_IMAGE_LIST:
+            self._remove_sections_hidden_in_image_list()
+            return
+
+        self.videos_section.build_videos(movie_info.get("videos", []))
+        self.scroll_content_widget.add_section_if_missing(
+            MEDIA_INFO_SECTION_VIDEOS,
+            self.videos_section,
+        )
+
+        self.audios_section.build_audios(movie_info.get("audios", []))
+        self.scroll_content_widget.add_section_if_missing(
+            MEDIA_INFO_SECTION_AUDIOS,
+            self.audios_section,
+        )
+
+        self.subtitles_section.build_subtitles(movie_info.get("subtitles", []))
+        self.scroll_content_widget.add_section_if_missing(
+            MEDIA_INFO_SECTION_SUBTITLES,
+            self.subtitles_section,
+        )
+
+    def _remove_sections_hidden_in_image_list(self) -> None:
+        for section_id in MEDIA_INFO_SECTIONS_HIDDEN_IN_IMAGE_LIST:
+            self.scroll_content_widget.remove_section_if_present(section_id)
+
+    def _build_actors_section(self, movie_info: dict) -> None:
+        self.actors_section.build(movie_info.get("actors", []))
+        self.scroll_content_widget.add_section_if_missing(
+            MEDIA_INFO_SECTION_ACTORS,
+            self.actors_section,
+        )
+
+    def _toggle_section(self, section_id: str) -> None:
+        is_section_visible = self.scroll_content_widget.toggle_section_visibility(section_id)
+
+        if is_section_visible is not None:
+            self.toolbar_widget.set_section_toggle_checked(section_id, is_section_visible)
+
+    def _refresh_child_fonts(self, font: QFont) -> None:
+        for child_widget in self.findChildren(QWidget):
+            if isinstance(child_widget, (QLabel, QPushButton)):
+                child_widget.setFont(font)
+
+            # SimpleTable handles its own theme.
+            if hasattr(child_widget, "apply_theme") and child_widget != self:
+                child_widget.apply_theme()

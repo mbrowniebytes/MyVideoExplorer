@@ -4,15 +4,20 @@ from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QWidget
 from src.image_list.image_list_view import ImageListView
 from src.file_list.file_list import FileList
-from src.media_info.media_info_side_view import MediaInfoSideView
+from src.media_info_side.media_info_side_view import MediaInfoSideView
 from src.utils.str_util import StrUtil
 from src.utils.nfo_parse_util import NfoParseUtil
 
+_NO_IMAGE_FOUND = """
+    No image found.\n
+    Select a folder by Mouse Wheel over this area\n
+    or by Selecting a folder in the Folder list to the left.
+"""
 
 class TestImageListView:
     @pytest.fixture
     def image_list_view(self, qtbot):
-        str_util = StrUtil()
+        str_util =  MagicMock(spec=StrUtil)
         nfo_parse_util = MagicMock(spec=NfoParseUtil)
         mock_log = MagicMock()
         side_view = MediaInfoSideView(nfo_parse_util, str_util, mock_log)
@@ -30,7 +35,7 @@ class TestImageListView:
 
     def test_load_pixmap_null(self, image_list_view):
         image_list_view.load_pixmap(None)
-        assert image_list_view.preview_widget.image_label.text() == "No image found"
+        assert image_list_view.preview_widget.image_label.text() == _NO_IMAGE_FOUND
 
     def test_load_pixmap_valid(self, image_list_view):
         # We need a small real image or a mock that QPixmap can handle.

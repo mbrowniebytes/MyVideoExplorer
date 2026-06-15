@@ -1,4 +1,5 @@
 from PySide6.QtCore import Qt, QTimer, Signal
+from src.app.app_signals_model import SignalPayload
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -9,11 +10,11 @@ from PySide6.QtWidgets import (
 )
 
 from src.folder_list.folder_list_view import FolderListView
+from src.settings.settings import Settings
 from src.theme.theme import APP_THEME
 from src.utils.file_util import FileUtil
 from src.utils.file_util_model import FileUtilModel
 from src.widgets.base_widget import BaseWidget
-from src.widgets.folder_picker_widget import FolderPickerWidget
 
 _EMPTY_STATE_NO_MEDIA_FOLDERS = (
     "No media folders configured.\nOpen Settings (Gear) → Media and add a media folder."
@@ -23,18 +24,19 @@ _EMPTY_STATE_NO_MEDIA_FOLDERS = (
 
 
 class FolderList(BaseWidget):
-    sig_folder_selected_intent = Signal(str)
+    sig_folder_selected_intent = Signal(object)
 
-    def __init__(self, file_util: FileUtil, settings, log_util) -> None:
+    def __init__(self, file_util: FileUtil, settings: Settings, log_util) -> None:
         super().__init__(log_util)
+        self.help_icon = QLabel()
+        self.title_label = QLabel()
         self.folder_view = FolderListView()
-        self.folder_picker = FolderPickerWidget()
         self.file_util = file_util
         self.settings = settings
         self._signals_connected = False
         self._container = QWidget()
 
-    def build(self):
+    def build(self) -> QWidget:
         self._container = self._build_container()
         layout = QVBoxLayout(self._container)
 
@@ -60,7 +62,6 @@ class FolderList(BaseWidget):
         header_layout.addWidget(self.title_label)
         header_layout.addWidget(self.help_icon)
         header_layout.addStretch()
-        header_layout.addWidget(self.folder_picker)
         layout.addLayout(header_layout)
 
         layout.addWidget(self.folder_view)
@@ -68,7 +69,7 @@ class FolderList(BaseWidget):
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
 
-        self.refresh("")
+        QTimer.singleShot(0, lambda: self.refresh(""))
 
         self.connect_sigs()
         return self._container
@@ -109,11 +110,13 @@ class FolderList(BaseWidget):
                 return
 
         self.folder_view.show_loading_state()
-        QTimer.singleShot(0, lambda: self.update_folder_list_by_path(folder_path))
 
-    def _handle_folder_selected_intent(self, folder_path: str) -> None:
-        self.sig_folder_selected_intent.emit(folder_path)
-        self.log_util.debug(f"sig_folder_selected_intent emitted for: {folder_path}")
+        # folder_Filter.apply_filters also loading
+        # QTimer.singleShot(250, lambda: self.update_folder_list_by_path(folder_path))
+
+    def _handle_folder_selected_intent(self, payload: SignalPayload) -> None:
+        self.sig_folder_selected_intent.emit(payload)
+        self.log_util.debug(f"sig_folder_selected_intent emitted for: {payload.data}")
 
     def connect_sigs(self):
         if self._signals_connected:
@@ -138,7 +141,7 @@ class FolderList(BaseWidget):
             return "fa5s.folder"
 
         norm_path = path.replace("\\", "/").rstrip("/").lower()
-        for config in self.settings.folder_configs:
+        for config in self.settings.settings_data_model.folder_configs:
             cfg_path = config.get("path", "").replace("\\", "/").rstrip("/").lower()
             if norm_path == cfg_path:
                 return config.get("icon", "fa5s.folder")
@@ -151,7 +154,7 @@ class FolderList(BaseWidget):
             return False
         import os
 
-        for config in self.settings.folder_configs:
+        for config in self.settings.settings_data_model.folder_configs:
             p = config.get("path", "")
             if p and os.path.isdir(p):
                 return True
@@ -269,6 +272,3 @@ class FolderList(BaseWidget):
 
         self.folder_view.setStyleSheet(APP_THEME.list_qss())
         self.folder_view.setFont(font)
-
-        self.folder_picker.pick_button.setStyleSheet(APP_THEME.button_qss())
-        self.folder_picker.pick_button.setFont(font)

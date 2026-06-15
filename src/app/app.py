@@ -1,7 +1,8 @@
 import os
+from pathlib import Path
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QFont, QIcon, QPixmap
 from PySide6.QtWidgets import (
     QMainWindow,
     QWidget,
@@ -13,6 +14,7 @@ from PySide6.QtWidgets import (
 
 from src.app.app_container import AppContainer
 from src.theme.theme import APP_THEME
+from src.utils.file_util import FileUtil
 
 
 class App:
@@ -22,7 +24,7 @@ class App:
         container: AppContainer,
     ) -> None:
         super().__init__()
-        self.window = None
+        self.window: QMainWindow = QMainWindow()
         self.app = app
         self.container = container
         self.controller = container.controller
@@ -30,13 +32,13 @@ class App:
         self.folder_list = container.folder_list
         self.file_list = container.file_list
         self.image_list = container.image_list
-        self.media_tabs = container.media_tabs
+        self.media_tabs = container.media_info_tabs
         self.video_player = container.video_player
         self.media_info = container.media_info
 
-    def build(self):
-        self.window = QMainWindow()
-        self.window.setWindowTitle("PySide6 App")
+    def build(self) -> QMainWindow:
+        self._create_app_icon()
+        self.window.setWindowTitle("MyVideoExplorer")
         self.window.resize(1400, 900)
         self.window.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
         self.window.setStyleSheet(APP_THEME.app_qss())
@@ -44,12 +46,37 @@ class App:
         central_widget = QWidget()
         central_widget.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
         central_widget.setStyleSheet(APP_THEME.container_qss())
-        layout = QHBoxLayout()
+        main_layout = QHBoxLayout()
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
         splitter.setStyleSheet(APP_THEME.splitter_qss())
 
+        left_panel = self._create_left_panel()
+        right_panel = self._create_right_panel()
+
+        splitter.addWidget(left_panel)
+        splitter.addWidget(right_panel)
+        splitter.setSizes([600, 900])
+
+        main_layout.addWidget(splitter)
+        central_widget.setLayout(main_layout)
+        self.window.setCentralWidget(central_widget)
+
+        APP_THEME.app = self.app
+
+        self._initialize_app_state()
+
+        return self.window
+
+    def _create_app_icon(self):
+        path_to_icon = FileUtil.get_resource_path("assets/app.png")
+        pixmap = QPixmap()
+        pixmap.loadFromData(Path(path_to_icon).read_bytes())
+        appIcon = QIcon(pixmap)
+        self.app.setWindowIcon(appIcon)
+
+    def _create_left_panel(self) -> QWidget:
         folder_nav_widget = self.folder_nav.build()
 
         file_container = QWidget()
@@ -60,42 +87,35 @@ class App:
         layout_folder_file.setSpacing(0)
         layout_folder_file.addWidget(folder_nav_widget, 0)
         layout_folder_file.addWidget(self.folder_list.build(), 1)
+        return file_container
 
+    def _create_right_panel(self) -> QWidget:
         self.image_list.image_list_view.media_info_side_view = (
             self.media_info.media_info_side_view
         )
 
-        media_tabs_widget = self.media_tabs.build(
+        return self.media_tabs.build(
             media_info=self.media_info,
             image_list=self.image_list,
             settings=self.container.settings,
         )
 
-        splitter.addWidget(file_container)
-        splitter.addWidget(media_tabs_widget)
-        splitter.setSizes([600, 900])
-
-        layout.addWidget(splitter)
-        central_widget.setLayout(layout)
-        self.window.setCentralWidget(central_widget)
-
-        APP_THEME.app = self.app
-
+    def _initialize_app_state(self) -> None:
         # Initialize app by iterating over all configured Media folders.
         # For each valid folder path, set it as the current root so the
         # UI components (folder nav, folder list, image list) refresh.
-        media_configs = getattr(self.container.settings, "folder_configs", [])
+        media_configs = self.container.settings.settings_data_model.folder_configs
         valid_paths = []
-        for cfg in media_configs:
-            p = cfg.get("path", "")
-            if not p:
+        for media_folder_config in media_configs:
+            path_string = media_folder_config.get("path", "")
+            if not path_string:
                 continue
             try:
-                real = os.path.realpath(p)
+                real_path = os.path.realpath(path_string)
             except Exception:
                 continue
-            if os.path.isdir(real):
-                valid_paths.append(real)
+            if os.path.isdir(real_path):
+                valid_paths.append(real_path)
 
         # If we have at least one valid media folder, iterate and set each so
         # the container refreshes components for each root. Otherwise leave
@@ -107,8 +127,6 @@ class App:
             # No valid media folders configured - emit empty selection so UI
             # shows the instruction to add media folders in settings.
             self.controller.set_root_folder("")
-
-        return self.window
 
     # def refresh_theme(self) -> None:
     #     if self.window is None:

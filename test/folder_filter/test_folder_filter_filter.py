@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock
-from src.folder_nav.folder_nav_filters_filter import FolderFilterEngine
+from src.folder_filter.folder_filter_filter import FolderFilterFilter
 from src.utils.file_util_model import FileUtilModel
 from src.utils.nfo_parse_util import NfoParseUtil
 
@@ -9,7 +9,7 @@ class TestFolderNavFiltersFilter:
     @pytest.fixture
     def filter_instance(self):
         nfo_util = MagicMock(spec=NfoParseUtil)
-        instance = FolderFilterEngine(nfo_util)
+        instance = FolderFilterFilter(nfo_util)
         return instance
 
     def test_default_folders(self, filter_instance):

@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from src.media_info.media_info_view import MediaInfoView
+from src.utils.log_util import LogUtil
 from src.utils.nfo_parse_util import NfoParseUtil
 from src.utils.str_util import StrUtil
 
@@ -33,10 +34,11 @@ class TestMediaInfoView:
     def media_info_view(self, qtbot):
         nfo_parse_util = MagicMock(spec=NfoParseUtil)
         str_util = MagicMock(spec=StrUtil)
+        log_util = MagicMock(spec=LogUtil)
         # Mock StrUtil methods
         str_util.join_strings.side_effect = lambda items: ", ".join(map(str, items))
 
-        view = MediaInfoView(nfo_parse_util, str_util)
+        view = MediaInfoView(nfo_parse_util, str_util, log_util)
         qtbot.addWidget(view)
         return view
 
@@ -59,7 +61,7 @@ class TestMediaInfoView:
 
         # Verify some UI elements were created
         assert (
-            media_info_view.plot_section.plot_text.toPlainText()
+            media_info_view.plot_section.get_plot_text().toPlainText()
             == mock_nfo_data["plot"]
         )
         # Check if title label was updated
@@ -97,8 +99,7 @@ class TestMediaInfoView:
         ) as blocker:
             media_info_view.play_video()
 
-        # No args for this signal usually, just verification it was emitted
-        assert blocker.signal_triggered
+        assert blocker.args[0].data is None
 
     def test_apply_theme(self, media_info_view, mock_nfo_data):
         media_info_view.build_from_movie_info(mock_nfo_data)
