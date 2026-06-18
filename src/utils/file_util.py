@@ -7,9 +7,15 @@ from pathlib import Path
 from collections.abc import Callable
 from time import sleep
 
+from PySide6.QtCore import QThread
+
 from src.utils.file_util_model import FileUtilModel
+from src.utils.file_util_worker import FileUtilWorker
 from src.utils.log_util import LogUtil
 from src.utils.file_util_type import FileUtilType
+from src.app.app_environment import IS_DEVELOPMENT
+
+
 
 
 class FileUtil:
@@ -30,6 +36,7 @@ class FileUtil:
         self.log_util = log_util
         self.file_type = FileUtilType()
         self._scan_lock = threading.Lock()
+        self.active_tasks: list[dict] = []
 
         self.log_util.debug(f"__init__ {self.__class__.__name__}")
 
@@ -83,8 +90,8 @@ class FileUtil:
         for entry in self._scan_directory(target):
             try:
                 # dev test large qty folders
-                if not getattr(sys, 'frozen', False):
-                    sleep(0.005)
+                if IS_DEVELOPMENT:
+                    sleep(0.001)
                 if entry.is_dir(follow_symlinks=False):
                     folder_item = self.build_folder_item(entry.path, depth=depth)
                     items.append(folder_item)
@@ -105,33 +112,44 @@ class FileUtil:
 
         return items
 
-    def get_files_from_path(
+    def get_files_from_path_async(
         self,
         path: str,
         depth: int = 0,
         on_complete: Callable[[list[FileUtilModel]], None] | None = None
-    ) -> list[FileUtilModel]:
+    ) -> None:
         """Asynchronously collect directory and file metadata for a path."""
-        result_container = []
-        result_container.append([])
-        def thread_worker():
-            try:
-                items = self._get_files_from_path(path, depth, on_complete)
-                result_container[0] = items
-            except Exception as e:
-                result_container[0] = []
-                err = f"Error iterating files from path: '{path}': {e}"
-                result_container.append(err)
+        thread = QThread()
+        worker = FileUtilWorker(self, path, depth)
+        worker.moveToThread(thread)
 
-        thread = threading.Thread(target=thread_worker)
+        task = {"thread": thread, "worker": worker}
+        with self._scan_lock:
+            self.active_tasks.append(task)
+
+        thread.started.connect(worker.run)
+        worker.finished.connect(
+            lambda items: self._on_finished(items, on_complete, thread, worker)
+        )
         thread.start()
-        thread.join()  # Wait for the thread to finish
 
-        # Print error details if parsing failed
-        if len(result_container) > 1:
-            print(f"{result_container[1]}")
+    def _on_finished(
+        self,
+        items: list[FileUtilModel],
+        on_complete: Callable[[list[FileUtilModel]], None] | None,
+        thread: QThread,
+        worker: FileUtilWorker,
+    ):
+        thread.quit()
+        thread.wait()
 
-        return result_container[0]
+        with self._scan_lock:
+            self.active_tasks = [
+                t for t in self.active_tasks if t["thread"] != thread
+            ]
+
+        if on_complete:
+            on_complete(items)
 
     def get_images_from_folder(self, folder_path: str) -> tuple[list[str], str | None]:
         """Return all image paths and the first poster image path if found."""
@@ -140,20 +158,28 @@ class FileUtil:
             # print(f"get_images_from_folder: target: {target}")
             return [], None
 
-        images: list[str] = []
-        poster_path: str | None = None
+        posters = []
+        fanarts = []
+        others = []
 
         for entry in self._scan_directory(target):
-            # print(f"get_images_from_folder: entry.path: {entry.path}")
             try:
                 if not entry.is_file(follow_symlinks=False):
                     continue
                 if self.is_image_file(entry.path):
-                    images.append(entry.path)
-                    if poster_path is None and Path(entry.name).stem.casefold().endswith("poster"):
-                        poster_path = entry.path
+                    stem = Path(entry.name).stem.casefold()
+                    if stem.endswith("poster"):
+                        posters.append(entry.path)
+                    elif stem.endswith("fanart"):
+                        fanarts.append(entry.path)
+                    else:
+                        others.append(entry.path)
             except OSError:
                 continue
+
+        images = posters + fanarts + others
+        posters.sort(key=lambda p: len(Path(p).stem))
+        poster_path = posters[0] if posters else None
 
         return images, poster_path
 

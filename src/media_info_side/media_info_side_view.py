@@ -45,6 +45,7 @@ class MediaInfoSideView(BaseWidget):
 
         self.media_info_side_layout = self.set_compact_layout(QVBoxLayout)
         self.media_info_side_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.media_info_side_layout.setContentsMargins(0, 10, 0, 5)
 
         self.media_info_side_layout.addWidget(self.side_content_widget)
         self.media_info_side_layout.addWidget(self.empty_nfo_placeholder_widget)

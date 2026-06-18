@@ -73,7 +73,8 @@ def main() -> int:
             tb_str = "".join(traceback.format_exception(type(e), e, e.__traceback__))
             container.log_util.error(f"{tb_str}")
 
-        if not getattr(sys, 'frozen', False):
+        from src.app.app_environment import IS_DEVELOPMENT
+        if IS_DEVELOPMENT:
             # dev, raise in ide
             raise e
     return -1

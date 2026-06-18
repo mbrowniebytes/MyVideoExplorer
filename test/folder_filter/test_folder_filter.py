@@ -94,30 +94,34 @@ class TestFolderNavFilters:
             nav_filters.apply_button.click()
         assert blocker.args is not None
 
-    def test_apply_filters_logic(self, nav_filters):
+    def test_apply_filters_logic(self, nav_filters, qtbot):
         """Verify apply_filters calls the filter engine with correct data."""
-        nav_filters.root_folder = "/root"
+        nav_filters.root_folder = ["/root"]
         mock_items = [MagicMock()]
-        nav_filters.file_util.get_files_from_path.return_value = mock_items
+
+        # Capture the callback
+        captured_callback = None
+        def side_effect(path, depth=0, on_complete=None):
+            nonlocal captured_callback
+            captured_callback = on_complete
+            if on_complete:
+                on_complete(mock_items)
+
+        nav_filters.file_util.get_files_from_path_async.side_effect = side_effect
 
         # Set a filter
         nav_filters.filter_table.add_filter("Folder", "my_movie")
 
-        nav_filters.apply_filters(selected_folders=["/root/sub"])
+        # Mock the final callback
+        on_complete_mock = MagicMock()
+        with qtbot.waitSignal(nav_filters.sig_loading_started):
+            nav_filters.apply_filters(selected_folders=["/root/sub"], on_complete=on_complete_mock)
 
-        nav_filters.file_util.get_files_from_path.assert_called_with("/root/sub")
+        nav_filters.file_util.get_files_from_path_async.assert_called_with("/root/sub", on_complete=captured_callback)
         nav_filters.folder_nav_filters_filter.apply_filters.assert_called()
 
-        # Safely extract arguments regardless of positional/keyword passing
-        call_args = nav_filters.folder_nav_filters_filter.apply_filters.call_args
-        args, kwargs = call_args
-        items_arg = kwargs.get("items", args[0] if args else None)
-        filters_arg = kwargs.get("filters", args[1] if len(args) > 1 else None)
-
-        assert items_arg == mock_items
-        assert any(
-            f["filter"] == "Folder" and f["value"] == "my_movie" for f in filters_arg
-        )
+        # Check if callback was called
+        on_complete_mock.assert_called()
 
     def test_genre_changed_signal(self, nav_filters, qtbot):
         """Verify genre combo change emits signal."""

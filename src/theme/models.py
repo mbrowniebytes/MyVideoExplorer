@@ -36,8 +36,8 @@ class ThemeConfig:
 
     # Scrollbar & Splitters
     color_scrollbar_background: str = "#1E1E1E"
-    color_scrollbar_handle: str = "#4F4F4F"
-    color_scrollbar_handle_hover: str = "#6E6E6E"
+    color_scrollbar_handle: str = "#4F4F5F"
+    color_scrollbar_handle_hover: str = "#5E5E7E"
     color_splitter_handle: str = "#4B4246"
     size_splitter_handle_width: int = 1
 

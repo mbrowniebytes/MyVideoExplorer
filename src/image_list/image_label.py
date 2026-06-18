@@ -2,6 +2,7 @@ from PySide6.QtCore import Qt, Signal, QRect
 from src.app.app_signals_model import SignalPayload, SignalFlow
 from PySide6.QtGui import QFont, QPainter, QPen, QColor
 from PySide6.QtWidgets import QLabel, QSizePolicy, QWidget
+from src.utils.log_util import LogUtil
 
 from src.theme.theme import APP_THEME
 
@@ -11,8 +12,9 @@ class ImageLabel(QLabel):
     sig_right_click = Signal(object)
     sig_double_click = Signal(object)
 
-    def __init__(self, text: str = "", parent: QWidget | None = None) -> None:
+    def __init__(self, log_util: LogUtil, text: str = "", parent: QWidget | None = None) -> None:
         super().__init__(text, parent)
+        self.log_util = log_util
 
         self.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -81,22 +83,27 @@ class ImageLabel(QLabel):
         self.update()
 
     def paintEvent(self, event):
-        super().paintEvent(event)
-        if self.property("highlight") == "true" and self.pixmap() and not self.pixmap().isNull():
-            painter = QPainter(self)
-            pixmap = self.pixmap()
-            pixmap_size = pixmap.size()
-            label_size = self.size()
+        try:
+            super().paintEvent(event)
+            if self.property("highlight") == "true" and self.pixmap() and not self.pixmap().isNull():
+                painter = QPainter(self)
+                pixmap = self.pixmap()
+                pixmap_size = pixmap.size()
+                label_size = self.size()
 
-            x = (label_size.width() - pixmap_size.width()) // 2
-            y = (label_size.height() - pixmap_size.height()) // 2
-            rect = QRect(x, y, pixmap_size.width(), pixmap_size.height())
+                x = (label_size.width() - pixmap_size.width()) // 2
+                y = (label_size.height() - pixmap_size.height()) // 2
+                rect = QRect(x, y, pixmap_size.width(), pixmap_size.height())
 
-            pen = QPen(QColor(APP_THEME.config.color_interaction_pixmap), APP_THEME.config.size_interaction_pixmap)
-            painter.setPen(pen)
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-            painter.drawRoundedRect(
-                rect,
-                APP_THEME.config.size_border_radius_standard,
-                APP_THEME.config.size_border_radius_standard
-            )
+                pen = QPen(QColor(APP_THEME.config.color_interaction_pixmap), APP_THEME.config.size_interaction_pixmap)
+                painter.setPen(pen)
+                painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+                painter.drawRoundedRect(
+                    rect,
+                    APP_THEME.config.size_border_radius_standard,
+                    APP_THEME.config.size_border_radius_standard
+                )
+        except Exception as e:
+            if self.log_util:
+                self.log_util.error(f"Error in paintEvent: {str(e)}")
+            raise

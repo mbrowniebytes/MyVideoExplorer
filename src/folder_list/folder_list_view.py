@@ -30,9 +30,12 @@ class FolderListView(QListWidget):
             )
             self.sig_folder_selected.emit(payload)
 
-    def show_loading_state(self) -> None:
+    def show_loading_state(self, folders: list[str] = None) -> None:
         self.clear()
-        loading_item = QListWidgetItem(f"\n\n\n {self._loading_state_text}")
+        text = self._loading_state_text
+        if folders:
+            text += f"\n\n{',\n'.join(folders)}"
+        loading_item = QListWidgetItem(f"\n\n\n {text}")
         loading_item.setFlags(Qt.ItemFlag.NoItemFlags)
         loading_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         self.addItem(loading_item)

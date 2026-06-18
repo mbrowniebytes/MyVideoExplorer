@@ -13,8 +13,8 @@ class ImageTitleWidget(BaseWidget):
     def __init__(self, log_util:LogUtil) -> None:
         super().__init__(log_util)
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 5, 0, 5)
-        layout.setSpacing(5)
+        layout.setContentsMargins(30, 0, 15, 0)
+        layout.setSpacing(0)
 
         self.title_label = QLabel("")
         self.title_label.setAlignment(

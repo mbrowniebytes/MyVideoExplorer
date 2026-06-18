@@ -24,15 +24,11 @@ class StyleFactory:
                 background: {c.color_scrollbar_handle};
                 min-height: 30px;
                 border-radius: 7px;
+                border: 2px solid {c.color_border_default};
                 margin: 2px;
             }}
             QScrollBar::handle:vertical:hover {{
                 background: {c.color_scrollbar_handle_hover};
-            }}
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
-                border: none;
-                background: none;
-                height: 0px;
             }}
             QToolTip {{
                 background-color: {c.color_surface_primary};
@@ -68,6 +64,22 @@ class StyleFactory:
             QListWidget::item:hover {{
                 background: {c.color_interaction_selected};
             }}
+            QListWidget QScrollBar:horizontal {{
+                border: none;
+                background: {c.color_scrollbar_background};
+                margin: 1px;
+            }}
+            QListWidget QScrollBar::handle:horizontal {{
+                background: {c.color_scrollbar_handle};
+                border-radius: 7px;
+                min-height: 30px;
+                border: 2px solid {c.color_border_default};
+                margin: 2px;
+            }}
+            QListWidget QScrollBar::handle:horizontal:hover {{
+                background: {c.color_scrollbar_handle_hover};
+            }}
+
         """
 
     @staticmethod
@@ -210,7 +222,7 @@ class StyleFactory:
         elif variant == "title":
             size += 10
             weight = "700"
-            padding = "4px 0px 12px 0px"
+            padding = "2px 0px 2px 0px"
             extra_label = f"""
                 border-radius: 8px;
                 border-bottom: 2px solid {c.color_border_default};

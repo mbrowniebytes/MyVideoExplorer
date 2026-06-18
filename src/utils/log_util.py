@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Any
 from collections.abc import Callable, Mapping, MutableMapping
 
+from src.app.app_environment import IS_DEVELOPMENT
+
 # Use structlog for structured logging output
 import structlog
 
@@ -108,8 +110,9 @@ class LogUtil:
             # print(f"_caller_info_processor: filename:{filename}")
 
             # Only accept frames that contain 'src/' — our application code
-            if "/src/" not in filename:
-                continue
+            if IS_DEVELOPMENT:
+                if "/src/" not in filename:
+                    continue
 
             if any(p in filename for p in skip_prefixes):
                 continue
@@ -332,7 +335,7 @@ class LogUtil:
     ) -> None:
         """Global exception handler to be used with sys.excepthook."""
         if (issubclass(exc_type, KeyboardInterrupt) or
-                not getattr(sys, 'frozen', False)):
+                not IS_DEVELOPMENT):
             sys.__excepthook__(exc_type, exc_value, exc_traceback)
             return
 

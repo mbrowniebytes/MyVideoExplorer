@@ -55,3 +55,37 @@ class TestFileUtil:
         assert any("image1.jpg" in img for img in images)
         assert poster is not None
         assert "folder-poster.png" in poster
+
+    @patch("src.utils.file_util.FileUtil._scan_directory")
+    def test_get_images_from_folder_order(self, _scan_directory, file_util):
+        _scan_directory.return_value = [
+            MockDirEntry(
+                type="file", name="other.jpg", full_path="/test/other.jpg", depth=0
+            ),
+            MockDirEntry(
+                type="file", name="folder-poster.jpg", full_path="/test/poster.jpg", depth=0
+            ),
+            MockDirEntry(
+                type="file", name="fanart.jpg", full_path="/test/fanart.jpg", depth=0
+            ),
+        ]
+
+        images, poster = file_util.get_images_from_folder(".")
+        assert len(images) == 3
+        assert "poster.jpg" in images[0]
+        assert "fanart.jpg" in images[1]
+        assert "other.jpg" in images[2]
+
+    @patch("src.utils.file_util.FileUtil._scan_directory")
+    def test_get_images_from_folder_poster_priority(self, _scan_directory, file_util):
+        _scan_directory.return_value = [
+            MockDirEntry(
+                type="file", name="movie-poster.jpg", full_path="/test/movie-poster.jpg", depth=0
+            ),
+            MockDirEntry(
+                type="file", name="poster.jpg", full_path="/test/poster.jpg", depth=0
+            ),
+        ]
+
+        images, poster = file_util.get_images_from_folder(".")
+        assert poster == "/test/poster.jpg"

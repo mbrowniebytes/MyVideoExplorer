@@ -1,6 +1,7 @@
 import os
 import sys
 import asyncio
+from pathlib import Path
 
 from src.utils.log_util import LogUtil
 
@@ -17,12 +18,14 @@ class VideoLauncher:
         # test async
         # await asyncio.sleep(5)
 
+        normalized_path = str(Path(video_path))
+
         try:
             if os.name == "nt":  # Windows
-                await asyncio.to_thread(os.startfile, video_path)
+                await asyncio.to_thread(os.startfile, normalized_path)
             elif sys.platform == "darwin":  # macOS
-                await asyncio.create_subprocess_exec("open", video_path)
+                await asyncio.create_subprocess_exec("open", normalized_path)
             else:  # Linux / Unix
-                await asyncio.create_subprocess_exec("xdg-open", video_path)
+                await asyncio.create_subprocess_exec("xdg-open", normalized_path)
         except Exception as e:
             self.log_util.error(f"Failed to launch external player: {e}")
