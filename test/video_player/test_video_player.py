@@ -21,6 +21,7 @@ class TestVideoPlayer:
             ".ts",
             ".mpg",
             ".mpeg",
+            ".m4v",
         }
 
     @pytest.mark.asyncio

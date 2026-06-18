@@ -51,7 +51,11 @@ class TestFolderList:
 
     def test_update_folder_list_by_path(self, folder_list, mock_folder_items):
         """Verify list population from path (mocked FileUtil)."""
-        folder_list.file_util.get_files_from_path.return_value = mock_folder_items
+        def side_effect(path, depth=0, on_complete=None):
+            if on_complete:
+                on_complete(mock_folder_items)
+
+        folder_list.file_util.get_files_from_path_async.side_effect = side_effect
 
         with patch("src.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
             folder_list.update_folder_list_by_path("/dummy/path")
@@ -117,7 +121,7 @@ class TestFolderList:
     def test_refresh_asynchronous(self, folder_list, qtbot):
         """Verify refresh method triggers update via timer."""
         test_path = "/refresh/path"
-        folder_list.file_util.get_files_from_path.return_value = [
+        mock_items = [
             FileUtilModel(
                 type="dir",
                 name="Refreshed",
@@ -125,6 +129,11 @@ class TestFolderList:
                 depth=0,
             )
         ]
+        def side_effect(path, depth=0, on_complete=None):
+            if on_complete:
+                on_complete(mock_items)
+
+        folder_list.file_util.get_files_from_path_async.side_effect = side_effect
 
         with patch("src.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
             folder_list.refresh(test_path, force=True)
@@ -138,6 +147,32 @@ class TestFolderList:
 
         assert "Refreshed" in folder_list.folder_view.item(0).text()
         assert folder_list.folder_view.count() == 1
+
+    def test_sorting_folders_by_name(self, folder_list):
+        """Verify that folders are sorted by name within the same depth."""
+        # Create items in unsorted order, maintaining a valid pre-order traversal
+        # B's children should be D and C (unsorted)
+        items = [
+            FileUtilModel(type="dir", name="A", full_path="/A", depth=0),
+            FileUtilModel(type="dir", name="B", full_path="/B", depth=0),
+            FileUtilModel(type="dir", name="D", full_path="/B/D", depth=1),
+            FileUtilModel(type="dir", name="C", full_path="/B/C", depth=1),
+        ]
+
+        with patch("src.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
+            folder_list.update_folder_list_by_items(items)
+
+        # Expected order:
+        # A (0)
+        # B (0)
+        #   C (1)
+        #   D (1)
+
+        assert folder_list.folder_view.count() == 4
+        assert folder_list.folder_view.item(0).text().strip() == "A"
+        assert folder_list.folder_view.item(1).text().strip() == "B"
+        assert folder_list.folder_view.item(2).text().replace("・", "").strip() == "C"
+        assert folder_list.folder_view.item(3).text().replace("・", "").strip() == "D"
 
     def test_apply_theme(self, folder_list):
         """Verify that applying theme updates styles and fonts."""

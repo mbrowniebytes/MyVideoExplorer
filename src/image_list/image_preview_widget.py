@@ -32,7 +32,7 @@ class ImagePreviewWidget(BaseWidget):
         self.timer.timeout.connect(self.apply_scaled_pixmap)
         self._pixmap: QPixmap | None = None
 
-        self.image_label = ImageLabel(_NO_IMAGE_FOUND)
+        self.image_label = ImageLabel(log_util, _NO_IMAGE_FOUND)
         self.image_label.sig_wheel_step.connect(self.sig_wheel_step.emit)
         self.image_label.sig_right_click.connect(self.sig_right_click.emit)
         self.image_label.sig_double_click.connect(self.sig_double_click.emit)
@@ -41,20 +41,25 @@ class ImagePreviewWidget(BaseWidget):
         layout.addWidget(self.image_label)
 
     def load_pixmap(self, image_path: str | None) -> None:
-        if image_path is None:
-            self._reset_preview()
-            return
+        try:
+            if image_path is None:
+                self._reset_preview()
+                return
 
-        self._pixmap = QPixmap(image_path)
-        if self._pixmap.isNull():
-            self._pixmap = None
+            self._pixmap = QPixmap(image_path)
+            if self._pixmap.isNull():
+                self._pixmap = None
+                self.image_label.setStyleSheet(APP_THEME.label_qss())
+                self.image_label.setText(_NO_IMAGE_FOUND)
+                return
+
             self.image_label.setStyleSheet(APP_THEME.label_qss())
-            self.image_label.setText(_NO_IMAGE_FOUND)
-            return
-
-        self.image_label.setStyleSheet(APP_THEME.label_qss())
-        self.image_label.setText("")
-        self.apply_scaled_pixmap()
+            self.image_label.setText("")
+            self.apply_scaled_pixmap()
+        except Exception as e:
+            if self.log_util:
+                self.log_util.error(f"Error in load_pixmap: {str(e)}")
+            raise
 
     def _reset_preview(self) -> None:
         self._pixmap = None
@@ -67,20 +72,25 @@ class ImagePreviewWidget(BaseWidget):
         self.timer.start(100)
 
     def apply_scaled_pixmap(self) -> None:
-        self.timer.stop()
-        if not self._pixmap or self._pixmap.isNull():
-            self.image_label.clear()
-            self.image_label.setText(_NO_IMAGE_FOUND)
-            return
+        try:
+            self.timer.stop()
+            if not self._pixmap or self._pixmap.isNull():
+                self.image_label.clear()
+                self.image_label.setText(_NO_IMAGE_FOUND)
+                return
 
-        target_size = self.image_label.size()
-        if target_size.width() <= 0 or target_size.height() <= 0:
-            return
+            target_size = self.image_label.size()
+            if target_size.width() <= 0 or target_size.height() <= 0:
+                return
 
-        scaled = self._pixmap.scaled(
-            target_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
-        )
-        self.image_label.setPixmap(scaled)
+            scaled = self._pixmap.scaled(
+                target_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
+            )
+            self.image_label.setPixmap(scaled)
+        except Exception as e:
+            if self.log_util:
+                self.log_util.error(f"Error in apply_scaled_pixmap: {str(e)}")
+            raise
 
     def apply_theme(self) -> None:
         self.image_label.setStyleSheet(APP_THEME.label_qss())

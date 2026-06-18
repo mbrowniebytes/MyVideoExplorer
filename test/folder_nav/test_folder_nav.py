@@ -46,9 +46,14 @@ class TestFolderNav:
     def test_apply_filters_call(self, folder_nav, qtbot):
         """Verify apply_filters propagates items from sub-widget."""
         mock_items = [MagicMock()]
-        # Patch the real sub-widget's method
+
+        # Patch the real sub-widget's method to use a callback
+        def side_effect(on_complete=None):
+            if on_complete:
+                on_complete(mock_items)
+
         with patch.object(
-            folder_nav.folder_filter_widget, "apply_filters", return_value=mock_items
+            folder_nav.folder_filter_widget, "apply_filters", side_effect=side_effect
         ) as mock_apply:
 
             with qtbot.waitSignal(folder_nav.sig_selected_items) as blocker:

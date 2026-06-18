@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from collections.abc import Callable
 
 from src.folder_filter.folder_filter_genre_combo_widget import GenreComboWidget
 from src.folder_filter.folder_filter_media import FolderFilterMedia
@@ -27,6 +28,7 @@ class FolderFilters(BaseWidget):
     sig_apply_filters = Signal()
     sig_genre_changed = Signal(object)
     sig_root_folder = Signal(object)
+    sig_loading_started = Signal(object)
 
     GENRES = sorted(
         ["Action", "Comedy", "Sci-Fi", "Mystery", "Thriller", "Drama", "Adventure"]
@@ -288,7 +290,8 @@ class FolderFilters(BaseWidget):
     def apply_filters(
         self,
         selected_folders: list[str] | None = None,
-    ) -> list[FileUtilModel]:
+        on_complete: Callable[[list[FileUtilModel]], None] | None = None,
+    ) -> None:
         # Collect items from all configured roots: explicit selection takes
         # precedence, otherwise gather from all root_folders.
         items: list[FileUtilModel] = []
@@ -299,13 +302,29 @@ class FolderFilters(BaseWidget):
         else:
             folder_paths = self.root_folders
 
-        # print(f"apply_filters: folder_paths: {folder_paths}")
+        # Sequential processing helper
+        def run_scan(index: int):
+            if index >= len(folder_paths):
+                if on_complete:
+                    on_complete(self._apply_filters_internal(items))
+                return
 
-        for folder_path in folder_paths:
+            folder_path = folder_paths[index]
             if not folder_path:
-                continue
-            path_items = self.file_util.get_files_from_path(folder_path)
-            items.extend(path_items)
+                run_scan(index + 1)
+                return
+
+            self.sig_loading_started.emit([folder_path])
+
+            def folder_scanned(path_items: list[FileUtilModel]):
+                items.extend(path_items)
+                run_scan(index + 1)
+
+            self.file_util.get_files_from_path_async(folder_path, on_complete=folder_scanned)
+
+        run_scan(0)
+
+    def _apply_filters_internal(self, items: list[FileUtilModel]) -> list[FileUtilModel]:
         filters = self.filter_table.collect_filters()
 
         # Add active media buttons to filters

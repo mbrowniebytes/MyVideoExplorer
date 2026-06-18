@@ -66,12 +66,12 @@ class AppContainer:
             self.folder_nav_filters_filter = FolderFilterFilter(
                 self.nfo_parse_util, self.settings.settings_data_model.folder_configs, self.log_util
             )
+            self.folder_list = FolderList(self.file_util, self.settings, self.log_util)
+
             self.folder_nav_filters = FolderFilters(
                 self.folder_nav_filters_filter, self.file_util, self.settings, self.log_util
             )
             self.folder_nav = FolderNav(self.folder_nav_filters, self.log_util)
-
-            self.folder_list = FolderList(self.file_util, self.settings, self.log_util)
             self.file_list = FileList(self.file_util, self.log_util)
 
             self.media_info_view = MediaInfoView(self.nfo_parse_util, self.str_util, self.log_util)
@@ -133,6 +133,7 @@ class AppContainer:
 
         self.settings.media_settings_tab.sig_changed.connect(lambda p: self.folder_list.refresh_icons())
         self.settings.media_settings_tab.sig_root_folders_changed.connect(lambda p: self.controller.set_root_folder(p.data))
+        self.folder_nav_filters.sig_loading_started.connect(self.folder_list.show_loading_state)
 
 
     def _wire_controller_outputs(self) -> None:
@@ -175,7 +176,7 @@ class AppContainer:
         self.video_player.play_video()
 
     def _on_filtered_items(self, items: list[FileUtilModel]) -> None:
-        self.folder_list.update_folder_list_by_items(items)
+        self.folder_list.controller.populate_view(items)
 
     # def _on_set_root_folder(self, folder_path: str) -> None:
     #     # print(f"_on_set_root_folder:{folder_path}")

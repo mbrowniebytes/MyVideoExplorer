@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QVBoxLayout
 from src.app.app_signals_model import SignalPayload, SignalFlow
 from src.folder_filter.folder_filter import FolderFilters
 from src.theme.theme import APP_THEME
+from src.utils.file_util_model import FileUtilModel
 from src.widgets.base_widget import BaseWidget
 from PySide6.QtCore import QTimer
 
@@ -86,8 +87,9 @@ class FolderNav(BaseWidget):
         """Applies filters and emits results."""
         # Let FolderNavFilters choose a default root (first configured) when
         # no explicit folder is passed.
-        filtered_items = self.folder_filter_widget.apply_filters()
+        self.folder_filter_widget.apply_filters(on_complete=self._on_filters_applied)
 
+    def _on_filters_applied(self, filtered_items: list[FileUtilModel]) -> None:
         payload = SignalPayload(
             data=filtered_items,
             sender=self.__class__.__name__,

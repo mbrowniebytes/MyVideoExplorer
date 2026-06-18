@@ -102,14 +102,18 @@ class ImageListView(BaseWidget):
         )
 
         main_layout = self.content_container.set_compact_layout(QVBoxLayout)
-        main_layout.addWidget(self.title_widget)
 
-        image_content_widget = BaseWidget()
-        image_content_layout = image_content_widget.set_compact_layout(QHBoxLayout)
-        image_content_layout.addWidget(self.preview_widget, 2)
-        image_content_layout.addWidget(self.media_info_side_view)
+        title_and_preview_widget = BaseWidget()
+        title_and_preview_layout = title_and_preview_widget.set_compact_layout(QVBoxLayout)
+        title_and_preview_layout.addWidget(self.title_widget)
+        title_and_preview_layout.addWidget(self.preview_widget)
 
-        main_layout.addWidget(image_content_widget)
+        top_content_widget = BaseWidget()
+        top_content_layout = top_content_widget.set_compact_layout(QHBoxLayout)
+        top_content_layout.addWidget(title_and_preview_widget, 2)
+        top_content_layout.addWidget(self.media_info_side_view)
+
+        main_layout.addWidget(top_content_widget)
         main_layout.addWidget(self.file_list.build())
         main_layout.addWidget(self.plot_text)
 

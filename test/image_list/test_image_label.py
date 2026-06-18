@@ -7,7 +7,9 @@ from src.image_list.image_label import ImageLabel
 class TestImageLabel:
     @pytest.fixture
     def image_label(self, qtbot):
-        label = ImageLabel()
+        from src.utils.log_util import LogUtil
+        log_util = LogUtil().configure("error")
+        label = ImageLabel(log_util)
         qtbot.addWidget(label)
         return label
 
