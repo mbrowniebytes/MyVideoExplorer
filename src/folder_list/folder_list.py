@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from PySide6.QtCore import Qt, QTimer, Signal
 from src.app.app_signals_model import SignalPayload
 from PySide6.QtGui import QFont
@@ -10,11 +12,11 @@ from PySide6.QtWidgets import (
 )
 
 from src.folder_list.folder_list_view import FolderListView
-from src.folder_list.folder_list_controller import FolderListController
 from src.settings.settings import Settings
 from src.theme.theme import APP_THEME
 from src.utils.file_util import FileUtil
 from src.utils.file_util_model import FileUtilModel
+from src.utils.log_util import LogUtil
 from src.widgets.base_widget import BaseWidget
 
 _EMPTY_STATE_NO_MEDIA_FOLDERS = (
@@ -27,14 +29,13 @@ _EMPTY_STATE_NO_MEDIA_FOLDERS = (
 class FolderList(BaseWidget):
     sig_folder_selected_intent = Signal(object)
 
-    def __init__(self, file_util: FileUtil, settings: Settings, log_util) -> None:
+    def __init__(self, file_util: FileUtil, settings: Settings, log_util: LogUtil, parent=None) -> None:
         super().__init__(log_util)
         self.help_icon = QLabel()
         self.title_label = QLabel()
-        self.folder_view = FolderListView()
+        self.folder_view = FolderListView(log_util=self.log_util)
         self.file_util = file_util
         self.settings = settings
-        self.controller = FolderListController(self.folder_view, self.file_util, self.settings)
         self._signals_connected = False
         self._container = QWidget()
 
@@ -139,7 +140,7 @@ class FolderList(BaseWidget):
         self.folder_view.select_next_folder(step)
 
     def refresh_icons(self) -> None:
-        self.controller.refresh_icons()
+        self.folder_view.refresh_icons(self._get_icon_for_path)
 
     def _has_valid_media_folders(self) -> bool:
         """Return True if settings contains at least one existing media folder path."""
@@ -153,17 +154,19 @@ class FolderList(BaseWidget):
                 return True
         return False
 
-    def update_folder_list_by_path(self, path: str) -> None:
-        # No path provided -> show empty state. If no configured media folders,
-        # instruct the user to add media in settings.
-        if not self._has_valid_media_folders():
-            self.folder_view.show_empty_state(message=_EMPTY_STATE_NO_MEDIA_FOLDERS)
-            return
+    # used by tests
+    def update_folder_list_by_path(self, path: str, on_complete: callable = None) -> None:
+        """Loads folders from a path and updates the view."""
+        self.folder_view.show_loading_state([path])
+        self.file_util.get_files_from_path_async(
+            path,
+            on_complete=lambda items: self.populate_view(items, on_complete=on_complete),
+        )
 
-        self.controller.load_and_populate(path)
-
+    # used by tests
     def update_folder_list_by_items(self, items: list[FileUtilModel]) -> None:
-        self.controller.populate_view(items)
+        """Updates the view with a list of items."""
+        self.populate_view(items)
 
     def apply_theme(self) -> None:
         font = QFont(APP_THEME.font_family, APP_THEME.font_size)
@@ -179,3 +182,26 @@ class FolderList(BaseWidget):
 
         self.folder_view.setStyleSheet(APP_THEME.list_qss())
         self.folder_view.setFont(font)
+
+    def populate_view(self, items: list[FileUtilModel], on_complete: callable = None):
+        """Sorts and populates the FolderListView."""
+        self.folder_view.populate_view(
+            items, get_icon_func=self._get_icon_for_path, on_complete=on_complete
+        )
+
+    def _get_icon_for_path(self, path: str) -> str:
+        if not self.settings:
+            return "fa5s.folder"
+
+        norm_path = path.lower()
+        for config in self.settings.settings_data_model.folder_configs:
+            cfg_path = config.get("path", "")
+            if not cfg_path:
+                continue
+            cfg_path = Path(cfg_path).as_posix().lower()
+            # print(f"_get_icon_for_path: cfg_path: {cfg_path}, norm_path: {norm_path}")
+            if norm_path.startswith(cfg_path):
+                return config.get("icon", "fa5s.folder")
+
+        return "fa5s.folder"
+

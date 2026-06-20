@@ -111,7 +111,8 @@ class App:
             if not path_string:
                 continue
             try:
-                real_path = os.path.realpath(path_string)
+                # real_path = os.path.realpath(path_string)
+                real_path = Path(path_string).as_posix()
             except Exception:
                 continue
             if os.path.isdir(real_path):
@@ -122,11 +123,11 @@ class App:
         # the controller with an empty selection which will show the empty state.
         if valid_paths:
             # Let controller handle multiple roots at once
-            self.controller.set_root_folder(valid_paths)
+            self.controller.set_root_folders(valid_paths)
         else:
             # No valid media folders configured - emit empty selection so UI
             # shows the instruction to add media folders in settings.
-            self.controller.set_root_folder("")
+            self.controller.set_root_folders([])
 
     # def refresh_theme(self) -> None:
     #     if self.window is None:

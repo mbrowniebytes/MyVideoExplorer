@@ -186,10 +186,12 @@ class FileUtil:
     def build_folder_item(self, path: str, depth: int = 0) -> FileUtilModel:
         """Construct a FileUtilModel representing a directory."""
         target = Path(path)
+        name = target.name
+        full_path = target.as_posix()
         return FileUtilModel(
             type="dir",
-            name=target.name,
-            full_path=str(target),
+            name=name,
+            full_path=full_path,
             depth=depth,
         )
 

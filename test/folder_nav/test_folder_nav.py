@@ -36,10 +36,10 @@ class TestFolderNav:
         assert folder_nav.layout().count() >= 1
         assert folder_nav.folder_filter_widget.parent() == folder_nav
 
-    def test_set_root_folder(self, folder_nav):
+    def test_set_root_folders(self, folder_nav):
         """Verify root folder is propagated to sub-widgets."""
         test_paths = ["/new/root"]
-        folder_nav.set_root_folder(test_paths)
+        folder_nav.set_root_folders(test_paths)
         assert folder_nav.root_folders == test_paths
         assert folder_nav.folder_filter_widget.root_folders == test_paths
 

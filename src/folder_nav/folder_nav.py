@@ -54,18 +54,14 @@ class FolderNav(BaseWidget):
         self.folder_filter_widget.sig_genre_changed.connect(self._handle_genre_changed)
         self._signals_connected = True
 
-    def set_root_folder(self, paths: list[str]) -> None:
+    def set_root_folders(self, paths: list[str]) -> None:
         """Sets the root folder for both buttons and filters."""
 
-        print(f"folder nav: set_root_folder: paths:{paths}")
+        print(f"folder nav: set_root_folders: paths:{paths}")
         self.root_folders = paths
         self.folder_filter_widget.root_folders = paths
 
-        # Defer UI rebuild to the event loop to avoid rebuilding during
-        # signal processing; ensure nav combo and media buttons reflect
-        # the full list of configured roots.
         self._refresh_filters()
-        # QTimer.singleShot(250, lambda: self._refresh_filters)
 
     def _refresh_filters(self) -> None:
         try:
@@ -75,8 +71,7 @@ class FolderNav(BaseWidget):
             # Rebuild media buttons to reflect current settings and roots
             self.folder_filter_widget.media_filter_widget.refresh_buttons()
 
-            QTimer.singleShot(250, lambda:
-            self.apply_filters())
+            QTimer.singleShot(150, lambda: self.apply_filters())
         except Exception as e:
             self.log_util.error(f"Error in _refresh_filters: {e}")
             # Safe-guard: don't crash if methods are not present yet
@@ -99,6 +94,17 @@ class FolderNav(BaseWidget):
         )
         self.sig_selected_items.emit(payload)
         self.log_util.debug(f"sig_selected_items emitted with {len(filtered_items)} items")
+
+        if filtered_items and filtered_items[0] and filtered_items[0].full_path:
+            print(f"folder nav: set_root_folder: paths:{filtered_items[0]}")
+            payload = SignalPayload(
+                data=filtered_items[0].full_path,
+                sender=self.__class__.__name__,
+                name="Auto Select First Folder",
+                description="Emitted when filtered items are updated.",
+                flow=SignalFlow.COMPONENT_INTERACTION,
+            )
+            self.sig_selected_folder.emit(payload)
 
     def apply_theme(self) -> None:
         """Applies theme to itself and nested navigation components."""

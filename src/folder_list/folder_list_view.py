@@ -5,17 +5,25 @@ from src.app.app_signals_model import SignalPayload, SignalFlow
 
 from src.theme.theme import APP_THEME
 from src.utils.file_util_model import FileUtilModel
+from src.utils.log_util import LogUtil
 
 
 class FolderListView(QListWidget):
     sig_folder_selected = Signal(object)
 
-    def __init__(self) -> None:
+    def __init__(self, log_util: LogUtil) -> None:
         super().__init__()
         self._empty_state_text = "No folders found."
         self._loading_state_text = "Loading..."
+        self._signals_connected = False
+        self.connect_sigs()
+
+    def connect_sigs(self):
+        if self._signals_connected:
+            return
         self.itemClicked.connect(self._on_item_clicked)
         APP_THEME.setup_list_widget(self)
+        self._signals_connected = True
 
     def _on_item_clicked(self, item: QListWidgetItem) -> None:
         folder_path = item.data(Qt.ItemDataRole.UserRole)
@@ -111,6 +119,51 @@ class FolderListView(QListWidget):
 
         if self.currentRow() != -1:
             self.setCurrentRow(-1)
+
+    def populate_view(
+        self, items: list[FileUtilModel], get_icon_func=None, on_complete: callable = None
+    ) -> None:
+        """Sorts and populates the FolderListView."""
+        folder_items = [item for item in items if item.is_dir]
+
+        if folder_items:
+            # Build parent map
+            last_at_depth = {}
+            # children_map: id(parent) -> list of children
+            children_map = {id(None): []}
+
+            for item in folder_items:
+                parent = last_at_depth.get(item.depth - 1) if item.depth > 0 else None
+                parent_id = id(parent)
+                if parent_id not in children_map:
+                    children_map[parent_id] = []
+                children_map[parent_id].append(item)
+                last_at_depth[item.depth] = item
+
+            # Sort children
+            for parent_id in children_map:
+                children_map[parent_id].sort(key=lambda x: x.name.lower())
+
+            # Reconstruct
+            sorted_items = []
+
+            def add_sorted_children(parent):
+                parent_id = id(parent)
+                if parent_id in children_map:
+                    for child in children_map[parent_id]:
+                        sorted_items.append(child)
+                        add_sorted_children(child)
+
+            add_sorted_children(None)
+            folder_items = sorted_items
+
+        self.clear()
+        for item in folder_items:
+            icon_name = get_icon_func(item.full_path) if get_icon_func else "fa5s.folder"
+            self.add_folder_item(item, icon_name)
+
+        if on_complete:
+            on_complete(items)
 
     def select_next_folder(self, step: int = 1) -> None:
         if self.count() == 0:

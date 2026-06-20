@@ -82,7 +82,7 @@ class TestFolderList:
         folder_list.set_selected_folder(target_path)
 
         assert folder_list.folder_view.currentRow() == 1
-        assert folder_list.folder_view.currentItem().data(Qt.UserRole) == target_path
+        assert folder_list.folder_view.currentItem().data(Qt.ItemDataRole.UserRole) == target_path
 
     def test_select_next_folder(self, folder_list, mock_folder_items, qtbot):
         """Verify navigation to the next folder."""

@@ -21,7 +21,7 @@ class AppController(QObject):
         self.state = AppState()
         self.log_util.debug(f"__init__ {self.__class__.__name__}")
 
-    def set_root_folder(self, folder_paths: list[str] | str) -> None:
+    def set_root_folders(self, folder_paths: list[str] | str) -> None:
         """Accept a single folder path or an iterable of folder paths.
 
         When given an iterable, the controller will iterate and emit the
@@ -30,7 +30,7 @@ class AppController(QObject):
         to the first valid path (or empty string if none).
         """
         paths = folder_paths
-        print(f"app:set_root_folder: paths:{paths}")
+        print(f"app:set_root_folders: paths:{paths}")
 
         valid_paths: list[str] = []
         for p in paths:
