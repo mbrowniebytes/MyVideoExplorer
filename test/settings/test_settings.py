@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from PySide6.QtWidgets import QWidget, QTabWidget
-from src.settings.settings import Settings
+from MyVideoExplorer.settings.settings import Settings
 
 
 class TestSettings:
@@ -15,9 +15,9 @@ class TestSettings:
     def settings(self, qtbot):
         # Mock class-level check before instantiation to avoid using MagicMock as class attribute
         # which might be causing issues with PySide's metaclass
-        with patch("src.settings.settings_state.SettingsState._load_settings"):
-            with patch("src.settings.settings_state.SettingsState._ensure_defaults"):
-                with patch("src.theme.theme.Theme.refresh_theme"):
+        with patch("MyVideoExplorer.settings.settings_state.SettingsState._load_settings"):
+            with patch("MyVideoExplorer.settings.settings_state.SettingsState._ensure_defaults"):
+                with patch("MyVideoExplorer.theme.theme.Theme.refresh_theme"):
                     mock_log_util = MagicMock()
                     s = Settings(mock_log_util)
                     s.settings_data_model.folder_configs = [{"label": "Test", "path": "/test"}]
@@ -50,7 +50,7 @@ class TestSettings:
         assert len(settings.settings_data_model.folder_configs) == 0
 
     def test_font_size_changed(self, settings, qtbot):
-        from src.theme.theme import APP_THEME
+        from MyVideoExplorer.theme.theme import APP_THEME
 
         initial_size = APP_THEME.font_size
         try:
@@ -65,14 +65,14 @@ class TestSettings:
         pass
 
     def test_sub_tabs_alignment(self, qtbot):
-        with patch("src.settings.settings_state.SettingsState._load_settings"):
-            with patch("src.settings.settings_state.SettingsState._ensure_defaults"):
-                with patch("src.theme.theme.Theme.refresh_theme"):
+        with patch("MyVideoExplorer.settings.settings_state.SettingsState._load_settings"):
+            with patch("MyVideoExplorer.settings.settings_state.SettingsState._ensure_defaults"):
+                with patch("MyVideoExplorer.theme.theme.Theme.refresh_theme"):
                     mock_log_util = MagicMock()
                     s = Settings(mock_log_util)
                     # Fully mock build to avoid UI-related access violations in test environment
                     s.tab_widget = QTabWidget()
-                    from src.widgets.right_aligned_tab_bar import RightAlignedTabBar
+                    from MyVideoExplorer.widgets.right_aligned_tab_bar import RightAlignedTabBar
 
                     tab_bar = RightAlignedTabBar(s.tab_widget, spacer_index=0)
                     s.tab_widget.setTabBar(tab_bar)

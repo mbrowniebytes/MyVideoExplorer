@@ -1,6 +1,6 @@
 import pytest
 from PySide6.QtCore import QSize
-from src.widgets.label_angled_widget import LabelAngledWidget
+from MyVideoExplorer.widgets.label_angled_widget import LabelAngledWidget
 
 
 class TestLabelAngled:

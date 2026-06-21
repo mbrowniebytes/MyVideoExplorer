@@ -1,13 +1,12 @@
 import pytest
 from PySide6.QtCore import Qt, QPoint
 from PySide6.QtGui import QWheelEvent
-from src.image_list.image_label import ImageLabel
-
+from MyVideoExplorer.image_list.image_label import ImageLabel
+from MyVideoExplorer.utils.log_util import LogUtil
 
 class TestImageLabel:
     @pytest.fixture
     def image_label(self, qtbot):
-        from src.utils.log_util import LogUtil
         log_util = LogUtil().configure("error")
         label = ImageLabel(log_util)
         qtbot.addWidget(label)

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "MyVideoExplorer"
-version = "0.1.0"
+version = "0.0.1"
 description = "MyVideoExplorer"
 readme = "README.md"
 requires-python = "~=3.14"
@@ -61,9 +61,15 @@ follow_imports = "silent"
 explicit_package_bases = true
 
 [tool.pytest.ini_options]
-minversion = "9.0"
+minversion = "9.1"
 addopts = "-ra -q --strict-markers"
-pythonpath = ["."]
+pythonpath = ["src"]
+testpaths = ["test"]
+norecursedirs = [
+    ".git",
+    ".venv",
+    "__pycache__"
+]
 markers = [
     "unit: unit tests",
     "integration: integration tests",

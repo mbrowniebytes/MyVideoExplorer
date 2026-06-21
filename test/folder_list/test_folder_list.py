@@ -1,9 +1,9 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from PySide6.QtCore import Qt
-from src.folder_list.folder_list import FolderList
-from src.utils.file_util import FileUtil
-from src.utils.file_util_model import FileUtilModel
+from MyVideoExplorer.folder_list.folder_list import FolderList
+from MyVideoExplorer.utils.file_util import FileUtil
+from MyVideoExplorer.utils.file_util_model import FileUtilModel
 
 
 class TestFolderList:
@@ -12,7 +12,7 @@ class TestFolderList:
         file_util = MagicMock(spec=FileUtil)
         settings = MagicMock()
         settings.folder_configs = [{"label": "Test", "path": "/path/to"}]
-        with patch("src.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
+        with patch("MyVideoExplorer.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
             mock_log = MagicMock()
             widget = FolderList(file_util, settings, mock_log)
             # Prevent automatic refresh in build
@@ -57,7 +57,7 @@ class TestFolderList:
 
         folder_list.file_util.get_files_from_path_async.side_effect = side_effect
 
-        with patch("src.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
+        with patch("MyVideoExplorer.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
             folder_list.update_folder_list_by_path("/dummy/path")
 
         # Only directories should be added (Folder A, Folder B)
@@ -68,14 +68,14 @@ class TestFolderList:
 
     def test_update_folder_list_by_items(self, folder_list, mock_folder_items):
         """Verify list population from provided items."""
-        with patch("src.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
+        with patch("MyVideoExplorer.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
             folder_list.update_folder_list_by_items(mock_folder_items)
         assert folder_list.folder_view.count() == 2
         assert "Folder A" in folder_list.folder_view.item(0).text()
 
     def test_set_selected_folder(self, folder_list, mock_folder_items):
         """Verify programmatic selection of a folder."""
-        with patch("src.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
+        with patch("MyVideoExplorer.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
             folder_list.update_folder_list_by_items(mock_folder_items)
         target_path = "/path/to/Folder B"
 
@@ -86,7 +86,7 @@ class TestFolderList:
 
     def test_select_next_folder(self, folder_list, mock_folder_items, qtbot):
         """Verify navigation to the next folder."""
-        with patch("src.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
+        with patch("MyVideoExplorer.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
             folder_list.update_folder_list_by_items(mock_folder_items)
         folder_list.folder_view.setCurrentRow(0)
 
@@ -98,7 +98,7 @@ class TestFolderList:
 
     def test_on_folder_item_clicked(self, folder_list, mock_folder_items, qtbot):
         """Verify signal emission on item click."""
-        with patch("src.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
+        with patch("MyVideoExplorer.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
             folder_list.update_folder_list_by_items(mock_folder_items)
         item = folder_list.folder_view.item(0)
 
@@ -109,7 +109,7 @@ class TestFolderList:
 
     def test_nested_folder_prefixes(self, folder_list, mock_nested_folder_items):
         """Verify that depth translates to prefixes in the list."""
-        with patch("src.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
+        with patch("MyVideoExplorer.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
             folder_list.update_folder_list_by_items(mock_nested_folder_items)
         assert folder_list.folder_view.count() == 2
 
@@ -135,14 +135,14 @@ class TestFolderList:
 
         folder_list.file_util.get_files_from_path_async.side_effect = side_effect
 
-        with patch("src.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
+        with patch("MyVideoExplorer.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
             folder_list.refresh(test_path, force=True)
 
         # Should show loading first
         assert folder_list.folder_view.item(0).text().find("Loading...")  != -1
 
         # Manually trigger the update to bypass timer issues in test
-        with patch("src.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
+        with patch("MyVideoExplorer.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
             folder_list.update_folder_list_by_path(test_path)
 
         assert "Refreshed" in folder_list.folder_view.item(0).text()
@@ -159,7 +159,7 @@ class TestFolderList:
             FileUtilModel(type="dir", name="C", full_path="/B/C", depth=1),
         ]
 
-        with patch("src.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
+        with patch("MyVideoExplorer.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
             folder_list.update_folder_list_by_items(items)
 
         # Expected order:
@@ -176,7 +176,7 @@ class TestFolderList:
 
     def test_apply_theme(self, folder_list):
         """Verify that applying theme updates styles and fonts."""
-        with patch("src.folder_list.folder_list.APP_THEME") as mock_theme:
+        with patch("MyVideoExplorer.folder_list.folder_list.APP_THEME") as mock_theme:
             mock_theme.font_family = "Arial"
             mock_theme.font_size = 12
             mock_theme.container_qss.return_value = "container { color: red; }"

@@ -1,9 +1,9 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from PySide6.QtCore import Qt
-from src.folder_list.folder_list import FolderList
-from src.utils.file_util import FileUtil
-from src.utils.file_util_model import FileUtilModel
+from MyVideoExplorer.folder_list.folder_list import FolderList
+from MyVideoExplorer.utils.file_util import FileUtil
+from MyVideoExplorer.utils.file_util_model import FileUtilModel
 
 
 class TestFolderListIcons:
@@ -17,7 +17,7 @@ class TestFolderListIcons:
         ]
 
 
-        with patch("src.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
+        with patch("MyVideoExplorer.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
             mock_log = MagicMock()
             widget = FolderList(file_util, settings=settings, log_util=mock_log)
             with patch.object(widget, "refresh"):
@@ -37,7 +37,7 @@ class TestFolderListIcons:
                 type="dir", name="Folder C", full_path="/path/to/Folder C", depth=0
             ),
         ]
-        with patch("src.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
+        with patch("MyVideoExplorer.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
             folder_list.update_folder_list_by_items(items)
 
         assert folder_list.folder_view.count() == 3
@@ -63,7 +63,7 @@ class TestFolderListIcons:
                 type="dir", name="Folder A", full_path="/path/to/Folder A", depth=0
             ),
         ]
-        with patch("src.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
+        with patch("MyVideoExplorer.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
             folder_list.update_folder_list_by_items(items)
         assert (
             folder_list.folder_view.item(0).data(Qt.ItemDataRole.UserRole + 1)
@@ -88,7 +88,7 @@ class TestFolderListIcons:
                 type="dir", name="Folder A", full_path="/PATH/TO/FOLDER A", depth=0
             ),
         ]
-        with patch("src.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
+        with patch("MyVideoExplorer.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
             folder_list.update_folder_list_by_items(items)
 
         # It should match /path/to/Folder A from settings despite casing
@@ -103,7 +103,7 @@ class TestFolderListIcons:
                 type="dir", name="Folder A", full_path="/path/to/Folder A", depth=0
             ),
         ]
-        with patch("src.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
+        with patch("MyVideoExplorer.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
             folder_list.update_folder_list_by_items(items)
 
         # We'll just verify that calling refresh_icons doesn't break anything

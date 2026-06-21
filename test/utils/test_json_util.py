@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 import json
-from src.utils.json_util import JsonUtil
+from MyVideoExplorer.utils.json_util import JsonUtil
 
 class TestJsonUtil:
     @pytest.fixture

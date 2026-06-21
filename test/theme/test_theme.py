@@ -2,7 +2,7 @@ import pytest
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QListWidget, QWidget
 from PySide6.QtCore import QSize
-from src.theme.theme import Theme
+from MyVideoExplorer.theme.theme import Theme
 
 
 class TestTheme:

@@ -1,8 +1,8 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from src.media_info_side.media_info_side_view import MediaInfoSideView
-from src.utils.nfo_parse_util import NfoParseUtil
-from src.utils.str_util import StrUtil
+from MyVideoExplorer.media_info_side.media_info_side_view import MediaInfoSideView
+from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
+from MyVideoExplorer.utils.str_util import StrUtil
 
 
 class TestMediaInfoSideView:
@@ -83,7 +83,7 @@ class TestMediaInfoSideView:
 
     def test_apply_theme(self, media_info_side_view, mock_nfo_data):
         media_info_side_view.build_from_movie_info(mock_nfo_data)
-        with patch("src.media_info_side.media_info_side_view.APP_THEME") as mock_theme:
+        with patch("MyVideoExplorer.media_info_side.media_info_side_view.APP_THEME") as mock_theme:
             mock_theme.font_family = "Verdana"
             mock_theme.font_size = 10
             mock_theme.container_qss.return_value = "background: red;"

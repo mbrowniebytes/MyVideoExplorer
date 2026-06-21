@@ -1,8 +1,8 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from PySide6.QtCore import Qt
-from src.file_list.file_list import FileList
-from src.utils.file_util import FileUtil
+from MyVideoExplorer.file_list.file_list import FileList
+from MyVideoExplorer.utils.file_util import FileUtil
 
 
 class TestFileList:
@@ -83,8 +83,8 @@ class TestFileList:
     def test_apply_theme(self, file_list):
         """Verify that applying theme updates styles and fonts."""
         with (
-            patch("src.file_list.file_list_view.APP_THEME") as mock_theme_view,
-            patch("src.file_list.file_list.APP_THEME") as mock_theme_list,
+            patch("MyVideoExplorer.file_list.file_list_view.APP_THEME") as mock_theme_view,
+            patch("MyVideoExplorer.file_list.file_list.APP_THEME") as mock_theme_list,
         ):
 
             for mock_theme in [mock_theme_view, mock_theme_list]:

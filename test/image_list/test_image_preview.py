@@ -1,7 +1,7 @@
 import pytest
 from PySide6.QtWidgets import QApplication
-from src.image_list.image_preview_widget import ImagePreviewWidget
-from src.utils.log_util import LogUtil
+from MyVideoExplorer.image_list.image_preview_widget import ImagePreviewWidget
+from MyVideoExplorer.utils.log_util import LogUtil
 
 class TestImagePreviewWidget:
     @pytest.fixture

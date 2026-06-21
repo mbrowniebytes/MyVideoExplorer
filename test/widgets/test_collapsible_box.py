@@ -1,7 +1,7 @@
 import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel
-from src.widgets.collapsible_box_widget import CollapsibleBoxWidget
+from MyVideoExplorer.widgets.collapsible_box_widget import CollapsibleBoxWidget
 
 
 class TestCollapsibleBox:

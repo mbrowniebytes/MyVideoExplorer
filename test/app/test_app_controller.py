@@ -1,9 +1,9 @@
 import pytest
 from unittest.mock import MagicMock
-from src.app.app_controller import AppController
-from src.app.app_state import AppState
-from src.app.app_signals import SignalRegistry
-from src.app.app_signals_model import SignalPayload
+from MyVideoExplorer.app.app_controller import AppController
+from MyVideoExplorer.app.app_state import AppState
+from MyVideoExplorer.app.app_signals import SignalRegistry
+from MyVideoExplorer.app.app_signals_model import SignalPayload
 
 
 class TestAppController:

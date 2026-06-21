@@ -2,8 +2,8 @@
 import pytest
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
-from src.utils.file_util import FileUtil
-from src.video_player.video_player import VideoPlayer
+from MyVideoExplorer.utils.file_util import FileUtil
+from MyVideoExplorer.video_player.video_player import VideoPlayer
 
 
 class TestVideoPlayer:
@@ -62,7 +62,7 @@ class TestVideoPlayer:
         video_player.build()
         qtbot.addWidget(video_player.main_window)
 
-        with patch("src.video_player.video_player.APP_THEME") as mock_theme:
+        with patch("MyVideoExplorer.video_player.video_player.APP_THEME") as mock_theme:
             mock_theme.font_family = "Arial"
             mock_theme.font_size = 12
             mock_theme.app_qss.return_value = "QMainWindow { color: red; }"

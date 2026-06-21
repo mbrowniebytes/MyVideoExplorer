@@ -1,13 +1,13 @@
 import pytest
 from unittest.mock import patch
-from src.settings.settings_state import SettingsState
+from unittest.mock import MagicMock
+from MyVideoExplorer.settings.settings_state import SettingsState
 import json
 
 
 class TestSettingsSplit:
     @pytest.fixture
     def mock_log_util(self):
-        from unittest.mock import MagicMock
         return MagicMock()
 
     @pytest.fixture(autouse=True)
@@ -17,27 +17,27 @@ class TestSettingsSplit:
         cfg_dir.mkdir()
 
         # Patch CFG_DIR and file paths in SettingsState
-        monkeypatch.setattr("src.settings.settings_state.CFG_DIR", cfg_dir)
+        monkeypatch.setattr("MyVideoExplorer.settings.settings_state.CFG_DIR", cfg_dir)
         monkeypatch.setattr(
-            "src.settings.settings_state.SETTINGS_UI_FILE", cfg_dir / "settings_ui.json"
+            "MyVideoExplorer.settings.settings_state.SETTINGS_UI_FILE", cfg_dir / "settings_ui.json"
         )
         monkeypatch.setattr(
-            "src.settings.settings_state.SETTINGS_MEDIA_FILE",
+            "MyVideoExplorer.settings.settings_state.SETTINGS_MEDIA_FILE",
             cfg_dir / "settings_media.json",
         )
         monkeypatch.setattr(
-            "src.settings.settings_state.SETTINGS_FILTER_FILE",
+            "MyVideoExplorer.settings.settings_state.SETTINGS_FILTER_FILE",
             cfg_dir / "settings_filter.json",
         )
         monkeypatch.setattr(
-            "src.settings.settings_state.DEFAULTS_UI_FILE", cfg_dir / "defaults_ui.json"
+            "MyVideoExplorer.settings.settings_state.DEFAULTS_UI_FILE", cfg_dir / "defaults_ui.json"
         )
         monkeypatch.setattr(
-            "src.settings.settings_state.DEFAULTS_MEDIA_FILE",
+            "MyVideoExplorer.settings.settings_state.DEFAULTS_MEDIA_FILE",
             cfg_dir / "defaults_media.json",
         )
         monkeypatch.setattr(
-            "src.settings.settings_state.DEFAULTS_FILTER_FILE",
+            "MyVideoExplorer.settings.settings_state.DEFAULTS_FILTER_FILE",
             cfg_dir / "defaults_filter.json",
         )
 
@@ -86,7 +86,7 @@ class TestSettingsSplit:
         state = SettingsState(mock_log_util)
         # _load_settings is called in __init__
 
-        from src.theme.theme import APP_THEME
+        from MyVideoExplorer.theme.theme import APP_THEME
 
         assert APP_THEME.font_size == 22
         assert state.folder_configs[0]["label"] == "Loaded"
@@ -103,7 +103,7 @@ class TestSettingsSplit:
         # Actually backup_file only creates one per day.
         # To test it creates backups for each, we just check if they are called.
 
-        with patch("src.utils.json_util.JsonUtil.backup_file") as mock_backup:
+        with patch("MyVideoExplorer.utils.json_util.JsonUtil.backup_file") as mock_backup:
             state.save_settings()
             # Should be called 4 times, once for each settings file (app, ui, media, filter)
             assert mock_backup.call_count == 4

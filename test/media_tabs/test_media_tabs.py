@@ -1,17 +1,16 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from PySide6.QtWidgets import QWidget
-from src.media_info_tabs.media_info_tabs import MediaInfoTabs
-from src.media_info.media_info import MediaInfo
-from src.image_list.image_list import ImageList
-from src.settings.settings import Settings
+from MyVideoExplorer.media_info_tabs.media_info_tabs import MediaInfoTabs
+from MyVideoExplorer.media_info.media_info import MediaInfo
+from MyVideoExplorer.image_list.image_list import ImageList
+from MyVideoExplorer.settings.settings import Settings
 
 
 class TestMediaTabs:
     @pytest.fixture
     def media_tabs(self, qtbot):
         mock_log = MagicMock()
-        tabs = MediaInfoTabs(mock_log)
         # Mock components to avoid deep build issues
         mock_mi = MagicMock(spec=MediaInfo)
         mock_mi.build.return_value = QWidget()
@@ -19,8 +18,9 @@ class TestMediaTabs:
         mock_il.build.return_value = QWidget()
         mock_settings = MagicMock(spec=Settings)
         mock_settings.build.return_value = QWidget()
+        tabs = MediaInfoTabs(mock_log, mock_mi, mock_il, mock_settings)
 
-        tabs.build(mock_mi, mock_il, mock_settings)
+        tabs.build()
         qtbot.addWidget(tabs)
         return tabs
 
@@ -55,7 +55,7 @@ class TestMediaTabs:
         assert size_hint.width() > 500
 
     def test_apply_theme(self, media_tabs):
-        with patch("src.media_info_tabs.media_info_tabs.APP_THEME") as mock_theme:
+        with patch("MyVideoExplorer.media_info_tabs.media_info_tabs.APP_THEME") as mock_theme:
             mock_theme.font_family = "Arial"
             mock_theme.font_size = 12
             mock_theme.tabs_qss.return_value = "QTabWidget { color: red; }"
