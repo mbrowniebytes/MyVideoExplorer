@@ -21,11 +21,13 @@ class MediaInfoTabs(BaseWidget):
     LABEL_SETTINGS = "⚙"
     LABEL_SETTINGS_DIRTY = "⚙*"
 
-    def __init__(self, log_util: LogUtil,
-         media_info: MediaInfo,
+    def __init__(
+        self,
+        log_util: LogUtil,
+        media_info: MediaInfo,
         image_list: ImageList,
-        settings: Settings
-     ) -> None:
+        settings: Settings,
+    ) -> None:
         super().__init__(log_util)
         self.folder_path: str | None = None
         self.active_tab_index: int = 0
@@ -46,9 +48,7 @@ class MediaInfoTabs(BaseWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.tab_container)
 
-    def build(
-        self
-    ) -> QTabWidget:
+    def build(self) -> QTabWidget:
         """Initializes the tab structure and returns the underlying tab widget."""
         self._initialize_tabs(self.settings)
         self._connect_signals()
@@ -61,7 +61,7 @@ class MediaInfoTabs(BaseWidget):
             return
 
         self.tab_container.setTabPosition(QTabWidget.TabPosition.North)
-        self.tab_container.setFont(self._get_theme_font())
+        self.tab_container.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
 
         # Add content tabs
         self._add_content_tab(self.image_list.build(), self.LABEL_MEDIA)
@@ -89,8 +89,12 @@ class MediaInfoTabs(BaseWidget):
         bar.setTabButton(self.spacer_tab_index, QTabBar.ButtonPosition.RightSide, None)
 
     def _add_settings_tab(self, settings: Settings) -> None:
-        self.settings_tab_index = self._add_content_tab(settings.build(), self.LABEL_SETTINGS)
-        settings.sig_dirty_changed.connect(lambda p: self._on_settings_dirty_changed(p.data))
+        self.settings_tab_index = self._add_content_tab(
+            settings.build(), self.LABEL_SETTINGS
+        )
+        settings.sig_dirty_changed.connect(
+            lambda p: self._on_settings_dirty_changed(p.data)
+        )
 
     def _on_settings_dirty_changed(self, is_dirty: bool) -> None:
         label = self.LABEL_SETTINGS_DIRTY if is_dirty else self.LABEL_SETTINGS
@@ -112,24 +116,22 @@ class MediaInfoTabs(BaseWidget):
 
         self.active_tab_index = index
         self.sig_tab_selection_changed.emit(index)
-        self.log_util.debug(f"Tab selection changed to index: {index}")
-
-    def _get_theme_font(self) -> QFont:
-        return QFont(APP_THEME.font_family, APP_THEME.font_size)
+        # self.log_util.debug(f"Tab selection changed to index: {index}")
 
     def set_folder_path(self, folder_path: str) -> None:
         self.folder_path = folder_path
 
     def apply_theme(self) -> None:
-        font = self._get_theme_font()
-        self.setFont(font)
+        super().apply_theme()
+        font = QFont(APP_THEME.font_family, APP_THEME.font_size)
+
         self.tab_container.setFont(font)
         self.tab_container.setStyleSheet(APP_THEME.tabs_qss())
 
-        if self.media_info:
-            self.media_info.apply_theme()
+        # if self.media_info:
+        #     self.media_info.apply_theme()
 
-        for i in range(self.tab_container.count()):
-            widget = self.tab_container.widget(i)
-            if widget:
-                widget.setFont(font)
+        # for i in range(self.tab_container.count()):
+        #     widget = self.tab_container.widget(i)
+        #     if widget:
+        #         widget.setFont(font)

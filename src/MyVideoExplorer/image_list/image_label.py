@@ -69,8 +69,8 @@ class ImageLabel(QLabel):
         super().mouseDoubleClickEvent(event)
 
     def apply_theme(self) -> None:
-        self.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
-        self.setStyleSheet(APP_THEME.label_qss())
+        if not APP_THEME.is_refreshing:
+            APP_THEME.refresh_theme(self)
 
     def enterEvent(self, event):
         super().enterEvent(event)

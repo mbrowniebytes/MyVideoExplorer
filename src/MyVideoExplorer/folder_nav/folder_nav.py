@@ -1,16 +1,14 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Signal
-from PySide6.QtGui import QFont
+from PySide6.QtCore import QTimer, Signal
 from PySide6.QtWidgets import QVBoxLayout
 
-from MyVideoExplorer.app.app_signals_model import SignalPayload, SignalFlow
+from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.folder_filter.folder_filter import FolderFilters
-from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.widgets.base_widget import BaseWidget
-from PySide6.QtCore import QTimer
+
 
 class FolderNav(BaseWidget):
     """
@@ -82,7 +80,6 @@ class FolderNav(BaseWidget):
             # Safe-guard: don't crash if methods are not present yet
             pass
 
-
     def apply_filters(self) -> None:
         """Applies filters and emits results."""
         # Let FolderNavFilters choose a default root (first configured) when
@@ -102,7 +99,9 @@ class FolderNav(BaseWidget):
         )
         self.sig_selected_items.emit(payload)
         if self.log_util:
-            self.log_util.debug(f"sig_selected_items emitted with {len(filtered_items)} items")
+            self.log_util.debug(
+                f"sig_selected_items emitted with {len(filtered_items)} items"
+            )
 
         if filtered_items and filtered_items[0] and filtered_items[0].full_path:
             print(f"folder nav: set_root_folder: paths:{filtered_items[0]}")
@@ -117,8 +116,5 @@ class FolderNav(BaseWidget):
 
     def apply_theme(self) -> None:
         """Applies theme to itself and nested navigation components."""
-        super().apply_theme()
-        font = QFont(APP_THEME.font_family, APP_THEME.font_size - 15)
-        self.setFont(font)
-
+        # super().apply_theme()
         self.folder_filter_widget.apply_theme()

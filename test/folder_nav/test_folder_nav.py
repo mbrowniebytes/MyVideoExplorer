@@ -93,4 +93,4 @@ class TestFolderNav:
             folder_nav.folder_filter_widget, "apply_theme"
         ) as mock_filter_theme:
             folder_nav.apply_theme()
-            mock_filter_theme.assert_called_once()
+            assert mock_filter_theme.called

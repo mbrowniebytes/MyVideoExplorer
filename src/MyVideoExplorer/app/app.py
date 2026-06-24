@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont, QIcon, QPixmap
+from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
     QMainWindow,
     QWidget,
@@ -39,8 +39,6 @@ class App:
         self._create_app_icon()
         self.window.setWindowTitle("MyVideoExplorer")
         self.window.resize(1400, 900)
-        self.window.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
-        self.window.setStyleSheet(APP_THEME.app_qss())
 
         central_widget = QWidget()
         main_layout = QHBoxLayout()
@@ -60,6 +58,7 @@ class App:
         self.window.setCentralWidget(central_widget)
 
         APP_THEME.app = self.app
+        APP_THEME.refresh_theme(self.window)
 
         return self.window
 

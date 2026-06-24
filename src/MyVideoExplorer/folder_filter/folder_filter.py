@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, QSize, Signal
-from MyVideoExplorer.app.app_signals_model import SignalPayload, SignalFlow
-from PySide6.QtGui import QFont
+from collections.abc import Callable
+
+from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QHBoxLayout,
@@ -11,12 +11,14 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from collections.abc import Callable
 
-from MyVideoExplorer.folder_filter.folder_filter_genre_combo_widget import GenreComboWidget
+from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
+from MyVideoExplorer.folder_filter.folder_filter_filter import FolderFilterFilter
+from MyVideoExplorer.folder_filter.folder_filter_genre_combo_widget import (
+    GenreComboWidget,
+)
 from MyVideoExplorer.folder_filter.folder_filter_media import FolderFilterMedia
 from MyVideoExplorer.folder_filter.folder_filter_table import FolderFilterTable
-from MyVideoExplorer.folder_filter.folder_filter_filter import FolderFilterFilter
 from MyVideoExplorer.settings.settings import Settings
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil
@@ -51,8 +53,10 @@ class FolderFilters(BaseWidget):
         self.saved_filters_combo = QComboBox()
         self.save_filter_button = QToolButton()
         # self.delete_filter_button = QToolButton()
-        self.media_filter_widget = FolderFilterMedia(self.settings, self)
-        self.filter_table = FolderFilterTable(self.GENRES, self.settings.settings_data_model.folder_configs)
+        self.media_filter_widget = FolderFilterMedia(self.settings, log_util, self)
+        self.filter_table = FolderFilterTable(
+            self.GENRES, self.settings.settings_data_model.folder_configs
+        )
         # support multiple roots
         self.root_folders: list[str] = []
         self.folder_nav_filters_filter = filter_engine_engine
@@ -60,7 +64,6 @@ class FolderFilters(BaseWidget):
 
     def build(self) -> QWidget:
         filter_container = QWidget()
-        filter_container.setStyleSheet(APP_THEME.container_qss())
 
         self.build_nav_combo()
         self._build_filter_type_combo()
@@ -70,17 +73,9 @@ class FolderFilters(BaseWidget):
         self._build_save_filter_button()
         # self._build_delete_filter_button()
 
-        self.filter_table = FolderFilterTable(self.GENRES, self.settings.settings_data_model.folder_configs)
-
-        buttons_to_style = [
-            self.apply_button,
-            self.add_filter_button,
-            self.save_filter_button,
-            # self.delete_filter_button,
-        ]
-
-        for button in buttons_to_style:
-            button.setStyleSheet(APP_THEME.button_qss())
+        self.filter_table = FolderFilterTable(
+            self.GENRES, self.settings.settings_data_model.folder_configs
+        )
 
         # Add filter controls row
         add_filter_layout = QHBoxLayout()
@@ -106,11 +101,9 @@ class FolderFilters(BaseWidget):
         self._connect_sigs()
         return self
 
-
     def build_nav_combo(self) -> None:
-        if not hasattr(self, 'nav_combo'):
+        if not hasattr(self, "nav_combo"):
             self.nav_combo = QComboBox()
-            APP_THEME.setup_combo_box(self.nav_combo)
             self.nav_combo.currentIndexChanged.connect(self._handle_media_selection)
 
         self.nav_combo.blockSignals(True)
@@ -165,7 +158,9 @@ class FolderFilters(BaseWidget):
     def _build_saved_filters_combo(self) -> None:
         self.saved_filters_combo = QComboBox()
         self.saved_filters_combo.setEditable(True)
-        self.saved_filters_combo.lineEdit().setPlaceholderText("- Select Saved Filters -")
+        self.saved_filters_combo.lineEdit().setPlaceholderText(
+            "- Select Saved Filters -"
+        )
         self._refresh_saved_filters_combo()
         self.saved_filters_combo.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
@@ -175,7 +170,9 @@ class FolderFilters(BaseWidget):
     def _refresh_saved_filters_combo(self) -> None:
         self.saved_filters_combo.clear()
         self.saved_filters_combo.addItem("")
-        filter_names = [f.get("name") for f in self.settings.settings_data_model.saved_filters]
+        filter_names = [
+            f.get("name") for f in self.settings.settings_data_model.saved_filters
+        ]
         for name in sorted(filter_names):
             self.saved_filters_combo.addItem(name)
 
@@ -211,9 +208,15 @@ class FolderFilters(BaseWidget):
         self.save_filter_button.clicked.connect(self._save_filter_clicked)
         # self.delete_filter_button.clicked.connect(self._delete_filter_clicked)
         self.saved_filters_combo.currentIndexChanged.connect(self._load_saved_filter)
-        self.genre_combo.sig_genre_changed.connect(lambda payload: self.sig_genre_changed.emit(payload))
-        self.filter_table.sig_genre_changed.connect(lambda payload: self.sig_genre_changed.emit(payload))
-        self.filter_table.sig_root_folder.connect(lambda payload: self.sig_root_folder.emit(payload))
+        self.genre_combo.sig_genre_changed.connect(
+            lambda payload: self.sig_genre_changed.emit(payload)
+        )
+        self.filter_table.sig_genre_changed.connect(
+            lambda payload: self.sig_genre_changed.emit(payload)
+        )
+        self.filter_table.sig_root_folder.connect(
+            lambda payload: self.sig_root_folder.emit(payload)
+        )
 
         def refresh_all():
             self.build_nav_combo()
@@ -248,7 +251,9 @@ class FolderFilters(BaseWidget):
 
         filter_name = self.saved_filters_combo.currentText().strip()
         if filter_name == "":
-            self.saved_filters_combo.lineEdit().setPlaceholderText("NameThisFilter")
+            line_edit = self.saved_filters_combo.lineEdit()
+            if line_edit:
+                line_edit.setPlaceholderText("Name This Filter")
 
     def _save_filter_clicked(self) -> None:
         filters = self.filter_table.collect_filters()
@@ -262,7 +267,9 @@ class FolderFilters(BaseWidget):
     def _delete_filter_clicked(self) -> None:
         index = self.saved_filters_combo.currentIndex()
         if index <= 0:
-            self.saved_filters_combo.lineEdit().setPlaceholderText("- Select Saved Filters -")
+            self.saved_filters_combo.lineEdit().setPlaceholderText(
+                "- Select Saved Filters -"
+            )
             return
 
         name = self.saved_filters_combo.currentText()
@@ -320,11 +327,15 @@ class FolderFilters(BaseWidget):
                 items.extend(path_items)
                 run_scan(index + 1)
 
-            self.file_util.get_files_from_path_async(folder_path, on_complete=folder_scanned)
+            self.file_util.get_files_from_path_async(
+                folder_path, on_complete=folder_scanned
+            )
 
         run_scan(0)
 
-    def _apply_filters_internal(self, items: list[FileUtilModel]) -> list[FileUtilModel]:
+    def _apply_filters_internal(
+        self, items: list[FileUtilModel]
+    ) -> list[FileUtilModel]:
         filters = self.filter_table.collect_filters()
 
         # Add active media buttons to filters
@@ -336,13 +347,5 @@ class FolderFilters(BaseWidget):
         )
 
     def apply_theme(self) -> None:
-        self.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
-        self.setStyleSheet(APP_THEME.container_qss())
-
-        APP_THEME.setup_combo_box(self.filter_type_combo)
-        APP_THEME.setup_combo_box(self.genre_combo)
-        APP_THEME.setup_combo_box(self.nav_combo)
-        APP_THEME.setup_combo_box(self.saved_filters_combo)
-
-        if self.filter_table is not None:
-            self.filter_table.apply_theme()
+        # Generic BaseWidget.apply_theme handles recursion
+        super().apply_theme()

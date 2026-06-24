@@ -3,6 +3,9 @@
 ## Overview
 MyVideoExplorer is a PySide6 desktop application for browsing and managing video collections.
 
+source .venv/Scripts/activate
+
+
 ## Architecture
 - **Dependency Management**: Uses an `AppContainer` for centralized object creation and dependency injection.
 - **Entry Point**: `src/main.py` initializes the `AppContainer` and starts the `App`.

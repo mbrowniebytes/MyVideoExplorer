@@ -1,5 +1,6 @@
 from MyVideoExplorer.theme.theme import ThemeConfig
 
+
 class StyleFactory:
     """Generates QSS strings based on a ThemeConfig."""
 
@@ -10,10 +11,22 @@ class StyleFactory:
                 background: {c.color_background_main};
                 color: {c.color_text_primary};
                 font-family: {c.font_family_default};
-                font-size: {c.font_size_base}px;
             }}
             QMainWindow {{
                 background: {c.color_background_main};
+            }}
+            QGroupBox {{
+                font-weight: bold;
+                border: 2px solid {c.color_border_default};
+                border-radius: {c.size_border_radius_standard}px;
+                margin-top: 1.5ex;
+                padding: 10px;
+            }}
+            QGroupBox::title {{
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                left: 10px;
+                padding: 0 5px;
             }}
             QScrollBar:vertical {{
                 border: none;
@@ -176,8 +189,7 @@ class StyleFactory:
                 color: {c.color_text_primary};
                 border: 1px solid {c.color_border_default};
                 border-radius: {c.size_border_radius_standard}px;
-                padding: 4px 8px;
-                min-height: 32px;
+                padding: 2px 4px;
             }}
             QComboBox QAbstractItemView {{
                 background: {c.color_surface_primary};
@@ -202,25 +214,28 @@ class StyleFactory:
 
     @staticmethod
     def get_label_qss(c: ThemeConfig, variant: str = "default") -> str:
-        size = c.font_size_base
         color = c.color_text_primary
         weight = "normal"
         padding = "0px"
         extra_label = ""
         extra_qss = ""
 
+        # Only set font-size in QSS if it's a specific variant that deviates from base.
+        # Otherwise, let setFont() on the widget handle it to avoid conflicts.
+        font_size_qss = ""
+
         if variant == "small":
-            size -= 3
+            font_size_qss = f"font-size: {c.font_size_base - 3}px;"
         elif variant == "secondary":
             color = c.color_text_secondary
         elif variant == "field_value":
             color = c.color_text_field_value
             extra_label = f"""
-                border-radius: 8px;
+                border-radius: 6px;
                 border-bottom: 1px solid {c.color_section_divider};
             """
         elif variant == "title":
-            size += 10
+            font_size_qss = f"font-size: {c.font_size_base + 10}px;"
             weight = "700"
             padding = "2px 0px 2px 0px"
             extra_label = f"""
@@ -228,7 +243,7 @@ class StyleFactory:
                 border-bottom: 2px solid {c.color_border_default};
             """
         elif variant == "help_icon":
-            size -= 2
+            font_size_qss = f"font-size: {c.font_size_base - 2}px;"
             extra_label = f"""
                 border-radius: 6px;
                 border: 2px solid {c.color_border_icon};
@@ -243,7 +258,7 @@ class StyleFactory:
              QLabel {{
                  color: {color};
                  font-family: {c.font_family_default};
-                 font-size: {size}px;
+                 {font_size_qss}
                  font-weight: {weight};
                  padding: {padding};
                  {extra_label}

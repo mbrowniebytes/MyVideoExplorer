@@ -2,17 +2,27 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import QFrame, QLabel, QScrollArea, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QLabel,
+    QScrollArea,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 
-from MyVideoExplorer.media_info_section.media_info_section_definitions import MEDIA_INFO_SECTION_ACTORS
+from MyVideoExplorer.media_info_section.media_info_section_definitions import (
+    MEDIA_INFO_SECTION_ACTORS,
+)
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.utils.log_util import LogUtil
+from MyVideoExplorer.widgets.base_widget import BaseWidget
 
 
-class MediaInfoScrollContentWidget(QWidget):
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
+class MediaInfoScrollContentWidget(BaseWidget):
+    def __init__(self, log_util: LogUtil, parent: QWidget | None = None) -> None:
+        super().__init__(log_util, parent)
 
-        self.section_widgets_by_id: dict[str, QFrame] = {}
+        self.section_widgets_by_id: dict[str, BaseWidget] = {}
 
         self.content_container_widget = QWidget()
         self.content_container_widget.setStyleSheet(APP_THEME.container_qss())
@@ -25,14 +35,20 @@ class MediaInfoScrollContentWidget(QWidget):
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidget(self.content_container_widget)
         self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.scroll_area.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        self.scroll_area.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
 
         self.outer_layout = QVBoxLayout(self)
         self.outer_layout.setContentsMargins(0, 0, 0, 0)
         self.outer_layout.addWidget(self.scroll_area)
 
-    def add_section_if_missing(self, section_id: str, section_widget: QFrame) -> None:
+    def add_section_if_missing(
+        self, section_id: str, section_widget: BaseWidget
+    ) -> None:
         if section_id in self.section_widgets_by_id:
             return
 
@@ -82,9 +98,11 @@ class MediaInfoScrollContentWidget(QWidget):
             self.section_layout.addStretch()
 
     def apply_theme(self) -> None:
-        self.content_container_widget.setStyleSheet(APP_THEME.container_qss())
+        super().apply_theme()
 
-    def _clear_layout_without_deleting_persistent_widgets(self, layout: QVBoxLayout) -> None:
+    def _clear_layout_without_deleting_persistent_widgets(
+        self, layout: QVBoxLayout
+    ) -> None:
         while layout.count():
             layout_item = layout.takeAt(0)
             layout_widget = layout_item.widget()

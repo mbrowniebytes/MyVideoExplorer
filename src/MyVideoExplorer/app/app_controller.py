@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-
 from PySide6.QtCore import QObject
 
-from MyVideoExplorer.app.app_state import AppState
 from MyVideoExplorer.app.app_signals import SignalRegistry
+from MyVideoExplorer.app.app_state import AppState
 from MyVideoExplorer.utils.log_util import LogUtil
 
 
@@ -52,7 +51,9 @@ class AppController(QObject):
 
         # Emit a single signal with all roots so FolderNav can show them all at once
         # if valid_paths:
-        payload = self.signals.create_payload("sig_root_folders", valid_paths, self.__class__.__name__)
+        payload = self.signals.create_payload(
+            "sig_root_folders", valid_paths, self.__class__.__name__
+        )
         self.signals.sig_root_folders.emit(payload)
         self.log_util.debug(f"sig_root_folders emitted for: {valid_paths}")
 
@@ -60,7 +61,7 @@ class AppController(QObject):
         # existing listeners (FolderList, ImageList, MediaInfo) still refresh.
         # for vp in valid_paths:
         #     self.sig_root_folder.emit(vp)
-            # self.sig_selected_folder.emit(vp)
+        # self.sig_selected_folder.emit(vp)
 
     def set_current_folder(self, folder_path: str, force: bool = False) -> None:
         # self.log_util.debug(f"Attempting to set folder: {folder_path}")
@@ -70,7 +71,9 @@ class AppController(QObject):
             self.state.current_folder = folder_path
             self.state.current_file = ""
             self.state.current_image = ""
-            payload = self.signals.create_payload("sig_selected_folder", folder_path, self.__class__.__name__)
+            payload = self.signals.create_payload(
+                "sig_selected_folder", folder_path, self.__class__.__name__
+            )
             self.signals.sig_selected_folder.emit(payload)
             self.log_util.debug(f"sig_selected_folder emitted for: {folder_path}")
         except Exception as e:
@@ -82,7 +85,9 @@ class AppController(QObject):
             if self.state.current_file == file_path:
                 return
             self.state.current_file = file_path
-            payload = self.signals.create_payload("sig_file_changed", file_path, self.__class__.__name__)
+            payload = self.signals.create_payload(
+                "sig_file_changed", file_path, self.__class__.__name__
+            )
             self.signals.sig_file_changed.emit(payload)
             self.log_util.debug(f"sig_file_changed emitted for: {file_path}")
         except Exception as e:
@@ -92,7 +97,9 @@ class AppController(QObject):
         if self.state.current_image == image_path:
             return
         self.state.current_image = image_path
-        payload = self.signals.create_payload("sig_image_changed", image_path, self.__class__.__name__)
+        payload = self.signals.create_payload(
+            "sig_image_changed", image_path, self.__class__.__name__
+        )
         self.signals.sig_image_changed.emit(payload)
         self.log_util.debug(f"sig_image_changed emitted for: {image_path}")
 
@@ -100,16 +107,28 @@ class AppController(QObject):
         if self.state.current_tab == tab_index:
             return
         self.state.current_tab = tab_index
-        payload = self.signals.create_payload("sig_tab_changed", tab_index, self.__class__.__name__)
+        payload = self.signals.create_payload(
+            "sig_tab_changed", tab_index, self.__class__.__name__
+        )
         self.signals.sig_tab_changed.emit(payload)
-        self.log_util.debug(f"sig_tab_changed emitted for: {tab_index}")
+        # self.log_util.debug(f"sig_tab_changed emitted for: {tab_index}")
 
     def emit_current_selection(self) -> None:
         if self.state.current_folder:
-            payload = self.signals.create_payload("sig_selected_folder", self.state.current_folder, self.__class__.__name__)
+            payload = self.signals.create_payload(
+                "sig_selected_folder",
+                self.state.current_folder,
+                self.__class__.__name__,
+            )
             self.signals.sig_selected_folder.emit(payload)
-            self.log_util.debug(f"sig_selected_folder emitted for: {self.state.current_folder}")
+            self.log_util.debug(
+                f"sig_selected_folder emitted for: {self.state.current_folder}"
+            )
         if self.state.current_file:
-            payload = self.signals.create_payload("sig_file_changed", self.state.current_file, self.__class__.__name__)
+            payload = self.signals.create_payload(
+                "sig_file_changed", self.state.current_file, self.__class__.__name__
+            )
             self.signals.sig_file_changed.emit(payload)
-            self.log_util.debug(f"sig_file_changed emitted for: {self.state.current_file}")
+            self.log_util.debug(
+                f"sig_file_changed emitted for: {self.state.current_file}"
+            )

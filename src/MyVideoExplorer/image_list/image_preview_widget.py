@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, Signal, QTimer
-from PySide6.QtGui import QFont, QPixmap
+from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QVBoxLayout
 
 from MyVideoExplorer.image_list.image_label import ImageLabel
@@ -93,5 +93,4 @@ class ImagePreviewWidget(BaseWidget):
             raise
 
     def apply_theme(self) -> None:
-        self.image_label.setStyleSheet(APP_THEME.label_qss())
-        self.image_label.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
+        super().apply_theme()

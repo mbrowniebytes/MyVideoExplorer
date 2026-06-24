@@ -1,7 +1,7 @@
-
 from __future__ import annotations
 
-from PySide6.QtWidgets import QWidget, QLayout, QVBoxLayout
+from PySide6.QtWidgets import QLayout, QVBoxLayout, QWidget
+
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
 
@@ -9,7 +9,9 @@ from MyVideoExplorer.utils.log_util import LogUtil
 class BaseWidget(QWidget):
     """Base class for all widgets in the application to reduce boilerplate."""
 
-    def __init__(self, log_util: LogUtil | None = None, parent: QWidget | None = None) -> None:
+    def __init__(
+        self, log_util: LogUtil | None = None, parent: QWidget | None = None
+    ) -> None:
         super().__init__(parent)
         self.log_util = log_util
         if self.log_util:
@@ -18,7 +20,9 @@ class BaseWidget(QWidget):
     def set_compact_layout(self, layout_type: type[QLayout] = QVBoxLayout) -> QLayout:
         """Creates and sets a layout with 0 margins and 0 spacing."""
         if self.layout() is not None:
-            raise RuntimeError("Widget already has a layout. Clear it first or use clear_self_layout().")
+            raise RuntimeError(
+                "Widget already has a layout. Clear it first or use clear_self_layout()."
+            )
 
         layout = layout_type(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -28,7 +32,8 @@ class BaseWidget(QWidget):
 
     def apply_theme(self) -> None:
         """Default implementation of theme application."""
-        self.setStyleSheet(APP_THEME.container_qss())
+        if not APP_THEME.is_refreshing:
+            APP_THEME.refresh_theme(self)
 
     @staticmethod
     def clear_layout(layout: QLayout | None) -> None:

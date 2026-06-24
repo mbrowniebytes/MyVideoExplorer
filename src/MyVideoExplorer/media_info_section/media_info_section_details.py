@@ -1,10 +1,13 @@
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QHeaderView, QSizePolicy
+from PySide6.QtWidgets import QHeaderView, QSizePolicy, QVBoxLayout, QWidget
+
 from MyVideoExplorer.theme.theme import APP_THEME
-from MyVideoExplorer.widgets.simple_table_widget import SimpleTableWidget
+from MyVideoExplorer.utils.log_util import LogUtil
+from MyVideoExplorer.widgets.base_widget import BaseWidget
 from MyVideoExplorer.widgets.label_value_widget import LabelValueWidget
+from MyVideoExplorer.widgets.simple_table_widget import SimpleTableWidget
 
 
-class MediaInfoDetailsSection(QFrame):
+class MediaInfoDetailsSection(BaseWidget):
     VIDEO_TABLE_COLUMN_KEYS = [
         "resolution",
         "codec",
@@ -44,8 +47,10 @@ class MediaInfoDetailsSection(QFrame):
     SUBTITLE_TABLE_COLUMN_HEADERS = ["Language"]
     SUBTITLE_TABLE_COLUMN_RESIZE_MODES = [QHeaderView.ResizeMode.Stretch]
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(
+        self, log_util: LogUtil | None = None, parent: QWidget | None = None
+    ) -> None:
+        super().__init__(log_util or LogUtil(), parent)
 
         self._current_identifier_items: list[dict] = []
         self._current_video_items: list[dict] = []
@@ -95,7 +100,11 @@ class MediaInfoDetailsSection(QFrame):
             return
 
         self._clear_details_section_layout()
-        self.details_section_layout.addWidget(LabelValueWidget("IDs:", identifiers_html, parent=self))
+        self.details_section_layout.addWidget(
+            LabelValueWidget(
+                "IDs:", identifiers_html, log_util=self.log_util, parent=self
+            )
+        )
 
     def build_videos(self, video_items: list[dict]) -> None:
         self.setObjectName("section_videos")
@@ -158,15 +167,17 @@ class MediaInfoDetailsSection(QFrame):
             return
 
         self._clear_details_section_layout()
-        self.details_section_layout.addWidget(LabelValueWidget(section_title, parent=self))
         self.details_section_layout.addWidget(
-            SimpleTableWidget(
-                rows=table_rows,
-                cols=table_column_keys,
-                headers=table_column_headers,
-                resize_modes=table_column_resize_modes,
-            )
+            LabelValueWidget(section_title, log_util=self.log_util, parent=self)
         )
+        table = SimpleTableWidget(
+            rows=table_rows,
+            cols=table_column_keys,
+            headers=table_column_headers,
+            resize_modes=table_column_resize_modes,
+            parent=self,
+        )
+        self.details_section_layout.addWidget(table)
 
     def _find_existing_label_value_widget(self) -> LabelValueWidget | None:
         for layout_index in range(self.details_section_layout.count()):
@@ -209,3 +220,8 @@ class MediaInfoDetailsSection(QFrame):
                 )
 
         return ", ".join(identifier_html_fragments)
+
+    def apply_theme(self) -> None:
+        super().apply_theme()
+        self.setStyleSheet(APP_THEME.table_qss())
+        self.setStyleSheet(APP_THEME.bottom_border_qss())

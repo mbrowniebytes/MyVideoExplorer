@@ -1,6 +1,6 @@
 import os
-
 from typing import Any
+
 from PySide6.QtCore import QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
@@ -18,9 +18,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.settings.settings import SettingsBaseTab
 from MyVideoExplorer.settings.settings_state import SettingsState
-from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.widgets.folder_picker_widget import FolderPickerWidget
@@ -29,7 +29,9 @@ from MyVideoExplorer.widgets.folder_picker_widget import FolderPickerWidget
 class SettingsMediaTab(SettingsBaseTab):
     sig_root_folders_changed = Signal(object)
 
-    def __init__(self, state: SettingsState, log_util: LogUtil, parent: QWidget | None = None) -> None:
+    def __init__(
+        self, state: SettingsState, log_util: LogUtil, parent: QWidget | None = None
+    ) -> None:
         super().__init__(log_util, parent)
         self.state = state
 
@@ -67,8 +69,12 @@ class SettingsMediaTab(SettingsBaseTab):
         self.folder_scroll_area.setFrameShape(QScrollArea.Shape.NoFrame)
         self.folder_scroll_area.setWidget(self.folder_nav_group)
 
-        self.folder_scroll_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.folder_nav_group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.folder_scroll_area.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
+        self.folder_nav_group.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
 
         self.content_layout.addWidget(self.folder_scroll_area, 1)
 
@@ -77,7 +83,6 @@ class SettingsMediaTab(SettingsBaseTab):
         add_btn_layout = QHBoxLayout()
         add_btn_layout.addStretch()
         add_btn = QPushButton("Add Media Folder")
-        add_btn.setStyleSheet(APP_THEME.button_qss())
         add_btn.clicked.connect(self._add_folder)
         add_btn_layout.addWidget(add_btn)
         add_btn_layout.addStretch()
@@ -91,10 +96,11 @@ class SettingsMediaTab(SettingsBaseTab):
         save_btn_layout.setContentsMargins(20, 15, 20, 15)
 
         self.save_btn = QPushButton("Save Media Settings")
-        self.save_btn.setStyleSheet(APP_THEME.button_qss())
         self.save_btn.clicked.connect(self._save_media_settings)
 
-        self.reset_btn = self._build_reset_button("Reset Media Settings", self.reset_settings)
+        self.reset_btn = self._build_reset_button(
+            "Reset Media Settings", self.reset_settings
+        )
 
         spacer = QWidget()
         spacer.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
@@ -188,8 +194,7 @@ class SettingsMediaTab(SettingsBaseTab):
 
         if not self.state.folder_configs:
             msg = (
-                "No media folders configured.\n"
-                "Click the Add Media Folder button below."
+                "No media folders configured.\nClick the Add Media Folder button below."
             )
             instr = QLabel(msg)
             instr.setWordWrap(True)
@@ -293,7 +298,9 @@ class SettingsMediaTab(SettingsBaseTab):
         browse_btn.clicked.connect(folder_picker.pick_folder)
 
         folder_picker.sig_selected_folder.connect(
-            lambda payload: self._on_folder_selected(payload.data, folder_edit, folder_config)
+            lambda payload: self._on_folder_selected(
+                payload.data, folder_edit, folder_config
+            )
         )
 
         container = QWidget()
@@ -318,7 +325,9 @@ class SettingsMediaTab(SettingsBaseTab):
         outer_layout.addLayout(row2)
 
         label_edit.editingFinished.connect(
-            lambda le=label_edit: self._on_config_changed(folder_config, "label", le.text())
+            lambda le=label_edit: self._on_config_changed(
+                folder_config, "label", le.text()
+            )
         )
         type_combo.activated.connect(
             lambda: self._on_config_changed(
@@ -331,7 +340,9 @@ class SettingsMediaTab(SettingsBaseTab):
             )
         )
         folder_edit.editingFinished.connect(
-            lambda fe=folder_edit: self._on_config_changed(folder_config, "path", fe.text())
+            lambda fe=folder_edit: self._on_config_changed(
+                folder_config, "path", fe.text()
+            )
         )
 
         return container
@@ -356,7 +367,9 @@ class SettingsMediaTab(SettingsBaseTab):
                     valid_paths.append(real)
         return valid_paths
 
-    def _on_config_changed(self, folder_config: dict[str, Any], key: str, value: Any) -> None:
+    def _on_config_changed(
+        self, folder_config: dict[str, Any], key: str, value: Any
+    ) -> None:
         if folder_config.get(key) == value:
             return
         folder_config[key] = value
@@ -493,12 +506,5 @@ class SettingsMediaTab(SettingsBaseTab):
         print("Media Settings saved")
 
     def apply_theme(self) -> None:
-        font = QFont(APP_THEME.font_family, APP_THEME.font_size)
-        self.main_widget.setFont(font)
-        self.main_widget.setStyleSheet(APP_THEME.container_qss())
-
-        if self.folder_nav_group:
-            self.folder_nav_group.setFont(
-                QFont(APP_THEME.font_family, APP_THEME.font_size - 2)
-            )
-        QTimer.singleShot(0, self._refresh_folder_nav_settings)
+        super().apply_theme()
+        # QTimer.singleShot(0, self._refresh_folder_nav_settings)

@@ -1,7 +1,10 @@
-from PySide6.QtCore import Signal, Qt, QSize
-from PySide6.QtGui import QIcon, QFont, QResizeEvent
+import math
+
+from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtGui import QFont, QIcon, QResizeEvent
 from PySide6.QtWidgets import QListWidget, QListWidgetItem
-from MyVideoExplorer.app.app_signals_model import SignalPayload, SignalFlow
+
+from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 
@@ -15,17 +18,14 @@ class FileListView(QListWidget):
         self.set_style()
 
     def set_style(self):
-        # self.setStyleSheet(APP_THEME.list_qss())
-        # self.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
-        # APP_THEME.setup_list_widget(self)
-        self.apply_theme()
-
         self.setViewMode(QListWidget.ViewMode.ListMode)
         self.setFlow(QListWidget.Flow.LeftToRight)
         self.setWrapping(False)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.setSpacing(10)
+        self.setSpacing(8)
+
+        self.apply_theme()
 
     def resizeEvent(self, event: QResizeEvent) -> None:
         super().resizeEvent(event)
@@ -38,9 +38,11 @@ class FileListView(QListWidget):
         # In ListMode, the item contains icon on the left and text on the right.
         # Since we want the icon to "fit and resize to FileListView height",
         # we can make it nearly as tall as the viewport.
+        self.setMinimumHeight(APP_THEME.font_size * 1.2)
 
         # Leave some space for padding (top/bottom)
-        size = max(16, height - 20)
+        size = min(APP_THEME.font_size, height - 20)
+        size = math.ceil(APP_THEME.font_size * 1.2)
         self.setIconSize(QSize(size, size))
 
     def connect_sigs(self):
@@ -100,6 +102,7 @@ class FileListView(QListWidget):
         self.setCurrentRow(-1)
 
     def apply_theme(self) -> None:
+        # print(f"file_list_view: apply_theme: {APP_THEME.font_size}")
         self.setStyleSheet(APP_THEME.list_qss())
         self.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
-        self._update_icon_size()
+        # self._update_icon_size()

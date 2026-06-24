@@ -5,11 +5,13 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from MyVideoExplorer.media_info.media_info_id_link_formatter import MediaInfoIdLinkFormatter
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.str_util import StrUtil
+from MyVideoExplorer.widgets.base_widget import BaseWidget
 from MyVideoExplorer.widgets.label_value_widget import LabelValueWidget
 
 
-class MediaInfoSideFactsWidget(QWidget):
+class MediaInfoSideFactsWidget(BaseWidget):
     """Compact metadata facts displayed in the narrow media info side panel."""
 
     FIXED_FIELD_DEFINITIONS = [
@@ -23,9 +25,10 @@ class MediaInfoSideFactsWidget(QWidget):
         self,
         str_util: StrUtil,
         id_link_formatter: MediaInfoIdLinkFormatter | None = None,
+        log_util: LogUtil | None = None,
         parent: QWidget | None = None,
     ) -> None:
-        super().__init__(parent)
+        super().__init__(log_util or LogUtil(), parent)
 
         self.str_util = str_util
         self.id_link_formatter = id_link_formatter or MediaInfoIdLinkFormatter()
@@ -47,6 +50,7 @@ class MediaInfoSideFactsWidget(QWidget):
         self._update_id_widgets(movie_info.get("ids", []))
 
     def apply_theme(self) -> None:
+        super().apply_theme()
         self.setStyleSheet(APP_THEME.container_qss())
 
     def _build_fixed_field_widgets(self) -> None:
@@ -54,7 +58,9 @@ class MediaInfoSideFactsWidget(QWidget):
             field_value_widget = LabelValueWidget(
                 name=field_label,
                 value="",
-                orientation=Qt.Orientation.Vertical, parent=self,
+                orientation=Qt.Orientation.Vertical,
+                log_util=self.log_util,
+                parent=self,
             )
             self.fixed_field_widgets_by_key[movie_info_key] = field_value_widget
             self.facts_layout.addWidget(field_value_widget)
@@ -101,7 +107,9 @@ class MediaInfoSideFactsWidget(QWidget):
             name=id_label_text,
             value=formatted_id_html_value,
             orientation=Qt.Orientation.Vertical,
-            is_link=True, parent=self,
+            is_link=True,
+            log_util=self.log_util,
+            parent=self,
         )
 
         stretch_index = max(0, self.facts_layout.count() - 1)

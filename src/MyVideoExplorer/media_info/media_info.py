@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Signal
-from MyVideoExplorer.app.app_signals_model import SignalPayload, SignalFlow
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
-from MyVideoExplorer.media_info_side.media_info_side_view import MediaInfoSideView
+from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.media_info.media_info_view import MediaInfoView
+from MyVideoExplorer.media_info_side.media_info_side_view import MediaInfoSideView
 from MyVideoExplorer.utils.log_util import LogUtil
-
 from MyVideoExplorer.widgets.base_widget import BaseWidget
 
 
@@ -72,11 +71,12 @@ class MediaInfo(BaseWidget):
         self.image_path = self.current_image_path
 
         if self.log_util:
-            self.log_util.debug(f"MediaInfo image path set to: {self.current_image_path}")
+            self.log_util.debug(
+                f"MediaInfo image path set to: {self.current_image_path}"
+            )
 
     def apply_theme(self) -> None:
-        self.media_info_view.apply_theme()
-        self.media_info_side_view.apply_theme()
+        super().apply_theme()
 
     def _connect_child_signals(self) -> None:
         if self._are_child_signals_connected:

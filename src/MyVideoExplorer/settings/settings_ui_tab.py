@@ -1,26 +1,27 @@
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QComboBox,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
     QPushButton,
     QScrollArea,
-    QSpinBox,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
-    QSizePolicy,
 )
-from PySide6.QtGui import QFont
-from PySide6.QtCore import Qt
 
+from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.settings.settings import SettingsBaseTab
 from MyVideoExplorer.settings.settings_state import SettingsState
-from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
 
 
 class SettingsUITab(SettingsBaseTab):
-    def __init__(self, state: SettingsState, log_util: LogUtil, parent: QWidget | None = None) -> None:
+    def __init__(
+        self, state: SettingsState, log_util: LogUtil, parent: QWidget | None = None
+    ) -> None:
         super().__init__(log_util, parent)
         self.state = state
 
@@ -48,13 +49,18 @@ class SettingsUITab(SettingsBaseTab):
         display_layout = QFormLayout(display_group)
 
         # Font size
-        self.font_size_spinbox = QSpinBox()
-        self.font_size_spinbox.setMinimum(10)
-        self.font_size_spinbox.setMaximum(24)
-        self.font_size_spinbox.setValue(APP_THEME.font_size)
-        self.font_size_spinbox.valueChanged.connect(self._on_font_size_changed)
-        self.font_size_spinbox.valueChanged.connect(lambda: self._on_setting_changed())
-        display_layout.addRow("Font Size:", self.font_size_spinbox)
+        self.font_size_combo = QComboBox()
+        current_index = 0
+        for index, font_size in enumerate(range(15, 26)):
+            if font_size == APP_THEME.font_size:
+                current_index = index
+            self.font_size_combo.addItem(str(font_size), font_size)
+        self.font_size_combo.setCurrentIndex(current_index)
+
+        self.font_size_combo.currentIndexChanged.connect(self._on_font_size_changed)
+        self.font_size_combo.currentIndexChanged.connect(self._on_setting_changed)
+
+        display_layout.addRow("Font Size:", self.font_size_combo)
 
         self.content_layout.addWidget(display_group)
 
@@ -67,10 +73,11 @@ class SettingsUITab(SettingsBaseTab):
         save_btn_layout.setContentsMargins(20, 15, 20, 15)
 
         self.save_btn = QPushButton("Save UI Settings")
-        self.save_btn.setStyleSheet(APP_THEME.button_qss())
         self.save_btn.clicked.connect(self._save_ui_settings)
 
-        self.reset_btn = self._build_reset_button("Reset UI Settings", self.reset_settings)
+        self.reset_btn = self._build_reset_button(
+            "Reset UI Settings", self.reset_settings
+        )
 
         spacer = QWidget()
         spacer.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
@@ -102,26 +109,32 @@ class SettingsUITab(SettingsBaseTab):
         )
         print("UI Settings reset")
 
-    def _on_font_size_changed(self, value: int) -> None:
+    def _on_font_size_changed(self, index: int) -> None:
+        value = self.font_size_combo.itemData(index, role=Qt.UserRole)
+        if not value:
+            return
         if value == APP_THEME.font_size:
             return
+        if value < 15 or value > 25:
+            return
 
+        print(f"_on_font_size_changed: index:{index} value:{value}")
         APP_THEME.font_size = value
         # Block signals on spinbox before refresh_theme to prevent re-triggering during apply_theme
-        self.font_size_spinbox.blockSignals(True)
+        self.font_size_combo.blockSignals(True)
         try:
             APP_THEME.refresh_theme()
         finally:
-            self.font_size_spinbox.blockSignals(False)
-        self.state.sig_settings_changed.emit(
-            SignalPayload(
-                data=value,
-                sender=self.__class__.__name__,
-                name="Settings Changed",
-                description="Font size was changed.",
-                flow=SignalFlow.USER_INPUT,
-            )
-        )
+            self.font_size_combo.blockSignals(False)
+        # self.state.sig_settings_changed.emit(
+        #     SignalPayload(
+        #         data=value,
+        #         sender=self.__class__.__name__,
+        #         name="Settings Changed",
+        #         description="Font size was changed.",
+        #         flow=SignalFlow.USER_INPUT,
+        #     )
+        # )
         self._on_setting_changed()
 
     def _save_ui_settings(self) -> None:
@@ -141,9 +154,3 @@ class SettingsUITab(SettingsBaseTab):
 
     def apply_theme(self) -> None:
         super().apply_theme()
-        font = QFont(APP_THEME.font_family, APP_THEME.font_size)
-        self.main_widget.setFont(font)
-        self.main_widget.setStyleSheet(APP_THEME.container_qss())
-
-        self.font_size_spinbox.setFont(font)
-        self.font_size_spinbox.setValue(APP_THEME.font_size)

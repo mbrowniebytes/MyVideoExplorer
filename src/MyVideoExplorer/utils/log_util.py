@@ -1,22 +1,22 @@
-# src/utils/log_util.py
+
 import datetime
 import logging
 import os
-import traceback
 import sys
+import traceback
+from collections.abc import Callable, Mapping, MutableMapping
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Any
-from collections.abc import Callable, Mapping, MutableMapping
-
-from MyVideoExplorer.app.app_environment import IS_DEVELOPMENT
 
 # Use structlog for structured logging output
 import structlog
 
+from MyVideoExplorer.app.app_environment import IS_DEVELOPMENT
+
 # Define log directory and file paths
 BASE_PATH = Path().cwd().as_posix()
-SRC_PATH = Path(BASE_PATH + "/src/")
+SRC_PATH = Path(BASE_PATH + "/MyVideoExplorer/")
 LOG_DIR = Path("log")
 
 
@@ -85,16 +85,16 @@ class LogUtil:
     def _caller_info_processor(
         self, logger: Any, name: str, event_dict: MutableMapping[str, Any]
     ) -> MutableMapping[str, Any]:
-        """Extract file path (relative to src/) and line number from call stack."""
+        """Extract file path (relative to MyVideoExplorer/) and line number from call stack."""
         # Get caller frame (skip this function)
         frames = traceback.extract_stack()
 
         if len(frames) <= 2:
             return event_dict
 
-        # Patterns to skip — anything outside src/ or in virtualenv
+        # Patterns to skip — anything outside MyVideoExplorer/ or in virtualenv
         skip_prefixes = [
-            "/src/utils/log_util.py",
+            "/MyVideoExplorer/utils/log_util.py",
             "/.venv/",
             "/site-packages/",
             "/usr/lib/python",
@@ -109,9 +109,9 @@ class LogUtil:
 
             # print(f"_caller_info_processor: filename:{filename}")
 
-            # Only accept frames that contain 'src/' — our application code
+            # Only accept frames that contain 'MyVideoExplorer/' — our application code
             if IS_DEVELOPMENT:
-                if "/src/" not in filename:
+                if "/MyVideoExplorer/" not in filename:
                     continue
 
             if any(p in filename for p in skip_prefixes):
@@ -127,7 +127,7 @@ class LogUtil:
         # Calculate relative path from app root, using Linux-style slashes
         full_path = str(app_frame.filename).replace("\\", "/")
 
-        if full_path.find("/src/") != -1:
+        if full_path.find("/MyVideoExplorer/") != -1:
             root_path = str(SRC_PATH)
         else:
             root_path = str(BASE_PATH)

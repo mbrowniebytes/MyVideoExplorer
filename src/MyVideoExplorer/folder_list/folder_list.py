@@ -1,7 +1,6 @@
 from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
-from MyVideoExplorer.app.app_signals_model import SignalPayload
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -11,6 +10,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from MyVideoExplorer.app.app_signals_model import SignalPayload
 from MyVideoExplorer.folder_list.folder_list_view import FolderListView
 from MyVideoExplorer.settings.settings import Settings
 from MyVideoExplorer.theme.theme import APP_THEME
@@ -24,16 +24,16 @@ _EMPTY_STATE_NO_MEDIA_FOLDERS = (
 )
 
 
-
-
 class FolderList(BaseWidget):
     sig_folder_selected_intent = Signal(object)
 
-    def __init__(self, file_util: FileUtil, settings: Settings, log_util: LogUtil, parent=None) -> None:
+    def __init__(
+        self, file_util: FileUtil, settings: Settings, log_util: LogUtil, parent=None
+    ) -> None:
         super().__init__(log_util)
         self.help_icon = QLabel()
         self.title_label = QLabel()
-        self.folder_view = FolderListView(log_util=self.log_util)
+        self.folder_list_view = FolderListView(log_util=self.log_util)
         self.file_util = file_util
         self.settings = settings
         self._signals_connected = False
@@ -56,9 +56,7 @@ class FolderList(BaseWidget):
             "- Use 'Add Media Folder' in settings to add more roots\n"
             "- Use the folder picker to browse other directories"
         )
-        self.help_icon.setStyleSheet(
-            APP_THEME.help_icon_label_qss()
-        )
+        self.help_icon.setStyleSheet(APP_THEME.help_icon_label_qss())
         self.help_icon.setFixedSize(16, 16)
         self.help_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -67,15 +65,17 @@ class FolderList(BaseWidget):
         header_layout.addStretch()
         layout.addLayout(header_layout)
 
-        layout.addWidget(self.folder_view)
-        self.folder_view.setSizePolicy(
+        layout.addWidget(self.folder_list_view)
+        self.folder_list_view.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
 
         if not self._has_valid_media_folders():
-            self.folder_view.show_empty_state(message=_EMPTY_STATE_NO_MEDIA_FOLDERS)
+            self.folder_list_view.show_empty_state(
+                message=_EMPTY_STATE_NO_MEDIA_FOLDERS
+            )
         else:
-            self.folder_view.show_loading_state()
+            self.folder_list_view.show_loading_state()
 
         self.connect_sigs()
         return self._container
@@ -98,24 +98,26 @@ class FolderList(BaseWidget):
         # If there are no configured media folders or none are valid,
         # show a helpful instruction to add media folders in Settings.
         if not self._has_valid_media_folders():
-            self.folder_view.show_empty_state(message=_EMPTY_STATE_NO_MEDIA_FOLDERS)
+            self.folder_list_view.show_empty_state(
+                message=_EMPTY_STATE_NO_MEDIA_FOLDERS
+            )
             return
 
-        if not force and self.folder_view.count() > 0:
+        if not force and self.folder_list_view.count() > 0:
             # If we already have items, just try to select the folder
             # This avoids full refresh if the folder is already in the list
             found = False
-            for row in range(self.folder_view.count()):
-                item = self.folder_view.item(row)
+            for row in range(self.folder_list_view.count()):
+                item = self.folder_list_view.item(row)
                 if item and item.data(Qt.ItemDataRole.UserRole) == folder_path:
-                    self.folder_view.setCurrentRow(row)
-                    self.folder_view.scrollToItem(item)
+                    self.folder_list_view.setCurrentRow(row)
+                    self.folder_list_view.scrollToItem(item)
                     found = True
                     break
             if found:
                 return
 
-        self.folder_view.show_loading_state()
+        self.folder_list_view.show_loading_state()
 
         # folder_Filter.apply_filters also loading
         # QTimer.singleShot(250, lambda: self.update_folder_list_by_path(folder_path))
@@ -127,23 +129,23 @@ class FolderList(BaseWidget):
     def connect_sigs(self):
         if self._signals_connected:
             return
-        self.folder_view.sig_folder_selected.connect(
+        self.folder_list_view.sig_folder_selected.connect(
             self._handle_folder_selected_intent
         )
         self._signals_connected = True
 
     def set_selected_folder(self, folder_path: str) -> None:
-        self.folder_view.set_selected_folder(folder_path)
+        self.folder_list_view.set_selected_folder(folder_path)
         # Important: Don't call refresh here as it might trigger a full rebuild
 
     def show_loading_state(self, folders: list[str] = None) -> None:
-        self.folder_view.show_loading_state(folders)
+        self.folder_list_view.show_loading_state(folders)
 
     def select_next_folder(self, step: int = 1) -> None:
-        self.folder_view.select_next_folder(step)
+        self.folder_list_view.select_next_folder(step)
 
     def refresh_icons(self) -> None:
-        self.folder_view.refresh_icons(self._get_icon_for_path)
+        self.folder_list_view.refresh_icons(self._get_icon_for_path)
 
     def _has_valid_media_folders(self) -> bool:
         """Return True if settings contains at least one existing media folder path."""
@@ -158,12 +160,16 @@ class FolderList(BaseWidget):
         return False
 
     # used by tests
-    def update_folder_list_by_path(self, path: str, on_complete: callable = None) -> None:
+    def update_folder_list_by_path(
+        self, path: str, on_complete: callable = None
+    ) -> None:
         """Loads folders from a path and updates the view."""
-        self.folder_view.show_loading_state([path])
+        self.folder_list_view.show_loading_state([path])
         self.file_util.get_files_from_path_async(
             path,
-            on_complete=lambda items: self.populate_view(items, on_complete=on_complete),
+            on_complete=lambda items: self.populate_view(
+                items, on_complete=on_complete
+            ),
         )
 
     # used by tests
@@ -172,9 +178,9 @@ class FolderList(BaseWidget):
         self.populate_view(items)
 
     def apply_theme(self) -> None:
+        # super().apply_theme()
         font = QFont(APP_THEME.font_family, APP_THEME.font_size)
 
-        self._container.setStyleSheet(APP_THEME.container_qss())
         self._container.setFont(font)
 
         self.title_label.setStyleSheet(APP_THEME.label_qss())
@@ -183,12 +189,12 @@ class FolderList(BaseWidget):
             + "; border: 1px solid palette(text); border-radius: 8px;"
         )
 
-        self.folder_view.setStyleSheet(APP_THEME.list_qss())
-        self.folder_view.setFont(font)
+        # breaks app theme apply
+        # self.folder_list_view.setStyleSheet(APP_THEME.get_list_qss())
 
     def populate_view(self, items: list[FileUtilModel], on_complete: callable = None):
         """Sorts and populates the FolderListView."""
-        self.folder_view.populate_view(
+        self.folder_list_view.populate_view(
             items, get_icon_func=self._get_icon_for_path, on_complete=on_complete
         )
 
@@ -207,4 +213,3 @@ class FolderList(BaseWidget):
                 return config.get("icon", "fa5s.folder")
 
         return "fa5s.folder"
-

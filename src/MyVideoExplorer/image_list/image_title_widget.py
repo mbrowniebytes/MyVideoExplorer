@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QLabel, QHBoxLayout
-from MyVideoExplorer.theme.theme import APP_THEME
-from PySide6.QtGui import QFont
+from PySide6.QtWidgets import QHBoxLayout, QLabel
 
+from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.widgets.base_widget import BaseWidget
 
 
 class ImageTitleWidget(BaseWidget):
-    def __init__(self, log_util:LogUtil) -> None:
+    def __init__(self, log_util: LogUtil) -> None:
         super().__init__(log_util)
         layout = QHBoxLayout(self)
         layout.setContentsMargins(30, 0, 15, 0)
@@ -20,9 +19,7 @@ class ImageTitleWidget(BaseWidget):
         self.title_label.setAlignment(
             Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
         )
-        self.title_label.setStyleSheet(
-            APP_THEME.title_label_qss()
-        )
+        self.title_label.setStyleSheet(APP_THEME.title_label_qss())
         self.update_title("")
 
         self.help_icon = QLabel("?")
@@ -45,15 +42,13 @@ class ImageTitleWidget(BaseWidget):
 
     def update_title(self, title: str) -> None:
         if title == "":
-            title = f"{" ":<40}"
+            title = f"{' ':<40}"
         if self.title_label.text() == title:
             return
         self.title_label.setText(title)
 
     def apply_theme(self) -> None:
+        # super().apply_theme()
+        # Special variants still need manual application as ThemeManager uses default QSS
         self.title_label.setStyleSheet(APP_THEME.title_label_qss())
-        self.title_label.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size + 20))
-        self.help_icon.setStyleSheet(
-            APP_THEME.label_qss("small")
-            + "; border: 1px solid palette(text); border-radius: 10px;"
-        )
+        self.help_icon.setStyleSheet(APP_THEME.help_icon_label_qss())

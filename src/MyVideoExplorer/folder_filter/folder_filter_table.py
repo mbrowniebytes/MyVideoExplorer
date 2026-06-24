@@ -3,14 +3,14 @@ from __future__ import annotations
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
+    QComboBox,
+    QSizePolicy,
     QTableWidget,
     QTableWidgetItem,
-    QComboBox,
     QToolButton,
-    QSizePolicy,
 )
 
-from MyVideoExplorer.app.app_signals_model import SignalPayload, SignalFlow
+from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.theme.theme import APP_THEME
 
 
@@ -140,8 +140,9 @@ class FolderFilterTable(QTableWidget):
                     index = combo.findData(filter_value)
                 if index != -1:
                     combo.setCurrentIndex(index)
-            APP_THEME.setup_combo_box(combo)
-            combo.currentIndexChanged.connect(lambda idx: self._on_root_folder_changed(idx, combo))
+            combo.currentIndexChanged.connect(
+                lambda idx: self._on_root_folder_changed(idx, combo)
+            )
             self.setCellWidget(row_nbr, 1, combo)
             return
 
@@ -157,7 +158,6 @@ class FolderFilterTable(QTableWidget):
                 | Qt.ItemFlag.ItemIsEditable
             )
 
-        filter_type_value.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size - 4))
         self.setItem(row_nbr, 1, filter_type_value)
 
     def _set_remove_button_cell(self, row_nbr: int) -> None:
@@ -165,7 +165,6 @@ class FolderFilterTable(QTableWidget):
         remove_btn = QToolButton()
         remove_btn.setIcon(APP_THEME.icon("fa5s.times", color=APP_THEME.text_color))
         remove_btn.setToolTip("Remove filter")
-        remove_btn.setStyleSheet(APP_THEME.small_button_qss())
         remove_btn.clicked.connect(lambda: self._remove_filter_row(remove_btn))
         self.setCellWidget(row_nbr, 2, remove_btn)
 
@@ -224,8 +223,8 @@ class FolderFilterTable(QTableWidget):
         return value_item.text().strip() if value_item else ""
 
     def apply_theme(self) -> None:
-        self.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
-        self.setStyleSheet(APP_THEME.table_qss())
+        # Tables need specific styling and font application which is handled by ThemeManager
+        APP_THEME.refresh_theme(self)
 
     def _on_genre_changed(self, genre: str):
         payload = SignalPayload(

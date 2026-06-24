@@ -6,13 +6,13 @@ from PySide6.QtWidgets import (
     QAbstractItemView,
     QHeaderView,
     QSizePolicy,
-    QVBoxLayout,
     QTableView,
+    QVBoxLayout,
     QWidget,
 )
 
-from MyVideoExplorer.widgets.simple_table_model import SimpleTableModel
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.widgets.simple_table_model import SimpleTableModel
 
 
 class SimpleTableWidget(QWidget):
@@ -28,8 +28,8 @@ class SimpleTableWidget(QWidget):
     ) -> None:
         super().__init__(parent)
 
-        self.table: QTableView
-        self.model: SimpleTableModel
+        self.table = QTableView()
+        self.model = SimpleTableModel([], [], [])
         self.build(
             rows,
             cols,
@@ -110,15 +110,17 @@ class SimpleTableWidget(QWidget):
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.apply_theme()
 
     def apply_theme(self) -> None:
         """Applies consistent styling and fonts from the application theme."""
         if self.table is None:
             return
 
-        font = QFont(APP_THEME.font_family, APP_THEME.font_size)
+        font = QFont(APP_THEME.font_family, APP_THEME.font_size - 4)
         self.table.setStyleSheet(APP_THEME.table_qss())
         self.table.setFont(font)
 
+        font = QFont(APP_THEME.font_family, APP_THEME.font_size - 4)
         header = self.table.horizontalHeader()
         header.setFont(font)

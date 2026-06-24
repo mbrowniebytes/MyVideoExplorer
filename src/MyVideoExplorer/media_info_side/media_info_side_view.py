@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
-from MyVideoExplorer.app.app_signals_model import SignalPayload, SignalFlow
-from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QVBoxLayout
 
-from MyVideoExplorer.media_info_section.media_info_section_plot import MediaInfoPlotSection
-from MyVideoExplorer.media_info_section.media_info_section_definitions import MEDIA_INFO_VIEW_MODE_IMAGE_LIST
-from MyVideoExplorer.media_info_side.media_info_side_content_widget import MediaInfoSideContentWidget
-from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
+from MyVideoExplorer.media_info_section.media_info_section_definitions import (
+    MEDIA_INFO_VIEW_MODE_IMAGE_LIST,
+)
+from MyVideoExplorer.media_info_section.media_info_section_plot import (
+    MediaInfoPlotSection,
+)
+from MyVideoExplorer.media_info_side.media_info_side_content_widget import (
+    MediaInfoSideContentWidget,
+)
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.utils.str_util import StrUtil
 from MyVideoExplorer.widgets.base_widget import BaseWidget
@@ -22,7 +26,9 @@ class MediaInfoSideView(BaseWidget):
 
     sig_info_side_play_video_btn_clicked = Signal(object)
 
-    def __init__(self, nfo_parse_util: NfoParseUtil, str_util: StrUtil, log_util) -> None:
+    def __init__(
+        self, nfo_parse_util: NfoParseUtil, str_util: StrUtil, log_util
+    ) -> None:
         super().__init__(log_util)
 
         self.nfo_parse_util = nfo_parse_util
@@ -76,7 +82,7 @@ class MediaInfoSideView(BaseWidget):
 
     def build(self, folder_path: str) -> None:
         """Build the side view for a given folder path."""
-        self.setStyleSheet(APP_THEME.container_qss())
+        self.apply_theme()
         self.refresh(folder_path)
 
     def clear_nfo(self) -> None:
@@ -129,17 +135,6 @@ class MediaInfoSideView(BaseWidget):
     def apply_theme(self) -> None:
         """Apply theme to this view and child widgets."""
         super().apply_theme()
-
-        application_font = QFont(APP_THEME.font_family, APP_THEME.font_size)
-        self.setFont(application_font)
-
-        self.plot_section.apply_theme()
-
-        if self.side_content_widget is not None:
-            self.side_content_widget.apply_theme()
-
-        if self.empty_nfo_placeholder_widget is not None:
-            self.empty_nfo_placeholder_widget.setFont(application_font)
 
     def _ensure_side_content_widget(self) -> None:
         if self.side_content_widget.isVisible():

@@ -13,7 +13,6 @@ from PySide6.QtWidgets import (
 from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
 from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
-from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
 
 
@@ -61,7 +60,6 @@ class SettingsAppTab(SettingsBaseTab):
 
         self.save_btn = QPushButton("Save App Settings")
         self.save_btn.setFixedWidth(180)
-        self.save_btn.setStyleSheet(APP_THEME.button_qss())
         self.save_btn.clicked.connect(self._save_app_settings)
 
         self.reset_btn = self._build_reset_button("Reset App Settings", self.reset_settings)

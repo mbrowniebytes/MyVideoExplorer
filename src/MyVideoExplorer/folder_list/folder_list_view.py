@@ -39,7 +39,7 @@ class FolderListView(QListWidget):
             self.sig_folder_selected.emit(payload)
 
     def show_loading_state(self, folders: list[str] = None) -> None:
-        
+
         text = self._loading_state_text
         if folders:
             text += f"\n\n{',\n'.join(folders)}"

@@ -4,7 +4,6 @@ import pathlib
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Qt, Signal
-from MyVideoExplorer.app.app_signals_model import SignalPayload, SignalFlow
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -12,6 +11,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.image_list.image_title_widget import ImageTitleWidget
 
 if TYPE_CHECKING:
@@ -104,7 +104,9 @@ class ImageListView(BaseWidget):
         main_layout = self.content_container.set_compact_layout(QVBoxLayout)
 
         title_and_preview_widget = BaseWidget()
-        title_and_preview_layout = title_and_preview_widget.set_compact_layout(QVBoxLayout)
+        title_and_preview_layout = title_and_preview_widget.set_compact_layout(
+            QVBoxLayout
+        )
         title_and_preview_layout.addWidget(self.title_widget)
         title_and_preview_layout.addWidget(self.preview_widget)
 
@@ -149,9 +151,8 @@ class ImageListView(BaseWidget):
         self.preview_widget.load_pixmap(image_path)
 
     def apply_theme(self) -> None:
+        # super().apply_theme()
         font = QFont(APP_THEME.font_family, APP_THEME.font_size)
-        self.setStyleSheet(APP_THEME.container_qss())
-        self.setFont(font)
 
         self.title_widget.apply_theme()
         self.preview_widget.apply_theme()

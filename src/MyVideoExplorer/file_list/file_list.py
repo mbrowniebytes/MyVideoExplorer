@@ -1,7 +1,6 @@
 import os
 
 from PySide6.QtCore import QSize, Qt, QUrl, Signal
-from MyVideoExplorer.app.app_signals_model import SignalPayload
 from PySide6.QtGui import QDesktopServices, QFont
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -11,19 +10,21 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from MyVideoExplorer.app.app_signals_model import SignalPayload
 from MyVideoExplorer.file_list.file_list_view import FileListView
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil
+from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.widgets.base_widget import BaseWidget
 
 
 class FileList(BaseWidget):
     sig_file_selected_intent = Signal(object)
 
-    def __init__(self, file_util: FileUtil, log_util) -> None:
+    def __init__(self, file_util: FileUtil, log_util: LogUtil) -> None:
         super().__init__(log_util)
         self.title_widget = QWidget()
-        self.file_view = FileListView()
+        self.file_list_view = FileListView()
         self.file_util = file_util
         self._signals_connected = False
         self._container = QWidget()
@@ -34,7 +35,9 @@ class FileList(BaseWidget):
 
         self.title_widget = self._build_title_widget()
         layout.addWidget(self.title_widget)
-        layout.addWidget(self.file_view)
+        layout.addWidget(self.file_list_view)
+
+        self.apply_theme()
 
         self.connect_sigs()
         return self._container
@@ -42,8 +45,8 @@ class FileList(BaseWidget):
     def _build_container(self) -> QWidget:
         container = QWidget()
         container.setObjectName("fileListContainer")
-        container.setStyleSheet(APP_THEME.container_qss())
-        container.setFixedHeight(120)
+        # container.setStyleSheet(APP_THEME.container_qss())
+        container.setMaximumHeight(120)
         return container
 
     def _build_title_widget(self) -> QWidget:
@@ -53,12 +56,12 @@ class FileList(BaseWidget):
         layout.setSpacing(5)
 
         self.title_label = QLabel("Folder Contents:")
-        self.title_label.setStyleSheet(APP_THEME.label_qss("small"))
+        # self.title_label.setStyleSheet(APP_THEME.label_qss("small"))
 
         self.help_icon = QLabel("?")
-        self.help_icon.setStyleSheet(APP_THEME.help_icon_label_qss())
-        self.help_icon.setFixedSize(16, 16)
-        self.help_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # self.help_icon.setStyleSheet(APP_THEME.help_icon_label_qss())
+        # self.help_icon.setFixedSize(16, 16)
+        # self.help_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         tooltip = (
             "File List Usage:\n"
@@ -80,7 +83,7 @@ class FileList(BaseWidget):
         self.explorer_button.setIconSize(
             QSize(APP_THEME.icon_size, APP_THEME.icon_size)
         )
-        self.explorer_button.setStyleSheet(APP_THEME.small_button_qss())
+        # self.explorer_button.setStyleSheet(APP_THEME.small_button_qss())
         self.explorer_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.explorer_button.clicked.connect(self._on_open_folder_clicked)
         self.explorer_button.setVisible(False)
@@ -93,7 +96,7 @@ class FileList(BaseWidget):
         return widget
 
     def _on_open_folder_clicked(self) -> None:
-        folder_path = self.file_view.property("current_folder")
+        folder_path = self.file_list_view.property("current_folder")
         if folder_path and os.path.exists(folder_path):
             QDesktopServices.openUrl(QUrl.fromLocalFile(folder_path))
 
@@ -104,21 +107,21 @@ class FileList(BaseWidget):
     def connect_sigs(self):
         if self._signals_connected:
             return
-        self.file_view.sig_file_selected.connect(self._handle_file_selected_intent)
-        self.file_view.connect_sigs()
+        self.file_list_view.sig_file_selected.connect(self._handle_file_selected_intent)
+        self.file_list_view.connect_sigs()
         self._signals_connected = True
 
     def refresh(self, folder_path: str) -> None:
-        if self.file_view.property("current_folder") == folder_path:
+        if self.file_list_view.property("current_folder") == folder_path:
             return
         self.update_file_list(folder_path)
 
     def set_selected_file(self, file_path: str) -> None:
-        self.file_view.set_selected_file(file_path)
+        self.file_list_view.set_selected_file(file_path)
 
     def update_file_list(self, folder_path: str) -> None:
-        self.file_view.setProperty("current_folder", folder_path)
-        self.file_view.clear()
+        self.file_list_view.setProperty("current_folder", folder_path)
+        self.file_list_view.clear()
 
         if not folder_path:
             self.title_label.setText("Folder Contents:")
@@ -127,7 +130,7 @@ class FileList(BaseWidget):
 
         items = self.file_util.get_child_files(folder_path)
         for item in items:
-            self.file_view.add_file_item(item)
+            self.file_list_view.add_file_item(item)
 
         count = len(items)
         self.title_label.setText(f"Folder Contents: ({count})")
@@ -147,15 +150,17 @@ class FileList(BaseWidget):
             self.connect_sigs()
 
     def apply_theme(self) -> None:
+
+        # self.file_list_view.apply_theme()
+
         font = QFont(APP_THEME.font_family, APP_THEME.font_size)
         self._container.setStyleSheet(APP_THEME.container_qss())
         self._container.setFont(font)
 
         self.title_label.setStyleSheet(APP_THEME.label_qss("small"))
-        self.help_icon.setStyleSheet(
-            APP_THEME.label_qss("small")
-            + "; border: 1px solid palette(text); border-radius: 8px;"
-        )
-        self.explorer_button.setStyleSheet(APP_THEME.small_button_qss())
 
-        self.file_view.apply_theme()
+        self.help_icon.setStyleSheet(APP_THEME.help_icon_label_qss())
+        self.help_icon.setFixedSize(16, 16)
+        self.help_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.explorer_button.setStyleSheet(APP_THEME.small_button_qss())

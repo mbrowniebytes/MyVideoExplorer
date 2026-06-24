@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Signal
-from MyVideoExplorer.app.app_signals_model import SignalPayload, SignalFlow
-from PySide6.QtWidgets import QHBoxLayout, QPushButton, QWidget
+from PySide6.QtGui import QFont
+from PySide6.QtWidgets import QHBoxLayout, QPushButton, QSizePolicy, QWidget
 
-from MyVideoExplorer.media_info_section.media_info_section_definitions import get_media_info_toolbar_section_definitions
+from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
+from MyVideoExplorer.media_info_section.media_info_section_definitions import (
+    get_media_info_toolbar_section_definitions,
+)
 from MyVideoExplorer.theme.theme import APP_THEME
 
 
@@ -29,7 +32,9 @@ class MediaInfoToolbarWidget(QWidget):
         self.section_toggle_buttons_by_id.clear()
         self._clear_toolbar_layout()
 
-        for section_id, section_label in get_media_info_toolbar_section_definitions(view_mode):
+        for section_id, section_label in get_media_info_toolbar_section_definitions(
+            view_mode
+        ):
             self._add_section_toggle_button(section_id, section_label)
 
         self._add_play_button()
@@ -40,15 +45,25 @@ class MediaInfoToolbarWidget(QWidget):
             section_toggle_button.setChecked(is_checked)
 
     def apply_theme(self) -> None:
-        for toolbar_button in self.findChildren(QPushButton):
-            toolbar_button.setStyleSheet(APP_THEME.small_button_qss())
+        pass
 
-    def _add_section_toggle_button(self, section_id: str, section_label: str) -> QPushButton:
+    def _add_section_toggle_button(
+        self, section_id: str, section_label: str
+    ) -> QPushButton:
         section_toggle_button = QPushButton(section_label)
+        section_toggle_button.setObjectName("media_info_toolbar_toggle_button")
         section_toggle_button.setCheckable(True)
         section_toggle_button.setChecked(True)
-        section_toggle_button.setFixedSize(100, 25)
+        # section_toggle_button.setFixedSize(100, 25)
+        section_toggle_button.setMinimumWidth(100)
+        section_toggle_button.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+
         section_toggle_button.setStyleSheet(APP_THEME.small_button_qss())
+        font = QFont(APP_THEME.font_family, APP_THEME.font_size - 8)
+        section_toggle_button.setFont(font)
+
         section_toggle_button.clicked.connect(
             lambda _: self._on_section_toggle_clicked(section_id)
         )
@@ -70,8 +85,8 @@ class MediaInfoToolbarWidget(QWidget):
 
     def _add_play_button(self) -> QPushButton:
         play_video_button = QPushButton("▶")
+        play_video_button.setObjectName("media_info_toolbar_play_button")
         play_video_button.setMinimumWidth(40)
-        play_video_button.setStyleSheet(APP_THEME.small_button_qss())
         play_video_button.clicked.connect(
             lambda: self.sig_play_video_requested.emit(
                 SignalPayload(

@@ -13,7 +13,7 @@ def test_refresh_on_signal(qtbot):
             settings = MagicMock()
             settings.settings_data_model = state
 
-            folder_filter = FolderFilterMedia(settings)
+            folder_filter = FolderFilterMedia(settings, mock_log_util)
             qtbot.addWidget(folder_filter)
 
             # Check initial button label

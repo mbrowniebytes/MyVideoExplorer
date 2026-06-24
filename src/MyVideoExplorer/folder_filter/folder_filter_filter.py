@@ -11,7 +11,10 @@ from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 
 class FolderFilterFilter:
     def __init__(
-        self, nfo_parse_util: NfoParseUtil, folder_configs: list[dict] = None, log_util: LogUtil = None
+        self,
+        nfo_parse_util: NfoParseUtil,
+        folder_configs: list[dict] = None,
+        log_util: LogUtil = None,
     ):
         self.log_util = log_util
         self.nfo_parse_util = nfo_parse_util
@@ -83,7 +86,6 @@ class FolderFilterFilter:
             for filter_value in values:
                 # print(f"filter_type:{filter_type} filter_value:{filter_value}")
                 if filter_type == "media":
-
                     if self._matches_media_filter(item, filter_value):
                         type_match = True
                         break
@@ -210,6 +212,7 @@ class FolderFilterFilter:
         return bool(value) and needle in value.casefold()
 
     def apply_theme(self) -> None:
+        return
         self.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
         self.setStyleSheet(APP_THEME.container_qss())
 

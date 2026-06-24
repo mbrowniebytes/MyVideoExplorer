@@ -1,40 +1,49 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QPushButton
-from MyVideoExplorer.theme.theme import APP_THEME
+from PySide6.QtGui import QFont
+from PySide6.QtWidgets import QHBoxLayout, QPushButton
+
 from MyVideoExplorer.settings.settings import Settings
+from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.utils.log_util import LogUtil
+from MyVideoExplorer.widgets.base_widget import BaseWidget
 
 
-class FolderFilterMedia(QWidget):
+class FolderFilterMedia(BaseWidget):
     sig_apply_filters = Signal()
 
-    def __init__(self, settings: Settings, parent=None):
-        super().__init__(parent)
+    def __init__(self, settings: Settings, log_util: LogUtil, parent=None):
+        super().__init__(log_util, parent)
         self.settings = settings
         self.media_button_group: list[QPushButton] = []
         self.media_layout = QHBoxLayout(self)
         self.media_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.all_none_button = QPushButton("")
+        self.all_none_button = QPushButton("O")
+        self.all_none_button.setObjectName("folder_filter_media_nav_button")
         self.all_none_button.setCheckable(True)
         self.all_none_button.setChecked(False)
         self.all_none_button.setMinimumHeight(32)
         self.all_none_button.setFixedWidth(32)
+
         self.all_none_button.setStyleSheet(APP_THEME.small_button_qss())
+
         self.all_none_button.clicked.connect(self._toggle_all_media_clicked)
         self.media_layout.addWidget(self.all_none_button)
 
         self._build_buttons()
-        self.settings.settings_data_model.sig_settings_changed.connect(self.refresh_buttons)
+        self.settings.settings_data_model.sig_settings_changed.connect(
+            self.refresh_buttons
+        )
 
     def _build_buttons(self) -> None:
         # Map labels to their associated paths and icons (handle multiple paths per label)
 
         # Group configs by label, storing path->icon mapping
-        label_to_info: dict[str, list[tuple[str, str]]] = (
-            {}
-        )  # label -> [(path, icon_name), ...]
+        label_to_info: dict[
+            str, list[tuple[str, str]]
+        ] = {}  # label -> [(path, icon_name), ...]
 
         for config in self.settings.settings_data_model.folder_configs:
             label = config.get("label", "")
@@ -73,18 +82,16 @@ class FolderFilterMedia(QWidget):
                 # Default to folder icon if no valid icon found
                 display_icon_name = "fa5s.folder"
 
+            btn = QPushButton(abbrev)
+            btn.setObjectName("folder_filter_media_nav_button")
+            btn.setToolTip(label)
+            btn.setCheckable(True)
+            # No longer manually applying small_button_qss; ThemeManager will apply it based on objectName
+
             qicon = APP_THEME.icon(display_icon_name)
             if qicon:
                 icon_pixmap = qicon.pixmap(18, 18)
-            else:
-                icon_pixmap = None
-
-            btn = QPushButton(abbrev)
-            btn.setToolTip(label)
-            btn.setCheckable(True)
-            btn.setMinimumHeight(32)
-            btn.setIcon(icon_pixmap)
-            btn.setStyleSheet(APP_THEME.small_button_qss())
+                btn.setIcon(icon_pixmap)
 
             # Collect all paths for this label (filter out duplicates if same path appears multiple times)
             unique_paths = list(
@@ -92,6 +99,10 @@ class FolderFilterMedia(QWidget):
             )  # keep order, remove dupes
 
             btn.setProperty("media_paths", unique_paths)
+
+            # btn.setMaximumHeight(32)
+            btn.setStyleSheet(APP_THEME.small_button_qss())
+            btn.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size - 2))
 
             # Signal emission is handled by parent or via a local signal
             btn.clicked.connect(self._on_button_clicked)
@@ -104,6 +115,8 @@ class FolderFilterMedia(QWidget):
         self.sig_apply_filters.emit()
 
     def _toggle_all_media_clicked(self) -> None:
+        self._update_all_none_text()
+
         any_unchecked = any(not btn.isChecked() for btn in self.media_button_group)
         new_state = any_unchecked
         for btn in self.media_button_group:
@@ -115,9 +128,9 @@ class FolderFilterMedia(QWidget):
     def _update_all_none_text(self) -> None:
         any_unchecked = any(not btn.isChecked() for btn in self.media_button_group)
         if any_unchecked:
-            self.all_none_button.setText("All")
+            self.all_none_button.setText("-")
         else:
-            self.all_none_button.setText("None")
+            self.all_none_button.setText("O")
 
     def refresh_buttons(self) -> None:
         # Clear existing
@@ -143,3 +156,7 @@ class FolderFilterMedia(QWidget):
                 if paths:
                     filters.append({"filter": "media", "value": paths})
         return filters
+
+    def apply_theme(self) -> None:
+        # Generic BaseWidget.apply_theme handles recursion
+        super().apply_theme()

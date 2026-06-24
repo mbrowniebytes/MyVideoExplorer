@@ -110,13 +110,18 @@ class TestMediaInfoView:
 
     def test_apply_theme(self, media_info_view, mock_nfo_data):
         media_info_view.build_from_movie_info(mock_nfo_data)
-        with patch("MyVideoExplorer.media_info.media_info_view.APP_THEME") as mock_theme:
-            mock_theme.font_family = "Arial"
-            mock_theme.font_size = 14
-            mock_theme.container_qss.return_value = "background-color: black;"
-            mock_theme.small_button_qss.return_value = "color: white;"
+        from MyVideoExplorer.theme.theme import APP_THEME
+
+        # We mock refresh_theme to see if it's called, but we want it to actually run
+        # or at least we want to see if apply_theme() sets the font.
+        # Actually, if we mock it, the original refresh_theme (which now sets the font)
+        # won't run.
+
+        with patch.object(APP_THEME, "refresh_theme", wraps=APP_THEME.refresh_theme) as mock_refresh:
+            APP_THEME.config.font_family_default = "Arial"
+            APP_THEME.config.font_size_base = 14
 
             media_info_view.apply_theme()
 
-            assert media_info_view.font().family() == "Arial"
-            assert "background-color: black;" in media_info_view.styleSheet()
+            mock_refresh.assert_called()
+            assert media_info_view.font().pixelSize() == 14

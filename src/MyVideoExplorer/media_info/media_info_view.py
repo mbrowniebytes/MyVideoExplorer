@@ -1,15 +1,19 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Signal, QTimer
-from MyVideoExplorer.app.app_signals_model import SignalPayload, SignalFlow
-from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtCore import QTimer, Signal
+from PySide6.QtWidgets import QVBoxLayout
 
-from MyVideoExplorer.media_info_section.media_info_section_actors import MediaInfoActorsSection
-from MyVideoExplorer.media_info_section.media_info_section_common import MediaInfoCommonSection
-from MyVideoExplorer.media_info_section.media_info_section_details import MediaInfoDetailsSection
-from MyVideoExplorer.media_info_section.media_info_section_plot import MediaInfoPlotSection
-from MyVideoExplorer.media_info.media_info_scroll_content_widget import MediaInfoScrollContentWidget
+from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
+from MyVideoExplorer.media_info.media_info_scroll_content_widget import (
+    MediaInfoScrollContentWidget,
+)
+from MyVideoExplorer.media_info.media_info_toolbar_widget import MediaInfoToolbarWidget
+from MyVideoExplorer.media_info_section.media_info_section_actors import (
+    MediaInfoActorsSection,
+)
+from MyVideoExplorer.media_info_section.media_info_section_common import (
+    MediaInfoCommonSection,
+)
 from MyVideoExplorer.media_info_section.media_info_section_definitions import (
     MEDIA_INFO_SECTION_ACTORS,
     MEDIA_INFO_SECTION_AUDIOS,
@@ -22,7 +26,12 @@ from MyVideoExplorer.media_info_section.media_info_section_definitions import (
     MEDIA_INFO_VIEW_MODE_DEFAULT,
     MEDIA_INFO_VIEW_MODE_IMAGE_LIST,
 )
-from MyVideoExplorer.media_info.media_info_toolbar_widget import MediaInfoToolbarWidget
+from MyVideoExplorer.media_info_section.media_info_section_details import (
+    MediaInfoDetailsSection,
+)
+from MyVideoExplorer.media_info_section.media_info_section_plot import (
+    MediaInfoPlotSection,
+)
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
@@ -48,7 +57,7 @@ class MediaInfoView(BaseWidget):
         self.view_mode = MEDIA_INFO_VIEW_MODE_DEFAULT
 
         self.toolbar_widget = MediaInfoToolbarWidget()
-        self.scroll_content_widget = MediaInfoScrollContentWidget()
+        self.scroll_content_widget = MediaInfoScrollContentWidget(log_util)
 
         self.common_section = MediaInfoCommonSection(self.str_util)
         self.plot_section = MediaInfoPlotSection()
@@ -91,6 +100,8 @@ class MediaInfoView(BaseWidget):
         parsed_movie_info = self.nfo_parse_util.parse_nfo(folder_path=folder_path)
         self.set_movie_info(parsed_movie_info)
 
+        self.apply_theme()
+
     def clear_nfo(self) -> None:
         self.scroll_content_widget.clear_for_empty_nfo()
         self.toolbar_widget.rebuild_for_view_mode(self.view_mode)
@@ -125,16 +136,15 @@ class MediaInfoView(BaseWidget):
         )
 
     def apply_theme(self) -> None:
-        application_font = QFont(APP_THEME.font_family, APP_THEME.font_size)
+        super().apply_theme()
 
-        self.setStyleSheet(APP_THEME.container_qss())
-        self.setFont(application_font)
-
-        self.toolbar_widget.apply_theme()
-        self.scroll_content_widget.apply_theme()
+        self.common_section.apply_theme()
         self.plot_section.apply_theme()
-
-        self._refresh_child_fonts(application_font)
+        self.ids_section.apply_theme()
+        self.videos_section.apply_theme()
+        self.audios_section.apply_theme()
+        self.subtitles_section.apply_theme()
+        self.actors_section.apply_theme()
 
     def _build_or_update_sections(self, movie_info: dict) -> None:
         self._build_common_section(movie_info)
@@ -151,6 +161,7 @@ class MediaInfoView(BaseWidget):
             MEDIA_INFO_SECTION_COMMON,
             self.common_section,
         )
+        self.common_section.apply_theme()
 
     def _build_ids_section(self, movie_info: dict) -> None:
         self.ids_section.build_ids(movie_info.get("ids", []))
@@ -158,6 +169,7 @@ class MediaInfoView(BaseWidget):
             MEDIA_INFO_SECTION_IDS,
             self.ids_section,
         )
+        self.ids_section.apply_theme()
 
     def _build_plot_section(self, movie_info: dict) -> None:
         self.plot_section.build(movie_info.get("plot", ""))
@@ -165,6 +177,7 @@ class MediaInfoView(BaseWidget):
             MEDIA_INFO_SECTION_PLOT,
             self.plot_section,
         )
+        self.plot_section.apply_theme()
 
     def _build_media_stream_sections(self, movie_info: dict) -> None:
         if self.view_mode == MEDIA_INFO_VIEW_MODE_IMAGE_LIST:
@@ -176,18 +189,21 @@ class MediaInfoView(BaseWidget):
             MEDIA_INFO_SECTION_VIDEOS,
             self.videos_section,
         )
+        self.videos_section.apply_theme()
 
         self.audios_section.build_audios(movie_info.get("audios", []))
         self.scroll_content_widget.add_section_if_missing(
             MEDIA_INFO_SECTION_AUDIOS,
             self.audios_section,
         )
+        self.audios_section.apply_theme()
 
         self.subtitles_section.build_subtitles(movie_info.get("subtitles", []))
         self.scroll_content_widget.add_section_if_missing(
             MEDIA_INFO_SECTION_SUBTITLES,
             self.subtitles_section,
         )
+        self.subtitles_section.apply_theme()
 
     def _remove_sections_hidden_in_image_list(self) -> None:
         for section_id in MEDIA_INFO_SECTIONS_HIDDEN_IN_IMAGE_LIST:
@@ -199,18 +215,14 @@ class MediaInfoView(BaseWidget):
             MEDIA_INFO_SECTION_ACTORS,
             self.actors_section,
         )
+        self.actors_section.apply_theme()
 
     def _toggle_section(self, section_id: str) -> None:
-        is_section_visible = self.scroll_content_widget.toggle_section_visibility(section_id)
+        is_section_visible = self.scroll_content_widget.toggle_section_visibility(
+            section_id
+        )
 
         if is_section_visible is not None:
-            self.toolbar_widget.set_section_toggle_checked(section_id, is_section_visible)
-
-    def _refresh_child_fonts(self, font: QFont) -> None:
-        for child_widget in self.findChildren(QWidget):
-            if isinstance(child_widget, (QLabel, QPushButton)):
-                child_widget.setFont(font)
-
-            # SimpleTable handles its own theme.
-            if hasattr(child_widget, "apply_theme") and child_widget != self:
-                child_widget.apply_theme()
+            self.toolbar_widget.set_section_toggle_checked(
+                section_id, is_section_visible
+            )

@@ -1,21 +1,28 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QFrame, QVBoxLayout
+from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from MyVideoExplorer.media_info_side.media_info_side_facts_widget import MediaInfoSideFactsWidget
 from MyVideoExplorer.media_info_side.media_info_side_header_widget import MediaInfoSideHeaderWidget
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.str_util import StrUtil
+from MyVideoExplorer.widgets.base_widget import BaseWidget
 
 
-class MediaInfoSideContentWidget(QFrame):
+class MediaInfoSideContentWidget(BaseWidget):
     """Reusable framed side panel content for media metadata and quick actions."""
 
     sig_play_video_requested = Signal(object)
 
-    def __init__(self, str_util: StrUtil, parent: QFrame | None = None) -> None:
-        super().__init__(parent)
+    def __init__(
+        self,
+        str_util: StrUtil,
+        log_util: LogUtil | None = None,
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(log_util or LogUtil(), parent)
 
         self.setObjectName("side_media_info")
 
@@ -38,6 +45,7 @@ class MediaInfoSideContentWidget(QFrame):
         self.facts_widget.update_from_movie_info(movie_info)
 
     def apply_theme(self) -> None:
+        super().apply_theme()
         self.setStyleSheet(APP_THEME.container_qss())
         self.header_widget.apply_theme()
         self.facts_widget.apply_theme()

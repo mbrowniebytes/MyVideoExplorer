@@ -1,24 +1,25 @@
 from pathlib import Path
+
 from MyVideoExplorer.app.app_controller import AppController
 from MyVideoExplorer.app.app_signals import SignalRegistry
 from MyVideoExplorer.file_list.file_list import FileList
-from MyVideoExplorer.folder_list.folder_list import FolderList
-from MyVideoExplorer.folder_nav.folder_nav import FolderNav
 from MyVideoExplorer.folder_filter.folder_filter import FolderFilters
 from MyVideoExplorer.folder_filter.folder_filter_filter import FolderFilterFilter
+from MyVideoExplorer.folder_list.folder_list import FolderList
+from MyVideoExplorer.folder_nav.folder_nav import FolderNav
 from MyVideoExplorer.image_list.image_list import ImageList
 from MyVideoExplorer.image_list.image_list_view import ImageListView
 from MyVideoExplorer.media_info.media_info import MediaInfo
-from MyVideoExplorer.media_info_side.media_info_side_view import MediaInfoSideView
 from MyVideoExplorer.media_info.media_info_view import MediaInfoView
+from MyVideoExplorer.media_info_side.media_info_side_view import MediaInfoSideView
 from MyVideoExplorer.media_info_tabs.media_info_tabs import MediaInfoTabs
 from MyVideoExplorer.settings.settings import Settings
-from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
+from MyVideoExplorer.utils.json_util import JsonUtil
+from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.utils.str_util import StrUtil
-from MyVideoExplorer.utils.json_util import JsonUtil
 from MyVideoExplorer.video_player.video_player import VideoPlayer
 
 
@@ -191,13 +192,13 @@ class AppContainer:
     def _on_folder_selected(self, folder_path: str) -> None:
         # We still want to avoid circular updates if everything is already in sync
         if (
-            self.folder_list.folder_view.property("last_selected_folder") == folder_path
+            self.folder_list.folder_list_view.property("last_selected_folder") == folder_path
             and self.controller.state.current_folder == folder_path
             and self.media_info.folder_path == folder_path
         ):
             return
 
-        self.folder_list.folder_view.setProperty("last_selected_folder", folder_path)
+        self.folder_list.folder_list_view.setProperty("last_selected_folder", folder_path)
         # print(f"_on_folder_selected:{folder_path}")
 
         self.folder_list.set_selected_folder(folder_path)

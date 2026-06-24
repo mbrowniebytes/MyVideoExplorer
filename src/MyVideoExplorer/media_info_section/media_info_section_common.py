@@ -1,22 +1,22 @@
 from __future__ import annotations
 
-from time import sleep
 
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QSizePolicy, QVBoxLayout
 
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.str_util import StrUtil
+from MyVideoExplorer.widgets.base_widget import BaseWidget
 from MyVideoExplorer.widgets.label_value_widget import LabelValueWidget
-
 
 type MediaInfoField = tuple[str, object]
 type MediaInfoFieldRow = list[MediaInfoField]
 type MediaInfoFieldRows = list[MediaInfoFieldRow]
 
 
-class MediaInfoCommonSection(QFrame):
-    def __init__(self, str_util: StrUtil, parent=None):
-        super().__init__(parent)
+class MediaInfoCommonSection(BaseWidget):
+    def __init__(self, str_util: StrUtil, log_util: LogUtil | None = None, parent=None):
+        super().__init__(log_util or LogUtil(), parent)
         self._current_view_mode = ""
         self._current_nfo = {}
         self.setObjectName("section_common")
@@ -27,11 +27,13 @@ class MediaInfoCommonSection(QFrame):
         self.layout.setSpacing(4)
         self.str_util = str_util
 
+    def apply_theme(self) -> None:
+        super().apply_theme()
+        self.setStyleSheet(APP_THEME.table_qss())
+        self.setStyleSheet(APP_THEME.bottom_border_qss())
+
     def build(self, nfo: dict, view_mode: str) -> None:
-        if (
-            self._current_nfo == nfo
-            and self._current_view_mode == view_mode
-        ):
+        if self._current_nfo == nfo and self._current_view_mode == view_mode:
             return
 
         self._current_nfo = nfo
@@ -101,7 +103,9 @@ class MediaInfoCommonSection(QFrame):
             row_layout.setContentsMargins(0, 0, 0, 0)
             row_layout.setSpacing(4)
             for label, value in row:
-                lvw = LabelValueWidget(name=label, value=value, parent=self)
+                lvw = LabelValueWidget(
+                    name=label, value=value, log_util=self.log_util, parent=self
+                )
                 row_layout.addWidget(lvw)
             col_layout.addLayout(row_layout)
         self.layout.addLayout(col_layout)
