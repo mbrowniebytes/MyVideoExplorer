@@ -9,6 +9,7 @@ class ThemeConfig:
     # "Segoe UI" default windows
     # "Source Sans Pro" "Montserrat" "Lato" "Nunito"
     # "Righteous" "SyneMono"
+    # "IrishGrover" "Righteous" "Schoolbell"
     font_family_default: str = "Lato, Segoe UI"
     font_size_base: int = 18
 
