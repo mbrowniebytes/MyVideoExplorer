@@ -77,6 +77,8 @@ class MediaInfo(BaseWidget):
 
     def apply_theme(self) -> None:
         super().apply_theme()
+        self.media_info_view.apply_theme()
+        self.media_info_side_view.apply_theme()
 
     def _connect_child_signals(self) -> None:
         if self._are_child_signals_connected:

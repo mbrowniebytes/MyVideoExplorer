@@ -128,8 +128,8 @@ class MediaInfoTabs(BaseWidget):
         self.tab_container.setFont(font)
         self.tab_container.setStyleSheet(APP_THEME.tabs_qss())
 
-        # if self.media_info:
-        #     self.media_info.apply_theme()
+        if self.media_info:
+            self.media_info.apply_theme()
 
         # for i in range(self.tab_container.count()):
         #     widget = self.tab_container.widget(i)

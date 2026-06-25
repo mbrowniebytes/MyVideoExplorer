@@ -22,8 +22,11 @@ class FolderListView(QListWidget):
         if self._signals_connected:
             return
         self.itemClicked.connect(self._on_item_clicked)
-        APP_THEME.setup_list_widget(self)
+        self.apply_theme()
         self._signals_connected = True
+
+    def apply_theme(self) -> None:
+        APP_THEME.setup_list_widget(self)
 
     def _on_item_clicked(self, item: QListWidgetItem) -> None:
         folder_path = item.data(Qt.ItemDataRole.UserRole)

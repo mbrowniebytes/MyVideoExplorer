@@ -11,6 +11,7 @@ class StyleFactory:
                 background: {c.color_background_main};
                 color: {c.color_text_primary};
                 font-family: {c.font_family_default};
+                font-size: {c.font_size_base}px;
             }}
             QMainWindow {{
                 background: {c.color_background_main};

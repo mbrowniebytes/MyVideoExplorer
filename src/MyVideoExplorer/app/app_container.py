@@ -16,6 +16,7 @@ from MyVideoExplorer.media_info_tabs.media_info_tabs import MediaInfoTabs
 from MyVideoExplorer.settings.settings import Settings
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
+from MyVideoExplorer.utils.font_util import FontUtil
 from MyVideoExplorer.utils.json_util import JsonUtil
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
@@ -60,6 +61,7 @@ class AppContainer:
             self.file_util = FileUtil(self.log_util)
             self.nfo_parse_util = NfoParseUtil(self.file_util, self.log_util)
             self.str_util = StrUtil(self.log_util)
+            self.font_util = FontUtil(self.log_util)
 
             self.signals = SignalRegistry()
             self.controller = AppController(self.log_util, self.signals)
@@ -205,6 +207,9 @@ class AppContainer:
 
         self.file_list.refresh(folder_path)
         self.image_list.refresh(folder_path)
+
+        if self.image_list.selected_image_path:
+            self.file_list.set_selected_file(self.image_list.selected_image_path)
 
         self.video_player.set_folder_path(folder_path)
         self.media_info.refresh(folder_path, self.controller.state.current_tab)

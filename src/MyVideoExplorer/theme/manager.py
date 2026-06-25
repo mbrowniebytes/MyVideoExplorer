@@ -116,8 +116,8 @@ class ThemeManager:
             self.setup_combo_box(widget)
         elif isinstance(widget, QTabBar):
             self.setup_tabs(widget)
-        # elif isinstance(widget, QTabWidget):
-        #     self.setup_tab_widget(widget)
+        elif isinstance(widget, QTabWidget):
+            self.setup_tab_widget(widget)
         elif isinstance(widget, (QToolButton, QPushButton, QCheckBox, QRadioButton)):
             self.setup_button(widget)
         elif isinstance(widget, (QPlainTextEdit, QLineEdit, QSpinBox)):

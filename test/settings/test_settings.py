@@ -54,8 +54,13 @@ class TestSettings:
 
         initial_size = APP_THEME.font_size
         try:
-            settings.ui_settings_tab._on_font_size_changed(initial_size + 2)
-            assert APP_THEME.font_size == initial_size + 2
+            # The combo box items are 15 to 25 (indices 0 to 10)
+            # initial_size is 14. We want 16.
+            # 16 - 15 = 1 (index 1)
+            target_size = initial_size + 2
+            target_index = target_size - 15
+            settings.ui_settings_tab._on_font_size_changed(target_index)
+            assert APP_THEME.font_size == target_size
         finally:
             APP_THEME.font_size = initial_size
 

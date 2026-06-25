@@ -76,6 +76,8 @@ class Settings(BaseWidget):
 
         main_layout.addWidget(self.settings_tabs_container)
 
+        self.apply_theme()
+
     @staticmethod
     def _add_spacer_tab(tab_widget: QTabWidget, tab_bar: QTabBar) -> None:
         """Adds a disabled spacer tab to align other tabs to the right."""

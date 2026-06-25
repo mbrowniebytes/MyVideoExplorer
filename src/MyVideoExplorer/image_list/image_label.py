@@ -103,6 +103,7 @@ class ImageLabel(QLabel):
                     APP_THEME.config.size_border_radius_standard,
                     APP_THEME.config.size_border_radius_standard
                 )
+                painter.setOpacity(0.5)
         except Exception as e:
             if self.log_util:
                 self.log_util.error(f"Error in paintEvent: {str(e)}")

@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.image_list.image_title_widget import ImageTitleWidget
+from MyVideoExplorer.utils.log_util import LogUtil
 
 if TYPE_CHECKING:
     from MyVideoExplorer.file_list.file_list import FileList
@@ -38,7 +39,7 @@ class ImageListView(BaseWidget):
         str_util: StrUtil,
         media_info_side_view: MediaInfoSideView,
         file_list: FileList,
-        log_util,
+        log_util:LogUtil,
     ) -> None:
         super().__init__(log_util)
         self.str_util = str_util
@@ -153,6 +154,7 @@ class ImageListView(BaseWidget):
     def apply_theme(self) -> None:
         # super().apply_theme()
         font = QFont(APP_THEME.font_family, APP_THEME.font_size)
+        self.setFont(font)
 
         self.title_widget.apply_theme()
         self.preview_widget.apply_theme()

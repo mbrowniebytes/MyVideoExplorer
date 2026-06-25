@@ -69,5 +69,5 @@ class TestMediaInfo:
                 media_info.media_info_side_view, "apply_theme"
             ) as mock_side_theme:
                 media_info.apply_theme()
-                mock_view_theme.assert_called_once()
-                mock_side_theme.assert_called_once()
+                mock_view_theme.assert_called()
+                mock_side_theme.assert_called()

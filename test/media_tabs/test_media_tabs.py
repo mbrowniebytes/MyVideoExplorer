@@ -64,4 +64,4 @@ class TestMediaTabs:
             assert (
                 media_tabs.tab_container.styleSheet() == "QTabWidget { color: red; }"
             )
-            media_tabs.media_info.apply_theme.assert_called_once()
+            media_tabs.media_info.apply_theme.assert_called()

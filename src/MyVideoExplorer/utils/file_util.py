@@ -21,6 +21,14 @@ from MyVideoExplorer.app.app_environment import IS_DEVELOPMENT
 class FileUtil:
     """Utility class for filesystem traversal, classification, and metadata extraction."""
 
+    def __init__(self, log_util: LogUtil) -> None:
+        self.log_util = log_util
+        self.file_type = FileUtilType()
+        self._scan_lock = threading.Lock()
+        self.active_tasks: list[dict] = []
+
+        self.log_util.debug(f"__init__ {self.__class__.__name__}")
+
     @staticmethod
     def get_resource_path(relative_path: str) -> str:
         """Get absolute path to resource, works for dev and for PyInstaller."""
@@ -31,14 +39,6 @@ class FileUtil:
             base_path = os.path.abspath("")
 
         return os.path.join(base_path, relative_path)
-
-    def __init__(self, log_util: LogUtil) -> None:
-        self.log_util = log_util
-        self.file_type = FileUtilType()
-        self._scan_lock = threading.Lock()
-        self.active_tasks: list[dict] = []
-
-        self.log_util.debug(f"__init__ {self.__class__.__name__}")
 
     def _scan_directory(self, path: Path) -> list[os.DirEntry[str]]:
         """Safely scan a directory and return entries sorted by name."""

@@ -150,8 +150,7 @@ class FileList(BaseWidget):
             self.connect_sigs()
 
     def apply_theme(self) -> None:
-
-        # self.file_list_view.apply_theme()
+        self.file_list_view.apply_theme()
 
         font = QFont(APP_THEME.font_family, APP_THEME.font_size)
         self._container.setStyleSheet(APP_THEME.container_qss())

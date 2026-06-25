@@ -96,6 +96,7 @@ class TestFileList:
                 mock_theme.list_qss.return_value = "list { color: yellow; }"
                 mock_theme.label_qss.return_value = "label { color: green; }"
                 mock_theme.small_button_qss.return_value = "button { color: red; }"
+                mock_theme.help_icon_label_qss.return_value = "help_icon { color: orange; }"
 
             file_list.apply_theme()
 

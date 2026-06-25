@@ -5,7 +5,10 @@ class ThemeConfig:
     """Holds all raw values for the application theme."""
 
     # Typography
-    font_family_default: str = "Segoe UI"
+    # "Segoe UI" default windows
+    # "Source Sans Pro" "Montserrat" "Lato" "Nunito"
+    # "Righteous" "SyneMono"
+    font_family_default: str = "Lato, Segoe UI"
     font_size_base: int = 18
 
     # Color Palette - Backgrounds
@@ -31,8 +34,8 @@ class ThemeConfig:
     color_interaction_selected_text: str = "#FFFFFF"
 
     # Highlight QPixmap inside QLabel
-    color_interaction_pixmap: str = "#2B6296CC"
-    size_interaction_pixmap: int = 7
+    color_interaction_pixmap: str = "#1B6166AA"
+    size_interaction_pixmap: int = 20
 
     # Scrollbar & Splitters
     color_scrollbar_background: str = "#1E1E1E"

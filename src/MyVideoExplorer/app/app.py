@@ -16,7 +16,6 @@ from MyVideoExplorer.app.app_container import AppContainer
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil
 
-
 class App:
     def __init__(
         self,
@@ -26,6 +25,9 @@ class App:
         self.window: QMainWindow = QMainWindow()
         self.app = app
         self.container = container
+
+        self.font_util = container.font_util
+
         self.controller = container.controller
         self.folder_nav = container.folder_nav
         self.folder_list = container.folder_list
@@ -36,6 +38,8 @@ class App:
         self.media_info = container.media_info
 
     def build(self) -> QMainWindow:
+        self.font_util.load_custom_fonts(Path("assets/fonts"))
+        
         self._create_app_icon()
         self.window.setWindowTitle("MyVideoExplorer")
         self.window.resize(1400, 900)

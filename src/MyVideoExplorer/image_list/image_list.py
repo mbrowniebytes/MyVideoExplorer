@@ -10,6 +10,7 @@ from MyVideoExplorer.file_list.file_list import FileList
 from MyVideoExplorer.image_list.image_list_view import ImageListView
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil
+from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.utils.str_util import StrUtil
 
@@ -31,7 +32,7 @@ class ImageList(BaseWidget):
         str_util: StrUtil,
         image_list_view: ImageListView,
         file_list: FileList,
-        log_util=None,
+        log_util: LogUtil,
     ) -> None:
         super().__init__(log_util)
         self.nfo_parse_util = nfo_parse_util

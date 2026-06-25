@@ -77,6 +77,7 @@ class FolderList(BaseWidget):
         else:
             self.folder_list_view.show_loading_state()
 
+        self.folder_list_view.apply_theme()
         self.connect_sigs()
         return self._container
 
@@ -179,9 +180,12 @@ class FolderList(BaseWidget):
 
     def apply_theme(self) -> None:
         # super().apply_theme()
+        self.folder_list_view.apply_theme()
         font = QFont(APP_THEME.font_family, APP_THEME.font_size)
 
+        self._container.setStyleSheet(APP_THEME.container_qss())
         self._container.setFont(font)
+        self.folder_list_view.setFont(font)
 
         self.title_label.setStyleSheet(APP_THEME.label_qss())
         self.help_icon.setStyleSheet(
