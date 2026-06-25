@@ -2,11 +2,11 @@ import pytest
 from unittest.mock import MagicMock, patch
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QWidget
-from src.image_list.image_list_view import ImageListView
-from src.file_list.file_list import FileList
-from src.media_info_side.media_info_side_view import MediaInfoSideView
-from src.utils.str_util import StrUtil
-from src.utils.nfo_parse_util import NfoParseUtil
+from MyVideoExplorer.image_list.image_list_view import ImageListView
+from MyVideoExplorer.file_list.file_list import FileList
+from MyVideoExplorer.media_info_side.media_info_side_view import MediaInfoSideView
+from MyVideoExplorer.utils.str_util import StrUtil
+from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 
 _NO_IMAGE_FOUND = """
     No image found.\n
@@ -40,7 +40,7 @@ class TestImageListView:
     def test_load_pixmap_valid(self, image_list_view):
         # We need a small real image or a mock that QPixmap can handle.
         # Let's try to mock QPixmap to return not null.
-        with patch("src.image_list.image_preview_widget.QPixmap") as mock_pixmap:
+        with patch("MyVideoExplorer.image_list.image_preview_widget.QPixmap") as mock_pixmap:
             real_pixmap = QPixmap(1, 1)
             mock_pixmap.return_value = real_pixmap
             image_list_view.load_pixmap("/path/to/image.jpg")
@@ -69,7 +69,7 @@ class TestImageListView:
             mock_build.assert_called_with(nfo)
 
     def test_apply_theme(self, image_list_view):
-        with patch("src.image_list.image_list_view.APP_THEME") as mock_theme:
+        with patch("MyVideoExplorer.image_list.image_list_view.APP_THEME") as mock_theme:
             mock_theme.font_family = "Arial"
             mock_theme.font_size = 12
             mock_theme.container_qss.return_value = "background: black;"

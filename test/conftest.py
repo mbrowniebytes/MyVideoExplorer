@@ -1,5 +1,5 @@
 import pytest
-from src.utils.file_util_model import FileUtilModel
+from MyVideoExplorer.utils.file_util_model import FileUtilModel
 
 
 def pytest_addoption(parser) -> None:

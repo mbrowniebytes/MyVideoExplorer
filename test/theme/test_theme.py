@@ -1,8 +1,8 @@
 import pytest
-from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QListWidget, QWidget
 from PySide6.QtCore import QSize
-from src.theme.theme import Theme
+from PySide6.QtWidgets import QListWidget
+
+from MyVideoExplorer.theme.theme import Theme
 
 
 class TestTheme:
@@ -11,7 +11,7 @@ class TestTheme:
         return Theme()
 
     def test_initialization(self, theme):
-        assert theme.font_family == "Segoe UI"
+        assert "Segoe UI" in theme.font_family
         assert theme.font_size == 18
         assert theme.icon_size == 20
 
@@ -19,7 +19,8 @@ class TestTheme:
         qss = theme.app_qss()
         assert "background: #111111" in qss
         assert "QToolTip" in qss
-        assert f"font-size: {theme.font_size}px" in qss
+        # QWidget font size is handled via setFont, not QSS
+        assert f"font-family: {theme.font_family}" in qss
 
     def test_button_qss(self, theme):
         qss = theme.button_qss()
@@ -37,24 +38,26 @@ class TestTheme:
         assert lw.styleSheet() != ""
 
     def test_refresh_theme(self, theme, qtbot):
-        from PySide6.QtWidgets import QApplication, QLabel
         import sys
+
+        from PySide6.QtWidgets import QApplication, QLabel, QMainWindow
 
         qapp = QApplication.instance() or QApplication(sys.argv)
         theme.app = qapp
 
-        widget = QWidget()
-        label = QLabel("Test", widget)
-        # Force Segoe UI font to match theme expectation
-        label.setFont(QFont("Segoe UI", 18))
-        qtbot.addWidget(widget)
+        # Use QMainWindow as root, as it is a common root in real app
+        window = QMainWindow()
+        label = QLabel("Test", window)
+        qtbot.addWidget(window)
 
         theme.font_size = 20
-        # The current Theme._refresh_widget only handles specific classes
-        # and doesn't recurse if the class matches.
-        theme.refresh_theme(label)  # Refresh the label directly
+        theme.refresh_theme()  # Refresh entire app
 
-        assert label.font().pointSize() == 20
+        # QApplication stylesheet should be updated (background etc)
+        assert "background: #111111" in qapp.styleSheet()
+
+        # Label should have the font set via recursive refresh
+        assert label.font().pixelSize() == 20
 
     def test_safe_icon(self, theme):
         from PySide6.QtGui import QIcon

@@ -1,9 +1,9 @@
 import pytest
 from unittest.mock import MagicMock
-from src.app.app_controller import AppController
-from src.app.app_state import AppState
-from src.app.app_signals import SignalRegistry
-from src.app.app_signals_model import SignalPayload
+from MyVideoExplorer.app.app_controller import AppController
+from MyVideoExplorer.app.app_state import AppState
+from MyVideoExplorer.app.app_signals import SignalRegistry
+from MyVideoExplorer.app.app_signals_model import SignalPayload
 
 
 class TestAppController:
@@ -17,9 +17,9 @@ class TestAppController:
         assert isinstance(controller.state, AppState)
         assert controller.state.root_folder == ""
 
-    def test_set_root_folder(self, controller, qtbot):
+    def test_set_root_folders(self, controller, qtbot):
         with qtbot.waitSignal(controller.signals.sig_root_folders) as blocker:
-            controller.set_root_folder(["/root"])
+            controller.set_root_folders(["/root"])
 
         assert controller.state.root_folder == "/root"
         assert controller.state.current_folder == "/root"

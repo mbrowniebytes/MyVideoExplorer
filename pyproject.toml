@@ -1,35 +1,36 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools~=82.0.1", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "MyVideoExplorer"
-version = "0.1.0"
+version = "0.0.1"
 description = "MyVideoExplorer"
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = "~=3.14"
 dependencies = [
-    "PySide6>=6.11.1",
-    "qtawesome>=1.4.2",
-    "structlog>=26.1.0",
-    "psutil>=7.2.2",
+    "PySide6~=6.11.1",
+    "qtawesome~=1.4.2",
+    "structlog~=26.1.0",
+    "psutil~=7.2.2",
 ]
 
 [project.optional-dependencies]
 dev = [
     # Linting and formatting
-    "ruff>=0.15.16",
-    "black>=26.5.1",
-    "mypy>=2.1.0",
+    "ruff~=0.15.18",
+    "black~=26.5.1",
+    "mypy~=2.1.0",
     
     # Testing
-    "pytest>=9.0.3",
-    "pytest-qt>=4.5.0",
-    "pytest-cov>=4.1.0",
-    "pytest-asyncio>=1.4.0",
+    "pytest~=9.1.1",
+    "pytest-qt~=4.5.0",
+    "pytest-cov~=7.1.0",
+    "pytest-asyncio~=1.4.0",
     
     # Additional quality tools
-    "isort>=8.0.1",
+    "isort~=8.0.1",
+    "platformdirs~=4.10.0",
 ]
 
 [tool.ruff]
@@ -60,9 +61,15 @@ follow_imports = "silent"
 explicit_package_bases = true
 
 [tool.pytest.ini_options]
-minversion = "9.0"
+minversion = "9.1"
 addopts = "-ra -q --strict-markers"
-pythonpath = ["."]
+pythonpath = ["src"]
+testpaths = ["test"]
+norecursedirs = [
+    ".git",
+    ".venv",
+    "__pycache__"
+]
 markers = [
     "unit: unit tests",
     "integration: integration tests",

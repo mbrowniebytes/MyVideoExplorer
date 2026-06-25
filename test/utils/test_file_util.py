@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from src.utils.file_util import FileUtil
-from src.utils.file_util_model import FileUtilModel
+from MyVideoExplorer.utils.file_util import FileUtil
+from MyVideoExplorer.utils.file_util_model import FileUtilModel
 
 
 class MockDirEntry(FileUtilModel):
@@ -36,7 +36,7 @@ class TestFileUtil:
         assert file_util.is_video_file("test.mkv") is True
         assert file_util.is_video_file("test.txt") is False
 
-    @patch("src.utils.file_util.FileUtil._scan_directory")
+    @patch("MyVideoExplorer.utils.file_util.FileUtil._scan_directory")
     def test_get_images_from_folder(self, _scan_directory, file_util):
         _scan_directory.return_value = [
             MockDirEntry(
@@ -56,7 +56,7 @@ class TestFileUtil:
         assert poster is not None
         assert "folder-poster.png" in poster
 
-    @patch("src.utils.file_util.FileUtil._scan_directory")
+    @patch("MyVideoExplorer.utils.file_util.FileUtil._scan_directory")
     def test_get_images_from_folder_order(self, _scan_directory, file_util):
         _scan_directory.return_value = [
             MockDirEntry(
@@ -76,7 +76,7 @@ class TestFileUtil:
         assert "fanart.jpg" in images[1]
         assert "other.jpg" in images[2]
 
-    @patch("src.utils.file_util.FileUtil._scan_directory")
+    @patch("MyVideoExplorer.utils.file_util.FileUtil._scan_directory")
     def test_get_images_from_folder_poster_priority(self, _scan_directory, file_util):
         _scan_directory.return_value = [
             MockDirEntry(

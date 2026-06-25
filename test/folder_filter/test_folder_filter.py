@@ -1,9 +1,9 @@
 import pytest
 from unittest.mock import MagicMock
-from src.folder_filter.folder_filter import FolderFilters
-from src.folder_filter.folder_filter_filter import FolderFilterFilter
-from src.utils.file_util import FileUtil
-from src.utils.nfo_parse_util import NfoParseUtil
+from MyVideoExplorer.folder_filter.folder_filter import FolderFilters
+from MyVideoExplorer.folder_filter.folder_filter_filter import FolderFilterFilter
+from MyVideoExplorer.utils.file_util import FileUtil
+from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 
 
 class TestFolderNavFilters:

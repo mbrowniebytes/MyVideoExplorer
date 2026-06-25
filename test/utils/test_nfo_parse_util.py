@@ -1,8 +1,8 @@
 import pytest
 from unittest.mock import MagicMock
 from xml.etree import ElementTree
-from src.utils.nfo_parse_util import NfoParseUtil
-from src.utils.file_util import FileUtil
+from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
+from MyVideoExplorer.utils.file_util import FileUtil
 
 
 class TestNfoParseUtil:

@@ -1,9 +1,10 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from src.media_info.media_info_view import MediaInfoView
-from src.utils.log_util import LogUtil
-from src.utils.nfo_parse_util import NfoParseUtil
-from src.utils.str_util import StrUtil
+
+from MyVideoExplorer.media_info.media_info_view import MediaInfoView
+from MyVideoExplorer.utils.log_util import LogUtil
+from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
+from MyVideoExplorer.utils.str_util import StrUtil
 
 
 class TestMediaInfoView:
@@ -60,10 +61,13 @@ class TestMediaInfoView:
         media_info_view.build_from_movie_info(mock_nfo_data)
 
         # Verify some UI elements were created
-        assert (
-            media_info_view.plot_section.get_plot_text().toPlainText()
-            == mock_nfo_data["plot"]
-        )
+        def check_plot_text():
+            assert (
+                media_info_view.plot_section.get_plot_text().toPlainText()
+                == mock_nfo_data["plot"]
+            )
+        qtbot.waitUntil(check_plot_text, timeout=250)
+
         # Check if title label was updated
         # The title is in a label inside common_section.
         labels = media_info_view.findChildren(
@@ -76,20 +80,23 @@ class TestMediaInfoView:
         ]
         assert len(titles) > 0
 
-    def test_toggle_section(self, media_info_view, mock_nfo_data):
+    def test_toggle_section(self, media_info_view, mock_nfo_data, qtbot):
         media_info_view.build_from_movie_info(mock_nfo_data)
         media_info_view.show()
 
         # Common section should be visible by default
-        common_widget = media_info_view.section_widgets.get("section_common")
-        assert common_widget is not None
-        assert common_widget.isVisible()
+        def check_section_common():
+            common_widget = media_info_view.section_widgets.get("section_common")
+            assert common_widget is not None
+            assert common_widget.isVisible()
 
-        media_info_view._toggle_section("section_common")
-        assert not common_widget.isVisible()
+            media_info_view._toggle_section("section_common")
+            assert not common_widget.isVisible()
 
-        media_info_view._toggle_section("section_common")
-        assert common_widget.isVisible()
+            media_info_view._toggle_section("section_common")
+            assert common_widget.isVisible()
+
+        qtbot.waitUntil(check_section_common, timeout=250)
 
     def test_play_video_signal(self, media_info_view, mock_nfo_data, qtbot):
         media_info_view.build_from_movie_info(mock_nfo_data)
@@ -103,13 +110,18 @@ class TestMediaInfoView:
 
     def test_apply_theme(self, media_info_view, mock_nfo_data):
         media_info_view.build_from_movie_info(mock_nfo_data)
-        with patch("src.media_info.media_info_view.APP_THEME") as mock_theme:
-            mock_theme.font_family = "Arial"
-            mock_theme.font_size = 14
-            mock_theme.container_qss.return_value = "background-color: black;"
-            mock_theme.small_button_qss.return_value = "color: white;"
+        from MyVideoExplorer.theme.theme import APP_THEME
+
+        # We mock refresh_theme to see if it's called, but we want it to actually run
+        # or at least we want to see if apply_theme() sets the font.
+        # Actually, if we mock it, the original refresh_theme (which now sets the font)
+        # won't run.
+
+        with patch.object(APP_THEME, "refresh_theme", wraps=APP_THEME.refresh_theme) as mock_refresh:
+            APP_THEME.config.font_family_default = "Arial"
+            APP_THEME.config.font_size_base = 14
 
             media_info_view.apply_theme()
 
-            assert media_info_view.font().family() == "Arial"
-            assert "background-color: black;" in media_info_view.styleSheet()
+            mock_refresh.assert_called()
+            assert media_info_view.font().pixelSize() == 14

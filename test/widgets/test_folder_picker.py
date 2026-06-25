@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch
-from src.widgets.folder_picker_widget import FolderPickerWidget as FolderPicker
+from MyVideoExplorer.widgets.folder_picker_widget import FolderPickerWidget as FolderPicker
 
 
 class TestFolderPicker:

@@ -1,6 +1,6 @@
 import pytest
 from PySide6.QtWidgets import QHeaderView
-from src.widgets.simple_table_widget import SimpleTableWidget
+from MyVideoExplorer.widgets.simple_table_widget import SimpleTableWidget
 
 
 class TestSimpleTable:
@@ -39,4 +39,5 @@ class TestSimpleTable:
 
     def test_apply_theme(self, simple_table):
         simple_table.apply_theme()
-        assert simple_table.table.font().pointSize() > 0
+        font = simple_table.table.font()
+        assert font.pointSize() > 0 or font.pixelSize() > 0

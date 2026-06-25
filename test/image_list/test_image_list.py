@@ -1,11 +1,11 @@
 import pytest
 from unittest.mock import MagicMock
-from src.image_list.image_list import ImageList
-from src.file_list.file_list import FileList
-from src.image_list.image_list_view import ImageListView
-from src.utils.file_util import FileUtil
-from src.utils.nfo_parse_util import NfoParseUtil
-from src.utils.str_util import StrUtil
+from MyVideoExplorer.image_list.image_list import ImageList
+from MyVideoExplorer.file_list.file_list import FileList
+from MyVideoExplorer.image_list.image_list_view import ImageListView
+from MyVideoExplorer.utils.file_util import FileUtil
+from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
+from MyVideoExplorer.utils.str_util import StrUtil
 
 
 class TestImageList:
