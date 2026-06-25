@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 """Main entry point for the application."""
+
 import datetime
 import sys
 import traceback
 from pathlib import Path
-from PySide6 import QtAsyncio
-from app.app_environment import IS_DEVELOPMENT
 
+from PySide6 import QtAsyncio
 from PySide6.QtWidgets import (
     QApplication,
 )
 
-from app.app import App
-from app.app_container import AppContainer
+from MyVideoExplorer.app.app import App
+from MyVideoExplorer.app.app_container import AppContainer
+from MyVideoExplorer.app.app_environment import IS_DEVELOPMENT
 
 
 # Emergency fallback logging for when normal logging fails
@@ -63,7 +64,9 @@ def main() -> int:
     except Exception as e:
         # Emergency logging if container isn't initialized
         if container is None:
-            _emergency_log(f"Exception during container initialization: {str(e)}", exc_info=True)
+            _emergency_log(
+                f"Exception during container initialization: {str(e)}", exc_info=True
+            )
         else:
             # Container exists, use configured logging
             container.log_util.error(
@@ -71,7 +74,7 @@ def main() -> int:
                 extra_info={
                     "exc_type": type(e).__name__,
                     "exc_value": str(e),
-                }
+                },
             )
             tb_str = "".join(traceback.format_exception(type(e), e, e.__traceback__))
             container.log_util.error(f"{tb_str}")
@@ -80,6 +83,7 @@ def main() -> int:
             # dev, raise in ide
             raise e
     return -1
+
 
 if __name__ == "__main__":
     sys.exit(main())

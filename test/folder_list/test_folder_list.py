@@ -228,11 +228,17 @@ class TestFolderList:
     def test_apply_theme(self, folder_list):
         """Verify that applying theme updates styles and fonts."""
         with (
-            patch.object(folder_list._container, "setStyleSheet") as mock_set_style_container,
+            patch.object(
+                folder_list._container, "setStyleSheet"
+            ) as mock_set_style_container,
             patch.object(folder_list.folder_list_view, "setStyleSheet"),
-            patch.object(APP_THEME, "container_qss", return_value="container { color: red; }"),
+            patch.object(
+                APP_THEME, "container_qss", return_value="container { color: red; }"
+            ),
             patch.object(APP_THEME, "list_qss", return_value="list { color: green; }"),
-            patch.object(APP_THEME, "label_qss", return_value="label { color: black; }"),
+            patch.object(
+                APP_THEME, "label_qss", return_value="label { color: black; }"
+            ),
         ):
             # APP_THEME is a property, so we cannot patch it directly on the instance easily
             # But we can patch the underlying config if needed, or just let it use the defaults.

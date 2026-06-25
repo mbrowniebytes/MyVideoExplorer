@@ -1,13 +1,14 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 a = Analysis(
-    ['src/main.py'],
+    ['src/MyVideoExplorer/main.py'],
     pathex=['./'],
     binaries=[],
     datas=[
         ( 'README.md', './' ),
         ( 'cfg/defaults*.json', 'cfg' ),
         ( 'assets/app.png', 'assets' ),
+        ( 'assets/fonts', 'assets/fonts' ),
     ],
     hiddenimports=[],
     hookspath=[],

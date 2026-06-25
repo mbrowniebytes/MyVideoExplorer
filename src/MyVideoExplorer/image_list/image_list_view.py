@@ -39,7 +39,7 @@ class ImageListView(BaseWidget):
         str_util: StrUtil,
         media_info_side_view: MediaInfoSideView,
         file_list: FileList,
-        log_util:LogUtil,
+        log_util: LogUtil,
     ) -> None:
         super().__init__(log_util)
         self.str_util = str_util

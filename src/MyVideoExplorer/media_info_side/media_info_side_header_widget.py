@@ -19,10 +19,12 @@ class MediaInfoSideHeaderWidget(BaseWidget):
 
         self.header_layout = QVBoxLayout(self)
         self.header_layout.setContentsMargins(0, 0, 0, 0)
-        self.header_layout.setSpacing(0)
+        self.header_layout.setSpacing(8)
+        self.header_layout.setAlignment(Qt.AlignmentFlag.AlignRight)
 
         self.play_video_button = QPushButton("▶")
-        self.play_video_button.setMinimumWidth(40)
+        self.play_video_button.setMinimumWidth(60)
+
         self.play_video_button.clicked.connect(
             lambda: self.sig_play_video_requested.emit(
                 SignalPayload(

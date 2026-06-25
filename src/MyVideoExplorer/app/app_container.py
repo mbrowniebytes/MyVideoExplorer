@@ -67,17 +67,24 @@ class AppContainer:
             self.controller = AppController(self.log_util, self.signals)
 
             self.folder_nav_filters_filter = FolderFilterFilter(
-                self.nfo_parse_util, self.settings.settings_data_model.folder_configs, self.log_util
+                self.nfo_parse_util,
+                self.settings.settings_data_model.folder_configs,
+                self.log_util,
             )
             self.folder_list = FolderList(self.file_util, self.settings, self.log_util)
 
             self.folder_nav_filters = FolderFilters(
-                self.folder_nav_filters_filter, self.file_util, self.settings, self.log_util
+                self.folder_nav_filters_filter,
+                self.file_util,
+                self.settings,
+                self.log_util,
             )
             self.folder_nav = FolderNav(self.folder_nav_filters, self.log_util)
             self.file_list = FileList(self.file_util, self.log_util)
 
-            self.media_info_view = MediaInfoView(self.nfo_parse_util, self.str_util, self.log_util)
+            self.media_info_view = MediaInfoView(
+                self.nfo_parse_util, self.str_util, self.log_util
+            )
             self.media_info_side_view = MediaInfoSideView(
                 self.nfo_parse_util, self.str_util, self.log_util
             )
@@ -108,7 +115,10 @@ class AppContainer:
 
             self._wire_all_signals()
         except Exception as e:
-            self.log_util.error(f"Error during component initialization: {e}", extra_info={"component_error": str(e)})
+            self.log_util.error(
+                f"Error during component initialization: {e}",
+                extra_info={"component_error": str(e)},
+            )
             raise
 
     def _wire_all_signals(self) -> None:
@@ -122,8 +132,12 @@ class AppContainer:
 
     def _wire_user_inputs(self) -> None:
         """User interactions → Controller state."""
-        self.folder_nav.sig_root_folder.connect(lambda p: self.controller.set_root_folders(p.data))
-        self.folder_nav.sig_selected_folder.connect(lambda p: self.controller.set_current_folder(p.data))
+        self.folder_nav.sig_root_folder.connect(
+            lambda p: self.controller.set_root_folders(p.data)
+        )
+        self.folder_nav.sig_selected_folder.connect(
+            lambda p: self.controller.set_current_folder(p.data)
+        )
 
         self.folder_list.sig_folder_selected_intent.connect(
             lambda p: self.controller.set_current_folder(p.data)
@@ -137,43 +151,78 @@ class AppContainer:
             lambda p: self.controller.set_current_file(p.data)
         )
 
-        self.media_info_tabs.sig_tab_selection_changed.connect(self.controller.set_current_tab)
+        self.media_info_tabs.sig_tab_selection_changed.connect(
+            self.controller.set_current_tab
+        )
 
-        self.settings.media_settings_tab.sig_changed.connect(lambda p: self.folder_list.refresh_icons())
-        self.settings.media_settings_tab.sig_root_folders_changed.connect(lambda p: self.controller.set_root_folders(p.data))
-        self.folder_nav_filters.sig_loading_started.connect(self.folder_list.show_loading_state)
-
+        self.settings.media_settings_tab.sig_changed.connect(
+            lambda p: self.folder_list.refresh_icons()
+        )
+        self.settings.media_settings_tab.sig_root_folders_changed.connect(
+            lambda p: self.controller.set_root_folders(p.data)
+        )
+        self.folder_nav_filters.sig_loading_started.connect(
+            self.folder_list.show_loading_state
+        )
 
     def _wire_controller_outputs(self) -> None:
         """Controller state changes → Component refreshes."""
         # self.signals.sig_root_folder.connect(lambda p: self._on_set_root_folder(p.data))
         # New: handle list of root folders so FolderNav can display all roots
-        self.signals.sig_root_folders.connect(lambda p: self.folder_nav.set_root_folders(p.data))
+        self.signals.sig_root_folders.connect(
+            lambda p: self.folder_nav.set_root_folders(p.data)
+        )
 
-        self.signals.sig_selected_folder.connect(lambda p: self._on_folder_selected(p.data))
+        self.signals.sig_selected_folder.connect(
+            lambda p: self._on_folder_selected(p.data)
+        )
 
-        self.signals.sig_file_changed.connect(lambda p: self.file_list.set_selected_file(p.data))
-        self.signals.sig_file_changed.connect(lambda p: self.media_info.set_image_path(p.data))
-        self.signals.sig_file_changed.connect(lambda p: self.image_list.update_image_from_item(p.data))
+        self.signals.sig_file_changed.connect(
+            lambda p: self.file_list.set_selected_file(p.data)
+        )
+        self.signals.sig_file_changed.connect(
+            lambda p: self.media_info.set_image_path(p.data)
+        )
+        self.signals.sig_file_changed.connect(
+            lambda p: self.image_list.update_image_from_item(p.data)
+        )
 
-        self.signals.sig_image_changed.connect(lambda p: self.image_list.set_selected_image(p.data))
+        self.signals.sig_image_changed.connect(
+            lambda p: self.image_list.set_selected_image(p.data)
+        )
 
         self.signals.sig_tab_changed.connect(lambda p: self._on_tab_changed(p.data))
 
-        self.settings.settings_data_model.sig_settings_changed.connect(lambda p: self.folder_list.refresh_icons())
+        self.settings.settings_data_model.sig_settings_changed.connect(
+            lambda p: self.folder_list.refresh_icons()
+        )
         # When media folders are deleted in settings, update controller root_folders
-        if hasattr(self.settings, "media_tab") and hasattr(self.settings.media_tab, "sig_root_folders_changed"):
-            self.settings.media_tab.sig_root_folders_changed.connect(lambda p: self.controller.set_root_folders(p.data))
+        if hasattr(self.settings, "media_tab") and hasattr(
+            self.settings.media_tab, "sig_root_folders_changed"
+        ):
+            self.settings.media_tab.sig_root_folders_changed.connect(
+                lambda p: self.controller.set_root_folders(p.data)
+            )
 
     def _wire_component_interactions(self) -> None:
         """Component-to-component interactions (local, not via controller)."""
-        self.image_list.sig_wheel_step.connect(lambda p: self.folder_list.select_next_folder(p.data))
-        self.image_list.sig_right_click.connect(lambda p: self.image_list.request_next_image())
+        self.image_list.sig_wheel_step.connect(
+            lambda p: self.folder_list.select_next_folder(p.data)
+        )
+        self.image_list.sig_right_click.connect(
+            lambda p: self.image_list.request_next_image()
+        )
 
-        self.image_list.sig_double_click.connect(lambda p: self._play_video_from_current_folder())
-        self.media_info.sig_play_video.connect(lambda p: self._play_video_from_current_folder())
+        self.image_list.sig_double_click.connect(
+            lambda p: self._play_video_from_current_folder()
+        )
+        self.media_info.sig_play_video.connect(
+            lambda p: self._play_video_from_current_folder()
+        )
 
-        self.folder_nav.sig_selected_items.connect(lambda p: self._on_filtered_items(p.data))
+        self.folder_nav.sig_selected_items.connect(
+            lambda p: self._on_filtered_items(p.data)
+        )
 
     def _on_tab_changed(self, tab_index: int) -> None:
         """Bridge: translate controller signal to component method."""
@@ -194,13 +243,16 @@ class AppContainer:
     def _on_folder_selected(self, folder_path: str) -> None:
         # We still want to avoid circular updates if everything is already in sync
         if (
-            self.folder_list.folder_list_view.property("last_selected_folder") == folder_path
+            self.folder_list.folder_list_view.property("last_selected_folder")
+            == folder_path
             and self.controller.state.current_folder == folder_path
             and self.media_info.folder_path == folder_path
         ):
             return
 
-        self.folder_list.folder_list_view.setProperty("last_selected_folder", folder_path)
+        self.folder_list.folder_list_view.setProperty(
+            "last_selected_folder", folder_path
+        )
         # print(f"_on_folder_selected:{folder_path}")
 
         self.folder_list.set_selected_folder(folder_path)

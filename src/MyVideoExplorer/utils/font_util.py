@@ -1,5 +1,6 @@
-from PySide6.QtGui import QFontDatabase
 from pathlib import Path
+
+from PySide6.QtGui import QFontDatabase
 
 from MyVideoExplorer.utils.log_util import LogUtil
 

@@ -1,10 +1,10 @@
-from PySide6.QtCore import Qt, Signal, QRect
-from MyVideoExplorer.app.app_signals_model import SignalPayload, SignalFlow
-from PySide6.QtGui import QFont, QPainter, QPen, QColor
+from PySide6.QtCore import QRect, Qt, Signal
+from PySide6.QtGui import QColor, QFont, QPainter, QPen
 from PySide6.QtWidgets import QLabel, QSizePolicy, QWidget
-from MyVideoExplorer.utils.log_util import LogUtil
 
+from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.utils.log_util import LogUtil
 
 
 class ImageLabel(QLabel):
@@ -12,7 +12,9 @@ class ImageLabel(QLabel):
     sig_right_click = Signal(object)
     sig_double_click = Signal(object)
 
-    def __init__(self, log_util: LogUtil, text: str = "", parent: QWidget | None = None) -> None:
+    def __init__(
+        self, log_util: LogUtil, text: str = "", parent: QWidget | None = None
+    ) -> None:
         super().__init__(text, parent)
         self.log_util = log_util
 
@@ -85,7 +87,11 @@ class ImageLabel(QLabel):
     def paintEvent(self, event):
         try:
             super().paintEvent(event)
-            if self.property("highlight") == "true" and self.pixmap() and not self.pixmap().isNull():
+            if (
+                self.property("highlight") == "true"
+                and self.pixmap()
+                and not self.pixmap().isNull()
+            ):
                 painter = QPainter(self)
                 pixmap = self.pixmap()
                 pixmap_size = pixmap.size()
@@ -95,13 +101,16 @@ class ImageLabel(QLabel):
                 y = (label_size.height() - pixmap_size.height()) // 2
                 rect = QRect(x, y, pixmap_size.width(), pixmap_size.height())
 
-                pen = QPen(QColor(APP_THEME.config.color_interaction_pixmap), APP_THEME.config.size_interaction_pixmap)
+                pen = QPen(
+                    QColor(APP_THEME.config.color_interaction_pixmap),
+                    APP_THEME.config.size_interaction_pixmap,
+                )
                 painter.setPen(pen)
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing)
                 painter.drawRoundedRect(
                     rect,
                     APP_THEME.config.size_border_radius_standard,
-                    APP_THEME.config.size_border_radius_standard
+                    APP_THEME.config.size_border_radius_standard,
                 )
                 painter.setOpacity(0.5)
         except Exception as e:

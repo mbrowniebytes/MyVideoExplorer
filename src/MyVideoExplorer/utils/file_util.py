@@ -3,19 +3,17 @@ from __future__ import annotations
 import os
 import sys
 import threading
-from pathlib import Path
 from collections.abc import Callable
+from pathlib import Path
 from time import sleep
 
 from PySide6.QtCore import QThread
 
+from MyVideoExplorer.app.app_environment import IS_DEVELOPMENT
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
+from MyVideoExplorer.utils.file_util_type import FileUtilType
 from MyVideoExplorer.utils.file_util_worker import FileUtilWorker
 from MyVideoExplorer.utils.log_util import LogUtil
-from MyVideoExplorer.utils.file_util_type import FileUtilType
-from MyVideoExplorer.app.app_environment import IS_DEVELOPMENT
-
-
 
 
 class FileUtil:
@@ -79,7 +77,7 @@ class FileUtil:
         self,
         path: str,
         depth: int = 0,
-        callback: Callable[[list[FileUtilModel]], None] | None = None
+        callback: Callable[[list[FileUtilModel]], None] | None = None,
     ) -> list[FileUtilModel]:
         """Asynchronously collect directory and file metadata for a path."""
         target = Path(path)
@@ -97,9 +95,7 @@ class FileUtil:
                     items.append(folder_item)
                     # Recursively get files from subdirectory
                     sub_items = self._get_files_from_path(
-                        entry.path,
-                        depth + 1,
-                        callback
+                        entry.path, depth + 1, callback
                     )
                     items.extend(sub_items)
                 elif entry.is_file(follow_symlinks=False):
@@ -116,7 +112,7 @@ class FileUtil:
         self,
         path: str,
         depth: int = 0,
-        on_complete: Callable[[list[FileUtilModel]], None] | None = None
+        on_complete: Callable[[list[FileUtilModel]], None] | None = None,
     ) -> None:
         """Asynchronously collect directory and file metadata for a path."""
         thread = QThread()
@@ -144,9 +140,7 @@ class FileUtil:
         thread.wait()
 
         with self._scan_lock:
-            self.active_tasks = [
-                t for t in self.active_tasks if t["thread"] != thread
-            ]
+            self.active_tasks = [t for t in self.active_tasks if t["thread"] != thread]
 
         if on_complete:
             on_complete(items)
@@ -226,7 +220,10 @@ class FileUtil:
 
         for entry in self._scan_directory(target):
             try:
-                if entry.is_file(follow_symlinks=False) and Path(entry.name).suffix.casefold() in exts:
+                if (
+                    entry.is_file(follow_symlinks=False)
+                    and Path(entry.name).suffix.casefold() in exts
+                ):
                     return entry.path
             except OSError:
                 continue
@@ -244,7 +241,10 @@ class FileUtil:
         # First pass: prioritize standard media NFO names
         for entry in entries:
             try:
-                if entry.is_file(follow_symlinks=False) and entry.name.casefold() in preferred_names:
+                if (
+                    entry.is_file(follow_symlinks=False)
+                    and entry.name.casefold() in preferred_names
+                ):
                     return entry.path
             except OSError:
                 continue
@@ -252,7 +252,9 @@ class FileUtil:
         # Second pass: fallback to any file with NFO extension
         for entry in entries:
             try:
-                if entry.is_file(follow_symlinks=False) and self.file_type.is_nfo_file(entry.name):
+                if entry.is_file(follow_symlinks=False) and self.file_type.is_nfo_file(
+                    entry.name
+                ):
                     return entry.path
             except OSError:
                 continue

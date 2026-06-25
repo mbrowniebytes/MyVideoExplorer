@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+
 @dataclass
 class ThemeConfig:
     """Holds all raw values for the application theme."""

@@ -1,8 +1,9 @@
 import os
-from PySide6.QtCore import Signal, Qt
-from PySide6.QtWidgets import QListWidget, QListWidgetItem
-from MyVideoExplorer.app.app_signals_model import SignalPayload, SignalFlow
 
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import QListWidget, QListWidgetItem
+
+from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.log_util import LogUtil
@@ -85,7 +86,6 @@ class FolderListView(QListWidget):
             prefix += "・" * item.depth
         prefix += " "
 
-
         icon = APP_THEME.icon(icon_name, color=APP_THEME.text_color)
         list_item = QListWidgetItem(icon, f"{prefix}{item.name}")
         list_item.setData(Qt.ItemDataRole.UserRole, item.full_path)
@@ -125,7 +125,10 @@ class FolderListView(QListWidget):
             self.setCurrentRow(-1)
 
     def populate_view(
-        self, items: list[FileUtilModel], get_icon_func=None, on_complete: callable = None
+        self,
+        items: list[FileUtilModel],
+        get_icon_func=None,
+        on_complete: callable = None,
     ) -> None:
         """Sorts and populates the FolderListView."""
         folder_items = [item for item in items if item.is_dir]
@@ -163,7 +166,9 @@ class FolderListView(QListWidget):
 
         self.clear()
         for item in folder_items:
-            icon_name = get_icon_func(item.full_path) if get_icon_func else "fa5s.folder"
+            icon_name = (
+                get_icon_func(item.full_path) if get_icon_func else "fa5s.folder"
+            )
             self.add_folder_item(item, icon_name)
 
         if on_complete:

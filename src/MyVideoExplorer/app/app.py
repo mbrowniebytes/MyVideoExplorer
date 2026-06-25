@@ -4,17 +4,18 @@ from pathlib import Path
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
-    QMainWindow,
-    QWidget,
+    QApplication,
     QHBoxLayout,
+    QMainWindow,
     QSplitter,
     QVBoxLayout,
-    QApplication,
+    QWidget,
 )
 
 from MyVideoExplorer.app.app_container import AppContainer
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil
+
 
 class App:
     def __init__(
@@ -39,7 +40,7 @@ class App:
 
     def build(self) -> QMainWindow:
         self.font_util.load_custom_fonts(Path("assets/fonts"))
-        
+
         self._create_app_icon()
         self.window.setWindowTitle("MyVideoExplorer")
         self.window.resize(1400, 900)
