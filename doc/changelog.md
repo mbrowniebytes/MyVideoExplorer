@@ -1,6 +1,6 @@
 ## Change Log
  
-### 2026-06-
+### 2026-06-24
  
 - handle network shares
 - show loading media folder
@@ -13,10 +13,13 @@
 - connect filter settings
 - fix widget flicker/reinitialize when scroll quickly
 - better app error handling
+- better theme/font size handling
 - add app icons
+- add font loading
 - code quality ruff checks
+- re-format w/ PyCharm
 - update readme
-- release - [MyVideoExplorer-202606-0.002 ](https://github.com/mbrowniebytes/MyVideoExplorer/releases/tag/202606-0.002)
+- release - [MyVideoExplorer-20260624-0.002 ](https://github.com/mbrowniebytes/MyVideoExplorer/releases/tag/20260624-0.002)
 
 ### 2026-06-15
 
