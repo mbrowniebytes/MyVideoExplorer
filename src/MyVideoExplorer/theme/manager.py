@@ -114,6 +114,8 @@ class ThemeManager:
             self.setup_list_widget(widget)
         elif isinstance(widget, QComboBox):
             self.setup_combo_box(widget)
+        elif isinstance(widget, QCheckBox):
+            self.setup_checkbox(widget)
         elif isinstance(widget, QTabBar):
             self.setup_tabs(widget)
         elif isinstance(widget, QTabWidget):
@@ -149,6 +151,9 @@ class ThemeManager:
 
     def setup_combo_box(self, widget: QComboBox) -> None:
         widget.setStyleSheet(StyleFactory.get_combo_qss(self.config))
+
+    def setup_checkbox(self, widget: QComboBox) -> None:
+        widget.setStyleSheet(StyleFactory.get_checkbox_style(self.config))
 
     def setup_tabs(self, widget: QTabBar) -> None:
         widget.setStyleSheet(StyleFactory.get_tabs_qss(self.config))

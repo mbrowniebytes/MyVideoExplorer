@@ -99,6 +99,7 @@ class App:
         # Initialize app by iterating over all configured Media folders.
         # For each valid folder path, set it as the current root so the
         # UI components (folder nav, folder list, image list) refresh.
+
         media_configs = self.container.settings.settings_data_model.folder_configs
         valid_paths = []
         for media_folder_config in media_configs:
@@ -124,7 +125,11 @@ class App:
             # shows the instruction to add media folders in settings.
             self.controller.set_root_folders([])
 
-    # def refresh_theme(self) -> None:
-    #     if self.window is None:
-    #         return
-    #     APP_THEME.refresh_theme(self.app, root_widget=self.window)
+    def close(self) -> None:
+        settings = {
+            "prior_folder": self.controller.state.current_folder
+        }
+        self.container.settings.settings_data_model.save_state(settings)
+        
+        self.container.log_util.log_memory("Application closing...")
+        self.container.log_util.close()

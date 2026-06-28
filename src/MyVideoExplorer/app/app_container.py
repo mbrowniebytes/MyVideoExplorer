@@ -235,10 +235,20 @@ class AppContainer:
     def _on_filtered_items(self, items: list[FileUtilModel]) -> None:
         self.folder_list.populate_view(items)
 
-    # def _on_set_root_folder(self, folder_path: str) -> None:
-    #     # print(f"_on_set_root_folder:{folder_path}")
-    #     self.folder_nav.set_root_folder([folder_path])
-    #     self.folder_list.refresh(folder_path, force=True)
+        if items:
+            # Auto-select folder after roots are set
+            first_item = items[0]
+
+            # Auto-select prior folder if enabled and available
+            auto_select_prior_folder = self.settings.settings_data_model.auto_select_prior_folder
+
+            prior_folder = self.settings.settings_data_model.prior_folder
+            print(f"_on_filtered_items: auto_select_prior_folder:{auto_select_prior_folder} prior_folder:{prior_folder} first_item:{first_item}")
+
+            if auto_select_prior_folder and prior_folder:
+                self.controller.set_current_folder(prior_folder, force=True)
+            elif first_item:
+                self.controller.set_current_folder(first_item.full_path, force=True)
 
     def _on_folder_selected(self, folder_path: str) -> None:
         # We still want to avoid circular updates if everything is already in sync
@@ -253,7 +263,7 @@ class AppContainer:
         self.folder_list.folder_list_view.setProperty(
             "last_selected_folder", folder_path
         )
-        # print(f"_on_folder_selected:{folder_path}")
+        print(f"_on_folder_selected:{folder_path}")
 
         self.folder_list.set_selected_folder(folder_path)
 

@@ -8,6 +8,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
     QSizePolicy,
+    QCheckBox,
+    QLabel,
 )
 
 from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
@@ -46,7 +48,23 @@ class SettingsAppTab(SettingsBaseTab):
         if index >= 0:
             self.logging_level_combo.setCurrentIndex(index)
 
-        app_layout.addRow("Logging Level:", self.logging_level_combo)
+        # App start prior folder selection checkbox
+        self.app_start_select_prior_checkbox = QCheckBox("")
+        self.app_start_select_prior_checkbox.setChecked(
+            getattr(self.state, "auto_select_prior_folder", True)
+        )
+
+        self.app_start_select_prior_checkbox = QCheckBox("On App start or Folder refresh:\nChecked: auto select prior Folder\nUnchecked: auto select first Folder")
+        self.app_start_select_prior_checkbox.setChecked(
+            getattr(self.state, "auto_select_prior_folder", True)
+        )
+        app_layout.addRow("Prior Folder", self.app_start_select_prior_checkbox)
+
+        logging_level_layout = QHBoxLayout()
+        logging_level_layout.addWidget(self.logging_level_combo, alignment=Qt.AlignmentFlag.AlignTop)
+        logging_level_layout.addWidget(QLabel("Verbosity of App info logged to log/"))
+        logging_level_layout.addStretch()
+        app_layout.addRow("Logging Level", logging_level_layout)
 
         self.layout.addWidget(app_group)
 
@@ -77,6 +95,9 @@ class SettingsAppTab(SettingsBaseTab):
         )
 
         self.logging_level_combo.currentIndexChanged.connect(self._on_setting_changed)
+        self.app_start_select_prior_checkbox.stateChanged.connect(
+            self._on_setting_changed
+        )
 
     def reset_settings(self) -> None:
         """Reset settings for this tab."""
@@ -86,6 +107,12 @@ class SettingsAppTab(SettingsBaseTab):
         index = self.logging_level_combo.findData(current_level)
         if index >= 0:
             self.logging_level_combo.setCurrentIndex(index)
+            
+        # Refresh prior folder checkbox
+        self.app_start_select_prior_checkbox.setChecked(
+            getattr(self.state, "auto_select_prior_folder", True)
+        )
+            
         self.reset_save_button()
         self.sig_saved.emit(
             SignalPayload(
@@ -106,6 +133,10 @@ class SettingsAppTab(SettingsBaseTab):
             log_level = self.logging_level_combo.itemData(current_index)
             self.state.log_level = log_level
 
+        # Save prior folder selection setting
+        self.state.auto_select_prior_folder = self.app_start_select_prior_checkbox.isChecked()
+
+
         self.state.save_app()
         self.reset_save_button()
         self.sig_saved.emit(
@@ -117,4 +148,4 @@ class SettingsAppTab(SettingsBaseTab):
                 flow=SignalFlow.USER_INPUT,
             )
         )
-        print("App Settings saved")
+        # print("App Settings saved")

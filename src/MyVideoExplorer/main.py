@@ -57,8 +57,8 @@ def main() -> int:
         # result = qapp.exec()
         result = QtAsyncio.run()
 
-        container.log_util.log_memory("Application closing...")
-        container.log_util.close()
+        app.close()
+
 
         return result
     except Exception as e:

@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 
 @dataclass
 class AppState:
+    prior_folder: str = ""
     current_folder: str = ""
     current_file: str = ""
     current_image: str = ""

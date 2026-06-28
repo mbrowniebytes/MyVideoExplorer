@@ -183,6 +183,59 @@ class StyleFactory:
          """
 
     @staticmethod
+    def get_checkbox_style(c: ThemeConfig) -> str:
+        return f"""
+            QCheckBox::indicator {{
+                subcontrol-position: left top;
+                background-color: #666666;
+                border-radius: 2px;
+                border-style: solid;
+                border-width: 2px;
+                border-color: #AAAAAA #AAAAAA #999999 #999999;
+            }}
+            QCheckBox::indicator:checked {{
+                background-color: {c.color_interaction_selected};
+            }}
+         """
+        # Source - https://stackoverflow.com/a/71518367
+        return f"""
+            QCheckBox::indicator {{
+                width: 30px;
+                height: 30px;
+                background-color: gray;
+                border-radius: 15px;
+                border-style: solid;
+                border-width: 1px;
+                border-color: white white black black;
+            }}
+            QCheckBox::indicator:checked {{
+                background-color: qradialgradient(spread:pad, 
+                    cx:0.5,
+                    cy:0.5,
+                    radius:0.9,
+                    fx:0.5,
+                    fy:0.5,
+                    stop:0 rgba(0, 255, 0, 255), 
+                    stop:1 rgba(0, 64, 0, 255)
+                );
+            }}
+            QCheckBox:checked, QCheckBox::indicator:checked {{
+                border-color: black black white white;
+            }}
+            QCheckBox:checked {{
+                background-color: qradialgradient(spread:pad, 
+                    cx:0.739, 
+                    cy:0.278364, 
+                    radius:0.378, 
+                    fx:0.997289, 
+                    fy:0.00289117, 
+                    stop:0 rgba(255, 255, 255, 255), 
+                    stop:1 rgba(160, 160, 160, 255)
+                );
+            }}
+         """
+
+    @staticmethod
     def get_combo_qss(c: ThemeConfig) -> str:
         return f"""
             QComboBox {{

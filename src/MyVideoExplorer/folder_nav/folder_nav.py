@@ -103,16 +103,16 @@ class FolderNav(BaseWidget):
                 f"sig_selected_items emitted with {len(filtered_items)} items"
             )
 
-        if filtered_items and filtered_items[0] and filtered_items[0].full_path:
-            print(f"folder nav: set_root_folder: paths:{filtered_items[0]}")
-            payload = SignalPayload(
-                data=filtered_items[0].full_path,
-                sender=self.__class__.__name__,
-                name="Auto Select First Folder",
-                description="Emitted when filtered items are updated.",
-                flow=SignalFlow.COMPONENT_INTERACTION,
-            )
-            self.sig_selected_folder.emit(payload)
+        # if filtered_items and filtered_items[0] and filtered_items[0].full_path:
+        #     print(f"folder nav: _on_filters_applied: first folder:{filtered_items[0]}")
+        #     payload = SignalPayload(
+        #         data=filtered_items[0].full_path,
+        #         sender=self.__class__.__name__,
+        #         name="Auto Select First Folder",
+        #         description="Emitted when filtered items are updated.",
+        #         flow=SignalFlow.COMPONENT_INTERACTION,
+        #     )
+        #     self.sig_selected_folder.emit(payload)
 
     def apply_theme(self) -> None:
         """Applies theme to itself and nested navigation components."""
