@@ -198,8 +198,8 @@ class StyleFactory:
             }}
          """
         # Source - https://stackoverflow.com/a/71518367
-        return f"""
-            QCheckBox::indicator {{
+        return """
+            QCheckBox::indicator {
                 width: 30px;
                 height: 30px;
                 background-color: gray;
@@ -207,32 +207,32 @@ class StyleFactory:
                 border-style: solid;
                 border-width: 1px;
                 border-color: white white black black;
-            }}
-            QCheckBox::indicator:checked {{
-                background-color: qradialgradient(spread:pad, 
+            }
+            QCheckBox::indicator:checked {
+                background-color: qradialgradient(spread:pad,
                     cx:0.5,
                     cy:0.5,
                     radius:0.9,
                     fx:0.5,
                     fy:0.5,
-                    stop:0 rgba(0, 255, 0, 255), 
+                    stop:0 rgba(0, 255, 0, 255),
                     stop:1 rgba(0, 64, 0, 255)
                 );
-            }}
-            QCheckBox:checked, QCheckBox::indicator:checked {{
+            }
+            QCheckBox:checked, QCheckBox::indicator:checked {
                 border-color: black black white white;
-            }}
-            QCheckBox:checked {{
-                background-color: qradialgradient(spread:pad, 
-                    cx:0.739, 
-                    cy:0.278364, 
-                    radius:0.378, 
-                    fx:0.997289, 
-                    fy:0.00289117, 
-                    stop:0 rgba(255, 255, 255, 255), 
+            }
+            QCheckBox:checked {
+                background-color: qradialgradient(spread:pad,
+                    cx:0.739,
+                    cy:0.278364,
+                    radius:0.378,
+                    fx:0.997289,
+                    fy:0.00289117,
+                    stop:0 rgba(255, 255, 255, 255),
                     stop:1 rgba(160, 160, 160, 255)
                 );
-            }}
+            }
          """
 
     @staticmethod

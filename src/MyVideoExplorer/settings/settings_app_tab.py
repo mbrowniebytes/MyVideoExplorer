@@ -107,12 +107,12 @@ class SettingsAppTab(SettingsBaseTab):
         index = self.logging_level_combo.findData(current_level)
         if index >= 0:
             self.logging_level_combo.setCurrentIndex(index)
-            
+
         # Refresh prior folder checkbox
         self.app_start_select_prior_checkbox.setChecked(
             getattr(self.state, "auto_select_prior_folder", True)
         )
-            
+
         self.reset_save_button()
         self.sig_saved.emit(
             SignalPayload(

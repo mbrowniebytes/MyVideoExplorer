@@ -143,6 +143,10 @@ class AppContainer:
             lambda p: self.controller.set_current_folder(p.data)
         )
 
+        self.folder_list.sig_navigate_to_folder.connect(
+            lambda p: self.controller.set_current_folder(p)
+        )
+
         self.file_list.sig_file_selected_intent.connect(
             lambda payload: self.controller.set_current_file(payload.data)
         )
@@ -197,12 +201,9 @@ class AppContainer:
             lambda p: self.folder_list.refresh_icons()
         )
         # When media folders are deleted in settings, update controller root_folders
-        if hasattr(self.settings, "media_tab") and hasattr(
-            self.settings.media_tab, "sig_root_folders_changed"
-        ):
-            self.settings.media_tab.sig_root_folders_changed.connect(
-                lambda p: self.controller.set_root_folders(p.data)
-            )
+        self.settings.media_settings_tab.sig_root_folders_changed.connect(
+            lambda p: self.controller.set_root_folders(p.data)
+        )
 
     def _wire_component_interactions(self) -> None:
         """Component-to-component interactions (local, not via controller)."""

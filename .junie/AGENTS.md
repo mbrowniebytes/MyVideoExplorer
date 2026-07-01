@@ -3,8 +3,11 @@
 ## Overview
 MyVideoExplorer is a PySide6 desktop application for browsing and managing video collections.
 
-source .venv/Scripts/activate
-
+## Core Commands
+- **Activate Env**: `source .venv/Scripts/activate`
+- **Run Tests**: `pytest`
+- **Linter**: `ruff check`
+- **Build**: `pyinstaller --noconfirm main.spec`
 
 ## Architecture
 - **Dependency Management**: Uses an `AppContainer` for centralized object creation and dependency injection.
@@ -15,7 +18,7 @@ source .venv/Scripts/activate
 - **State Management**: A `Controller` (accessible via container) manages high-level state, such as the current root folder(s).
 - **Core Modules**:
   - `src/MyVideoExplorer/folder_...`: Navigation and folder management.
-  - `src/MyVideoExplorer/file_list/`, `src/MyVideoExplorer/image_list/`: Browsing content.
+  - `src/MyVideoExplorer/file_list/`, `src/image_list/`: Browsing content.
   - `src/MyVideoExplorer/media_info...`: Displaying and managing media details/metadata.
   - `src/MyVideoExplorer/video_player/`: Video playback.
   - `src/MyVideoExplorer/settings/`: Application settings.

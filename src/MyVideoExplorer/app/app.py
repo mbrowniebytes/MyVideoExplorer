@@ -130,6 +130,6 @@ class App:
             "prior_folder": self.controller.state.current_folder
         }
         self.container.settings.settings_data_model.save_state(settings)
-        
+
         self.container.log_util.log_memory("Application closing...")
         self.container.log_util.close()

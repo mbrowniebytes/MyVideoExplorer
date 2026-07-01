@@ -27,15 +27,15 @@ class SettingsState(QObject):
 
     def __init__(self, log_util: Any) -> None:
         super().__init__()
-        
+
         self.log_util = log_util
         self.json_util = JsonUtil(self.log_util)
-        
+
         self.prior_folder = ""
 
         self.auto_select_prior_folder = True
         self.log_level = "info"
-        
+
         self.folder_configs: list[dict[str, Any]] = []
         self.saved_filters: list[dict[str, Any]] = []
         self._load_settings()
@@ -79,7 +79,7 @@ class SettingsState(QObject):
             state_data.update(self.json_util.load_json(SETTINGS_STATE_FILE))
 
         self.prior_folder = state_data.get("prior_folder", "")
-        
+
         # Load App Settings
         app_data = self.json_util.load_json(DEFAULTS_APP_FILE)
         if SETTINGS_APP_FILE.exists():

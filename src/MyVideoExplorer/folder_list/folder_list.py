@@ -1,6 +1,7 @@
 from pathlib import Path
+import random
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QSize
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -8,6 +9,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QVBoxLayout,
     QWidget,
+    QToolButton,
 )
 
 from MyVideoExplorer.app.app_signals_model import SignalPayload
@@ -26,6 +28,8 @@ _EMPTY_STATE_NO_MEDIA_FOLDERS = (
 
 class FolderList(BaseWidget):
     sig_folder_selected_intent = Signal(object)
+    sig_navigate_to_folder = Signal(str)
+    HISTORY_FOLDER_LENGTH = 100
 
     def __init__(
         self, file_util: FileUtil, settings: Settings, log_util: LogUtil, parent=None
@@ -38,6 +42,11 @@ class FolderList(BaseWidget):
         self.settings = settings
         self._signals_connected = False
         self._container = QWidget()
+        self.backward_folder_button = None
+        self.forward_folder_button = None
+        self.random_folder_button = None
+        self._folder_history: list[str] = []
+        self._current_history_index = -1
 
     def build(self) -> QWidget:
         self._container = self._build_container()
@@ -63,6 +72,14 @@ class FolderList(BaseWidget):
         header_layout.addWidget(self.title_label)
         header_layout.addWidget(self.help_icon)
         header_layout.addStretch()
+
+        # Add prior folder navigation button
+        self.backward_folder_button = self._create_nav_folder_button("backward", header_layout)
+        # Add forward folder navigation button
+        self.forward_folder_button = self._create_nav_folder_button("forward", header_layout)
+        # Add random folder navigation button
+        self.random_folder_button = self._create_nav_folder_button("random", header_layout)
+
         layout.addLayout(header_layout)
 
         layout.addWidget(self.folder_list_view)
@@ -102,6 +119,7 @@ class FolderList(BaseWidget):
             self.folder_list_view.show_empty_state(
                 message=_EMPTY_STATE_NO_MEDIA_FOLDERS
             )
+            self._update_button_states()
             return
 
         if not force and self.folder_list_view.count() > 0:
@@ -137,10 +155,12 @@ class FolderList(BaseWidget):
 
     def set_selected_folder(self, folder_path: str) -> None:
         self.folder_list_view.set_selected_folder(folder_path)
+        self._add_to_history(folder_path)
         # Important: Don't call refresh here as it might trigger a full rebuild
 
     def show_loading_state(self, folders: list[str] = None) -> None:
         self.folder_list_view.show_loading_state(folders)
+        self._update_button_states()
 
     def select_next_folder(self, step: int = 1) -> None:
         self.folder_list_view.select_next_folder(step)
@@ -198,8 +218,14 @@ class FolderList(BaseWidget):
 
     def populate_view(self, items: list[FileUtilModel], on_complete: callable = None):
         """Sorts and populates the FolderListView."""
+
+        def _on_populate_complete(items_result):
+            self._update_button_states()
+            if on_complete:
+                on_complete(items_result)
+
         self.folder_list_view.populate_view(
-            items, get_icon_func=self._get_icon_for_path, on_complete=on_complete
+            items, get_icon_func=self._get_icon_for_path, on_complete=_on_populate_complete
         )
 
     def _get_icon_for_path(self, path: str) -> str:
@@ -217,3 +243,111 @@ class FolderList(BaseWidget):
                 return config.get("icon", "fa5s.folder")
 
         return "fa5s.folder"
+
+    def _create_nav_folder_button(self, direction: str, header_layout: QHBoxLayout) -> QToolButton:
+        """Create and add the forward folder navigation button."""
+
+        if direction == "forward":
+            button_name = "goto_forward_folder"
+            button_tooltip = "Go to Next Folder"
+            button_icon = "fa5s.chevron-right"
+            button_icon = "fa5s.share"
+            button_clicked = self._on_forward_folder_clicked
+        elif direction == "backward":
+            button_name = "goto_backward_folder"
+            button_tooltip = "Go to Prior Folder"
+            button_icon = "fa5s.chevron-left"
+            button_icon = "fa5s.reply"
+            button_clicked = self._on_backward_folder_clicked
+        elif direction == "random":
+            button_name = "random_folder_button"
+            button_tooltip = "Go to Random Folder"
+            button_icon = "fa5s.dice"
+            button_clicked = self._on_random_folder_clicked
+        else:
+            raise ValueError(f"_create_nav_folder_button unknown direction: {direction}")
+
+        nav_folder_button = QToolButton()
+        nav_folder_button.setObjectName(button_name)
+        nav_folder_button.setToolTip(button_tooltip)
+
+        try:
+            nav_folder_button.setIcon(
+                APP_THEME.icon(button_icon, color=APP_THEME.text_color)
+            )
+        except Exception:
+            pass  # No icon available
+
+        nav_folder_button.setIconSize(QSize(APP_THEME.icon_size, APP_THEME.icon_size))
+        nav_folder_button.clicked.connect(button_clicked)
+        nav_folder_button.setEnabled(False)
+
+        header_layout.addWidget(nav_folder_button)
+
+        return nav_folder_button
+
+    def _on_backward_folder_clicked(self) -> None:
+        """Handle button click to navigate to prior folder."""
+        try:
+            if self._current_history_index > 0:
+                self._current_history_index -= 1
+                self.sig_navigate_to_folder.emit(self._folder_history[self._current_history_index])
+                self._update_button_states()
+
+        except Exception as e:
+            self.log_util.error(f"Error navigating to backward folder: {e}")
+
+    def _on_forward_folder_clicked(self) -> None:
+        """Handle button click to navigate to forward folder."""
+        try:
+            if self._current_history_index < len(self._folder_history) - 1:
+                self._current_history_index += 1
+                self.sig_navigate_to_folder.emit(self._folder_history[self._current_history_index])
+                self._update_button_states()
+
+        except Exception as e:
+            self.log_util.error(f"Error navigating to forward folder: {e}")
+
+    def _on_random_folder_clicked(self) -> None:
+        """Handle button click to navigate to a random folder."""
+        try:
+            valid_folders = []
+            for row in range(self.folder_list_view.count()):
+                item = self.folder_list_view.item(row)
+                path = item.data(Qt.ItemDataRole.UserRole)
+                if path:
+                    valid_folders.append(path)
+
+            if valid_folders:
+                folder_path = random.choice(valid_folders)
+                self.sig_navigate_to_folder.emit(folder_path)
+        except Exception as e:
+            self.log_util.error(f"Error navigating to random folder: {e}")
+
+    def _update_button_states(self) -> None:
+        if self.backward_folder_button:
+            self.backward_folder_button.setEnabled(self._current_history_index > 0)
+        if self.forward_folder_button:
+            self.forward_folder_button.setEnabled(
+                self._current_history_index < len(self._folder_history) - 1
+            )
+        if self.random_folder_button:
+            has_folders = self.folder_list_view.count() > 0
+            self.random_folder_button.setEnabled(has_folders)
+
+    def _add_to_history(self, folder_path: str) -> None:
+        if self._folder_history and self._folder_history[self._current_history_index] == folder_path:
+            return
+
+        # Truncate forward history if we are in the middle
+        if self._current_history_index < len(self._folder_history) - 1:
+            self._folder_history = self._folder_history[: self._current_history_index + 1]
+
+        self._folder_history.append(folder_path)
+        self._current_history_index = len(self._folder_history) - 1
+
+        if len(self._folder_history) > self.HISTORY_FOLDER_LENGTH:
+            self._folder_history.pop(0)
+            self._current_history_index -= 1
+
+        self._update_button_states()
