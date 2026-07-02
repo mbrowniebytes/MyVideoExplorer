@@ -1,25 +1,27 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
+    QLabel,
     QPushButton,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
-    QSizePolicy,
-    QCheckBox,
-    QLabel,
 )
 
+from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
 from MyVideoExplorer.settings.settings_state import SettingsState
-from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.utils.log_util import LogUtil
 
 
 class SettingsAppTab(SettingsBaseTab):
-    def __init__(self, state: SettingsState, log_util: LogUtil, parent: QWidget | None = None) -> None:
+    def __init__(
+        self, state: SettingsState, log_util: LogUtil, parent: QWidget | None = None
+    ) -> None:
         super().__init__(log_util, parent)
         self.log_util = log_util
         self.state = state
@@ -54,14 +56,18 @@ class SettingsAppTab(SettingsBaseTab):
             getattr(self.state, "auto_select_prior_folder", True)
         )
 
-        self.app_start_select_prior_checkbox = QCheckBox("On App start or Folder refresh:\nChecked: auto select prior Folder\nUnchecked: auto select first Folder")
+        self.app_start_select_prior_checkbox = QCheckBox(
+            "On App start or Folder refresh:\nChecked: auto select prior Folder\nUnchecked: auto select first Folder"
+        )
         self.app_start_select_prior_checkbox.setChecked(
             getattr(self.state, "auto_select_prior_folder", True)
         )
         app_layout.addRow("Prior Folder", self.app_start_select_prior_checkbox)
 
         logging_level_layout = QHBoxLayout()
-        logging_level_layout.addWidget(self.logging_level_combo, alignment=Qt.AlignmentFlag.AlignTop)
+        logging_level_layout.addWidget(
+            self.logging_level_combo, alignment=Qt.AlignmentFlag.AlignTop
+        )
         logging_level_layout.addWidget(QLabel("Verbosity of App info logged to log/"))
         logging_level_layout.addStretch()
         app_layout.addRow("Logging Level", logging_level_layout)
@@ -80,7 +86,9 @@ class SettingsAppTab(SettingsBaseTab):
         self.save_btn.setFixedWidth(180)
         self.save_btn.clicked.connect(self._save_app_settings)
 
-        self.reset_btn = self._build_reset_button("Reset App Settings", self.reset_settings)
+        self.reset_btn = self._build_reset_button(
+            "Reset App Settings", self.reset_settings
+        )
 
         spacer = QWidget()
         spacer.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
@@ -134,8 +142,9 @@ class SettingsAppTab(SettingsBaseTab):
             self.state.log_level = log_level
 
         # Save prior folder selection setting
-        self.state.auto_select_prior_folder = self.app_start_select_prior_checkbox.isChecked()
-
+        self.state.auto_select_prior_folder = (
+            self.app_start_select_prior_checkbox.isChecked()
+        )
 
         self.state.save_app()
         self.reset_save_button()

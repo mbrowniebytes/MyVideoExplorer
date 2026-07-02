@@ -21,13 +21,11 @@ dev = [
     "ruff~=0.15.18",
     "black~=26.5.1",
     "mypy~=2.1.0",
-    
     # Testing
     "pytest~=9.1.1",
     "pytest-qt~=4.5.0",
     "pytest-cov~=7.1.0",
     "pytest-asyncio~=1.4.0",
-    
     # Additional quality tools
     "isort~=8.0.1",
     "platformdirs~=4.10.0",
