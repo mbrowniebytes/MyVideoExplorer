@@ -31,6 +31,7 @@ class ImagePreviewWidget(BaseWidget):
         self.timer.setSingleShot(True)
         self.timer.timeout.connect(self.apply_scaled_pixmap)
         self._pixmap: QPixmap | None = None
+        self._loading_state_text = "Loading..."
 
         self.image_label = ImageLabel(log_util, _NO_IMAGE_FOUND)
         self.image_label.sig_wheel_step.connect(self.sig_wheel_step.emit)
@@ -65,6 +66,14 @@ class ImagePreviewWidget(BaseWidget):
         self._pixmap = None
         self.image_label.setPixmap(QPixmap())
         self.image_label.setText(_NO_IMAGE_FOUND)
+
+    def show_loading_state(self, message: str = "") -> None:
+        self._pixmap = None
+        self.image_label.setPixmap(QPixmap())
+        text = self._loading_state_text
+        if message:
+            text += f"\n\n{message}"
+        self.image_label.setText(text)
 
     def resize_pixmap(self) -> None:
         self.image_label.clear()

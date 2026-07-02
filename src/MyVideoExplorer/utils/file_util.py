@@ -89,7 +89,7 @@ class FileUtil:
             try:
                 # dev test large qty folders
                 if IS_DEVELOPMENT:
-                    sleep(0.001)
+                    sleep(0.011)
                 if entry.is_dir(follow_symlinks=False):
                     folder_item = self.build_folder_item(entry.path, depth=depth)
                     items.append(folder_item)

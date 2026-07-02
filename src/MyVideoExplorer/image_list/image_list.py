@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pathlib
+import random
 
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QFont
@@ -57,6 +58,15 @@ class ImageList(BaseWidget):
 
     def build(self):
         self.image_list = self.image_list_view.build()
+        msgs = [
+            "Scrolling through the bits..",
+            "Calculate calculate..",
+            "Shuffling through the 1s and 0s..",
+            "Rollin', rollin', rollin'..",
+            "Nom nom nom..",
+        ]
+        msg = random.choice(msgs)
+        self.image_list_view.show_loading_state(msg)
         self._connect_internal_sigs()
         self.clear_nfo()
         return self.image_list
@@ -105,6 +115,7 @@ class ImageList(BaseWidget):
     def refresh(self, folder_path: str | None) -> None:
         if self.property("current_folder") == folder_path:
             return
+        self.image_list_view.show_loading_state()
         self.setProperty("current_folder", folder_path)
         self.update_image_from_folder(folder_path or "")
 
@@ -181,6 +192,7 @@ class ImageList(BaseWidget):
 
     def update_image_from_item(self, image_path: str) -> None:
         # self.clear_nfo()
+        self.image_list_view.show_loading_state()
         self._load_folder_images(image_path)
 
     def update_image_from_folder(self, folder_path: str) -> None:
@@ -191,6 +203,7 @@ class ImageList(BaseWidget):
             self._clear_preview()
             return
 
+        self.image_list_view.show_loading_state()
         images, poster_path = self.file_util.get_images_from_folder(folder_path)
         self.images = images
         self.selected_image_index = -1

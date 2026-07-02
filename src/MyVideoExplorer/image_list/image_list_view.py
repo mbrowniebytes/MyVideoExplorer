@@ -49,6 +49,7 @@ class ImageListView(BaseWidget):
         self.title_widget = ImageTitleWidget(log_util)
         self.preview_widget = ImagePreviewWidget(log_util)
         self.plot_text = self.media_info_side_view.get_plot_section().get_plot_text()
+        self._loading_state_text = "Loading..."
 
     def build(self) -> ImageListView:
         """
@@ -137,6 +138,10 @@ class ImageListView(BaseWidget):
     def resize_pixmap(self) -> None:
         if self.preview_widget:
             self.preview_widget.resize_pixmap()
+
+    def show_loading_state(self, message: str = "") -> None:
+        if self.preview_widget:
+            self.preview_widget.show_loading_state(message)
 
     def load_pixmap(self, image_path: str | None) -> None:
         if self.preview_widget is None:
