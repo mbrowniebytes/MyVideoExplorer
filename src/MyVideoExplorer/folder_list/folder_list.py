@@ -16,17 +16,18 @@ from MyVideoExplorer.app.app_signals_model import SignalPayload
 from MyVideoExplorer.folder_list.folder_list_view import FolderListView
 from MyVideoExplorer.settings.settings import Settings
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.log_util import LogUtil
-from MyVideoExplorer.widgets.base_widget import BaseWidget
+from MyVideoExplorer.utils.ui_utils import UIUtils
 
 _EMPTY_STATE_NO_MEDIA_FOLDERS = (
     "No media folders configured.\nOpen Settings (Gear) → Media and add a media folder."
 )
 
 
-class FolderList(BaseWidget):
+class FolderList(QWidget, ThemableMixin):
     sig_folder_selected_intent = Signal(object)
     sig_navigate_to_folder = Signal(str)
     HISTORY_FOLDER_LENGTH = 100
@@ -34,7 +35,9 @@ class FolderList(BaseWidget):
     def __init__(
         self, file_util: FileUtil, settings: Settings, log_util: LogUtil, parent=None
     ) -> None:
-        super().__init__(log_util)
+        super().__init__(parent)
+        self.log_util = log_util
+        self._ui_utils = UIUtils()
         self.help_icon = QLabel()
         self.title_label = QLabel()
         self.folder_list_view = FolderListView(log_util=self.log_util)
@@ -261,7 +264,7 @@ class FolderList(BaseWidget):
             button_clicked = self._on_backward_folder_clicked
         elif direction == "random":
             button_name = "random_folder_button"
-            button_tooltip = "Go to Random Folder"
+            button_tooltip = "Go to a Random Folder"
             button_icon = "fa5s.dice"
             button_clicked = self._on_random_folder_clicked
         else:

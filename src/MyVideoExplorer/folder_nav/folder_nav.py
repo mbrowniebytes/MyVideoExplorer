@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QTimer, Signal
-from PySide6.QtWidgets import QVBoxLayout
+from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.folder_filter.folder_filter import FolderFilters
+from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.log_util import LogUtil
-from MyVideoExplorer.widgets.base_widget import BaseWidget
+from MyVideoExplorer.utils.ui_utils import UIUtils
 
 
-class FolderNav(BaseWidget):
+class FolderNav(QWidget, ThemableMixin):
     """
     Navigation sidebar combining folder selection buttons and filters.
     """
@@ -21,7 +22,9 @@ class FolderNav(BaseWidget):
     sig_genre_changed = Signal(object)
 
     def __init__(self, folder_filter_widget: FolderFilters, log_util: LogUtil) -> None:
-        super().__init__(log_util)
+        super().__init__()
+        self.log_util = log_util
+        self._ui_utils = UIUtils()
         self.root_folders: list[str] = []
         self.folder_filter_widget = folder_filter_widget
         self._signals_connected = False
@@ -33,7 +36,7 @@ class FolderNav(BaseWidget):
         """Builds the navigation UI and connects internal signals."""
         self.folder_filter_widget.build()
 
-        layout = self.set_compact_layout(QVBoxLayout)
+        layout = self._ui_utils.apply_compact_layout(self, QVBoxLayout)
         layout.setSpacing(10)
         layout.addWidget(self.folder_filter_widget)
 

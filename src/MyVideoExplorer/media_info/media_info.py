@@ -6,11 +6,12 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.media_info.media_info_view import MediaInfoView
 from MyVideoExplorer.media_info_side.media_info_side_view import MediaInfoSideView
+from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.utils.log_util import LogUtil
-from MyVideoExplorer.widgets.base_widget import BaseWidget
+from MyVideoExplorer.utils.ui_utils import UIUtils
 
 
-class MediaInfo(BaseWidget):
+class MediaInfo(QWidget, ThemableMixin):
     sig_play_video = Signal(object)
 
     def __init__(
@@ -19,7 +20,9 @@ class MediaInfo(BaseWidget):
         media_info_side_view: MediaInfoSideView,
         log_util: LogUtil,
     ) -> None:
-        super().__init__(log_util)
+        super().__init__()
+        self.log_util = log_util
+        self._ui_utils = UIUtils()
 
         self.media_info_view = media_info_view
         self.media_info_side_view = media_info_side_view
@@ -29,7 +32,7 @@ class MediaInfo(BaseWidget):
         self.current_tab_index: int | None = None
         self._are_child_signals_connected = False
 
-        self.media_info_layout = self.set_compact_layout(QVBoxLayout)
+        self.media_info_layout = self._ui_utils.apply_compact_layout(self, QVBoxLayout)
 
         # Backward-compatible aliases for existing tests/callers.
         self.folder_path = self.current_folder_path

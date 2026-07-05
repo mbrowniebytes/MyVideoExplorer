@@ -5,19 +5,20 @@ import random
 
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QFont
+from PySide6.QtWidgets import QWidget
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.file_list.file_list import FileList
 from MyVideoExplorer.image_list.image_list_view import ImageListView
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.utils.str_util import StrUtil
-from MyVideoExplorer.widgets.base_widget import BaseWidget
 
 
-class ImageList(BaseWidget):
+class ImageList(QWidget, ThemableMixin):
     sig_wheel_step = Signal(object)
     sig_right_click = Signal(object)
     sig_double_click = Signal(object)
@@ -32,7 +33,8 @@ class ImageList(BaseWidget):
         file_list: FileList,
         log_util: LogUtil,
     ) -> None:
-        super().__init__(log_util)
+        super().__init__()
+        self.log_util = log_util
         self.nfo_parse_util = nfo_parse_util
         self.file_util = file_util
         self.str_util = str_util

@@ -21,12 +21,13 @@ from MyVideoExplorer.folder_filter.folder_filter_media import FolderFilterMedia
 from MyVideoExplorer.folder_filter.folder_filter_table import FolderFilterTable
 from MyVideoExplorer.settings.settings import Settings
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
-from MyVideoExplorer.widgets.base_widget import BaseWidget
+from MyVideoExplorer.utils.ui_utils import UIUtils
 
 
-class FolderFilters(BaseWidget):
+class FolderFilters(QWidget, ThemableMixin):
     sig_apply_filters = Signal()
     sig_genre_changed = Signal(object)
     sig_root_folder = Signal(object)
@@ -43,7 +44,9 @@ class FolderFilters(BaseWidget):
         settings: Settings,
         log_util,
     ):
-        super().__init__(log_util)
+        super().__init__()
+        self.log_util = log_util
+        self._ui_utils = UIUtils()
         self.settings = settings
         self.apply_button = QToolButton()
         self.add_filter_button = QToolButton()
@@ -347,5 +350,4 @@ class FolderFilters(BaseWidget):
         )
 
     def apply_theme(self) -> None:
-        # Generic BaseWidget.apply_theme handles recursion
         super().apply_theme()

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QVBoxLayout
+from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.media_info_section.media_info_section_definitions import (
@@ -13,13 +13,14 @@ from MyVideoExplorer.media_info_section.media_info_section_plot import (
 from MyVideoExplorer.media_info_side.media_info_side_content_widget import (
     MediaInfoSideContentWidget,
 )
+from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.utils.str_util import StrUtil
-from MyVideoExplorer.widgets.base_widget import BaseWidget
+from MyVideoExplorer.utils.ui_utils import UIUtils
 from MyVideoExplorer.widgets.label_value_widget import LabelValueWidget
 
 
-class MediaInfoSideView(BaseWidget):
+class MediaInfoSideView(QWidget, ThemableMixin):
     """
     Side view displaying metadata and quick actions for a media item.
     """
@@ -29,7 +30,9 @@ class MediaInfoSideView(BaseWidget):
     def __init__(
         self, nfo_parse_util: NfoParseUtil, str_util: StrUtil, log_util
     ) -> None:
-        super().__init__(log_util)
+        super().__init__()
+        self.log_util = log_util
+        self._ui_utils = UIUtils()
 
         self.nfo_parse_util = nfo_parse_util
         self.str_util = str_util
@@ -50,7 +53,7 @@ class MediaInfoSideView(BaseWidget):
 
         self.plot_section = MediaInfoPlotSection()
 
-        self.media_info_side_layout = self.set_compact_layout(QVBoxLayout)
+        self.media_info_side_layout = self._ui_utils.apply_compact_layout(self, QVBoxLayout)
         self.media_info_side_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.media_info_side_layout.setContentsMargins(0, 10, 0, 5)
 

@@ -72,7 +72,6 @@ class ThemeManager:
             else:
                 # If we're refreshing a specific widget, we don't necessarily want to
                 # apply the FULL app QSS to it if it's already inherited,
-                # but BaseWidget.apply_theme expects its own styling.
                 # StyleFactory.get_app_qss might be too heavy for small widgets.
                 # However, for now we keep existing behavior but optimized.
                 root_widget.setStyleSheet(StyleFactory.get_app_qss(self.config))
@@ -94,7 +93,7 @@ class ThemeManager:
         if self._is_custom_widget(widget):
             if hasattr(widget, "apply_theme"):
                 # We expect custom apply_theme to NOT call refresh_theme again
-                # OR if it does, it should check is_refreshing (handled in BaseWidget).
+                # OR if it does, it should check is_refreshing
                 widget.apply_theme()
 
         # Apply global font to all widgets to ensure inheritance and correct QFont metrics

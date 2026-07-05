@@ -2,19 +2,22 @@ from __future__ import annotations
 
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QHBoxLayout, QPushButton
+from PySide6.QtWidgets import QHBoxLayout, QPushButton, QWidget
 
 from MyVideoExplorer.settings.settings import Settings
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.utils.log_util import LogUtil
-from MyVideoExplorer.widgets.base_widget import BaseWidget
+from MyVideoExplorer.utils.ui_utils import UIUtils
 
 
-class FolderFilterMedia(BaseWidget):
+class FolderFilterMedia(QWidget, ThemableMixin):
     sig_apply_filters = Signal()
 
     def __init__(self, settings: Settings, log_util: LogUtil, parent=None):
-        super().__init__(log_util, parent)
+        super().__init__(parent)
+        self.log_util = log_util
+        self._ui_utils = UIUtils()
         self.settings = settings
         self.media_button_group: list[QPushButton] = []
         self.media_layout = QHBoxLayout(self)
@@ -158,5 +161,4 @@ class FolderFilterMedia(BaseWidget):
         return filters
 
     def apply_theme(self) -> None:
-        # Generic BaseWidget.apply_theme handles recursion
         super().apply_theme()

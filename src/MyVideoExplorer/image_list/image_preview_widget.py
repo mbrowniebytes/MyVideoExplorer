@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import QVBoxLayout
+from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from MyVideoExplorer.image_list.image_label import ImageLabel
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.utils.log_util import LogUtil
-from MyVideoExplorer.widgets.base_widget import BaseWidget
+from MyVideoExplorer.utils.ui_utils import UIUtils
 
 _NO_IMAGE_FOUND = """
     No image found.\n
@@ -16,7 +17,7 @@ _NO_IMAGE_FOUND = """
 """
 
 
-class ImagePreviewWidget(BaseWidget):
+class ImagePreviewWidget(QWidget, ThemableMixin):
     """
     Widget for previewing an image with automatic scaling and delayed rendering.
     """
@@ -26,7 +27,9 @@ class ImagePreviewWidget(BaseWidget):
     sig_double_click = Signal(object)
 
     def __init__(self, log_util:LogUtil) -> None:
-        super().__init__(log_util)
+        super().__init__()
+        self.log_util = log_util
+        self._ui_utils = UIUtils()
         self.timer = QTimer()
         self.timer.setSingleShot(True)
         self.timer.timeout.connect(self.apply_scaled_pixmap)
@@ -38,7 +41,7 @@ class ImagePreviewWidget(BaseWidget):
         self.image_label.sig_right_click.connect(self.sig_right_click.emit)
         self.image_label.sig_double_click.connect(self.sig_double_click.emit)
 
-        layout = self.set_compact_layout(QVBoxLayout)
+        layout = self._ui_utils.apply_compact_layout(self, QVBoxLayout)
         layout.addWidget(self.image_label)
 
     def load_pixmap(self, image_path: str | None) -> None:

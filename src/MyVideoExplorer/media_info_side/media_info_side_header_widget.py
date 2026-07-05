@@ -4,18 +4,19 @@ from PySide6.QtCore import Qt, Signal
 from MyVideoExplorer.app.app_signals_model import SignalPayload, SignalFlow
 from PySide6.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget
 
+from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
-from MyVideoExplorer.widgets.base_widget import BaseWidget
 
 
-class MediaInfoSideHeaderWidget(BaseWidget):
+class MediaInfoSideHeaderWidget(QWidget, ThemableMixin):
     """Compact side header with quick actions for the selected media item."""
 
     sig_play_video_requested = Signal(object)
 
     def __init__(self, log_util: LogUtil | None = None, parent: QWidget | None = None) -> None:
-        super().__init__(log_util or LogUtil(), parent)
+        super().__init__(parent)
+        self.log_util = log_util or LogUtil()
 
         self.header_layout = QVBoxLayout(self)
         self.header_layout.setContentsMargins(0, 0, 0, 0)

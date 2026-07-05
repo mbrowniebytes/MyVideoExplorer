@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QHBoxLayout, QLabel
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QWidget
 
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
-from MyVideoExplorer.widgets.base_widget import BaseWidget
 
 
-class ImageTitleWidget(BaseWidget):
+class ImageTitleWidget(QWidget):
     def __init__(self, log_util: LogUtil) -> None:
-        super().__init__(log_util)
+        super().__init__()
+        self.log_util = log_util
         layout = QHBoxLayout(self)
         layout.setContentsMargins(30, 0, 15, 0)
         layout.setSpacing(0)

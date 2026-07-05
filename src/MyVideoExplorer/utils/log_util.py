@@ -4,7 +4,6 @@ import logging
 import os
 import sys
 import traceback
-from collections.abc import Callable, Mapping, MutableMapping
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Any
@@ -13,7 +12,7 @@ from MyVideoExplorer.app.app_environment import IS_DEVELOPMENT
 
 class CustomFormatter(logging.Formatter):
     """Custom formatter to match the previous structlog-based format."""
-    def __init__(self, log_util: 'LogUtil') -> None:
+    def __init__(self, log_util: LogUtil) -> None:
         super().__init__(datefmt="%Y-%m-%d %H:%M:%S")
         self.log_util = log_util
 

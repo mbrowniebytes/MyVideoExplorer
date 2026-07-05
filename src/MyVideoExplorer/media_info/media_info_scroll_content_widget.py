@@ -14,15 +14,18 @@ from MyVideoExplorer.media_info_section.media_info_section_definitions import (
     MEDIA_INFO_SECTION_ACTORS,
 )
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.utils.log_util import LogUtil
-from MyVideoExplorer.widgets.base_widget import BaseWidget
+from MyVideoExplorer.utils.ui_utils import UIUtils
 
 
-class MediaInfoScrollContentWidget(BaseWidget):
+class MediaInfoScrollContentWidget(QWidget, ThemableMixin):
     def __init__(self, log_util: LogUtil, parent: QWidget | None = None) -> None:
-        super().__init__(log_util, parent)
+        super().__init__(parent)
+        self.log_util = log_util
+        self._ui_utils = UIUtils()
 
-        self.section_widgets_by_id: dict[str, BaseWidget] = {}
+        self.section_widgets_by_id: dict[str, QWidget] = {}
 
         self.content_container_widget = QWidget()
         self.content_container_widget.setStyleSheet(APP_THEME.container_qss())
@@ -47,7 +50,7 @@ class MediaInfoScrollContentWidget(BaseWidget):
         self.outer_layout.addWidget(self.scroll_area)
 
     def add_section_if_missing(
-        self, section_id: str, section_widget: BaseWidget
+        self, section_id: str, section_widget: QWidget
     ) -> None:
         if section_id in self.section_widgets_by_id:
             return

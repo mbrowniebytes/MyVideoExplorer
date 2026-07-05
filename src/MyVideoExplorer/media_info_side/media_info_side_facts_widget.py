@@ -5,13 +5,14 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from MyVideoExplorer.media_info.media_info_id_link_formatter import MediaInfoIdLinkFormatter
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.str_util import StrUtil
-from MyVideoExplorer.widgets.base_widget import BaseWidget
+from MyVideoExplorer.utils.ui_utils import UIUtils
 from MyVideoExplorer.widgets.label_value_widget import LabelValueWidget
 
 
-class MediaInfoSideFactsWidget(BaseWidget):
+class MediaInfoSideFactsWidget(QWidget, ThemableMixin):
     """Compact metadata facts displayed in the narrow media info side panel."""
 
     FIXED_FIELD_DEFINITIONS = [
@@ -28,7 +29,9 @@ class MediaInfoSideFactsWidget(BaseWidget):
         log_util: LogUtil | None = None,
         parent: QWidget | None = None,
     ) -> None:
-        super().__init__(log_util or LogUtil(), parent)
+        super().__init__(parent)
+        self.log_util = log_util or LogUtil()
+        self._ui_utils = UIUtils()
 
         self.str_util = str_util
         self.id_link_formatter = id_link_formatter or MediaInfoIdLinkFormatter()
@@ -59,7 +62,6 @@ class MediaInfoSideFactsWidget(BaseWidget):
                 name=field_label,
                 value="",
                 orientation=Qt.Orientation.Vertical,
-                log_util=self.log_util,
                 parent=self,
             )
             self.fixed_field_widgets_by_key[movie_info_key] = field_value_widget
@@ -108,7 +110,6 @@ class MediaInfoSideFactsWidget(BaseWidget):
             value=formatted_id_html_value,
             orientation=Qt.Orientation.Vertical,
             is_link=True,
-            log_util=self.log_util,
             parent=self,
         )
 

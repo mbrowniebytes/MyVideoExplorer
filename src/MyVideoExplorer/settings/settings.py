@@ -11,18 +11,18 @@ from MyVideoExplorer.settings.settings_media_tab import SettingsMediaTab
 from MyVideoExplorer.settings.settings_state import SettingsState
 
 # from MyVideoExplorer.settings.settings_ui_tab import SettingsUITab
+from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.utils.log_util import LogUtil
-from MyVideoExplorer.widgets.base_widget import BaseWidget
 from MyVideoExplorer.widgets.right_aligned_tab_bar import RightAlignedTabBar
 
 
-class Settings(BaseWidget):
+class Settings(QWidget, ThemableMixin):
     """Container widget for application settings, managing tabs and state persistence."""
 
     sig_dirty_changed = Signal(object)
 
     def __init__(self, log_util: LogUtil) -> None:
-        super().__init__(log_util)
+        super().__init__()
         self.log_util = log_util
 
         # Data Model (State Management)

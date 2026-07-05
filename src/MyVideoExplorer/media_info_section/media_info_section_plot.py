@@ -5,11 +5,12 @@ from PySide6.QtWidgets import (
     QPlainTextEdit,
     QSizePolicy,
     QVBoxLayout,
+    QWidget,
 )
 
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.utils.log_util import LogUtil
-from MyVideoExplorer.widgets.base_widget import BaseWidget
 
 PLOT_SECTION_OBJECT_NAME = "section_plot"
 PLOT_SECTION_TITLE_TEXT = "P\nl\no\nt"
@@ -22,9 +23,10 @@ PLOT_SECTION_LINE_HEIGHT_MULTIPLIER = 1.2
 PLOT_SECTION_FONT_SIZE_OFFSET = 4
 
 
-class MediaInfoPlotSection(BaseWidget):
+class MediaInfoPlotSection(QWidget, ThemableMixin):
     def __init__(self, log_util: LogUtil | None = None, parent=None):
-        super().__init__(log_util or LogUtil(), parent)
+        super().__init__(parent)
+        self.log_util = log_util or LogUtil()
 
         self._current_plot_text = ""
 

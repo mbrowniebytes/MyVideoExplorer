@@ -5,11 +5,12 @@ from PySide6.QtWidgets import QPushButton, QWidget
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.utils.log_util import LogUtil
-from MyVideoExplorer.widgets.base_widget import BaseWidget
+from MyVideoExplorer.utils.ui_utils import UIUtils
 
 
-class SettingsBaseTab(BaseWidget):
+class SettingsBaseTab(QWidget, ThemableMixin):
     """Base class for settings tabs to provide standard signaling and save button behavior."""
 
     sig_changed = Signal(object)
@@ -18,8 +19,9 @@ class SettingsBaseTab(BaseWidget):
     def __init__(
         self, log_util: LogUtil | None = None, parent: QWidget | None = None
     ) -> None:
-        super().__init__(log_util, parent)
+        super().__init__(parent)
         self.log_util = log_util
+        self._ui_utils = UIUtils()
         self.is_dirty: bool = False
         self.save_btn: QPushButton | None = None
         self.reset_btn: QPushButton | None = None

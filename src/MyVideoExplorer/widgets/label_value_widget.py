@@ -3,11 +3,8 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from MyVideoExplorer.theme.theme import APP_THEME
-from MyVideoExplorer.utils.log_util import LogUtil
-from MyVideoExplorer.widgets.base_widget import BaseWidget
 
-
-class LabelValueWidget(BaseWidget):
+class LabelValueWidget(QWidget):
     """
     A reusable widget for displaying a label and its corresponding value.
     Supports horizontal and vertical orientations and optional links.
@@ -19,12 +16,9 @@ class LabelValueWidget(BaseWidget):
         value: str | int | float | None = None,
         orientation: Qt.Orientation = Qt.Orientation.Horizontal,
         is_link: bool = False,
-        log_util: LogUtil | None = None,
         parent: QWidget | None = None,
     ) -> None:
-        from MyVideoExplorer.utils.log_util import LogUtil
-
-        super().__init__(log_util or LogUtil(), parent)
+        super().__init__(parent)
         self.name = name or ""
         self.value = value
         self.orientation = orientation
