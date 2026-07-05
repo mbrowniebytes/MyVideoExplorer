@@ -11,7 +11,6 @@ requires-python = "~=3.14"
 dependencies = [
     "PySide6~=6.11.1",
     "qtawesome~=1.4.2",
-    "structlog~=26.1.0",
     "psutil~=7.2.2",
 ]
 

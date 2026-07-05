@@ -9,10 +9,25 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Any
 
-# Use structlog for structured logging output
-import structlog
-
 from MyVideoExplorer.app.app_environment import IS_DEVELOPMENT
+
+class CustomFormatter(logging.Formatter):
+    """Custom formatter to match the previous structlog-based format."""
+    def __init__(self, log_util: 'LogUtil') -> None:
+        super().__init__(datefmt="%Y-%m-%d %H:%M:%S")
+        self.log_util = log_util
+
+    def format(self, record: logging.LogRecord) -> str:
+        record.asctime = self.formatTime(record, self.datefmt)
+        level = record.levelname.upper()
+        message = record.getMessage()
+
+        caller = getattr(record, "caller", "n/a")
+        extra_info = getattr(record, "extra_info", {})
+
+        extra = f" - {extra_info}" if extra_info else ""
+
+        return f"{record.asctime} - {level:<7} - {message} [{caller}]{extra}"
 
 # Define log directory and file paths
 BASE_PATH = Path().cwd().as_posix()
@@ -82,15 +97,13 @@ class LogUtil:
         """Get the root logger instance."""
         return logging.getLogger()
 
-    def _caller_info_processor(
-        self, logger: Any, name: str, event_dict: MutableMapping[str, Any]
-    ) -> MutableMapping[str, Any]:
+    def _get_caller_info(self) -> str:
         """Extract file path (relative to MyVideoExplorer/) and line number from call stack."""
-        # Get caller frame (skip this function)
+        # Get caller frame (skip this function and the convenience method)
         frames = traceback.extract_stack()
 
         if len(frames) <= 2:
-            return event_dict
+            return "n/a"
 
         # Patterns to skip — anything outside MyVideoExplorer/ or in virtualenv
         skip_prefixes = [
@@ -100,14 +113,9 @@ class LogUtil:
             "/usr/lib/python",
         ]
 
-        # -1 is current frame, -2 is the caller
-        # frames = frames[2:]
-
         app_frame = None
         for frame in reversed(frames):
             filename = frame.filename.replace("\\", "/")
-
-            # print(f"_caller_info_processor: filename:{filename}")
 
             # Only accept frames that contain 'MyVideoExplorer/' — our application code
             if IS_DEVELOPMENT:
@@ -121,8 +129,7 @@ class LogUtil:
             break
 
         if app_frame is None:
-            # print(f"_caller_info_processor: event_dict:{event_dict}")
-            return event_dict  # Fallback if no app frame found
+            return "n/a"
 
         # Calculate relative path from app root, using Linux-style slashes
         full_path = str(app_frame.filename).replace("\\", "/")
@@ -133,29 +140,9 @@ class LogUtil:
             root_path = str(BASE_PATH)
         root_path = root_path.replace("\\", "/")
         rel_path = full_path.removeprefix(root_path) or "app"
-        # print(
-        #     f"_caller_info_processor: root_path:{root_path} full_path:{full_path} rel_path:{rel_path}"
-        # )
 
         # Format as "filename@lineno"
-        event_dict["caller"] = f"{rel_path}@{app_frame.lineno}"
-
-        return event_dict
-
-    def _custom_formatter(
-        self, logger: Any, name: str, event_dict: MutableMapping[str, Any]
-    ) -> str:
-        timestamp = event_dict.pop("timestamp", "n/a")
-        level = event_dict.pop("level", "n/a").upper()
-        message = event_dict.pop("event", "")
-        event_dict.pop("lineno", "n/a")
-        event_dict.pop("pathname", "n/a")
-        caller = event_dict.pop("caller", "n/a")
-
-        # Remaining event_dict items are treated as extra info
-        extra = f" - {event_dict}" if event_dict else ""
-
-        return f"{timestamp} - {level:<7} - {message} [{caller}]{extra}"
+        return f"{rel_path}@{app_frame.lineno}"
 
     def _custom_namer(self, default_name: str) -> str:
         # This will be called when doing the log rotation
@@ -206,29 +193,7 @@ class LogUtil:
             delay=True,  # required else perms/timing issue
         )
 
-        processors: list[
-            Callable[
-                [Any, str, MutableMapping[str, Any]],
-                Mapping[str, Any] | str | bytes | bytearray | tuple[Any, ...],
-            ]
-        ] = [
-            structlog.stdlib.add_log_level,
-            structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S", utc=False),
-            # structlog.processors.TimeStamper(fmt="iso"),
-            self._caller_info_processor,
-            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
-        ]
-
-        structlog.configure(
-            processors=processors,
-            logger_factory=structlog.stdlib.LoggerFactory(),
-            wrapper_class=structlog.stdlib.BoundLogger,
-            cache_logger_on_first_use=True,
-        )
-
-        formatter = structlog.stdlib.ProcessorFormatter(
-            processor=self._custom_formatter,
-        )
+        formatter = CustomFormatter(self)
 
         self._file_handler.setFormatter(formatter)
         self._file_handler.setLevel(effective_level)
@@ -284,10 +249,12 @@ class LogUtil:
             extra_info: Optional dictionary of additional structured fields.
         """
 
-        logger = structlog.get_logger()
+        logger = logging.getLogger()
         log_method = getattr(logger, level.lower(), logger.info)
-        extra = extra_info or {}
-        log_method(message, **extra)
+        extra = {"caller": self._get_caller_info()}
+        if extra_info:
+            extra["extra_info"] = extra_info
+        log_method(message, extra=extra)
 
     # Helper convenience methods for common use cases
     def debug(
