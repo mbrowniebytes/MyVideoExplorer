@@ -21,8 +21,8 @@ class FontUtil:
         for font_file in fonts_dir.glob("*.ttf"):
             if QFontDatabase.addApplicationFont(str(font_file)) != -1:
                 loaded_fonts += 1
-        for font_file in fonts_dir.glob("*.otf"):
-            if QFontDatabase.addApplicationFont(str(font_file)) != -1:
-                loaded_fonts += 1
+        # for font_file in fonts_dir.glob("*.otf"):
+        #     if QFontDatabase.addApplicationFont(str(font_file)) != -1:
+        #         loaded_fonts += 1
 
         print(f"Loaded {loaded_fonts} custom fonts from {fonts_dir}")

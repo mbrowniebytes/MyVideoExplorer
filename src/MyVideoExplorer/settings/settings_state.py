@@ -51,10 +51,11 @@ class SettingsState(QObject):
         }
         app_defaults: dict[str, str | bool] = {
             "log_level": self.log_level,
-            "auto_select_prior_folder": True,
+            "auto_select_folder": "auto_select_prior_folder",
         }
-        ui_defaults: dict[str, int] = {
+        ui_defaults: dict[str, int | str] = {
             "font_size": 18,
+            "app_font": "Lato",
         }
         media_defaults: dict[str, list[dict[str, Any]]] = {
             "folder_configs": self.folder_configs,
@@ -96,6 +97,7 @@ class SettingsState(QObject):
             ui_data.update(self.json_util.load_json(SETTINGS_UI_FILE))
 
         APP_THEME.font_size = ui_data.get("font_size", APP_THEME.font_size)
+        APP_THEME.font_family = ui_data.get("app_font", APP_THEME.font_family)
 
         # Load Media Settings
         media_data = self.json_util.load_json(DEFAULTS_MEDIA_FILE)
@@ -150,8 +152,9 @@ class SettingsState(QObject):
         """Save only UI tab settings."""
         self._ensure_defaults()
 
-        ui_settings: dict[str, int] = {
+        ui_settings: dict[str, int | str] = {
             "font_size": APP_THEME.font_size,
+            "app_font": APP_THEME.font_family,
         }
 
         # Backup then save
@@ -191,6 +194,15 @@ class SettingsState(QObject):
                 flow=SignalFlow.COMPONENT_INTERACTION,
             )
         )
+
+    def load_ui(self) -> None:
+        """Reload UI settings from file."""
+        ui_data = self.json_util.load_json(DEFAULTS_UI_FILE)
+        if SETTINGS_UI_FILE.exists():
+            ui_data.update(self.json_util.load_json(SETTINGS_UI_FILE))
+
+        APP_THEME.font_size = ui_data.get("font_size", APP_THEME.font_size)
+        APP_THEME.font_family = ui_data.get("app_font", APP_THEME.font_family)
 
     def load_app(self) -> None:
         """Reload App settings from file."""

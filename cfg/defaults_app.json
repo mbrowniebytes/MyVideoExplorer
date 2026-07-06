@@ -1,4 +1,4 @@
 {
-    "auto_select_prior_folder": true,
+    "auto_select_folder": "auto_select_prior_folder",
     "log_level": "info"
 }

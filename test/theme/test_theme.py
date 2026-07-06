@@ -11,7 +11,7 @@ class TestTheme:
         return Theme()
 
     def test_initialization(self, theme):
-        assert "Segoe UI" in theme.font_family
+        assert "Lato" in theme.font_family
         assert theme.font_size == 18
         assert theme.icon_size == 20
 

@@ -1,6 +1,6 @@
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
-    QCheckBox,
     QComboBox,
     QFormLayout,
     QGroupBox,
@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
 from MyVideoExplorer.settings.settings_state import SettingsState
+from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
 
 
@@ -50,27 +51,22 @@ class SettingsAppTab(SettingsBaseTab):
         if index >= 0:
             self.logging_level_combo.setCurrentIndex(index)
 
-        # App start prior folder selection checkbox
-        self.app_start_select_prior_checkbox = QCheckBox("")
-        self.app_start_select_prior_checkbox.setChecked(
-            getattr(self.state, "auto_select_prior_folder", True)
-        )
+        # App start prior folder selection combo box
+        self.app_start_select_prior_combo = QComboBox()
+        self.app_start_select_prior_combo.addItem("First Folder", "auto_select_first_folder")
+        self.app_start_select_prior_combo.addItem("Prior Folder", "auto_select_prior_folder")
 
-        self.app_start_select_prior_checkbox = QCheckBox(
-            "On App start or Folder refresh:\nChecked: auto select prior Folder\nUnchecked: auto select first Folder"
-        )
-        self.app_start_select_prior_checkbox.setChecked(
-            getattr(self.state, "auto_select_prior_folder", True)
-        )
-        app_layout.addRow("Prior Folder", self.app_start_select_prior_checkbox)
+        current_prior_select = getattr(self.state, "auto_select_folder", "auto_select_prior_folder")
+        index = self.app_start_select_prior_combo.findData(current_prior_select)
+        if index >= 0:
+            self.app_start_select_prior_combo.setCurrentIndex(index)
 
-        logging_level_layout = QHBoxLayout()
-        logging_level_layout.addWidget(
-            self.logging_level_combo, alignment=Qt.AlignmentFlag.AlignTop
-        )
-        logging_level_layout.addWidget(QLabel("Verbosity of App info logged to log/"))
-        logging_level_layout.addStretch()
-        app_layout.addRow("Logging Level", logging_level_layout)
+        app_layout.addRow("Auto Select Folder", self.app_start_select_prior_combo)
+
+        self.app_start_select_prior_combo.setToolTip("When Folder Nav list refreshes, either select the First Folder, or the Prior Folder")
+
+        self.logging_level_combo.setToolTip("Verbosity of App info logged to log/")
+        app_layout.addRow("Logging Level", self.logging_level_combo)
 
         self.layout.addWidget(app_group)
 
@@ -103,9 +99,14 @@ class SettingsAppTab(SettingsBaseTab):
         )
 
         self.logging_level_combo.currentIndexChanged.connect(self._on_setting_changed)
-        self.app_start_select_prior_checkbox.stateChanged.connect(
+        self.app_start_select_prior_combo.currentIndexChanged.connect(
             self._on_setting_changed
         )
+
+    def apply_theme(self) -> None:
+        super().apply_theme()
+        font = QFont(APP_THEME.font_family, APP_THEME.font_size)
+        self.setFont(font)
 
     def reset_settings(self) -> None:
         """Reset settings for this tab."""
@@ -116,10 +117,11 @@ class SettingsAppTab(SettingsBaseTab):
         if index >= 0:
             self.logging_level_combo.setCurrentIndex(index)
 
-        # Refresh prior folder checkbox
-        self.app_start_select_prior_checkbox.setChecked(
-            getattr(self.state, "auto_select_prior_folder", True)
-        )
+        # Refresh prior folder combo box
+        current_prior_select = getattr(self.state, "auto_select_folder", "auto_select_prior_folder")
+        index = self.app_start_select_prior_combo.findData(current_prior_select)
+        if index >= 0:
+            self.app_start_select_prior_combo.setCurrentIndex(index)
 
         self.reset_save_button()
         self.sig_saved.emit(
@@ -142,9 +144,11 @@ class SettingsAppTab(SettingsBaseTab):
             self.state.log_level = log_level
 
         # Save prior folder selection setting
-        self.state.auto_select_prior_folder = (
-            self.app_start_select_prior_checkbox.isChecked()
-        )
+        current_index = self.app_start_select_prior_combo.currentIndex()
+        if current_index >= 0:
+            self.state.auto_select_prior_folder = (
+                self.app_start_select_prior_combo.itemData(current_index)
+            )
 
         self.state.save_app()
         self.reset_save_button()

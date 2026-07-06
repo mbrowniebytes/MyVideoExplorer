@@ -27,6 +27,10 @@ class Theme(ThemeManager):
     def font_family(self) -> str:
         return self.config.font_family_default
 
+    @font_family.setter
+    def font_family(self, value: str):
+        self.config.font_family_default = value
+
     @property
     def background_color(self) -> str:
         return self.config.color_background_main
@@ -89,10 +93,10 @@ class Theme(ThemeManager):
         return StyleFactory.get_small_button_qss(self.config)
 
     def container_qss(self) -> str:
-        return StyleFactory.get_app_qss(self.config)
+        return StyleFactory.get_app_qss(self.config, include_font=True)
 
     def app_qss(self) -> str:
-        return StyleFactory.get_app_qss(self.config)
+        return StyleFactory.get_app_qss(self.config, include_font=True)
 
     def icon(self, name: str, **kwargs):
         return self.get_icon(name, **kwargs)

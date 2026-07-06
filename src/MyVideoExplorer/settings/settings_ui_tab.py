@@ -1,4 +1,6 @@
+from pathlib import Path
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont, QFontDatabase
 from PySide6.QtWidgets import (
     QComboBox,
     QFormLayout,
@@ -62,6 +64,43 @@ class SettingsUITab(SettingsBaseTab):
 
         display_layout.addRow("Font Size:", self.font_size_combo)
 
+        # App Font
+        self.font_family_combo = QComboBox()
+        fonts_dir = Path("assets") / "fonts"
+
+        ttf_fonts = list(fonts_dir.glob("*.ttf"))
+
+        current_font = APP_THEME.font_family
+        main_current_family = current_font.split(",")[0].strip()
+
+        current_index = -1
+        for font_file in ttf_fonts:
+            font_id = QFontDatabase.addApplicationFont(str(font_file))
+            if font_id == -1:
+                continue
+            families = QFontDatabase.applicationFontFamilies(font_id)
+            if families:
+                family = families[0]
+                self.font_family_combo.addItem(family, font_file.name)
+
+                # Style each item with its own font for preview
+                index = self.font_family_combo.count() - 1
+                item_font = QFont(family, 12)
+                self.font_family_combo.setItemData(
+                    index, item_font, Qt.ItemDataRole.FontRole
+                )
+
+                if family == main_current_family:
+                    current_index = self.font_family_combo.count() - 1
+
+        if current_index != -1:
+            self.font_family_combo.setCurrentIndex(current_index)
+
+        self.font_family_combo.currentIndexChanged.connect(self._on_font_family_changed)
+        self.font_family_combo.currentIndexChanged.connect(self._on_setting_changed)
+
+        display_layout.addRow("App Font", self.font_family_combo)
+
         self.content_layout.addWidget(display_group)
 
         # Add stretch to push save button to bottom even when content is short
@@ -95,7 +134,20 @@ class SettingsUITab(SettingsBaseTab):
     def reset_settings(self) -> None:
         """Reset settings for this tab."""
         self.state.load_ui()
-        self.font_size_spinbox.setValue(APP_THEME.font_size)
+
+        # Update font size combo
+        for i in range(self.font_size_combo.count()):
+            if self.font_size_combo.itemData(i) == APP_THEME.font_size:
+                self.font_size_combo.setCurrentIndex(i)
+                break
+
+        # Update font family combo
+        main_current_family = APP_THEME.font_family.split(",")[0].strip()
+        for i in range(self.font_family_combo.count()):
+            if self.font_family_combo.itemText(i) == main_current_family:
+                self.font_family_combo.setCurrentIndex(i)
+                break
+
         APP_THEME.refresh_theme()
         self.reset_save_button()
         self.sig_saved.emit(
@@ -126,15 +178,43 @@ class SettingsUITab(SettingsBaseTab):
             APP_THEME.refresh_theme()
         finally:
             self.font_size_combo.blockSignals(False)
-        # self.state.sig_settings_changed.emit(
-        #     SignalPayload(
-        #         data=value,
-        #         sender=self.__class__.__name__,
-        #         name="Settings Changed",
-        #         description="Font size was changed.",
-        #         flow=SignalFlow.USER_INPUT,
-        #     )
-        # )
+
+        self.state.sig_settings_changed.emit(
+            SignalPayload(
+                data=value,
+                sender=self.__class__.__name__,
+                name="Settings Changed",
+                description="Font size was changed.",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
+        self._on_setting_changed()
+
+    def _on_font_family_changed(self, index: int) -> None:
+        family = self.font_family_combo.itemText(index)
+        if not family:
+            return
+        if family == APP_THEME.font_family:
+            return
+
+        print(f"_on_font_family_changed: index:{index} family:{family}")
+        APP_THEME.font_family = family
+        # Block signals on combo before refresh_theme to prevent re-triggering during apply_theme
+        self.font_family_combo.blockSignals(True)
+        try:
+            APP_THEME.refresh_theme()
+        finally:
+            self.font_family_combo.blockSignals(False)
+
+        self.state.sig_settings_changed.emit(
+            SignalPayload(
+                data=family,
+                sender=self.__class__.__name__,
+                name="Settings Changed",
+                description="Font family was changed.",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
         self._on_setting_changed()
 
     def _save_ui_settings(self) -> None:
@@ -154,3 +234,7 @@ class SettingsUITab(SettingsBaseTab):
 
     def apply_theme(self) -> None:
         super().apply_theme()
+        font = QFont(APP_THEME.font_family, APP_THEME.font_size)
+        self.setFont(font)
+
+        self.main_widget.setFont(font)

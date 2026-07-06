@@ -5,16 +5,22 @@ class StyleFactory:
     """Generates QSS strings based on a ThemeConfig."""
 
     @staticmethod
-    def get_app_qss(c: ThemeConfig) -> str:
+    def get_app_qss(c: ThemeConfig, include_font: bool = True) -> str:
+        font_qss = ""
+        if include_font:
+            font_qss = f"""
+                font-family: {c.font_family_default};
+                font-size: {c.font_size_base}px;
+            """
         return f"""
             QWidget {{
                 background: {c.color_background_main};
                 color: {c.color_text_primary};
-                font-family: {c.font_family_default};
-                font-size: {c.font_size_base}px;
+                {font_qss}
             }}
             QMainWindow {{
                 background: {c.color_background_main};
+                {font_qss}
             }}
             QGroupBox {{
                 font-weight: bold;
@@ -22,12 +28,14 @@ class StyleFactory:
                 border-radius: {c.size_border_radius_standard}px;
                 margin-top: 1.5ex;
                 padding: 10px;
+                {font_qss}
             }}
             QGroupBox::title {{
                 subcontrol-origin: margin;
                 subcontrol-position: top left;
                 left: 10px;
                 padding: 0 5px;
+                {font_qss}
             }}
             QScrollBar:vertical {{
                 border: none;
@@ -50,11 +58,19 @@ class StyleFactory:
                 border: 1px solid {c.color_border_default};
                 font-size: {c.font_size_base - 2}px;
                 padding: 5px;
+                {font_qss}
+            }}
+            QTextEdit, QLabel, QPlainTextEdit, QGroupBox, QCheckBox, QTableView {{
+                {font_qss}
             }}
         """
 
     @staticmethod
     def get_list_qss(c: ThemeConfig) -> str:
+        font_qss = f"""
+            font-family: {c.font_family_default};
+            font-size: {c.font_size_base}px;
+        """
         return f"""
             QListWidget {{
                 background: {c.color_background_main};
@@ -62,6 +78,7 @@ class StyleFactory:
                 border: 1px solid {c.color_border_default};
                 border-radius: {c.size_border_radius_standard}px;
                 outline: 0;
+                {font_qss}
             }}
             QListWidget::item {{
                 padding: {c.padding_list_item_vertical}px {c.padding_list_item_horizontal}px;
@@ -130,6 +147,10 @@ class StyleFactory:
 
     @staticmethod
     def get_table_qss(c: ThemeConfig) -> str:
+        font_qss = f"""
+            font-family: {c.font_family_default};
+            font-size: {c.font_size_base}px;
+        """
         return f"""
              QTableView, QTableWidget {{
                  background: {c.color_background_main};
@@ -138,12 +159,14 @@ class StyleFactory:
                  border: 1px solid {c.color_border_default};
                  selection-background-color: {c.color_interaction_selected};
                  selection-color: {c.color_interaction_selected_text};
+                 {font_qss}
              }}
              QHeaderView::section {{
                  background: {c.color_surface_primary};
                  color: {c.color_text_primary};
                  padding: 0px;
                  border: 0;
+                 {font_qss}
              }}
          """
 
@@ -237,6 +260,10 @@ class StyleFactory:
 
     @staticmethod
     def get_combo_qss(c: ThemeConfig) -> str:
+        font_qss = f"""
+            font-family: {c.font_family_default};
+            font-size: {c.font_size_base}px;
+        """
         return f"""
             QComboBox {{
                 background: {c.color_surface_primary};
@@ -244,6 +271,7 @@ class StyleFactory:
                 border: 1px solid {c.color_border_default};
                 border-radius: {c.size_border_radius_standard}px;
                 padding: 2px 4px;
+                {font_qss}
             }}
             QComboBox QAbstractItemView {{
                 background: {c.color_surface_primary};
@@ -311,7 +339,6 @@ class StyleFactory:
         return f"""
              QLabel {{
                  color: {color};
-                 font-family: {c.font_family_default};
                  {font_size_qss}
                  font-weight: {weight};
                  padding: {padding};
@@ -329,11 +356,16 @@ class StyleFactory:
 
     @staticmethod
     def get_tabs_qss(c: ThemeConfig) -> str:
+        font_qss = f"""
+            font-family: {c.font_family_default};
+            font-size: {c.font_size_base}px;
+        """
         return f"""
             QTabWidget::pane {{
                 border: 1px solid {c.color_border_default};
                 border-top: 0;
                 background: {c.color_background_main};
+                {font_qss}
             }}
             QTabBar::tab {{
                 padding: 6px 16px;
@@ -342,6 +374,7 @@ class StyleFactory:
                 background: {c.color_surface_primary};
                 color: {c.color_text_primary};
                 margin-right: 2px;
+                {font_qss}
             }}
             QTabBar::tab:selected {{
                 background: {c.color_interaction_selected};

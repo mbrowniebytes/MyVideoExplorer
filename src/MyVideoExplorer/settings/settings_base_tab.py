@@ -1,6 +1,7 @@
 from collections.abc import Callable
 
 from PySide6.QtCore import Signal
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QPushButton, QWidget
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
@@ -52,7 +53,9 @@ class SettingsBaseTab(QWidget, ThemableMixin):
         raise NotImplementedError("Subclasses must implement reset_settings")
 
     def apply_theme(self) -> None:
-        # super().apply_theme()
+        super().apply_theme()
+        font = QFont(APP_THEME.font_family, APP_THEME.font_size)
+        self.setFont(font)
         # Custom logic for highlight state
         if self.save_btn:
             if self.is_dirty:

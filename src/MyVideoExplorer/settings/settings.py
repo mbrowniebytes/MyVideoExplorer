@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QTabBar, QTabWidget, QVBoxLayout, QWidget
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
@@ -9,8 +10,7 @@ from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
 from MyVideoExplorer.settings.settings_filter_tab import SettingsFilterTab
 from MyVideoExplorer.settings.settings_media_tab import SettingsMediaTab
 from MyVideoExplorer.settings.settings_state import SettingsState
-
-# from MyVideoExplorer.settings.settings_ui_tab import SettingsUITab
+from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.widgets.right_aligned_tab_bar import RightAlignedTabBar
@@ -145,11 +145,14 @@ class Settings(QWidget, ThemableMixin):
     def apply_theme(self) -> None:
         """Applies current theme to the settings container and all managed tabs."""
         super().apply_theme()
-        # self.settings_tabs_container.setStyleSheet(APP_THEME.tabs_qss()) # Handled by ThemeManager
+        font = QFont(APP_THEME.font_family, APP_THEME.font_size)
+        self.setFont(font)
+
+        self.setStyleSheet(APP_THEME.app_qss())
+        self.settings_tabs_container.setFont(font)
 
         for tab in self.managed_tabs:
-            if hasattr(tab, "apply_theme"):
-                tab.apply_theme()
+            tab.apply_theme()
 
     def build(self) -> QWidget:
         """Ensures UI is constructed and returns the widget (backward compatibility)."""

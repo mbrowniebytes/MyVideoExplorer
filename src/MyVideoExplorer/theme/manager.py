@@ -59,15 +59,17 @@ class ThemeManager:
         try:
             # Using pixelSize ensures consistent sizing across widgets and QSS,
             # avoiding ambiguity between pointSize and pixelSize in different environments.
-            font = QFont(self.config.font_family_default)
+            font = QFont(self.config.font_family_default, self.config.font_size_base)
             font.setPixelSize(self.config.font_size_base)
 
             # Update global application state
             if root_widget is None:
                 if self.app:
                     self.app.setFont(font)
-                    self.app.setStyleSheet(StyleFactory.get_app_qss(self.config))
+                    app_qss = StyleFactory.get_app_qss(self.config)
+                    self.app.setStyleSheet(app_qss)
                     for widget in self.app.topLevelWidgets():
+                        widget.setStyleSheet(app_qss)
                         self._refresh_recursive(widget, font)
             else:
                 # If we're refreshing a specific widget, we don't necessarily want to
@@ -94,6 +96,7 @@ class ThemeManager:
             if hasattr(widget, "apply_theme"):
                 # We expect custom apply_theme to NOT call refresh_theme again
                 # OR if it does, it should check is_refreshing
+                widget.setFont(font)
                 widget.apply_theme()
 
         # Apply global font to all widgets to ensure inheritance and correct QFont metrics
@@ -105,6 +108,7 @@ class ThemeManager:
         # Recurse for all children
         # findChildren(QWidget) is expensive, but FindDirectChildrenOnly is better.
         for child in widget.findChildren(QWidget, options=Qt.FindDirectChildrenOnly):
+            child.setFont(font)
             self._refresh_recursive(child, font)
 
     def apply_standard_widget_styles(self, widget: QWidget) -> None:

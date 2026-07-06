@@ -1,5 +1,6 @@
 from typing import Any
 from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QComboBox,
     QGroupBox,
@@ -215,6 +216,8 @@ class SettingsFilterTab(SettingsBaseTab):
 
     def apply_theme(self) -> None:
         super().apply_theme()
+        font = QFont(APP_THEME.font_family, APP_THEME.font_size)
+        self.setFont(font)
         self._refresh_filters()
 
     def _save_filter_settings(self) -> None:
