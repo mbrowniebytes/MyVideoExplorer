@@ -1,4 +1,6 @@
 {
     "auto_select_folder": "auto_select_prior_folder",
+    "launch_app_size": "app_size_1400x900",
+    "launch_app_pos": "",
     "log_level": "info"
 }

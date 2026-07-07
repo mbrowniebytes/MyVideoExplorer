@@ -162,7 +162,7 @@ class SettingsUITab(SettingsBaseTab):
         print("UI Settings reset")
 
     def _on_font_size_changed(self, index: int) -> None:
-        value = self.font_size_combo.itemData(index, role=Qt.UserRole)
+        value = self.font_size_combo.itemData(index, role=Qt.ItemDataRole.UserRole)
         if not value:
             return
         if value == APP_THEME.font_size:

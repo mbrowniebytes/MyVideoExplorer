@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from PySide6.QtWidgets import QMainWindow
+
 from MyVideoExplorer.app.app_controller import AppController
 from MyVideoExplorer.app.app_signals import SignalRegistry
 from MyVideoExplorer.file_list.file_list import FileList
@@ -113,6 +115,8 @@ class AppContainer:
                 settings=self.settings,
             )
 
+            self.window: QMainWindow = None
+
             self._wire_all_signals()
         except Exception as e:
             self.log_util.error(
@@ -200,6 +204,9 @@ class AppContainer:
         self.settings.settings_data_model.sig_settings_changed.connect(
             lambda p: self.folder_list.refresh_icons()
         )
+        self.settings.settings_data_model.sig_window_size_changed.connect(
+            lambda p: self.resize_window(self.window, p.data)
+        )
         # When media folders are deleted in settings, update controller root_folders
         self.settings.media_settings_tab.sig_root_folders_changed.connect(
             lambda p: self.controller.set_root_folders(p.data)
@@ -241,12 +248,12 @@ class AppContainer:
             first_item = items[0]
 
             # Auto-select prior folder if enabled and available
-            auto_select_prior_folder = self.settings.settings_data_model.auto_select_prior_folder
+            auto_select_folder = self.settings.settings_data_model.auto_select_folder
 
             prior_folder = self.settings.settings_data_model.prior_folder
-            print(f"_on_filtered_items: auto_select_prior_folder:{auto_select_prior_folder} prior_folder:{prior_folder} first_item:{first_item}")
+            print(f"_on_filtered_items: auto_select_folder:{auto_select_folder} prior_folder:{prior_folder} first_item:{first_item}")
 
-            if auto_select_prior_folder and prior_folder:
+            if auto_select_folder == "auto_select_prior_folder" and prior_folder:
                 self.controller.set_current_folder(prior_folder, force=True)
             elif first_item:
                 self.controller.set_current_folder(first_item.full_path, force=True)
@@ -276,3 +283,51 @@ class AppContainer:
 
         self.video_player.set_folder_path(folder_path)
         self.media_info.refresh(folder_path, self.controller.state.current_tab)
+
+    def resize_window(self, window:QMainWindow|None, app_size:str="") -> None:
+        if not window:
+            print("resize_window no window obj")
+            return
+
+        self.window = window
+
+        # Apply launch window size based on settings
+        launch_size = getattr(
+            self.settings.settings_data_model,
+            "launch_app_size",
+            "app_size_min",
+        )
+        if app_size:
+            launch_size = app_size
+
+        # self.log_util.info(f"resize_window: launch_size:{launch_size}")
+        if launch_size == "app_size_maximized":
+            window.showMaximized()
+        elif launch_size == "app_size_last" and hasattr(
+            self.settings.settings_data_model, "app_size"
+        ):
+            # Restore saved window app_size if available
+            app_size = getattr(
+                self.settings.settings_data_model, "app_size", ""
+            )
+            self.log_util.info(f"resize_window: app_size:{app_size}")
+            launch_size = app_size
+
+        if launch_size and "x" in launch_size:
+            # Parse resolution like "1920x1080"
+            launch_size = launch_size.replace("app_size_", "")
+            try:
+                width, height = map(int, launch_size.split("x"))
+                # self.log_util.info(f"resize_window: width:{width} height:{height}")
+                if width < 1400:
+                    width = 1400
+                if height < 900:
+                    height = 900
+                window.resize(width, height)
+            except ValueError, IndexError:
+                window.resize(1400, 900)
+                self.log_util.error(f"resize_window: launch_size:{launch_size}: {ValueError, IndexError}")
+        else:
+            # app_size_min
+            window.resize(1400, 900)
+

@@ -43,7 +43,8 @@ class App:
 
         self._create_app_icon()
         self.window.setWindowTitle("MyVideoExplorer")
-        self.window.resize(1400, 900)
+
+        self.container.resize_window(self.window)
 
         central_widget = QWidget()
         main_layout = QHBoxLayout()
@@ -126,8 +127,26 @@ class App:
             self.controller.set_root_folders([])
 
     def close(self) -> None:
+        prior_folder = self.controller.state.current_folder
+        # window_geometry = self.window.saveGeometry().data().hex()
+        window_size = self.window.size()
+        app_size = ""
+        if window_size:
+            # hard code windows titlebar offset
+            app_height = window_size.height() - 147
+            app_height = window_size.height()
+            app_width = window_size.width()
+            app_size = f"{app_width}x{app_height}"
+            
+        window_pos = self.window.pos()
+        app_pos = ""
+        if window_pos:
+            app_pos = f"{window_pos.x()}x{window_pos.y()}"
+        
         settings = {
-            "prior_folder": self.controller.state.current_folder
+            "prior_folder": prior_folder,
+            "app_size": app_size,
+            "app_pos": app_pos,
         }
         self.container.settings.settings_data_model.save_state(settings)
 

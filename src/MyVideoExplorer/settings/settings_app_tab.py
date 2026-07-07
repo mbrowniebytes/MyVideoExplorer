@@ -67,6 +67,33 @@ class SettingsAppTab(SettingsBaseTab):
 
         self.logging_level_combo.setToolTip("Verbosity of App info logged to log/")
         app_layout.addRow("Logging Level", self.logging_level_combo)
+        
+        # Launch App Size
+        self.launch_app_size_combo = QComboBox()
+        self.launch_app_size_combo.addItem("Last Window Size", "app_size_last")
+        self.launch_app_size_combo.addItem("Maximized", "app_size_maximized")
+        self.launch_app_size_combo.addItem("2560x1440", "app_size_2560x1440")
+        self.launch_app_size_combo.addItem("1920x1080", "app_size_1920x1080")
+        self.launch_app_size_combo.addItem("1600x960", "app_size_1600x960")
+        self.launch_app_size_combo.addItem("1400x900", "app_size_1400x900")
+
+        self.launch_app_size_combo.setToolTip("Initial size of app window on launch")
+
+        current_launch_size = getattr(self.state, "launch_app_size", "app_size_min")
+        if current_launch_size == "app_size_min":
+            current_launch_size = "app_size_1400x900"
+        index = self.launch_app_size_combo.findData(current_launch_size)
+        if index >= 0:
+            self.launch_app_size_combo.setCurrentIndex(index)
+        print(f"launch_app_size_combo: index:{index} current_launch_size:{current_launch_size}")
+
+        self.launch_app_size_combo.currentIndexChanged.connect(
+            self._on_launch_app_size_changed
+        )
+        self.launch_app_size_combo.currentIndexChanged.connect(self._on_setting_changed)
+
+        app_layout.addRow("Launch App Size", self.launch_app_size_combo)
+
 
         self.layout.addWidget(app_group)
 
@@ -79,7 +106,7 @@ class SettingsAppTab(SettingsBaseTab):
         save_btn_layout.setContentsMargins(20, 15, 20, 15)
 
         self.save_btn = QPushButton("Save App Settings")
-        self.save_btn.setFixedWidth(180)
+        self.save_btn.setFixedWidth(190)
         self.save_btn.clicked.connect(self._save_app_settings)
 
         self.reset_btn = self._build_reset_button(
@@ -108,6 +135,25 @@ class SettingsAppTab(SettingsBaseTab):
         font = QFont(APP_THEME.font_family, APP_THEME.font_size)
         self.setFont(font)
 
+    def _on_launch_app_size_changed(self, index: int) -> None:
+
+        value = self.launch_app_size_combo.itemData(index, role=Qt.ItemDataRole.UserRole)
+        if not value:
+            return
+
+        print(f"_on_launch_app_size_changed: index:{index} value:{value}")
+        APP_THEME.launch_app_size = value
+
+        self.state.sig_window_size_changed.emit(
+            SignalPayload(
+                data=value,
+                sender=self.__class__.__name__,
+                name="Settings Changed",
+                description="Launch app size was changed.",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
+
     def reset_settings(self) -> None:
         """Reset settings for this tab."""
         self.state.load_app()
@@ -123,6 +169,14 @@ class SettingsAppTab(SettingsBaseTab):
         if index >= 0:
             self.app_start_select_prior_combo.setCurrentIndex(index)
 
+        # Update launch app size combo
+        current_launch_size = getattr(self.state, "launch_app_size", "app_size_min")
+        if current_launch_size == "app_size_min":
+            current_launch_size = "app_size_1400x900"
+        index = self.launch_app_size_combo.findData(current_launch_size)
+        if index >= 0:
+            self.launch_app_size_combo.setCurrentIndex(index)
+            
         self.reset_save_button()
         self.sig_saved.emit(
             SignalPayload(
@@ -148,6 +202,12 @@ class SettingsAppTab(SettingsBaseTab):
         if current_index >= 0:
             self.state.auto_select_prior_folder = (
                 self.app_start_select_prior_combo.itemData(current_index)
+            )
+
+        current_index = self.launch_app_size_combo.currentIndex()
+        if current_index >= 0:
+            self.state.launch_app_size = (
+                self.launch_app_size_combo.itemData(current_index)
             )
 
         self.state.save_app()

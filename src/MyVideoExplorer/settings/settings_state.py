@@ -24,6 +24,7 @@ DEFAULTS_FILTER_FILE = CFG_DIR / "defaults_filter.json"
 
 class SettingsState(QObject):
     sig_settings_changed = Signal(object)
+    sig_window_size_changed = Signal(object)
 
     def __init__(self, log_util: Any) -> None:
         super().__init__()
@@ -33,8 +34,9 @@ class SettingsState(QObject):
 
         self.prior_folder = ""
 
-        self.auto_select_prior_folder = True
+        self.auto_select_folder = "auto_select_prior_folder"
         self.log_level = "info"
+        self.launch_app_size = "app_size_min"
 
         self.folder_configs: list[dict[str, Any]] = []
         self.saved_filters: list[dict[str, Any]] = []
@@ -51,7 +53,8 @@ class SettingsState(QObject):
         }
         app_defaults: dict[str, str | bool] = {
             "log_level": self.log_level,
-            "auto_select_folder": "auto_select_prior_folder",
+            "auto_select_folder": self.auto_select_folder,
+            "launch_app_size": self.launch_app_size,
         }
         ui_defaults: dict[str, int | str] = {
             "font_size": 18,
@@ -87,9 +90,10 @@ class SettingsState(QObject):
             app_data.update(self.json_util.load_json(SETTINGS_APP_FILE))
 
         self.log_level = app_data.get("log_level", self.log_level)
-        self.auto_select_prior_folder = app_data.get(
-            "auto_select_prior_folder", True
+        self.auto_select_folder = app_data.get(
+            "auto_select_folder", "auto_select_prior_folder"
         )
+        self.launch_app_size = app_data.get("launch_app_size", "app_size_min")
 
         # Load UI Settings
         ui_data = self.json_util.load_json(DEFAULTS_UI_FILE)
@@ -129,6 +133,8 @@ class SettingsState(QObject):
 
         state_settings: dict[str, str] = {
             "prior_folder": settings.get("prior_folder", ""),
+            "app_size": settings.get("app_size", ""),
+            "app_pos": settings.get("app_pos", ""),
         }
 
         # Backup then save
@@ -141,7 +147,8 @@ class SettingsState(QObject):
 
         app_settings: dict[str, str | bool] = {
             "log_level": self.log_level,
-            "auto_select_prior_folder": self.auto_select_prior_folder,
+            "auto_select_folder": self.auto_select_folder,
+            "launch_app_size": self.launch_app_size,
         }
 
         # Backup then save
@@ -149,17 +156,17 @@ class SettingsState(QObject):
         self.json_util.save_json(SETTINGS_APP_FILE, app_settings)
 
     def save_ui(self) -> None:
-        """Save only UI tab settings."""
+        """Persist UI settings to file."""
         self._ensure_defaults()
 
-        ui_settings: dict[str, int | str] = {
+        settings_data = {
             "font_size": APP_THEME.font_size,
             "app_font": APP_THEME.font_family,
         }
 
         # Backup then save
         self.json_util.backup_file(SETTINGS_UI_FILE, max_backups=5)
-        self.json_util.save_json(SETTINGS_UI_FILE, ui_settings)
+        self.json_util.save_json(SETTINGS_UI_FILE, settings_data)
 
     def save_media(self) -> None:
         """Save only Media tab settings."""
@@ -202,7 +209,7 @@ class SettingsState(QObject):
             ui_data.update(self.json_util.load_json(SETTINGS_UI_FILE))
 
         APP_THEME.font_size = ui_data.get("font_size", APP_THEME.font_size)
-        APP_THEME.font_family = ui_data.get("app_font", APP_THEME.font_family)
+        APP_THEME.font_family = ui_data.get("app_font", APP_THEME.font)
 
     def load_app(self) -> None:
         """Reload App settings from file."""
@@ -210,9 +217,10 @@ class SettingsState(QObject):
         if SETTINGS_APP_FILE.exists():
             app_data.update(self.json_util.load_json(SETTINGS_APP_FILE))
         self.log_level = app_data.get("log_level", self.log_level)
-        self.auto_select_prior_folder = app_data.get(
-            "auto_select_prior_folder", True
+        self.auto_select_folder = app_data.get(
+            "auto_select_folder", "auto_select_prior_folder"
         )
+        self.launch_app_size = app_data.get("launch_app_size", "app_size_min")
 
     def load_media(self) -> None:
         """Reload Media settings from file."""
