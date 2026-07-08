@@ -25,6 +25,7 @@ DEFAULTS_FILTER_FILE = CFG_DIR / "defaults_filter.json"
 class SettingsState(QObject):
     sig_settings_changed = Signal(object)
     sig_window_size_changed = Signal(object)
+    sig_window_pos_changed = Signal(object)
 
     def __init__(self, log_util: Any) -> None:
         super().__init__()
@@ -37,6 +38,7 @@ class SettingsState(QObject):
         self.auto_select_folder = "auto_select_prior_folder"
         self.log_level = "info"
         self.launch_app_size = "app_size_min"
+        self.launch_app_pos = "app_pos_center_center"
 
         self.folder_configs: list[dict[str, Any]] = []
         self.saved_filters: list[dict[str, Any]] = []
@@ -50,11 +52,13 @@ class SettingsState(QObject):
 
         state_defaults: dict[str, str] = {
             "prior_folder": "",
+            "launch_app_pos": "0,0",
         }
         app_defaults: dict[str, str | bool] = {
             "log_level": self.log_level,
             "auto_select_folder": self.auto_select_folder,
             "launch_app_size": self.launch_app_size,
+            "launch_app_pos": self.launch_app_pos,
         }
         ui_defaults: dict[str, int | str] = {
             "font_size": 18,
@@ -83,6 +87,8 @@ class SettingsState(QObject):
             state_data.update(self.json_util.load_json(SETTINGS_STATE_FILE))
 
         self.prior_folder = state_data.get("prior_folder", "")
+        self.launch_app_size = state_data.get("launch_app_size", "")
+        self.launch_app_pos_state = state_data.get("launch_app_pos", "")
 
         # Load App Settings
         app_data = self.json_util.load_json(DEFAULTS_APP_FILE)
@@ -94,6 +100,7 @@ class SettingsState(QObject):
             "auto_select_folder", "auto_select_prior_folder"
         )
         self.launch_app_size = app_data.get("launch_app_size", "app_size_min")
+        self.launch_app_pos = app_data.get("launch_app_pos", "app_pos_center_center")
 
         # Load UI Settings
         ui_data = self.json_util.load_json(DEFAULTS_UI_FILE)
@@ -133,8 +140,8 @@ class SettingsState(QObject):
 
         state_settings: dict[str, str] = {
             "prior_folder": settings.get("prior_folder", ""),
-            "app_size": settings.get("app_size", ""),
-            "app_pos": settings.get("app_pos", ""),
+            "launch_app_size": settings.get("launch_app_size", ""),
+            "launch_app_pos": settings.get("launch_app_pos", ""),
         }
 
         # Backup then save
@@ -149,6 +156,7 @@ class SettingsState(QObject):
             "log_level": self.log_level,
             "auto_select_folder": self.auto_select_folder,
             "launch_app_size": self.launch_app_size,
+            "launch_app_pos": self.launch_app_pos,
         }
 
         # Backup then save
@@ -221,6 +229,7 @@ class SettingsState(QObject):
             "auto_select_folder", "auto_select_prior_folder"
         )
         self.launch_app_size = app_data.get("launch_app_size", "app_size_min")
+        self.launch_app_pos = app_data.get("launch_app_pos", "app_pos_last")
 
     def load_media(self) -> None:
         """Reload Media settings from file."""

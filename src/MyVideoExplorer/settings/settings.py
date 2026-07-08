@@ -148,16 +148,21 @@ class Settings(QWidget, ThemableMixin):
         font = QFont(APP_THEME.font_family, APP_THEME.font_size)
         self.setFont(font)
 
-        self.setStyleSheet(APP_THEME.app_qss())
-        self.settings_tabs_container.setFont(font)
 
         for tab in self.managed_tabs:
             tab.apply_theme()
 
+        self.setStyleSheet(APP_THEME.app_qss())
+        self.settings_tabs_container.setFont(font)
+
+        # remove border around tab pane
+        # qss pane border did not affect
+        self.settings_tabs_container.setDocumentMode(True)
+
+
     def build(self) -> QWidget:
-        """Ensures UI is constructed and returns the widget (backward compatibility)."""
-        if not hasattr(self, "settings_tabs_container"):
-            self._build_ui()
+        """Ensures UI is constructed and returns the widget"""
+        self._build_ui()
         return self
 
     # --- Data Model Delegation ---

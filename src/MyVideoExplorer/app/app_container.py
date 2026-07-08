@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QMainWindow
 
 from MyVideoExplorer.app.app_controller import AppController
@@ -207,6 +208,9 @@ class AppContainer:
         self.settings.settings_data_model.sig_window_size_changed.connect(
             lambda p: self.resize_window(self.window, p.data)
         )
+        self.settings.settings_data_model.sig_window_pos_changed.connect(
+            lambda p: self.resize_window(self.window, app_pos=p.data)
+        )
         # When media folders are deleted in settings, update controller root_folders
         self.settings.media_settings_tab.sig_root_folders_changed.connect(
             lambda p: self.controller.set_root_folders(p.data)
@@ -284,7 +288,7 @@ class AppContainer:
         self.video_player.set_folder_path(folder_path)
         self.media_info.refresh(folder_path, self.controller.state.current_tab)
 
-    def resize_window(self, window:QMainWindow|None, app_size:str="") -> None:
+    def resize_window(self, window:QMainWindow|None, app_size:str="", app_pos:str="") -> None:
         if not window:
             print("resize_window no window obj")
             return
@@ -330,4 +334,42 @@ class AppContainer:
         else:
             # app_size_min
             window.resize(1400, 900)
+
+        # Apply launch window position based on settings
+        launch_pos = getattr(
+            self.settings.settings_data_model,
+            "launch_app_pos",
+            "app_pos_last",
+        )
+        if app_pos:
+            launch_pos = app_pos
+
+        if launch_pos == "app_pos_last" and hasattr(
+            self.settings.settings_data_model, "launch_app_pos_state"
+        ):
+            app_pos_coords = getattr(
+                self.settings.settings_data_model, "launch_app_pos_state", ""
+            )
+            if app_pos_coords and "," in app_pos_coords:
+                try:
+                    x, y = map(int, app_pos_coords.split(","))
+                    window.move(x, y)
+                except ValueError:
+                    pass
+        elif launch_pos.startswith("app_pos_center"):
+            screen = QGuiApplication.primaryScreen().availableGeometry()
+            window_geo = window.frameGeometry()
+
+            if launch_pos == "app_pos_center_center":
+                x = screen.left() + (screen.width() - window_geo.width()) // 2
+                y = screen.top() + (screen.height() - window_geo.height()) // 2
+                window.move(x, y)
+            elif launch_pos == "app_pos_center_bottom":
+                x = screen.left() + (screen.width() - window_geo.width()) // 2
+                y = screen.top() + screen.height() - window_geo.height()
+                window.move(x, y)
+            elif launch_pos == "app_pos_center_top":
+                x = screen.left() + (screen.width() - window_geo.width()) // 2
+                y = screen.top()
+                window.move(x, y)
 

@@ -130,23 +130,23 @@ class App:
         prior_folder = self.controller.state.current_folder
         # window_geometry = self.window.saveGeometry().data().hex()
         window_size = self.window.size()
-        app_size = ""
+        launch_app_size = ""
         if window_size:
             # hard code windows titlebar offset
             app_height = window_size.height() - 147
             app_height = window_size.height()
             app_width = window_size.width()
-            app_size = f"{app_width}x{app_height}"
-            
+            launch_app_size = f"{app_width}x{app_height}"
+
         window_pos = self.window.pos()
-        app_pos = ""
+        launch_app_pos = ""
         if window_pos:
-            app_pos = f"{window_pos.x()}x{window_pos.y()}"
-        
+            launch_app_pos = f"{window_pos.x()},{window_pos.y()}"
+
         settings = {
             "prior_folder": prior_folder,
-            "app_size": app_size,
-            "app_pos": app_pos,
+            "launch_app_size": launch_app_size,
+            "launch_app_pos": launch_app_pos,
         }
         self.container.settings.settings_data_model.save_state(settings)
 

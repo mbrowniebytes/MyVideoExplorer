@@ -2,10 +2,16 @@
 
 ### 2026-07-##
 
-- on app start or Folder refresh, add an option in App Settings to auto select the prior Folder or the first Folder
+- on app start or Folder refresh, add an option in App Settings to auto select the Prior Folder or the First Folder
 - add new cfg/settings_state.json
 - to the Folder list, add Forward, Backward, and Random buttons
+- add Font selection in UI Settings
+- add Launch App Size selection in App Settings
 - add checkbox styling
+- internal:
+  - remove structlog in favor of std logger
+  - remove BaseWidget
+  - code quality ruff checks
 -
 
 release - [MyVideoExplorer-202607##-0.003 ](https://github.com/mbrowniebytes/MyVideoExplorer/releases/tag/202607##-0.003)

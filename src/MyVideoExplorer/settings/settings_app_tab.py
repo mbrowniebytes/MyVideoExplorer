@@ -5,7 +5,6 @@ from PySide6.QtWidgets import (
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
-    QLabel,
     QPushButton,
     QSizePolicy,
     QVBoxLayout,
@@ -38,19 +37,6 @@ class SettingsAppTab(SettingsBaseTab):
         app_group = QGroupBox("App Settings")
         app_layout = QFormLayout(app_group)
 
-        # Logging level combo box - populated from LogUtil.LEVEL_MAP
-        self.logging_level_combo = QComboBox()
-        for label, value in LogUtil.LEVEL_MAP.items():
-            # Use capitalized display label matching the original format
-            display_label = label.capitalize()
-            self.logging_level_combo.addItem(display_label, label)
-
-        # Set current value from state if available, default to info
-        current_level = getattr(self.state, "log_level", "info")
-        index = self.logging_level_combo.findData(current_level)
-        if index >= 0:
-            self.logging_level_combo.setCurrentIndex(index)
-
         # App start prior folder selection combo box
         self.app_start_select_prior_combo = QComboBox()
         self.app_start_select_prior_combo.addItem("First Folder", "auto_select_first_folder")
@@ -65,9 +51,6 @@ class SettingsAppTab(SettingsBaseTab):
 
         self.app_start_select_prior_combo.setToolTip("When Folder Nav list refreshes, either select the First Folder, or the Prior Folder")
 
-        self.logging_level_combo.setToolTip("Verbosity of App info logged to log/")
-        app_layout.addRow("Logging Level", self.logging_level_combo)
-        
         # Launch App Size
         self.launch_app_size_combo = QComboBox()
         self.launch_app_size_combo.addItem("Last Window Size", "app_size_last")
@@ -94,6 +77,43 @@ class SettingsAppTab(SettingsBaseTab):
 
         app_layout.addRow("Launch App Size", self.launch_app_size_combo)
 
+        # Launch App Position
+        self.launch_app_pos_combo = QComboBox()
+        self.launch_app_pos_combo.addItem("Last Position", "app_pos_last")
+        self.launch_app_pos_combo.addItem("Center Center", "app_pos_center_center")
+        self.launch_app_pos_combo.addItem("Center Bottom", "app_pos_center_bottom")
+        self.launch_app_pos_combo.addItem("Center Top", "app_pos_center_top")
+
+        self.launch_app_pos_combo.setToolTip("Initial position of app window on launch")
+
+        current_launch_pos = getattr(self.state, "launch_app_pos", "app_pos_last")
+        index = self.launch_app_pos_combo.findData(current_launch_pos)
+        if index >= 0:
+            self.launch_app_pos_combo.setCurrentIndex(index)
+
+        self.launch_app_pos_combo.currentIndexChanged.connect(
+            self._on_launch_app_pos_changed
+        )
+        self.launch_app_pos_combo.currentIndexChanged.connect(self._on_setting_changed)
+
+        app_layout.addRow("Launch App Position", self.launch_app_pos_combo)
+
+
+        # Logging level combo box - populated from LogUtil.LEVEL_MAP
+        self.logging_level_combo = QComboBox()
+        for label, value in LogUtil.LEVEL_MAP.items():
+            # Use capitalized display label matching the original format
+            display_label = label.capitalize()
+            self.logging_level_combo.addItem(display_label, label)
+
+        # Set current value from state if available, default to info
+        current_level = getattr(self.state, "log_level", "info")
+        index = self.logging_level_combo.findData(current_level)
+        if index >= 0:
+            self.logging_level_combo.setCurrentIndex(index)
+
+        self.logging_level_combo.setToolTip("Verbosity of App info logged to log/")
+        app_layout.addRow("Logging Level", self.logging_level_combo)
 
         self.layout.addWidget(app_group)
 
@@ -106,7 +126,7 @@ class SettingsAppTab(SettingsBaseTab):
         save_btn_layout.setContentsMargins(20, 15, 20, 15)
 
         self.save_btn = QPushButton("Save App Settings")
-        self.save_btn.setFixedWidth(190)
+        self.save_btn.setFixedWidth(200)
         self.save_btn.clicked.connect(self._save_app_settings)
 
         self.reset_btn = self._build_reset_button(
@@ -127,6 +147,9 @@ class SettingsAppTab(SettingsBaseTab):
 
         self.logging_level_combo.currentIndexChanged.connect(self._on_setting_changed)
         self.app_start_select_prior_combo.currentIndexChanged.connect(
+            self._on_setting_changed
+        )
+        self.launch_app_pos_combo.currentIndexChanged.connect(
             self._on_setting_changed
         )
 
@@ -154,6 +177,24 @@ class SettingsAppTab(SettingsBaseTab):
             )
         )
 
+    def _on_launch_app_pos_changed(self, index: int) -> None:
+
+        value = self.launch_app_pos_combo.itemData(index, role=Qt.ItemDataRole.UserRole)
+        if not value:
+            return
+
+        print(f"_on_launch_app_pos_changed: index:{index} value:{value}")
+
+        self.state.sig_window_pos_changed.emit(
+            SignalPayload(
+                data=value,
+                sender=self.__class__.__name__,
+                name="Settings Changed",
+                description="Launch app position was changed.",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
+
     def reset_settings(self) -> None:
         """Reset settings for this tab."""
         self.state.load_app()
@@ -176,7 +217,13 @@ class SettingsAppTab(SettingsBaseTab):
         index = self.launch_app_size_combo.findData(current_launch_size)
         if index >= 0:
             self.launch_app_size_combo.setCurrentIndex(index)
-            
+
+        # Update launch app position combo
+        current_launch_pos = getattr(self.state, "launch_app_pos", "app_pos_last")
+        index = self.launch_app_pos_combo.findData(current_launch_pos)
+        if index >= 0:
+            self.launch_app_pos_combo.setCurrentIndex(index)
+
         self.reset_save_button()
         self.sig_saved.emit(
             SignalPayload(
@@ -208,6 +255,12 @@ class SettingsAppTab(SettingsBaseTab):
         if current_index >= 0:
             self.state.launch_app_size = (
                 self.launch_app_size_combo.itemData(current_index)
+            )
+
+        current_index = self.launch_app_pos_combo.currentIndex()
+        if current_index >= 0:
+            self.state.launch_app_pos = (
+                self.launch_app_pos_combo.itemData(current_index)
             )
 
         self.state.save_app()
