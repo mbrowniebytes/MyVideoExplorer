@@ -123,9 +123,9 @@ class ThemeManager:
             self.setup_tabs(widget)
         elif isinstance(widget, QTabWidget):
             self.setup_tab_widget(widget)
-        elif isinstance(widget, (QToolButton, QPushButton, QCheckBox, QRadioButton)):
+        elif isinstance(widget, (QToolButton, QPushButton, QSpinBox, QRadioButton)):
             self.setup_button(widget)
-        elif isinstance(widget, (QPlainTextEdit, QLineEdit, QSpinBox)):
+        elif isinstance(widget, (QPlainTextEdit, QLineEdit)):
             self.setup_input_widget(widget)
 
     def _is_custom_widget(self, widget: QWidget) -> bool:
@@ -155,7 +155,7 @@ class ThemeManager:
     def setup_combo_box(self, widget: QComboBox) -> None:
         widget.setStyleSheet(StyleFactory.get_combo_qss(self.config))
 
-    def setup_checkbox(self, widget: QComboBox) -> None:
+    def setup_checkbox(self, widget: QCheckBox) -> None:
         widget.setStyleSheet(StyleFactory.get_checkbox_style(self.config))
 
     def setup_tabs(self, widget: QTabBar) -> None:
@@ -176,24 +176,15 @@ class ThemeManager:
             else:
                 widget.setStyleSheet(StyleFactory.get_button_qss(self.config))
 
-    def setup_input_widget(self, widget: QPlainTextEdit | QLineEdit | QSpinBox) -> None:
+    def setup_input_widget(self, widget: QPlainTextEdit | QLineEdit) -> None:
         if isinstance(widget, QPlainTextEdit):
-            # Check if it's the plot section text edit which needs a smaller font
-            # Importing here to avoid circular dependencies if any
-            # 4 is PLOT_SECTION_FONT_SIZE_OFFSET from media_info_section_plot
-            is_plot_edit = False
-            p = widget.parent()
-            while p:
-                if p.objectName() == "section_plot":
-                    is_plot_edit = True
-                    break
-                p = p.parent()
+            font = QFont(
+                self.config.font_family_default,
+                self.config.font_size_base - 1,
+            )
+            font.setPixelSize(
+                self.config.font_size_base - 1
+            )
 
-            if is_plot_edit:
-                # We need a new font object to avoid modifying the global one if it's shared
-                font = QFont(widget.font())
-                font.setPixelSize(max(1, self.config.font_size_base - 2))
-                widget.setFont(font)
-                # print(f"DEBUG: Applied plot font size {font.pixelSize()} to {widget}")
-
-            widget.document().setDefaultFont(widget.font())
+            widget.setFont(font)
+            widget.document().setDefaultFont(font)

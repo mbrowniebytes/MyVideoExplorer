@@ -48,6 +48,9 @@ class MediaInfoSideHeaderWidget(QWidget, ThemableMixin):
         self.apply_theme()
 
     def apply_theme(self) -> None:
-        super().apply_theme()
+        if not APP_THEME.is_refreshing:
+            super().apply_theme()
+            return
+
         self.play_video_button.setStyleSheet(APP_THEME.small_button_qss())
         self.title_label.setStyleSheet(APP_THEME.secondary_label_qss())

@@ -2,9 +2,10 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
 
+from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
 
-class LabelValueWidget(QWidget):
+class LabelValueWidget(QWidget, ThemableMixin):
     """
     A reusable widget for displaying a label and its corresponding value.
     Supports horizontal and vertical orientations and optional links.
@@ -72,7 +73,10 @@ class LabelValueWidget(QWidget):
         self.apply_theme()
 
     def apply_theme(self) -> None:
-        # super().apply_theme()
+        if not APP_THEME.is_refreshing:
+            super().apply_theme()
+            return
+
         self.label_name.setStyleSheet(APP_THEME.secondary_label_qss())
         self.label_value.setStyleSheet(APP_THEME.field_value_qss())
 

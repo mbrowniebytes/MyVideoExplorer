@@ -106,9 +106,9 @@ class LogUtil:
 
         # Patterns to skip — anything outside MyVideoExplorer/ or in virtualenv
         skip_prefixes = [
-            "/MyVideoExplorer/utils/log_util.py",
-            "/.venv/",
-            "/site-packages/",
+            "MyVideoExplorer/utils/log_util.py",
+            ".venv/",
+            "site-packages/",
             "/usr/lib/python",
         ]
 
@@ -118,7 +118,7 @@ class LogUtil:
 
             # Only accept frames that contain 'MyVideoExplorer/' — our application code
             if IS_DEVELOPMENT:
-                if "/MyVideoExplorer/" not in filename:
+                if "MyVideoExplorer/" not in filename:
                     continue
 
             if any(p in filename for p in skip_prefixes):
@@ -133,7 +133,7 @@ class LogUtil:
         # Calculate relative path from app root, using Linux-style slashes
         full_path = str(app_frame.filename).replace("\\", "/")
 
-        if full_path.find("/MyVideoExplorer/") != -1:
+        if full_path.find("MyVideoExplorer/") != -1:
             root_path = str(SRC_PATH)
         else:
             root_path = str(BASE_PATH)

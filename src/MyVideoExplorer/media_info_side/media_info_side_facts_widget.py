@@ -53,7 +53,10 @@ class MediaInfoSideFactsWidget(QWidget, ThemableMixin):
         self._update_id_widgets(movie_info.get("ids", []))
 
     def apply_theme(self) -> None:
-        super().apply_theme()
+        if not APP_THEME.is_refreshing:
+            super().apply_theme()
+            return
+
         self.setStyleSheet(APP_THEME.container_qss())
 
     def _build_fixed_field_widgets(self) -> None:

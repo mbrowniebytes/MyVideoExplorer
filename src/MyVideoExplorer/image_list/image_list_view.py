@@ -161,15 +161,16 @@ class ImageListView(QWidget, ThemableMixin):
         self.preview_widget.load_pixmap(image_path)
 
     def apply_theme(self) -> None:
-        # super().apply_theme()
+        if not APP_THEME.is_refreshing:
+            super().apply_theme()
+            return
+
         font = QFont(APP_THEME.font_family, APP_THEME.font_size)
+        font.setPixelSize(APP_THEME.font_size)
         self.setFont(font)
 
         self.title_widget.apply_theme()
         self.preview_widget.apply_theme()
-
-        self.plot_text.setFont(font)
-        self.plot_text.document().setDefaultFont(font)
 
         self.file_list.apply_theme()
 

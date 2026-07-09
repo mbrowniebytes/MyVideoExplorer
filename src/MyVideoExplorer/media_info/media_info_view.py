@@ -139,7 +139,9 @@ class MediaInfoView(QWidget, ThemableMixin):
         )
 
     def apply_theme(self) -> None:
-        super().apply_theme()
+        if not APP_THEME.is_refreshing:
+            super().apply_theme()
+            return
 
         self.common_section.apply_theme()
         self.plot_section.apply_theme()

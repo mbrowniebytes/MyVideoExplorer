@@ -12,6 +12,7 @@ from MyVideoExplorer.settings.settings_media_tab import SettingsMediaTab
 from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
+from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.widgets.right_aligned_tab_bar import RightAlignedTabBar
 
@@ -21,9 +22,10 @@ class Settings(QWidget, ThemableMixin):
 
     sig_dirty_changed = Signal(object)
 
-    def __init__(self, log_util: LogUtil) -> None:
+    def __init__(self, log_util: LogUtil, file_util: FileUtil) -> None:
         super().__init__()
         self.log_util = log_util
+        self.file_util = file_util
 
         # Data Model (State Management)
         self.settings_data_model = SettingsState(self.log_util)
@@ -32,7 +34,7 @@ class Settings(QWidget, ThemableMixin):
         from MyVideoExplorer.settings.settings_ui_tab import SettingsUITab
 
         self.app_settings_tab = SettingsAppTab(self.settings_data_model, self.log_util)
-        self.ui_settings_tab = SettingsUITab(self.settings_data_model, self.log_util)
+        self.ui_settings_tab = SettingsUITab(self.settings_data_model, self.log_util, self.file_util)
         self.media_settings_tab = SettingsMediaTab(
             self.settings_data_model, self.log_util
         )

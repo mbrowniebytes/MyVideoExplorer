@@ -17,14 +17,20 @@ from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.settings.settings import SettingsBaseTab
 from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.log_util import LogUtil
 
 
 class SettingsUITab(SettingsBaseTab):
     def __init__(
-        self, state: SettingsState, log_util: LogUtil, parent: QWidget | None = None
+        self,
+            state: SettingsState,
+            log_util: LogUtil,
+            file_util: FileUtil,
+            parent: QWidget | None = None
     ) -> None:
         super().__init__(log_util, parent)
+        self.file_util = file_util
         self.state = state
 
         self.layout = QVBoxLayout(self)
@@ -66,7 +72,9 @@ class SettingsUITab(SettingsBaseTab):
 
         # App Font
         self.font_family_combo = QComboBox()
-        fonts_dir = Path("assets") / "fonts"
+
+        path_to_fonts = self.file_util.get_resource_path("assets/fonts")
+        fonts_dir = Path(path_to_fonts)
 
         ttf_fonts = list(fonts_dir.glob("*.ttf"))
 
@@ -97,7 +105,7 @@ class SettingsUITab(SettingsBaseTab):
             self.font_family_combo.setCurrentIndex(current_index)
 
         self.font_family_combo.currentIndexChanged.connect(self._on_font_family_changed)
-        self.font_family_combo.currentIndexChanged.connect(self._on_setting_changed)
+        # self.font_family_combo.currentIndexChanged.connect(self._on_setting_changed)
 
         display_layout.addRow("App Font", self.font_family_combo)
 
@@ -197,7 +205,7 @@ class SettingsUITab(SettingsBaseTab):
         if family == APP_THEME.font_family:
             return
 
-        print(f"_on_font_family_changed: index:{index} family:{family}")
+        # print(f"_on_font_family_changed: index:{index} family:{family}")
         APP_THEME.font_family = family
         # Block signals on combo before refresh_theme to prevent re-triggering during apply_theme
         self.font_family_combo.blockSignals(True)
@@ -206,15 +214,15 @@ class SettingsUITab(SettingsBaseTab):
         finally:
             self.font_family_combo.blockSignals(False)
 
-        self.state.sig_settings_changed.emit(
-            SignalPayload(
-                data=family,
-                sender=self.__class__.__name__,
-                name="Settings Changed",
-                description="Font family was changed.",
-                flow=SignalFlow.USER_INPUT,
-            )
-        )
+        # self.state.sig_settings_changed.emit(
+        #     SignalPayload(
+        #         data=family,
+        #         sender=self.__class__.__name__,
+        #         name="Settings Changed",
+        #         description="Font family was changed.",
+        #         flow=SignalFlow.USER_INPUT,
+        #     )
+        # )
         self._on_setting_changed()
 
     def _save_ui_settings(self) -> None:

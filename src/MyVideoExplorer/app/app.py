@@ -14,7 +14,6 @@ from PySide6.QtWidgets import (
 
 from MyVideoExplorer.app.app_container import AppContainer
 from MyVideoExplorer.theme.theme import APP_THEME
-from MyVideoExplorer.utils.file_util import FileUtil
 
 
 class App:
@@ -27,6 +26,7 @@ class App:
         self.app = app
         self.container = container
 
+        self.file_util = container.file_util
         self.font_util = container.font_util
 
         self.controller = container.controller
@@ -39,7 +39,7 @@ class App:
         self.media_info = container.media_info
 
     def build(self) -> QMainWindow:
-        self.font_util.load_custom_fonts(Path("assets/fonts"))
+        self.font_util.load_custom_fonts()
 
         self._create_app_icon()
         self.window.setWindowTitle("MyVideoExplorer")
@@ -69,7 +69,7 @@ class App:
         return self.window
 
     def _create_app_icon(self):
-        path_to_icon = FileUtil.get_resource_path("assets/app.png")
+        path_to_icon = self.file_util.get_resource_path("assets/app.png")
         pixmap = QPixmap()
         pixmap.loadFromData(Path(path_to_icon).read_bytes())
         appIcon = QIcon(pixmap)

@@ -13,6 +13,7 @@ from MyVideoExplorer.media_info_section.media_info_section_plot import (
 from MyVideoExplorer.media_info_side.media_info_side_content_widget import (
     MediaInfoSideContentWidget,
 )
+from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.utils.str_util import StrUtil
@@ -137,7 +138,11 @@ class MediaInfoSideView(QWidget, ThemableMixin):
 
     def apply_theme(self) -> None:
         """Apply theme to this view and child widgets."""
-        super().apply_theme()
+        if not APP_THEME.is_refreshing:
+            super().apply_theme()
+            return
+
+        self.plot_section.apply_theme()
 
     def _ensure_side_content_widget(self) -> None:
         if self.side_content_widget.isVisible():

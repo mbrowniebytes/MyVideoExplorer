@@ -46,7 +46,10 @@ class MediaInfoSideContentWidget(QWidget, ThemableMixin):
         self.facts_widget.update_from_movie_info(movie_info)
 
     def apply_theme(self) -> None:
-        super().apply_theme()
+        if not APP_THEME.is_refreshing:
+            super().apply_theme()
+            return
+
         self.setStyleSheet(APP_THEME.container_qss())
         self.header_widget.apply_theme()
         self.facts_widget.apply_theme()

@@ -5,13 +5,11 @@ class StyleFactory:
     """Generates QSS strings based on a ThemeConfig."""
 
     @staticmethod
-    def get_app_qss(c: ThemeConfig, include_font: bool = True) -> str:
-        font_qss = ""
-        if include_font:
-            font_qss = f"""
-                font-family: {c.font_family_default};
-                font-size: {c.font_size_base}px;
-            """
+    def get_app_qss(c: ThemeConfig) -> str:
+        font_qss = f"""
+            font-family: {c.font_family_default};
+            font-size: {c.font_size_base}px;
+        """
         return f"""
             QWidget {{
                 background: {c.color_background_main};
@@ -60,7 +58,19 @@ class StyleFactory:
                 padding: 5px;
                 {font_qss}
             }}
-            QTextEdit, QLabel, QPlainTextEdit, QGroupBox, QCheckBox, QTableView {{
+            QLabel {{
+                {font_qss}
+            }}
+            QPlainTextEdit {{
+                {font_qss}
+            }}
+            QGroupBox {{
+                {font_qss}
+            }}
+            QCheckBox {{
+                {font_qss}
+            }}
+            QTableView {{
                 {font_qss}
             }}
         """
@@ -304,7 +314,7 @@ class StyleFactory:
 
         # Only set font-size in QSS if it's a specific variant that deviates from base.
         # Otherwise, let setFont() on the widget handle it to avoid conflicts.
-        font_size_qss = ""
+        font_size_qss = f"font-size: {c.font_size_base}px;"
 
         if variant == "small":
             font_size_qss = f"font-size: {c.font_size_base - 3}px;"
@@ -335,6 +345,10 @@ class StyleFactory:
                     border: 2px solid {c.color_border_highlight};
                 }}
             """
+        font_qss = f"""
+            font-family: {c.font_family_default};
+            {font_size_qss}
+        """
 
         return f"""
              QLabel {{
@@ -342,14 +356,8 @@ class StyleFactory:
                  {font_size_qss}
                  font-weight: {weight};
                  padding: {padding};
+                 {font_qss}
                  {extra_label}
-             }}
-             QToolTip {{
-                 background-color: {c.color_surface_primary};
-                 color: {c.color_text_primary};
-                 border: 2px solid {c.color_border_highlight};
-                 font-size: {c.font_size_base - 2}px;
-                 padding: 5px;
              }}
              {extra_qss}
          """

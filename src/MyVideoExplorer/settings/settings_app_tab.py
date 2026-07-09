@@ -60,7 +60,7 @@ class SettingsAppTab(SettingsBaseTab):
         self.launch_app_size_combo.addItem("1600x960", "app_size_1600x960")
         self.launch_app_size_combo.addItem("1400x900", "app_size_1400x900")
 
-        self.launch_app_size_combo.setToolTip("Initial size of app window on launch")
+        self.launch_app_size_combo.setToolTip("Initial size of app window on launch; relative to DPI 100%")
 
         current_launch_size = getattr(self.state, "launch_app_size", "app_size_min")
         if current_launch_size == "app_size_min":
@@ -68,7 +68,6 @@ class SettingsAppTab(SettingsBaseTab):
         index = self.launch_app_size_combo.findData(current_launch_size)
         if index >= 0:
             self.launch_app_size_combo.setCurrentIndex(index)
-        print(f"launch_app_size_combo: index:{index} current_launch_size:{current_launch_size}")
 
         self.launch_app_size_combo.currentIndexChanged.connect(
             self._on_launch_app_size_changed

@@ -93,10 +93,10 @@ class Theme(ThemeManager):
         return StyleFactory.get_small_button_qss(self.config)
 
     def container_qss(self) -> str:
-        return StyleFactory.get_app_qss(self.config, include_font=True)
+        return StyleFactory.get_app_qss(self.config)
 
     def app_qss(self) -> str:
-        return StyleFactory.get_app_qss(self.config, include_font=True)
+        return StyleFactory.get_app_qss(self.config)
 
     def icon(self, name: str, **kwargs):
         return self.get_icon(name, **kwargs)

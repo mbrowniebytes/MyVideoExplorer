@@ -54,17 +54,17 @@ class AppContainer:
             raise
 
         try:
-            self.settings = Settings(self.log_util)
+            self.file_util = FileUtil(self.log_util)
+            self.settings = Settings(self.log_util, self.file_util)
         except Exception as e:
             self.log_util.error(f"Error initializing Settings: {e}")
             raise
 
         try:
             self.json_util = JsonUtil(self.log_util)
-            self.file_util = FileUtil(self.log_util)
             self.nfo_parse_util = NfoParseUtil(self.file_util, self.log_util)
             self.str_util = StrUtil(self.log_util)
-            self.font_util = FontUtil(self.log_util)
+            self.font_util = FontUtil(self.log_util, self.file_util)
 
             self.signals = SignalRegistry()
             self.controller = AppController(self.log_util, self.signals)
