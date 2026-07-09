@@ -68,7 +68,7 @@ class SettingsFilterTab(SettingsBaseTab):
         save_btn_layout.setContentsMargins(20, 15, 20, 15)
 
         self.save_btn = QPushButton("Save Filter Settings")
-        self.save_btn.setFixedWidth(180)
+        self.save_btn.setFixedWidth(200)
         self.save_btn.clicked.connect(self._save_filter_settings)
 
         self.reset_btn = self._build_reset_button("Reset Filter Settings", self.reset_settings)

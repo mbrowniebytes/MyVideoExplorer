@@ -2,6 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 import json
+from datetime import datetime, timedelta
 from MyVideoExplorer.utils.json_util import JsonUtil
 
 class TestJsonUtil:
@@ -82,3 +83,42 @@ class TestJsonUtil:
         backups = sorted(tmp_path.glob("settings_ui_*.json"), reverse=True)
         # Today's backup + 1 old backup (rotation should keep most recent by name)
         assert len(backups) == 2
+
+    def test_backup_file_no_change(self, tmp_path, json_util, monkeypatch):
+        monkeypatch.setenv("PYTEST_CURRENT_TEST", "true")
+        file_path = tmp_path / "settings_ui.json"
+        content = "content"
+        file_path.write_text(content)
+
+        # Create a backup with same content (from "yesterday")
+        yesterday = datetime.now() - timedelta(days=1)
+        yesterday_str = yesterday.strftime("%Y-%m-%d")
+        backup_path = tmp_path / f"settings_ui_{yesterday_str}.json"
+        backup_path.write_text(content)
+
+        json_util.backup_file(file_path)
+
+        # Should still have only 1 backup (the old one)
+        backups = list(tmp_path.glob("settings_ui_*.json"))
+        assert len(backups) == 1
+        assert yesterday_str in backups[0].name
+
+    def test_backup_file_with_change(self, tmp_path, json_util, monkeypatch):
+        monkeypatch.setenv("PYTEST_CURRENT_TEST", "true")
+        file_path = tmp_path / "settings_ui.json"
+        content = "new content"
+        file_path.write_text(content)
+
+        # Create a backup with different content
+        (tmp_path / "settings_ui_2026-04-01.json").write_text("old content")
+
+        json_util.backup_file(file_path)
+
+        # Should have 2 backups now
+        backups = list(tmp_path.glob("settings_ui_*.json"))
+        assert len(backups) == 2
+
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        today_backup = tmp_path / f"settings_ui_{today_str}.json"
+        assert today_backup.exists()
+        assert today_backup.read_text() == content

@@ -136,12 +136,12 @@ class App:
             app_height = window_size.height() - 147
             app_height = window_size.height()
             app_width = window_size.width()
-            launch_app_size = f"{app_width}x{app_height}"
+            launch_app_size = f"app_size_{app_width}x{app_height}"
 
         window_pos = self.window.pos()
         launch_app_pos = ""
         if window_pos:
-            launch_app_pos = f"{window_pos.x()},{window_pos.y()}"
+            launch_app_pos = f"app_pos_{window_pos.x()},{window_pos.y()}"
 
         settings = {
             "prior_folder": prior_folder,

@@ -53,6 +53,9 @@ class Settings(QWidget, ThemableMixin):
 
     def _build_ui(self) -> None:
         """Constructs the settings UI layout and registers tabs."""
+        if self.layout() is not None:
+            return
+
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)

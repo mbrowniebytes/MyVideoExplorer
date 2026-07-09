@@ -52,12 +52,26 @@ class JsonUtil:
         if not file_path.exists():
             return
 
-
         if "PYTEST_CURRENT_TEST" in os.environ:
             cfg_dir = file_path.parent
         else:
-            # explict set
+            # explicit set
             cfg_dir = self.CFG_DIR
+
+        backup_pattern = f"{file_path.stem}_*{file_path.suffix}"
+
+        # Only backup if the content has changed since the latest backup
+        backups = sorted(cfg_dir.glob(backup_pattern), reverse=True, key=os.path.getmtime)
+        if backups:
+            latest_backup = backups[0]
+            try:
+                if (
+                    latest_backup.read_text(encoding=self.DEFAULT_ENCODING)
+                    == file_path.read_text(encoding=self.DEFAULT_ENCODING)
+                ):
+                    return
+            except OSError:
+                pass
 
         today_str = datetime.now().strftime("%Y-%m-%d")
         backup_name = cfg_dir / f"{file_path.stem}_{today_str}{file_path.suffix}"
@@ -71,13 +85,13 @@ class JsonUtil:
                 return
 
         # Keep only the max_backups most recent backups
-        pattern = f"{file_path.stem}_*{file_path.suffix}"
+
         # explicit check, since deleting files
-        if pattern.find("settings_") == -1:
-            self.log_util.warn(f"Failed to delete old backups with unexpected pattern {pattern}")
+        if backup_pattern.find("settings_") == -1:
+            self.log_util.warn(f"Failed to delete old backups with unexpected pattern {backup_pattern}")
             return
 
-        backups = sorted(cfg_dir.glob(pattern), reverse=True, key=os.path.getmtime)
+        backups = sorted(cfg_dir.glob(backup_pattern), reverse=True, key=os.path.getmtime)
 
         for old_backup in backups[max_backups:]:
             try:
