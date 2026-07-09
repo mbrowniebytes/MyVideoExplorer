@@ -13,8 +13,8 @@ from MyVideoExplorer.media_info_section.media_info_section_plot import (
 from MyVideoExplorer.media_info_side.media_info_side_content_widget import (
     MediaInfoSideContentWidget,
 )
-from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
+from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.utils.str_util import StrUtil
 from MyVideoExplorer.utils.ui_utils import UIUtils

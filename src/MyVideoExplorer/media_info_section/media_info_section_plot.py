@@ -9,8 +9,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
+from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
 
 PLOT_SECTION_OBJECT_NAME = "section_plot"

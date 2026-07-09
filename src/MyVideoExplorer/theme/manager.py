@@ -182,9 +182,7 @@ class ThemeManager:
                 self.config.font_family_default,
                 self.config.font_size_base - 1,
             )
-            font.setPixelSize(
-                self.config.font_size_base - 1
-            )
+            font.setPixelSize(self.config.font_size_base - 1)
 
             widget.setFont(font)
             widget.document().setDefaultFont(font)

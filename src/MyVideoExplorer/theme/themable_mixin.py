@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 from MyVideoExplorer.theme.theme import APP_THEME
+
 
 class ThemableMixin:
     def apply_theme(self) -> None:
