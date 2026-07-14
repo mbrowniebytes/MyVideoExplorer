@@ -507,4 +507,6 @@ class SettingsMediaTab(SettingsBaseTab):
 
     def apply_theme(self) -> None:
         super().apply_theme()
+        font = QFont(APP_THEME.font_family, APP_THEME.font_size)
+        self.setFont(font)
         # QTimer.singleShot(0, self._refresh_folder_nav_settings)

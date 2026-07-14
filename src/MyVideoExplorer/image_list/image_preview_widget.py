@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import QVBoxLayout
+from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from MyVideoExplorer.image_list.image_label import ImageLabel
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.utils.log_util import LogUtil
-from MyVideoExplorer.widgets.base_widget import BaseWidget
+from MyVideoExplorer.utils.ui_utils import UIUtils
 
 _NO_IMAGE_FOUND = """
     No image found.\n
@@ -16,7 +17,7 @@ _NO_IMAGE_FOUND = """
 """
 
 
-class ImagePreviewWidget(BaseWidget):
+class ImagePreviewWidget(QWidget, ThemableMixin):
     """
     Widget for previewing an image with automatic scaling and delayed rendering.
     """
@@ -26,18 +27,21 @@ class ImagePreviewWidget(BaseWidget):
     sig_double_click = Signal(object)
 
     def __init__(self, log_util:LogUtil) -> None:
-        super().__init__(log_util)
+        super().__init__()
+        self.log_util = log_util
+        self._ui_utils = UIUtils()
         self.timer = QTimer()
         self.timer.setSingleShot(True)
         self.timer.timeout.connect(self.apply_scaled_pixmap)
         self._pixmap: QPixmap | None = None
+        self._loading_state_text = "Loading..."
 
         self.image_label = ImageLabel(log_util, _NO_IMAGE_FOUND)
         self.image_label.sig_wheel_step.connect(self.sig_wheel_step.emit)
         self.image_label.sig_right_click.connect(self.sig_right_click.emit)
         self.image_label.sig_double_click.connect(self.sig_double_click.emit)
 
-        layout = self.set_compact_layout(QVBoxLayout)
+        layout = self._ui_utils.apply_compact_layout(self, QVBoxLayout)
         layout.addWidget(self.image_label)
 
     def load_pixmap(self, image_path: str | None) -> None:
@@ -65,6 +69,19 @@ class ImagePreviewWidget(BaseWidget):
         self._pixmap = None
         self.image_label.setPixmap(QPixmap())
         self.image_label.setText(_NO_IMAGE_FOUND)
+
+    def show_loading_state(self, message: str = "") -> None:
+        self._pixmap = None
+        self.image_label.setPixmap(QPixmap())
+        text = self._loading_state_text
+        if message:
+            text += f"\n\n{message}"
+        self.image_label.setText(text)
+
+    def show_empty_state(self, message: str = "") -> None:
+        self._pixmap = None
+        self.image_label.setPixmap(QPixmap())
+        self.image_label.setText(message or _NO_IMAGE_FOUND)
 
     def resize_pixmap(self) -> None:
         self.image_label.clear()

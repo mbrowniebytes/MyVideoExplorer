@@ -45,6 +45,7 @@ class AppController(QObject):
         self.state.root_folder = valid_paths[0] if valid_paths else ""
 
         # Reset selection state when roots change
+        self.state.prior_folder = self.state.current_folder
         self.state.current_folder = self.state.root_folder
         self.state.current_file = ""
         self.state.current_image = ""
@@ -57,17 +58,12 @@ class AppController(QObject):
         self.signals.sig_root_folders.emit(payload)
         self.log_util.debug(f"sig_root_folders emitted for: {valid_paths}")
 
-        # Also keep emitting per-root signals for backward compatibility so
-        # existing listeners (FolderList, ImageList, MediaInfo) still refresh.
-        # for vp in valid_paths:
-        #     self.sig_root_folder.emit(vp)
-        # self.sig_selected_folder.emit(vp)
-
     def set_current_folder(self, folder_path: str, force: bool = False) -> None:
         # self.log_util.debug(f"Attempting to set folder: {folder_path}")
         try:
             if not force and self.state.current_folder == folder_path:
                 return
+            self.state.prior_folder = self.state.current_folder
             self.state.current_folder = folder_path
             self.state.current_file = ""
             self.state.current_image = ""

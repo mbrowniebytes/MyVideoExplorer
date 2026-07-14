@@ -1,15 +1,17 @@
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPlainTextEdit,
     QSizePolicy,
     QVBoxLayout,
+    QWidget,
 )
 
+from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
-from MyVideoExplorer.widgets.base_widget import BaseWidget
 
 PLOT_SECTION_OBJECT_NAME = "section_plot"
 PLOT_SECTION_TITLE_TEXT = "P\nl\no\nt"
@@ -19,12 +21,12 @@ PLOT_SECTION_MINIMUM_CONTENT_HEIGHT = 60
 PLOT_SECTION_MAXIMUM_CONTENT_HEIGHT = 150
 PLOT_SECTION_APPROXIMATE_CHARACTERS_PER_LINE = 60
 PLOT_SECTION_LINE_HEIGHT_MULTIPLIER = 1.2
-PLOT_SECTION_FONT_SIZE_OFFSET = 4
 
 
-class MediaInfoPlotSection(BaseWidget):
+class MediaInfoPlotSection(QWidget, ThemableMixin):
     def __init__(self, log_util: LogUtil | None = None, parent=None):
-        super().__init__(log_util or LogUtil(), parent)
+        super().__init__(parent)
+        self.log_util = log_util or LogUtil()
 
         self._current_plot_text = ""
 
@@ -52,7 +54,15 @@ class MediaInfoPlotSection(BaseWidget):
         return self.plot_text_edit
 
     def apply_theme(self) -> None:
-        super().apply_theme()
+        if not APP_THEME.is_refreshing:
+            super().apply_theme()
+            return
+
+        font = QFont(APP_THEME.font_family, APP_THEME.font_size - 1)
+        font.setPixelSize(APP_THEME.font_size - 1)
+
+        self.plot_text_edit.setFont(font)
+        self.plot_text_edit.document().setDefaultFont(font)
 
         current_plot_text = self.plot_text_edit.toPlainText()
         maximum_plot_text_height = self._calculate_plot_text_maximum_height(

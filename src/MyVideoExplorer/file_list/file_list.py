@@ -13,16 +13,17 @@ from PySide6.QtWidgets import (
 from MyVideoExplorer.app.app_signals_model import SignalPayload
 from MyVideoExplorer.file_list.file_list_view import FileListView
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.log_util import LogUtil
-from MyVideoExplorer.widgets.base_widget import BaseWidget
 
 
-class FileList(BaseWidget):
+class FileList(QWidget, ThemableMixin):
     sig_file_selected_intent = Signal(object)
 
     def __init__(self, file_util: FileUtil, log_util: LogUtil) -> None:
-        super().__init__(log_util)
+        super().__init__()
+        self.log_util = log_util
         self.title_widget = QWidget()
         self.file_list_view = FileListView()
         self.file_util = file_util

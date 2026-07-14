@@ -5,13 +5,13 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from MyVideoExplorer.media_info_side.media_info_side_facts_widget import MediaInfoSideFactsWidget
 from MyVideoExplorer.media_info_side.media_info_side_header_widget import MediaInfoSideHeaderWidget
+from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.str_util import StrUtil
-from MyVideoExplorer.widgets.base_widget import BaseWidget
 
 
-class MediaInfoSideContentWidget(BaseWidget):
+class MediaInfoSideContentWidget(QWidget, ThemableMixin):
     """Reusable framed side panel content for media metadata and quick actions."""
 
     sig_play_video_requested = Signal(object)
@@ -22,7 +22,8 @@ class MediaInfoSideContentWidget(BaseWidget):
         log_util: LogUtil | None = None,
         parent: QWidget | None = None,
     ) -> None:
-        super().__init__(log_util or LogUtil(), parent)
+        super().__init__(parent)
+        self.log_util = log_util or LogUtil()
 
         self.setObjectName("side_media_info")
 
@@ -45,7 +46,10 @@ class MediaInfoSideContentWidget(BaseWidget):
         self.facts_widget.update_from_movie_info(movie_info)
 
     def apply_theme(self) -> None:
-        super().apply_theme()
+        if not APP_THEME.is_refreshing:
+            super().apply_theme()
+            return
+
         self.setStyleSheet(APP_THEME.container_qss())
         self.header_widget.apply_theme()
         self.facts_widget.apply_theme()

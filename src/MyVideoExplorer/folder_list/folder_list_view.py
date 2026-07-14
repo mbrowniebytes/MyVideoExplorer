@@ -71,6 +71,7 @@ class FolderListView(QListWidget):
 
         empty_item = QListWidgetItem(text)
         empty_item.setFlags(Qt.ItemFlag.NoItemFlags)
+        empty_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         self.addItem(empty_item)
 
     def add_folder_item(
@@ -165,11 +166,14 @@ class FolderListView(QListWidget):
             folder_items = sorted_items
 
         self.clear()
-        for item in folder_items:
-            icon_name = (
-                get_icon_func(item.full_path) if get_icon_func else "fa5s.folder"
-            )
-            self.add_folder_item(item, icon_name)
+        if not folder_items:
+            self.show_empty_state()
+        else:
+            for item in folder_items:
+                icon_name = (
+                    get_icon_func(item.full_path) if get_icon_func else "fa5s.folder"
+                )
+                self.add_folder_item(item, icon_name)
 
         if on_complete:
             on_complete(items)
@@ -204,3 +208,11 @@ class FolderListView(QListWidget):
             flow=SignalFlow.USER_INPUT,
         )
         self.sig_folder_selected.emit(payload)
+
+    def has_folders(self) -> bool:
+        """Returns True if the list contains at least one real folder item."""
+        for row in range(self.count()):
+            item = self.item(row)
+            if item and item.data(Qt.ItemDataRole.UserRole):
+                return True
+        return False

@@ -19,7 +19,8 @@ class TestSettings:
             with patch("MyVideoExplorer.settings.settings_state.SettingsState._ensure_defaults"):
                 with patch("MyVideoExplorer.theme.theme.Theme.refresh_theme"):
                     mock_log_util = MagicMock()
-                    s = Settings(mock_log_util)
+                    mock_file_util = MagicMock()
+                    s = Settings(mock_log_util, mock_file_util)
                     s.settings_data_model.folder_configs = [{"label": "Test", "path": "/test"}]
                     # Mock only the problematic UI components that cause Segfaults
                     # Bypassing build to avoid Segfaults
@@ -74,7 +75,8 @@ class TestSettings:
             with patch("MyVideoExplorer.settings.settings_state.SettingsState._ensure_defaults"):
                 with patch("MyVideoExplorer.theme.theme.Theme.refresh_theme"):
                     mock_log_util = MagicMock()
-                    s = Settings(mock_log_util)
+                    mock_file_util = MagicMock()
+                    s = Settings(mock_log_util, mock_file_util)
                     # Fully mock build to avoid UI-related access violations in test environment
                     s.tab_widget = QTabWidget()
                     from MyVideoExplorer.widgets.right_aligned_tab_bar import RightAlignedTabBar

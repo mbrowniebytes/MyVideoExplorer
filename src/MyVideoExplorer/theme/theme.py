@@ -27,6 +27,10 @@ class Theme(ThemeManager):
     def font_family(self) -> str:
         return self.config.font_family_default
 
+    @font_family.setter
+    def font_family(self, value: str):
+        self.config.font_family_default = value
+
     @property
     def background_color(self) -> str:
         return self.config.color_background_main

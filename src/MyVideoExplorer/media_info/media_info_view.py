@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QTimer, Signal
-from PySide6.QtWidgets import QVBoxLayout
+from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.media_info.media_info_scroll_content_widget import (
@@ -33,13 +33,14 @@ from MyVideoExplorer.media_info_section.media_info_section_plot import (
     MediaInfoPlotSection,
 )
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.utils.str_util import StrUtil
-from MyVideoExplorer.widgets.base_widget import BaseWidget
+from MyVideoExplorer.utils.ui_utils import UIUtils
 
 
-class MediaInfoView(BaseWidget):
+class MediaInfoView(QWidget, ThemableMixin):
     sig_info_play_video_btn_clicked = Signal(object)
 
     def __init__(
@@ -48,7 +49,9 @@ class MediaInfoView(BaseWidget):
         str_util: StrUtil,
         log_util: LogUtil,
     ) -> None:
-        super().__init__(log_util)
+        super().__init__()
+        self.log_util = log_util
+        self._ui_utils = UIUtils()
 
         self.nfo_parse_util = nfo_parse_util
         self.str_util = str_util
@@ -136,7 +139,9 @@ class MediaInfoView(BaseWidget):
         )
 
     def apply_theme(self) -> None:
-        super().apply_theme()
+        if not APP_THEME.is_refreshing:
+            super().apply_theme()
+            return
 
         self.common_section.apply_theme()
         self.plot_section.apply_theme()

@@ -6,15 +6,19 @@ class StyleFactory:
 
     @staticmethod
     def get_app_qss(c: ThemeConfig) -> str:
+        font_qss = f"""
+            font-family: {c.font_family_default};
+            font-size: {c.font_size_base}px;
+        """
         return f"""
             QWidget {{
                 background: {c.color_background_main};
                 color: {c.color_text_primary};
-                font-family: {c.font_family_default};
-                font-size: {c.font_size_base}px;
+                {font_qss}
             }}
             QMainWindow {{
                 background: {c.color_background_main};
+                {font_qss}
             }}
             QGroupBox {{
                 font-weight: bold;
@@ -22,12 +26,14 @@ class StyleFactory:
                 border-radius: {c.size_border_radius_standard}px;
                 margin-top: 1.5ex;
                 padding: 10px;
+                {font_qss}
             }}
             QGroupBox::title {{
                 subcontrol-origin: margin;
                 subcontrol-position: top left;
                 left: 10px;
                 padding: 0 5px;
+                {font_qss}
             }}
             QScrollBar:vertical {{
                 border: none;
@@ -50,11 +56,31 @@ class StyleFactory:
                 border: 1px solid {c.color_border_default};
                 font-size: {c.font_size_base - 2}px;
                 padding: 5px;
+                {font_qss}
+            }}
+            QLabel {{
+                {font_qss}
+            }}
+            QPlainTextEdit {{
+                {font_qss}
+            }}
+            QGroupBox {{
+                {font_qss}
+            }}
+            QCheckBox {{
+                {font_qss}
+            }}
+            QTableView {{
+                {font_qss}
             }}
         """
 
     @staticmethod
     def get_list_qss(c: ThemeConfig) -> str:
+        font_qss = f"""
+            font-family: {c.font_family_default};
+            font-size: {c.font_size_base}px;
+        """
         return f"""
             QListWidget {{
                 background: {c.color_background_main};
@@ -62,6 +88,7 @@ class StyleFactory:
                 border: 1px solid {c.color_border_default};
                 border-radius: {c.size_border_radius_standard}px;
                 outline: 0;
+                {font_qss}
             }}
             QListWidget::item {{
                 padding: {c.padding_list_item_vertical}px {c.padding_list_item_horizontal}px;
@@ -130,6 +157,10 @@ class StyleFactory:
 
     @staticmethod
     def get_table_qss(c: ThemeConfig) -> str:
+        font_qss = f"""
+            font-family: {c.font_family_default};
+            font-size: {c.font_size_base}px;
+        """
         return f"""
              QTableView, QTableWidget {{
                  background: {c.color_background_main};
@@ -138,12 +169,14 @@ class StyleFactory:
                  border: 1px solid {c.color_border_default};
                  selection-background-color: {c.color_interaction_selected};
                  selection-color: {c.color_interaction_selected_text};
+                 {font_qss}
              }}
              QHeaderView::section {{
                  background: {c.color_surface_primary};
                  color: {c.color_text_primary};
                  padding: 0px;
                  border: 0;
+                 {font_qss}
              }}
          """
 
@@ -183,7 +216,64 @@ class StyleFactory:
          """
 
     @staticmethod
+    def get_checkbox_style(c: ThemeConfig) -> str:
+        return f"""
+            QCheckBox::indicator {{
+                subcontrol-position: left top;
+                background-color: #666666;
+                border-radius: 2px;
+                border-style: solid;
+                border-width: 2px;
+                border-color: #AAAAAA #AAAAAA #999999 #999999;
+            }}
+            QCheckBox::indicator:checked {{
+                background-color: {c.color_interaction_selected};
+            }}
+         """
+        # Source - https://stackoverflow.com/a/71518367
+        return """
+            QCheckBox::indicator {
+                width: 30px;
+                height: 30px;
+                background-color: gray;
+                border-radius: 15px;
+                border-style: solid;
+                border-width: 1px;
+                border-color: white white black black;
+            }
+            QCheckBox::indicator:checked {
+                background-color: qradialgradient(spread:pad,
+                    cx:0.5,
+                    cy:0.5,
+                    radius:0.9,
+                    fx:0.5,
+                    fy:0.5,
+                    stop:0 rgba(0, 255, 0, 255),
+                    stop:1 rgba(0, 64, 0, 255)
+                );
+            }
+            QCheckBox:checked, QCheckBox::indicator:checked {
+                border-color: black black white white;
+            }
+            QCheckBox:checked {
+                background-color: qradialgradient(spread:pad,
+                    cx:0.739,
+                    cy:0.278364,
+                    radius:0.378,
+                    fx:0.997289,
+                    fy:0.00289117,
+                    stop:0 rgba(255, 255, 255, 255),
+                    stop:1 rgba(160, 160, 160, 255)
+                );
+            }
+         """
+
+    @staticmethod
     def get_combo_qss(c: ThemeConfig) -> str:
+        font_qss = f"""
+            font-family: {c.font_family_default};
+            font-size: {c.font_size_base}px;
+        """
         return f"""
             QComboBox {{
                 background: {c.color_surface_primary};
@@ -191,6 +281,7 @@ class StyleFactory:
                 border: 1px solid {c.color_border_default};
                 border-radius: {c.size_border_radius_standard}px;
                 padding: 2px 4px;
+                {font_qss}
             }}
             QComboBox QAbstractItemView {{
                 background: {c.color_surface_primary};
@@ -223,7 +314,7 @@ class StyleFactory:
 
         # Only set font-size in QSS if it's a specific variant that deviates from base.
         # Otherwise, let setFont() on the widget handle it to avoid conflicts.
-        font_size_qss = ""
+        font_size_qss = f"font-size: {c.font_size_base}px;"
 
         if variant == "small":
             font_size_qss = f"font-size: {c.font_size_base - 3}px;"
@@ -254,33 +345,35 @@ class StyleFactory:
                     border: 2px solid {c.color_border_highlight};
                 }}
             """
+        font_qss = f"""
+            font-family: {c.font_family_default};
+            {font_size_qss}
+        """
 
         return f"""
              QLabel {{
                  color: {color};
-                 font-family: {c.font_family_default};
                  {font_size_qss}
                  font-weight: {weight};
                  padding: {padding};
+                 {font_qss}
                  {extra_label}
-             }}
-             QToolTip {{
-                 background-color: {c.color_surface_primary};
-                 color: {c.color_text_primary};
-                 border: 2px solid {c.color_border_highlight};
-                 font-size: {c.font_size_base - 2}px;
-                 padding: 5px;
              }}
              {extra_qss}
          """
 
     @staticmethod
     def get_tabs_qss(c: ThemeConfig) -> str:
+        font_qss = f"""
+            font-family: {c.font_family_default};
+            font-size: {c.font_size_base}px;
+        """
         return f"""
             QTabWidget::pane {{
                 border: 1px solid {c.color_border_default};
                 border-top: 0;
                 background: {c.color_background_main};
+                {font_qss}
             }}
             QTabBar::tab {{
                 padding: 6px 16px;
@@ -289,6 +382,7 @@ class StyleFactory:
                 background: {c.color_surface_primary};
                 color: {c.color_text_primary};
                 margin-right: 2px;
+                {font_qss}
             }}
             QTabBar::tab:selected {{
                 background: {c.color_interaction_selected};

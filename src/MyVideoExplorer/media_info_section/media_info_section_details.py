@@ -1,13 +1,14 @@
 from PySide6.QtWidgets import QHeaderView, QSizePolicy, QVBoxLayout, QWidget
 
+from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
-from MyVideoExplorer.widgets.base_widget import BaseWidget
+from MyVideoExplorer.utils.ui_utils import UIUtils
 from MyVideoExplorer.widgets.label_value_widget import LabelValueWidget
 from MyVideoExplorer.widgets.simple_table_widget import SimpleTableWidget
 
 
-class MediaInfoDetailsSection(BaseWidget):
+class MediaInfoDetailsSection(QWidget, ThemableMixin):
     VIDEO_TABLE_COLUMN_KEYS = [
         "resolution",
         "codec",
@@ -50,7 +51,9 @@ class MediaInfoDetailsSection(BaseWidget):
     def __init__(
         self, log_util: LogUtil | None = None, parent: QWidget | None = None
     ) -> None:
-        super().__init__(log_util or LogUtil(), parent)
+        super().__init__(parent)
+        self.log_util = log_util or LogUtil()
+        self._ui_utils = UIUtils()
 
         self._current_identifier_items: list[dict] = []
         self._current_video_items: list[dict] = []
@@ -71,18 +74,7 @@ class MediaInfoDetailsSection(BaseWidget):
         self.details_section_layout.setSpacing(0)
 
     def _clear_details_section_layout(self) -> None:
-        self._clear_layout_items(self.details_section_layout)
-
-    def _clear_layout_items(self, target_layout: QVBoxLayout) -> None:
-        while target_layout.count():
-            layout_item = target_layout.takeAt(0)
-            child_widget = layout_item.widget()
-            child_layout = layout_item.layout()
-
-            if child_widget is not None:
-                child_widget.deleteLater()
-            elif child_layout is not None:
-                self._clear_layout_items(child_layout)
+        self._ui_utils.clear_layout(self.details_section_layout)
 
     def build_ids(self, identifier_items: list[dict]) -> None:
         self.setObjectName("section_ids")
@@ -102,7 +94,7 @@ class MediaInfoDetailsSection(BaseWidget):
         self._clear_details_section_layout()
         self.details_section_layout.addWidget(
             LabelValueWidget(
-                "IDs:", identifiers_html, log_util=self.log_util, parent=self
+                "IDs:", identifiers_html, parent=self
             )
         )
 
@@ -168,7 +160,7 @@ class MediaInfoDetailsSection(BaseWidget):
 
         self._clear_details_section_layout()
         self.details_section_layout.addWidget(
-            LabelValueWidget(section_title, log_util=self.log_util, parent=self)
+            LabelValueWidget(section_title, parent=self)
         )
         table = SimpleTableWidget(
             rows=table_rows,

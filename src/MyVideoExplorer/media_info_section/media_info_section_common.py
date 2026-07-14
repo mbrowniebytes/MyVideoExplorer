@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 
-from PySide6.QtWidgets import QHBoxLayout, QSizePolicy, QVBoxLayout
+from PySide6.QtWidgets import QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
 
+from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.str_util import StrUtil
-from MyVideoExplorer.widgets.base_widget import BaseWidget
+from MyVideoExplorer.utils.ui_utils import UIUtils
 from MyVideoExplorer.widgets.label_value_widget import LabelValueWidget
 
 type MediaInfoField = tuple[str, object]
@@ -14,9 +15,11 @@ type MediaInfoFieldRow = list[MediaInfoField]
 type MediaInfoFieldRows = list[MediaInfoFieldRow]
 
 
-class MediaInfoCommonSection(BaseWidget):
+class MediaInfoCommonSection(QWidget, ThemableMixin):
     def __init__(self, str_util: StrUtil, log_util: LogUtil | None = None, parent=None):
-        super().__init__(log_util or LogUtil(), parent)
+        super().__init__(parent)
+        self.log_util = log_util or LogUtil()
+        self._ui_utils = UIUtils()
         self._current_view_mode = ""
         self._current_nfo = {}
         self.setObjectName("section_common")
@@ -94,7 +97,7 @@ class MediaInfoCommonSection(BaseWidget):
 
         # Structure changed, rebuild
         # Clear existing rows
-        self._clear_layout(self.layout)
+        self._ui_utils.clear_layout(self.layout)
 
         col_layout = QVBoxLayout()
         col_layout.setContentsMargins(0, 0, 0, 0)
@@ -104,17 +107,10 @@ class MediaInfoCommonSection(BaseWidget):
             row_layout.setSpacing(4)
             for label, value in row:
                 lvw = LabelValueWidget(
-                    name=label, value=value, log_util=self.log_util, parent=self
+                    name=label, value=value, parent=self
                 )
                 row_layout.addWidget(lvw)
             col_layout.addLayout(row_layout)
         self.layout.addLayout(col_layout)
 
-    def _clear_layout(self, layout):
-        while layout.count():
-            item = layout.takeAt(0)
-            widget = item.widget()
-            if widget:
-                widget.deleteLater()
-            elif item.layout():
-                self._clear_layout(item.layout())
+    # Removed _clear_layout in favor of UIUtils.clear_layout

@@ -1,5 +1,8 @@
 from pathlib import Path
 
+from PySide6.QtGui import QGuiApplication
+from PySide6.QtWidgets import QMainWindow
+
 from MyVideoExplorer.app.app_controller import AppController
 from MyVideoExplorer.app.app_signals import SignalRegistry
 from MyVideoExplorer.file_list.file_list import FileList
@@ -51,17 +54,17 @@ class AppContainer:
             raise
 
         try:
-            self.settings = Settings(self.log_util)
+            self.file_util = FileUtil(self.log_util)
+            self.settings = Settings(self.log_util, self.file_util)
         except Exception as e:
             self.log_util.error(f"Error initializing Settings: {e}")
             raise
 
         try:
             self.json_util = JsonUtil(self.log_util)
-            self.file_util = FileUtil(self.log_util)
             self.nfo_parse_util = NfoParseUtil(self.file_util, self.log_util)
             self.str_util = StrUtil(self.log_util)
-            self.font_util = FontUtil(self.log_util)
+            self.font_util = FontUtil(self.log_util, self.file_util)
 
             self.signals = SignalRegistry()
             self.controller = AppController(self.log_util, self.signals)
@@ -97,6 +100,7 @@ class AppContainer:
             )
             self.image_list = ImageList(
                 self.file_util,
+                self.settings,
                 self.nfo_parse_util,
                 self.str_util,
                 self.image_list_view,
@@ -112,6 +116,8 @@ class AppContainer:
                 image_list=self.image_list,
                 settings=self.settings,
             )
+
+            self.window: QMainWindow = None
 
             self._wire_all_signals()
         except Exception as e:
@@ -141,6 +147,10 @@ class AppContainer:
 
         self.folder_list.sig_folder_selected_intent.connect(
             lambda p: self.controller.set_current_folder(p.data)
+        )
+
+        self.folder_list.sig_navigate_to_folder.connect(
+            lambda p: self.controller.set_current_folder(p)
         )
 
         self.file_list.sig_file_selected_intent.connect(
@@ -196,13 +206,16 @@ class AppContainer:
         self.settings.settings_data_model.sig_settings_changed.connect(
             lambda p: self.folder_list.refresh_icons()
         )
+        self.settings.settings_data_model.sig_window_size_changed.connect(
+            lambda p: self.resize_window(self.window, p.data)
+        )
+        self.settings.settings_data_model.sig_window_pos_changed.connect(
+            lambda p: self.resize_window(self.window, app_pos=p.data)
+        )
         # When media folders are deleted in settings, update controller root_folders
-        if hasattr(self.settings, "media_tab") and hasattr(
-            self.settings.media_tab, "sig_root_folders_changed"
-        ):
-            self.settings.media_tab.sig_root_folders_changed.connect(
-                lambda p: self.controller.set_root_folders(p.data)
-            )
+        self.settings.media_settings_tab.sig_root_folders_changed.connect(
+            lambda p: self.controller.set_root_folders(p.data)
+        )
 
     def _wire_component_interactions(self) -> None:
         """Component-to-component interactions (local, not via controller)."""
@@ -235,10 +248,23 @@ class AppContainer:
     def _on_filtered_items(self, items: list[FileUtilModel]) -> None:
         self.folder_list.populate_view(items)
 
-    # def _on_set_root_folder(self, folder_path: str) -> None:
-    #     # print(f"_on_set_root_folder:{folder_path}")
-    #     self.folder_nav.set_root_folder([folder_path])
-    #     self.folder_list.refresh(folder_path, force=True)
+        if items:
+            # Auto-select folder after roots are set
+            first_item = items[0]
+
+            # Auto-select prior folder if enabled and available
+            auto_select_folder = self.settings.settings_data_model.auto_select_folder
+
+            prior_folder = self.settings.settings_data_model.prior_folder
+            print(f"_on_filtered_items: auto_select_folder:{auto_select_folder} prior_folder:{prior_folder} first_item:{first_item}")
+
+            if auto_select_folder == "auto_select_prior_folder" and prior_folder:
+                self.controller.set_current_folder(prior_folder, force=True)
+            elif first_item:
+                self.controller.set_current_folder(first_item.full_path, force=True)
+        else:
+            # No folders found matching filters or no media folders configured
+            self.image_list.update_image_from_folder("")
 
     def _on_folder_selected(self, folder_path: str) -> None:
         # We still want to avoid circular updates if everything is already in sync
@@ -253,7 +279,7 @@ class AppContainer:
         self.folder_list.folder_list_view.setProperty(
             "last_selected_folder", folder_path
         )
-        # print(f"_on_folder_selected:{folder_path}")
+        print(f"_on_folder_selected:{folder_path}")
 
         self.folder_list.set_selected_folder(folder_path)
 
@@ -265,3 +291,89 @@ class AppContainer:
 
         self.video_player.set_folder_path(folder_path)
         self.media_info.refresh(folder_path, self.controller.state.current_tab)
+
+    def resize_window(self, window:QMainWindow|None, app_size:str="", app_pos:str="") -> None:
+        if not window:
+            print("resize_window no window obj")
+            return
+
+        self.window = window
+
+        # Apply launch window size based on settings
+        launch_size = getattr(
+            self.settings.settings_data_model,
+            "launch_app_size",
+            "app_size_min",
+        )
+        if app_size:
+            launch_size = app_size
+
+        # self.log_util.info(f"resize_window: launch_size:{launch_size}")
+        if launch_size == "app_size_maximized":
+            window.showMaximized()
+        elif launch_size == "app_size_last" and hasattr(
+            self.settings.settings_data_model, "app_size"
+        ):
+            # Restore saved window app_size if available
+            app_size = getattr(
+                self.settings.settings_data_model, "app_size", ""
+            )
+            self.log_util.info(f"resize_window: app_size:{app_size}")
+            launch_size = app_size
+
+        if launch_size and "x" in launch_size:
+            # Parse resolution like "1920x1080"
+            launch_size = launch_size.replace("app_size_", "")
+            try:
+                width, height = map(int, launch_size.split("x"))
+                # self.log_util.info(f"resize_window: width:{width} height:{height}")
+                if width < 1400:
+                    width = 1400
+                if height < 900:
+                    height = 900
+                window.resize(width, height)
+            except ValueError, IndexError:
+                window.resize(1400, 900)
+                self.log_util.error(f"resize_window: launch_size:{launch_size}: {ValueError, IndexError}")
+        else:
+            # app_size_min
+            window.resize(1400, 900)
+
+        # Apply launch window position based on settings
+        launch_pos = getattr(
+            self.settings.settings_data_model,
+            "launch_app_pos",
+            "app_pos_last",
+        )
+        if app_pos:
+            launch_pos = app_pos
+
+        if launch_pos == "app_pos_last" and hasattr(
+            self.settings.settings_data_model, "launch_app_pos_state"
+        ):
+            app_pos_coords = getattr(
+                self.settings.settings_data_model, "launch_app_pos_state", ""
+            )
+            if app_pos_coords and "," in app_pos_coords:
+                try:
+                    x, y = map(int, app_pos_coords.split(","))
+                    window.move(x, y)
+                except ValueError:
+                    pass
+        elif launch_pos.startswith("app_pos_center"):
+            screen = QGuiApplication.primaryScreen().availableGeometry()
+            window_geo = window.frameGeometry()
+
+            if launch_pos == "app_pos_center_center":
+                x = screen.left() + (screen.width() - window_geo.width()) // 2
+                y = screen.top() + (screen.height() - window_geo.height()) // 2
+                window.move(x, y)
+            elif launch_pos == "app_pos_center_bottom":
+                x = screen.left() + (screen.width() - window_geo.width()) // 2
+                y = screen.top() + screen.height() - window_geo.height()
+                window.move(x, y)
+            elif launch_pos == "app_pos_center_top":
+                x = screen.left() + (screen.width() - window_geo.width()) // 2
+                y = screen.top()
+                window.move(x, y)
+

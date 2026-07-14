@@ -5,13 +5,13 @@ from PySide6.QtWidgets import QTabBar, QTabWidget, QVBoxLayout, QWidget
 from MyVideoExplorer.image_list.image_list import ImageList
 from MyVideoExplorer.media_info.media_info import MediaInfo
 from MyVideoExplorer.settings.settings import Settings
+from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
-from MyVideoExplorer.widgets.base_widget import BaseWidget
 from MyVideoExplorer.widgets.right_aligned_tab_bar import RightAlignedTabBar
 
 
-class MediaInfoTabs(BaseWidget):
+class MediaInfoTabs(QWidget, ThemableMixin):
     """Widget container managing the tabbed interface for media, metadata, and settings."""
 
     sig_tab_selection_changed = Signal(int)
@@ -28,7 +28,8 @@ class MediaInfoTabs(BaseWidget):
         image_list: ImageList,
         settings: Settings,
     ) -> None:
-        super().__init__(log_util)
+        super().__init__()
+        self.log_util = log_util
         self.folder_path: str | None = None
         self.active_tab_index: int = 0
         self.spacer_tab_index: int = -1

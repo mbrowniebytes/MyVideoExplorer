@@ -14,7 +14,6 @@ from PySide6.QtWidgets import (
 
 from MyVideoExplorer.app.app_container import AppContainer
 from MyVideoExplorer.theme.theme import APP_THEME
-from MyVideoExplorer.utils.file_util import FileUtil
 
 
 class App:
@@ -27,6 +26,7 @@ class App:
         self.app = app
         self.container = container
 
+        self.file_util = container.file_util
         self.font_util = container.font_util
 
         self.controller = container.controller
@@ -39,11 +39,12 @@ class App:
         self.media_info = container.media_info
 
     def build(self) -> QMainWindow:
-        self.font_util.load_custom_fonts(Path("assets/fonts"))
+        self.font_util.load_custom_fonts()
 
         self._create_app_icon()
         self.window.setWindowTitle("MyVideoExplorer")
-        self.window.resize(1400, 900)
+
+        self.container.resize_window(self.window)
 
         central_widget = QWidget()
         main_layout = QHBoxLayout()
@@ -68,7 +69,7 @@ class App:
         return self.window
 
     def _create_app_icon(self):
-        path_to_icon = FileUtil.get_resource_path("assets/app.png")
+        path_to_icon = self.file_util.get_resource_path("assets/app.png")
         pixmap = QPixmap()
         pixmap.loadFromData(Path(path_to_icon).read_bytes())
         appIcon = QIcon(pixmap)
@@ -99,6 +100,7 @@ class App:
         # Initialize app by iterating over all configured Media folders.
         # For each valid folder path, set it as the current root so the
         # UI components (folder nav, folder list, image list) refresh.
+
         media_configs = self.container.settings.settings_data_model.folder_configs
         valid_paths = []
         for media_folder_config in media_configs:
@@ -124,7 +126,29 @@ class App:
             # shows the instruction to add media folders in settings.
             self.controller.set_root_folders([])
 
-    # def refresh_theme(self) -> None:
-    #     if self.window is None:
-    #         return
-    #     APP_THEME.refresh_theme(self.app, root_widget=self.window)
+    def close(self) -> None:
+        prior_folder = self.controller.state.current_folder
+        # window_geometry = self.window.saveGeometry().data().hex()
+        window_size = self.window.size()
+        launch_app_size = ""
+        if window_size:
+            # hard code windows titlebar offset
+            app_height = window_size.height() - 147
+            app_height = window_size.height()
+            app_width = window_size.width()
+            launch_app_size = f"app_size_{app_width}x{app_height}"
+
+        window_pos = self.window.pos()
+        launch_app_pos = ""
+        if window_pos:
+            launch_app_pos = f"app_pos_{window_pos.x()},{window_pos.y()}"
+
+        settings = {
+            "prior_folder": prior_folder,
+            "launch_app_size": launch_app_size,
+            "launch_app_pos": launch_app_pos,
+        }
+        self.container.settings.settings_data_model.save_state(settings)
+
+        self.container.log_util.log_memory("Application closing...")
+        self.container.log_util.close()

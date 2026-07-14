@@ -1,22 +1,30 @@
 from __future__ import annotations
 
 import pathlib
+import random
 
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QFont
+from PySide6.QtWidgets import QWidget
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.file_list.file_list import FileList
 from MyVideoExplorer.image_list.image_list_view import ImageListView
+from MyVideoExplorer.settings.settings import Settings
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.utils.str_util import StrUtil
-from MyVideoExplorer.widgets.base_widget import BaseWidget
 
 
-class ImageList(BaseWidget):
+_EMPTY_STATE_NO_MEDIA_FOLDERS = (
+    "No media folders configured.\nOpen Settings (Gear) → Media and add a media folder."
+)
+
+
+class ImageList(QWidget, ThemableMixin):
     sig_wheel_step = Signal(object)
     sig_right_click = Signal(object)
     sig_double_click = Signal(object)
@@ -25,13 +33,16 @@ class ImageList(BaseWidget):
     def __init__(
         self,
         file_util: FileUtil,
+        settings: Settings,
         nfo_parse_util: NfoParseUtil,
         str_util: StrUtil,
         image_list_view: ImageListView,
         file_list: FileList,
         log_util: LogUtil,
     ) -> None:
-        super().__init__(log_util)
+        super().__init__()
+        self.log_util = log_util
+        self.settings = settings
         self.nfo_parse_util = nfo_parse_util
         self.file_util = file_util
         self.str_util = str_util
@@ -57,6 +68,18 @@ class ImageList(BaseWidget):
 
     def build(self):
         self.image_list = self.image_list_view.build()
+        if not self._has_valid_media_folders():
+            self.image_list_view.show_empty_state(_EMPTY_STATE_NO_MEDIA_FOLDERS)
+        else:
+            msgs = [
+                "Scrolling through the bits..",
+                "Calculate calculate..",
+                "Shuffling through the 1s and 0s..",
+                "Rollin', rollin', rollin'..",
+                "Nom nom nom..",
+            ]
+            msg = random.choice(msgs)
+            self.image_list_view.show_loading_state(msg)
         self._connect_internal_sigs()
         self.clear_nfo()
         return self.image_list
@@ -105,6 +128,7 @@ class ImageList(BaseWidget):
     def refresh(self, folder_path: str | None) -> None:
         if self.property("current_folder") == folder_path:
             return
+        self.image_list_view.show_loading_state()
         self.setProperty("current_folder", folder_path)
         self.update_image_from_folder(folder_path or "")
 
@@ -181,6 +205,7 @@ class ImageList(BaseWidget):
 
     def update_image_from_item(self, image_path: str) -> None:
         # self.clear_nfo()
+        self.image_list_view.show_loading_state()
         self._load_folder_images(image_path)
 
     def update_image_from_folder(self, folder_path: str) -> None:
@@ -188,9 +213,13 @@ class ImageList(BaseWidget):
 
         if not folder_path:
             self._reset_image_state()
-            self._clear_preview()
+            if not self._has_valid_media_folders():
+                self.image_list_view.show_empty_state(_EMPTY_STATE_NO_MEDIA_FOLDERS)
+            else:
+                self._clear_preview()
             return
 
+        self.image_list_view.show_loading_state()
         images, poster_path = self.file_util.get_images_from_folder(folder_path)
         self.images = images
         self.selected_image_index = -1
@@ -206,6 +235,18 @@ class ImageList(BaseWidget):
         self.image_list_view.load_pixmap(selected_image)
 
         self.build_nfo(folder_path)
+
+    def _has_valid_media_folders(self) -> bool:
+        """Return True if settings contains at least one existing media folder path."""
+        if not self.settings:
+            return False
+        import os
+
+        for config in self.settings.settings_data_model.folder_configs:
+            p = config.get("path", "")
+            if p and os.path.isdir(p):
+                return True
+        return False
 
     def apply_theme(self) -> None:
         self.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))

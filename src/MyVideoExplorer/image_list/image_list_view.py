@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QSizePolicy,
     QVBoxLayout,
+    QWidget,
 )
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
@@ -21,11 +22,12 @@ if TYPE_CHECKING:
 from MyVideoExplorer.image_list.image_preview_widget import ImagePreviewWidget
 from MyVideoExplorer.media_info_side.media_info_side_view import MediaInfoSideView
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.utils.str_util import StrUtil
-from MyVideoExplorer.widgets.base_widget import BaseWidget
+from MyVideoExplorer.utils.ui_utils import UIUtils
 
 
-class ImageListView(BaseWidget):
+class ImageListView(QWidget, ThemableMixin):
     """
     View for displaying an image and its related metadata.
     """
@@ -41,14 +43,17 @@ class ImageListView(BaseWidget):
         file_list: FileList,
         log_util: LogUtil,
     ) -> None:
-        super().__init__(log_util)
+        super().__init__()
+        self.log_util = log_util
         self.str_util = str_util
         self.media_info_side_view = media_info_side_view
         self.file_list = file_list
+        self._ui_utils = UIUtils()
 
         self.title_widget = ImageTitleWidget(log_util)
         self.preview_widget = ImagePreviewWidget(log_util)
         self.plot_text = self.media_info_side_view.get_plot_section().get_plot_text()
+        self._loading_state_text = "Loading..."
 
     def build(self) -> ImageListView:
         """
@@ -96,23 +101,23 @@ class ImageListView(BaseWidget):
         self.preview_widget.sig_right_click.connect(self._handle_right_click)
         self.preview_widget.sig_double_click.connect(self._handle_double_click)
 
-        self.content_container = BaseWidget()
+        self.content_container = QWidget()
         self.content_container.setStyleSheet(APP_THEME.container_qss())
         self.content_container.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
 
-        main_layout = self.content_container.set_compact_layout(QVBoxLayout)
+        main_layout = self._ui_utils.apply_compact_layout(self.content_container, QVBoxLayout)
 
-        title_and_preview_widget = BaseWidget()
-        title_and_preview_layout = title_and_preview_widget.set_compact_layout(
-            QVBoxLayout
+        title_and_preview_widget = QWidget()
+        title_and_preview_layout = self._ui_utils.apply_compact_layout(
+            title_and_preview_widget, QVBoxLayout
         )
         title_and_preview_layout.addWidget(self.title_widget)
         title_and_preview_layout.addWidget(self.preview_widget)
 
-        top_content_widget = BaseWidget()
-        top_content_layout = top_content_widget.set_compact_layout(QHBoxLayout)
+        top_content_widget = QWidget()
+        top_content_layout = self._ui_utils.apply_compact_layout(top_content_widget, QHBoxLayout)
         top_content_layout.addWidget(title_and_preview_widget, 2)
         top_content_layout.addWidget(self.media_info_side_view)
 
@@ -120,7 +125,7 @@ class ImageListView(BaseWidget):
         main_layout.addWidget(self.file_list.build())
         main_layout.addWidget(self.plot_text)
 
-        root_layout = self.set_compact_layout(QVBoxLayout)
+        root_layout = self._ui_utils.apply_compact_layout(self, QVBoxLayout)
         root_layout.addWidget(self.content_container, 0)
         root_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
@@ -138,6 +143,14 @@ class ImageListView(BaseWidget):
         if self.preview_widget:
             self.preview_widget.resize_pixmap()
 
+    def show_loading_state(self, message: str = "") -> None:
+        if self.preview_widget:
+            self.preview_widget.show_loading_state(message)
+
+    def show_empty_state(self, message: str = "") -> None:
+        if self.preview_widget:
+            self.preview_widget.show_empty_state(message)
+
     def load_pixmap(self, image_path: str | None) -> None:
         if self.preview_widget is None:
             return
@@ -152,15 +165,16 @@ class ImageListView(BaseWidget):
         self.preview_widget.load_pixmap(image_path)
 
     def apply_theme(self) -> None:
-        # super().apply_theme()
+        if not APP_THEME.is_refreshing:
+            super().apply_theme()
+            return
+
         font = QFont(APP_THEME.font_family, APP_THEME.font_size)
+        font.setPixelSize(APP_THEME.font_size)
         self.setFont(font)
 
         self.title_widget.apply_theme()
         self.preview_widget.apply_theme()
-
-        self.plot_text.setFont(font)
-        self.plot_text.document().setDefaultFont(font)
 
         self.file_list.apply_theme()
 

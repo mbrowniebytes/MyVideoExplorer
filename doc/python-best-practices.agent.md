@@ -12,6 +12,7 @@ Here are comprehensive AI instructions for Python 3 development, incorporating i
 - **One Class Per File**: Always keep classes in dedicated modules
 - **Import Organization**:
 - do not use conditional imports; always import at top of file
+
 ```python
 # Standard library
 import os
@@ -24,14 +25,14 @@ from PySide6.QtWidgets import QMainWindow
 from .utils.helpers import format_date
 ```
 
-
 ### Code Quality & Linting
 
 - **Linters**: Use `ruff` (fast, modern) or `flake8`
 - **Type Hints**: Always include type annotations for function signatures
+
 ```python
 def process_user(user_id: int, name: str) -> dict:
-      return {"id": user_id, "name": name}
+    return {"id": user_id, "name": name}
 ```
 
 - **Static Analysis**: Run `mypy` in CI/CD pipelines
@@ -42,11 +43,11 @@ def process_user(user_id: int, name: str) -> dict:
 - **Unit Tests**: Test individual functions/classes
 - **Integration Tests**: Verify component interactions
 - **Test Naming**: `test_{functionality}_{condition}_should_{expected_result}`
+
 ```python
 def test_calculate_discount_when_user_is_premium_should_apply_20_percent():
-    # test implementation
+# test implementation
 ```
-
 
 ### Documentation & Comments
 
@@ -59,16 +60,18 @@ def test_calculate_discount_when_user_is_premium_should_apply_20_percent():
 - **Input Validation**: Always validate user inputs before processing
 - **Dependency Audit**: Run `pip-audit` regularly
 - **Environment Variables**: Use `.env` files (add to `.gitignore`)
+
 ```python
 from dotenv import load_dotenv
+
 load_dotenv()
 ```
-
 
 ### Performance Optimization
 
 - **Profile First**: Use `cProfile` before optimizing
 - **Memory Management**: Context managers for resources
+
 ```python
 with open("file.txt") as f:
     data = f.read()

@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QTimer, Signal
-from PySide6.QtWidgets import QVBoxLayout
+from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.folder_filter.folder_filter import FolderFilters
+from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.log_util import LogUtil
-from MyVideoExplorer.widgets.base_widget import BaseWidget
+from MyVideoExplorer.utils.ui_utils import UIUtils
 
 
-class FolderNav(BaseWidget):
+class FolderNav(QWidget, ThemableMixin):
     """
     Navigation sidebar combining folder selection buttons and filters.
     """
@@ -21,7 +22,9 @@ class FolderNav(BaseWidget):
     sig_genre_changed = Signal(object)
 
     def __init__(self, folder_filter_widget: FolderFilters, log_util: LogUtil) -> None:
-        super().__init__(log_util)
+        super().__init__()
+        self.log_util = log_util
+        self._ui_utils = UIUtils()
         self.root_folders: list[str] = []
         self.folder_filter_widget = folder_filter_widget
         self._signals_connected = False
@@ -33,7 +36,7 @@ class FolderNav(BaseWidget):
         """Builds the navigation UI and connects internal signals."""
         self.folder_filter_widget.build()
 
-        layout = self.set_compact_layout(QVBoxLayout)
+        layout = self._ui_utils.apply_compact_layout(self, QVBoxLayout)
         layout.setSpacing(10)
         layout.addWidget(self.folder_filter_widget)
 
@@ -103,16 +106,16 @@ class FolderNav(BaseWidget):
                 f"sig_selected_items emitted with {len(filtered_items)} items"
             )
 
-        if filtered_items and filtered_items[0] and filtered_items[0].full_path:
-            print(f"folder nav: set_root_folder: paths:{filtered_items[0]}")
-            payload = SignalPayload(
-                data=filtered_items[0].full_path,
-                sender=self.__class__.__name__,
-                name="Auto Select First Folder",
-                description="Emitted when filtered items are updated.",
-                flow=SignalFlow.COMPONENT_INTERACTION,
-            )
-            self.sig_selected_folder.emit(payload)
+        # if filtered_items and filtered_items[0] and filtered_items[0].full_path:
+        #     print(f"folder nav: _on_filters_applied: first folder:{filtered_items[0]}")
+        #     payload = SignalPayload(
+        #         data=filtered_items[0].full_path,
+        #         sender=self.__class__.__name__,
+        #         name="Auto Select First Folder",
+        #         description="Emitted when filtered items are updated.",
+        #         flow=SignalFlow.COMPONENT_INTERACTION,
+        #     )
+        #     self.sig_selected_folder.emit(payload)
 
     def apply_theme(self) -> None:
         """Applies theme to itself and nested navigation components."""

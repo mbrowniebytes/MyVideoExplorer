@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QTabBar, QTabWidget, QVBoxLayout, QWidget
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
@@ -9,21 +10,22 @@ from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
 from MyVideoExplorer.settings.settings_filter_tab import SettingsFilterTab
 from MyVideoExplorer.settings.settings_media_tab import SettingsMediaTab
 from MyVideoExplorer.settings.settings_state import SettingsState
-
-# from MyVideoExplorer.settings.settings_ui_tab import SettingsUITab
+from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.theme.themable_mixin import ThemableMixin
+from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.log_util import LogUtil
-from MyVideoExplorer.widgets.base_widget import BaseWidget
 from MyVideoExplorer.widgets.right_aligned_tab_bar import RightAlignedTabBar
 
 
-class Settings(BaseWidget):
+class Settings(QWidget, ThemableMixin):
     """Container widget for application settings, managing tabs and state persistence."""
 
     sig_dirty_changed = Signal(object)
 
-    def __init__(self, log_util: LogUtil) -> None:
-        super().__init__(log_util)
+    def __init__(self, log_util: LogUtil, file_util: FileUtil) -> None:
+        super().__init__()
         self.log_util = log_util
+        self.file_util = file_util
 
         # Data Model (State Management)
         self.settings_data_model = SettingsState(self.log_util)
@@ -32,7 +34,7 @@ class Settings(BaseWidget):
         from MyVideoExplorer.settings.settings_ui_tab import SettingsUITab
 
         self.app_settings_tab = SettingsAppTab(self.settings_data_model, self.log_util)
-        self.ui_settings_tab = SettingsUITab(self.settings_data_model, self.log_util)
+        self.ui_settings_tab = SettingsUITab(self.settings_data_model, self.log_util, self.file_util)
         self.media_settings_tab = SettingsMediaTab(
             self.settings_data_model, self.log_util
         )
@@ -53,6 +55,9 @@ class Settings(BaseWidget):
 
     def _build_ui(self) -> None:
         """Constructs the settings UI layout and registers tabs."""
+        if self.layout() is not None:
+            return
+
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
@@ -145,16 +150,24 @@ class Settings(BaseWidget):
     def apply_theme(self) -> None:
         """Applies current theme to the settings container and all managed tabs."""
         super().apply_theme()
-        # self.settings_tabs_container.setStyleSheet(APP_THEME.tabs_qss()) # Handled by ThemeManager
+        font = QFont(APP_THEME.font_family, APP_THEME.font_size)
+        self.setFont(font)
+
 
         for tab in self.managed_tabs:
-            if hasattr(tab, "apply_theme"):
-                tab.apply_theme()
+            tab.apply_theme()
+
+        self.setStyleSheet(APP_THEME.app_qss())
+        self.settings_tabs_container.setFont(font)
+
+        # remove border around tab pane
+        # qss pane border did not affect
+        self.settings_tabs_container.setDocumentMode(True)
+
 
     def build(self) -> QWidget:
-        """Ensures UI is constructed and returns the widget (backward compatibility)."""
-        if not hasattr(self, "settings_tabs_container"):
-            self._build_ui()
+        """Ensures UI is constructed and returns the widget"""
+        self._build_ui()
         return self
 
     # --- Data Model Delegation ---

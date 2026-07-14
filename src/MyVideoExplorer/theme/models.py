@@ -10,7 +10,8 @@ class ThemeConfig:
     # "Source Sans Pro" "Montserrat" "Lato" "Nunito"
     # "Righteous" "SyneMono"
     # "IrishGrover" "Righteous" "Schoolbell"
-    font_family_default: str = "Lato, Segoe UI"
+    # font_family_default: str = "Lato, Segoe UI"
+    font_family_default: str = "Lato"
     font_size_base: int = 18
 
     # Color Palette - Backgrounds

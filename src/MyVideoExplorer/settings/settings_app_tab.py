@@ -1,23 +1,27 @@
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QComboBox,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
     QPushButton,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
-    QSizePolicy,
 )
 
+from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
 from MyVideoExplorer.settings.settings_state import SettingsState
-from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
+from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
 
 
 class SettingsAppTab(SettingsBaseTab):
-    def __init__(self, state: SettingsState, log_util: LogUtil, parent: QWidget | None = None) -> None:
+    def __init__(
+        self, state: SettingsState, log_util: LogUtil, parent: QWidget | None = None
+    ) -> None:
         super().__init__(log_util, parent)
         self.log_util = log_util
         self.state = state
@@ -33,6 +37,67 @@ class SettingsAppTab(SettingsBaseTab):
         app_group = QGroupBox("App Settings")
         app_layout = QFormLayout(app_group)
 
+        # App start prior folder selection combo box
+        self.app_start_select_prior_combo = QComboBox()
+        self.app_start_select_prior_combo.addItem("First Folder", "auto_select_first_folder")
+        self.app_start_select_prior_combo.addItem("Prior Folder", "auto_select_prior_folder")
+
+        current_prior_select = getattr(self.state, "auto_select_folder", "auto_select_prior_folder")
+        index = self.app_start_select_prior_combo.findData(current_prior_select)
+        if index >= 0:
+            self.app_start_select_prior_combo.setCurrentIndex(index)
+
+        app_layout.addRow("Auto Select Folder", self.app_start_select_prior_combo)
+
+        self.app_start_select_prior_combo.setToolTip("When Folder Nav list refreshes, either select the First Folder, or the Prior Folder")
+
+        # Launch App Size
+        self.launch_app_size_combo = QComboBox()
+        self.launch_app_size_combo.addItem("Last Window Size", "app_size_last")
+        self.launch_app_size_combo.addItem("Maximized", "app_size_maximized")
+        self.launch_app_size_combo.addItem("2560x1440", "app_size_2560x1440")
+        self.launch_app_size_combo.addItem("1920x1080", "app_size_1920x1080")
+        self.launch_app_size_combo.addItem("1600x960", "app_size_1600x960")
+        self.launch_app_size_combo.addItem("1400x900", "app_size_1400x900")
+
+        self.launch_app_size_combo.setToolTip("Initial size of app window on launch; relative to DPI 100%")
+
+        current_launch_size = getattr(self.state, "launch_app_size", "app_size_min")
+        if current_launch_size == "app_size_min":
+            current_launch_size = "app_size_1400x900"
+        index = self.launch_app_size_combo.findData(current_launch_size)
+        if index >= 0:
+            self.launch_app_size_combo.setCurrentIndex(index)
+
+        self.launch_app_size_combo.currentIndexChanged.connect(
+            self._on_launch_app_size_changed
+        )
+        self.launch_app_size_combo.currentIndexChanged.connect(self._on_setting_changed)
+
+        app_layout.addRow("Launch App Size", self.launch_app_size_combo)
+
+        # Launch App Position
+        self.launch_app_pos_combo = QComboBox()
+        self.launch_app_pos_combo.addItem("Last Position", "app_pos_last")
+        self.launch_app_pos_combo.addItem("Center Center", "app_pos_center_center")
+        self.launch_app_pos_combo.addItem("Center Bottom", "app_pos_center_bottom")
+        self.launch_app_pos_combo.addItem("Center Top", "app_pos_center_top")
+
+        self.launch_app_pos_combo.setToolTip("Initial position of app window on launch")
+
+        current_launch_pos = getattr(self.state, "launch_app_pos", "app_pos_last")
+        index = self.launch_app_pos_combo.findData(current_launch_pos)
+        if index >= 0:
+            self.launch_app_pos_combo.setCurrentIndex(index)
+
+        self.launch_app_pos_combo.currentIndexChanged.connect(
+            self._on_launch_app_pos_changed
+        )
+        self.launch_app_pos_combo.currentIndexChanged.connect(self._on_setting_changed)
+
+        app_layout.addRow("Launch App Position", self.launch_app_pos_combo)
+
+
         # Logging level combo box - populated from LogUtil.LEVEL_MAP
         self.logging_level_combo = QComboBox()
         for label, value in LogUtil.LEVEL_MAP.items():
@@ -46,7 +111,8 @@ class SettingsAppTab(SettingsBaseTab):
         if index >= 0:
             self.logging_level_combo.setCurrentIndex(index)
 
-        app_layout.addRow("Logging Level:", self.logging_level_combo)
+        self.logging_level_combo.setToolTip("Verbosity of App info logged to log/")
+        app_layout.addRow("Logging Level", self.logging_level_combo)
 
         self.layout.addWidget(app_group)
 
@@ -59,10 +125,12 @@ class SettingsAppTab(SettingsBaseTab):
         save_btn_layout.setContentsMargins(20, 15, 20, 15)
 
         self.save_btn = QPushButton("Save App Settings")
-        self.save_btn.setFixedWidth(180)
+        self.save_btn.setFixedWidth(200)
         self.save_btn.clicked.connect(self._save_app_settings)
 
-        self.reset_btn = self._build_reset_button("Reset App Settings", self.reset_settings)
+        self.reset_btn = self._build_reset_button(
+            "Reset App Settings", self.reset_settings
+        )
 
         spacer = QWidget()
         spacer.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
@@ -77,6 +145,54 @@ class SettingsAppTab(SettingsBaseTab):
         )
 
         self.logging_level_combo.currentIndexChanged.connect(self._on_setting_changed)
+        self.app_start_select_prior_combo.currentIndexChanged.connect(
+            self._on_setting_changed
+        )
+        self.launch_app_pos_combo.currentIndexChanged.connect(
+            self._on_setting_changed
+        )
+
+    def apply_theme(self) -> None:
+        super().apply_theme()
+        font = QFont(APP_THEME.font_family, APP_THEME.font_size)
+        self.setFont(font)
+
+    def _on_launch_app_size_changed(self, index: int) -> None:
+
+        value = self.launch_app_size_combo.itemData(index, role=Qt.ItemDataRole.UserRole)
+        if not value:
+            return
+
+        print(f"_on_launch_app_size_changed: index:{index} value:{value}")
+        APP_THEME.launch_app_size = value
+
+        self.state.sig_window_size_changed.emit(
+            SignalPayload(
+                data=value,
+                sender=self.__class__.__name__,
+                name="Settings Changed",
+                description="Launch app size was changed.",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
+
+    def _on_launch_app_pos_changed(self, index: int) -> None:
+
+        value = self.launch_app_pos_combo.itemData(index, role=Qt.ItemDataRole.UserRole)
+        if not value:
+            return
+
+        print(f"_on_launch_app_pos_changed: index:{index} value:{value}")
+
+        self.state.sig_window_pos_changed.emit(
+            SignalPayload(
+                data=value,
+                sender=self.__class__.__name__,
+                name="Settings Changed",
+                description="Launch app position was changed.",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
 
     def reset_settings(self) -> None:
         """Reset settings for this tab."""
@@ -86,6 +202,27 @@ class SettingsAppTab(SettingsBaseTab):
         index = self.logging_level_combo.findData(current_level)
         if index >= 0:
             self.logging_level_combo.setCurrentIndex(index)
+
+        # Refresh prior folder combo box
+        current_prior_select = getattr(self.state, "auto_select_folder", "auto_select_prior_folder")
+        index = self.app_start_select_prior_combo.findData(current_prior_select)
+        if index >= 0:
+            self.app_start_select_prior_combo.setCurrentIndex(index)
+
+        # Update launch app size combo
+        current_launch_size = getattr(self.state, "launch_app_size", "app_size_min")
+        if current_launch_size == "app_size_min":
+            current_launch_size = "app_size_1400x900"
+        index = self.launch_app_size_combo.findData(current_launch_size)
+        if index >= 0:
+            self.launch_app_size_combo.setCurrentIndex(index)
+
+        # Update launch app position combo
+        current_launch_pos = getattr(self.state, "launch_app_pos", "app_pos_last")
+        index = self.launch_app_pos_combo.findData(current_launch_pos)
+        if index >= 0:
+            self.launch_app_pos_combo.setCurrentIndex(index)
+
         self.reset_save_button()
         self.sig_saved.emit(
             SignalPayload(
@@ -106,6 +243,25 @@ class SettingsAppTab(SettingsBaseTab):
             log_level = self.logging_level_combo.itemData(current_index)
             self.state.log_level = log_level
 
+        # Save prior folder selection setting
+        current_index = self.app_start_select_prior_combo.currentIndex()
+        if current_index >= 0:
+            self.state.auto_select_prior_folder = (
+                self.app_start_select_prior_combo.itemData(current_index)
+            )
+
+        current_index = self.launch_app_size_combo.currentIndex()
+        if current_index >= 0:
+            self.state.launch_app_size = (
+                self.launch_app_size_combo.itemData(current_index)
+            )
+
+        current_index = self.launch_app_pos_combo.currentIndex()
+        if current_index >= 0:
+            self.state.launch_app_pos = (
+                self.launch_app_pos_combo.itemData(current_index)
+            )
+
         self.state.save_app()
         self.reset_save_button()
         self.sig_saved.emit(
@@ -117,4 +273,4 @@ class SettingsAppTab(SettingsBaseTab):
                 flow=SignalFlow.USER_INPUT,
             )
         )
-        print("App Settings saved")
+        # print("App Settings saved")

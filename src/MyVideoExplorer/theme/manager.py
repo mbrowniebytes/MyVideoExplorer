@@ -59,20 +59,21 @@ class ThemeManager:
         try:
             # Using pixelSize ensures consistent sizing across widgets and QSS,
             # avoiding ambiguity between pointSize and pixelSize in different environments.
-            font = QFont(self.config.font_family_default)
+            font = QFont(self.config.font_family_default, self.config.font_size_base)
             font.setPixelSize(self.config.font_size_base)
 
             # Update global application state
             if root_widget is None:
                 if self.app:
                     self.app.setFont(font)
-                    self.app.setStyleSheet(StyleFactory.get_app_qss(self.config))
+                    app_qss = StyleFactory.get_app_qss(self.config)
+                    self.app.setStyleSheet(app_qss)
                     for widget in self.app.topLevelWidgets():
+                        widget.setStyleSheet(app_qss)
                         self._refresh_recursive(widget, font)
             else:
                 # If we're refreshing a specific widget, we don't necessarily want to
                 # apply the FULL app QSS to it if it's already inherited,
-                # but BaseWidget.apply_theme expects its own styling.
                 # StyleFactory.get_app_qss might be too heavy for small widgets.
                 # However, for now we keep existing behavior but optimized.
                 root_widget.setStyleSheet(StyleFactory.get_app_qss(self.config))
@@ -94,7 +95,8 @@ class ThemeManager:
         if self._is_custom_widget(widget):
             if hasattr(widget, "apply_theme"):
                 # We expect custom apply_theme to NOT call refresh_theme again
-                # OR if it does, it should check is_refreshing (handled in BaseWidget).
+                # OR if it does, it should check is_refreshing
+                widget.setFont(font)
                 widget.apply_theme()
 
         # Apply global font to all widgets to ensure inheritance and correct QFont metrics
@@ -106,6 +108,7 @@ class ThemeManager:
         # Recurse for all children
         # findChildren(QWidget) is expensive, but FindDirectChildrenOnly is better.
         for child in widget.findChildren(QWidget, options=Qt.FindDirectChildrenOnly):
+            child.setFont(font)
             self._refresh_recursive(child, font)
 
     def apply_standard_widget_styles(self, widget: QWidget) -> None:
@@ -114,13 +117,15 @@ class ThemeManager:
             self.setup_list_widget(widget)
         elif isinstance(widget, QComboBox):
             self.setup_combo_box(widget)
+        elif isinstance(widget, QCheckBox):
+            self.setup_checkbox(widget)
         elif isinstance(widget, QTabBar):
             self.setup_tabs(widget)
         elif isinstance(widget, QTabWidget):
             self.setup_tab_widget(widget)
-        elif isinstance(widget, (QToolButton, QPushButton, QCheckBox, QRadioButton)):
+        elif isinstance(widget, (QToolButton, QPushButton, QSpinBox, QRadioButton)):
             self.setup_button(widget)
-        elif isinstance(widget, (QPlainTextEdit, QLineEdit, QSpinBox)):
+        elif isinstance(widget, (QPlainTextEdit, QLineEdit)):
             self.setup_input_widget(widget)
 
     def _is_custom_widget(self, widget: QWidget) -> bool:
@@ -150,6 +155,9 @@ class ThemeManager:
     def setup_combo_box(self, widget: QComboBox) -> None:
         widget.setStyleSheet(StyleFactory.get_combo_qss(self.config))
 
+    def setup_checkbox(self, widget: QCheckBox) -> None:
+        widget.setStyleSheet(StyleFactory.get_checkbox_style(self.config))
+
     def setup_tabs(self, widget: QTabBar) -> None:
         widget.setStyleSheet(StyleFactory.get_tabs_qss(self.config))
 
@@ -168,24 +176,13 @@ class ThemeManager:
             else:
                 widget.setStyleSheet(StyleFactory.get_button_qss(self.config))
 
-    def setup_input_widget(self, widget: QPlainTextEdit | QLineEdit | QSpinBox) -> None:
+    def setup_input_widget(self, widget: QPlainTextEdit | QLineEdit) -> None:
         if isinstance(widget, QPlainTextEdit):
-            # Check if it's the plot section text edit which needs a smaller font
-            # Importing here to avoid circular dependencies if any
-            # 4 is PLOT_SECTION_FONT_SIZE_OFFSET from media_info_section_plot
-            is_plot_edit = False
-            p = widget.parent()
-            while p:
-                if p.objectName() == "section_plot":
-                    is_plot_edit = True
-                    break
-                p = p.parent()
+            font = QFont(
+                self.config.font_family_default,
+                self.config.font_size_base - 1,
+            )
+            font.setPixelSize(self.config.font_size_base - 1)
 
-            if is_plot_edit:
-                # We need a new font object to avoid modifying the global one if it's shared
-                font = QFont(widget.font())
-                font.setPixelSize(max(1, self.config.font_size_base - 2))
-                widget.setFont(font)
-                # print(f"DEBUG: Applied plot font size {font.pixelSize()} to {widget}")
-
-            widget.document().setDefaultFont(widget.font())
+            widget.setFont(font)
+            widget.document().setDefaultFont(font)

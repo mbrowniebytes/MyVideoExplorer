@@ -9,19 +9,20 @@ from PySide6.QtWidgets import (
 )
 from MyVideoExplorer.app.app_signals_model import SignalPayload, SignalFlow
 from MyVideoExplorer.theme.theme import APP_THEME
-from MyVideoExplorer.widgets.base_widget import BaseWidget
+from MyVideoExplorer.utils.ui_utils import UIUtils
 
 
-class FolderPickerWidget(BaseWidget):
+class FolderPickerWidget(QWidget):
     sig_selected_folder = Signal(object)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent=parent)
         self._selected_folder = ""
+        self._ui_utils = UIUtils()
         self._setup_ui()
 
     def _setup_ui(self) -> None:
-        layout = self.set_compact_layout(QHBoxLayout)
+        layout = self._ui_utils.apply_compact_layout(self, QHBoxLayout)
 
         self.pick_button = QToolButton()
         self.pick_button.setToolTip("Select Folder")

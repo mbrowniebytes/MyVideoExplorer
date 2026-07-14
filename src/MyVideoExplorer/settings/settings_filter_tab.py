@@ -1,5 +1,6 @@
 from typing import Any
 from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QComboBox,
     QGroupBox,
@@ -67,7 +68,7 @@ class SettingsFilterTab(SettingsBaseTab):
         save_btn_layout.setContentsMargins(20, 15, 20, 15)
 
         self.save_btn = QPushButton("Save Filter Settings")
-        self.save_btn.setFixedWidth(180)
+        self.save_btn.setFixedWidth(200)
         self.save_btn.clicked.connect(self._save_filter_settings)
 
         self.reset_btn = self._build_reset_button("Reset Filter Settings", self.reset_settings)
@@ -215,6 +216,8 @@ class SettingsFilterTab(SettingsBaseTab):
 
     def apply_theme(self) -> None:
         super().apply_theme()
+        font = QFont(APP_THEME.font_family, APP_THEME.font_size)
+        self.setFont(font)
         self._refresh_filters()
 
     def _save_filter_settings(self) -> None:

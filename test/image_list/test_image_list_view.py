@@ -81,3 +81,8 @@ class TestImageListView:
                 image_list_view.apply_theme()
                 assert image_list_view.font().family() == "Arial"
                 mock_apply.assert_called_once()
+
+    def test_show_loading_state(self, image_list_view):
+        image_list_view.show_loading_state("Test Loading Message")
+        assert "Loading..." in image_list_view.preview_widget.image_label.text()
+        assert "Test Loading Message" in image_list_view.preview_widget.image_label.text()

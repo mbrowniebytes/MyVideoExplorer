@@ -9,11 +9,13 @@ from MyVideoExplorer.theme.theme import APP_THEME
 
 # Define configuration paths
 CFG_DIR = Path("cfg")
+SETTINGS_STATE_FILE = CFG_DIR / "settings_state.json"
 SETTINGS_APP_FILE = CFG_DIR / "settings_app.json"
 SETTINGS_UI_FILE = CFG_DIR / "settings_ui.json"
 SETTINGS_MEDIA_FILE = CFG_DIR / "settings_media.json"
 SETTINGS_FILTER_FILE = CFG_DIR / "settings_filter.json"
 
+DEFAULTS_STATE_FILE = CFG_DIR / "defaults_state.json"
 DEFAULTS_APP_FILE = CFG_DIR / "defaults_app.json"
 DEFAULTS_UI_FILE = CFG_DIR / "defaults_ui.json"
 DEFAULTS_MEDIA_FILE = CFG_DIR / "defaults_media.json"
@@ -22,12 +24,22 @@ DEFAULTS_FILTER_FILE = CFG_DIR / "defaults_filter.json"
 
 class SettingsState(QObject):
     sig_settings_changed = Signal(object)
+    sig_window_size_changed = Signal(object)
+    sig_window_pos_changed = Signal(object)
 
     def __init__(self, log_util: Any) -> None:
         super().__init__()
+
         self.log_util = log_util
         self.json_util = JsonUtil(self.log_util)
+
+        self.prior_folder = ""
+
+        self.auto_select_folder = "auto_select_prior_folder"
         self.log_level = "info"
+        self.launch_app_size = "app_size_min"
+        self.launch_app_pos = "app_pos_center_center"
+
         self.folder_configs: list[dict[str, Any]] = []
         self.saved_filters: list[dict[str, Any]] = []
         self._load_settings()
@@ -38,11 +50,19 @@ class SettingsState(QObject):
         if not CFG_DIR.exists():
             CFG_DIR.mkdir(parents=True)
 
-        app_defaults: dict[str, str] = {
-            "log_level": self.log_level,
+        state_defaults: dict[str, str] = {
+            "prior_folder": "",
+            "launch_app_pos": "0,0",
         }
-        ui_defaults: dict[str, int] = {
+        app_defaults: dict[str, str | bool] = {
+            "log_level": self.log_level,
+            "auto_select_folder": self.auto_select_folder,
+            "launch_app_size": self.launch_app_size,
+            "launch_app_pos": self.launch_app_pos,
+        }
+        ui_defaults: dict[str, int | str] = {
             "font_size": 18,
+            "app_font": "Lato",
         }
         media_defaults: dict[str, list[dict[str, Any]]] = {
             "folder_configs": self.folder_configs,
@@ -51,6 +71,7 @@ class SettingsState(QObject):
             "saved_filters": self.saved_filters,
         }
 
+        self.json_util.ensure_defaults(CFG_DIR, DEFAULTS_STATE_FILE, state_defaults)
         self.json_util.ensure_defaults(CFG_DIR, DEFAULTS_APP_FILE, app_defaults)
         self.json_util.ensure_defaults(CFG_DIR, DEFAULTS_UI_FILE, ui_defaults)
         self.json_util.ensure_defaults(CFG_DIR, DEFAULTS_MEDIA_FILE, media_defaults)
@@ -60,12 +81,26 @@ class SettingsState(QObject):
         """Load settings from split json files, falling back to split defaults."""
         self._ensure_defaults()
 
+        # Load State Settings
+        state_data = self.json_util.load_json(DEFAULTS_STATE_FILE)
+        if SETTINGS_STATE_FILE.exists():
+            state_data.update(self.json_util.load_json(SETTINGS_STATE_FILE))
+
+        self.prior_folder = state_data.get("prior_folder", "")
+        self.launch_app_size = state_data.get("launch_app_size", "")
+        self.launch_app_pos_state = state_data.get("launch_app_pos", "")
+
         # Load App Settings
         app_data = self.json_util.load_json(DEFAULTS_APP_FILE)
         if SETTINGS_APP_FILE.exists():
             app_data.update(self.json_util.load_json(SETTINGS_APP_FILE))
 
         self.log_level = app_data.get("log_level", self.log_level)
+        self.auto_select_folder = app_data.get(
+            "auto_select_folder", "auto_select_prior_folder"
+        )
+        self.launch_app_size = app_data.get("launch_app_size", "app_size_min")
+        self.launch_app_pos = app_data.get("launch_app_pos", "app_pos_center_center")
 
         # Load UI Settings
         ui_data = self.json_util.load_json(DEFAULTS_UI_FILE)
@@ -73,6 +108,7 @@ class SettingsState(QObject):
             ui_data.update(self.json_util.load_json(SETTINGS_UI_FILE))
 
         APP_THEME.font_size = ui_data.get("font_size", APP_THEME.font_size)
+        APP_THEME.font_family = ui_data.get("app_font", APP_THEME.font_family)
 
         # Load Media Settings
         media_data = self.json_util.load_json(DEFAULTS_MEDIA_FILE)
@@ -98,12 +134,29 @@ class SettingsState(QObject):
                 new_filters.append({"name": name, "filters": filters})
             self.saved_filters = new_filters
 
-    def save_app(self) -> None:
-        """Save only UI tab settings."""
+    def save_state(self, settings:dict[str, str]) -> None:
+        """Save only App tab settings."""
         self._ensure_defaults()
 
-        app_settings: dict[str, str] = {
+        state_settings: dict[str, str] = {
+            "prior_folder": settings.get("prior_folder", ""),
+            "launch_app_size": settings.get("launch_app_size", ""),
+            "launch_app_pos": settings.get("launch_app_pos", ""),
+        }
+
+        # Backup then save
+        self.json_util.backup_file(SETTINGS_STATE_FILE, max_backups=5)
+        self.json_util.save_json(SETTINGS_STATE_FILE, state_settings)
+
+    def save_app(self) -> None:
+        """Save only App tab settings."""
+        self._ensure_defaults()
+
+        app_settings: dict[str, str | bool] = {
             "log_level": self.log_level,
+            "auto_select_folder": self.auto_select_folder,
+            "launch_app_size": self.launch_app_size,
+            "launch_app_pos": self.launch_app_pos,
         }
 
         # Backup then save
@@ -111,16 +164,17 @@ class SettingsState(QObject):
         self.json_util.save_json(SETTINGS_APP_FILE, app_settings)
 
     def save_ui(self) -> None:
-        """Save only UI tab settings."""
+        """Persist UI settings to file."""
         self._ensure_defaults()
 
-        ui_settings: dict[str, int] = {
+        settings_data = {
             "font_size": APP_THEME.font_size,
+            "app_font": APP_THEME.font_family,
         }
 
         # Backup then save
         self.json_util.backup_file(SETTINGS_UI_FILE, max_backups=5)
-        self.json_util.save_json(SETTINGS_UI_FILE, ui_settings)
+        self.json_util.save_json(SETTINGS_UI_FILE, settings_data)
 
     def save_media(self) -> None:
         """Save only Media tab settings."""
@@ -156,12 +210,26 @@ class SettingsState(QObject):
             )
         )
 
+    def load_ui(self) -> None:
+        """Reload UI settings from file."""
+        ui_data = self.json_util.load_json(DEFAULTS_UI_FILE)
+        if SETTINGS_UI_FILE.exists():
+            ui_data.update(self.json_util.load_json(SETTINGS_UI_FILE))
+
+        APP_THEME.font_size = ui_data.get("font_size", APP_THEME.font_size)
+        APP_THEME.font_family = ui_data.get("app_font", APP_THEME.font)
+
     def load_app(self) -> None:
         """Reload App settings from file."""
         app_data = self.json_util.load_json(DEFAULTS_APP_FILE)
         if SETTINGS_APP_FILE.exists():
             app_data.update(self.json_util.load_json(SETTINGS_APP_FILE))
         self.log_level = app_data.get("log_level", self.log_level)
+        self.auto_select_folder = app_data.get(
+            "auto_select_folder", "auto_select_prior_folder"
+        )
+        self.launch_app_size = app_data.get("launch_app_size", "app_size_min")
+        self.launch_app_pos = app_data.get("launch_app_pos", "app_pos_last")
 
     def load_media(self) -> None:
         """Reload Media settings from file."""

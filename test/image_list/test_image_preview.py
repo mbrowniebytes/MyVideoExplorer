@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import MagicMock
 from PySide6.QtWidgets import QApplication
 from MyVideoExplorer.image_list.image_preview_widget import ImagePreviewWidget
 from MyVideoExplorer.utils.log_util import LogUtil
@@ -23,3 +24,11 @@ class TestImagePreviewWidget:
         widget.load_pixmap(None)
 
         # Check if logging happened? Hard to check without file access
+
+    def test_show_loading_state(self, app):
+        log_util = MagicMock()
+        widget = ImagePreviewWidget(log_util)
+        widget.show_loading_state("Wait for it...")
+        assert "Loading..." in widget.image_label.text()
+        assert "Wait for it..." in widget.image_label.text()
+        assert widget._pixmap is None
