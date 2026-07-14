@@ -78,6 +78,11 @@ class ImagePreviewWidget(QWidget, ThemableMixin):
             text += f"\n\n{message}"
         self.image_label.setText(text)
 
+    def show_empty_state(self, message: str = "") -> None:
+        self._pixmap = None
+        self.image_label.setPixmap(QPixmap())
+        self.image_label.setText(message or _NO_IMAGE_FOUND)
+
     def resize_pixmap(self) -> None:
         self.image_label.clear()
         self.timer.stop()

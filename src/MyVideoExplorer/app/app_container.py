@@ -100,6 +100,7 @@ class AppContainer:
             )
             self.image_list = ImageList(
                 self.file_util,
+                self.settings,
                 self.nfo_parse_util,
                 self.str_util,
                 self.image_list_view,
@@ -261,6 +262,9 @@ class AppContainer:
                 self.controller.set_current_folder(prior_folder, force=True)
             elif first_item:
                 self.controller.set_current_folder(first_item.full_path, force=True)
+        else:
+            # No folders found matching filters or no media folders configured
+            self.image_list.update_image_from_folder("")
 
     def _on_folder_selected(self, folder_path: str) -> None:
         # We still want to avoid circular updates if everything is already in sync

@@ -12,6 +12,8 @@ class TestImageList:
     @pytest.fixture
     def image_list(self, qtbot):
         file_util = MagicMock(spec=FileUtil)
+        settings = MagicMock()
+        settings.settings_data_model.folder_configs = []
         nfo_parse_util = MagicMock(spec=NfoParseUtil)
         nfo_parse_util.parse_nfo_folder.return_value = {}
 
@@ -20,7 +22,9 @@ class TestImageList:
         mock_log = MagicMock()
         str_util = MagicMock(spec=StrUtil)
 
-        il = ImageList(file_util, nfo_parse_util, str_util, view, file_list, mock_log)
+        il = ImageList(
+            file_util, settings, nfo_parse_util, str_util, view, file_list, mock_log
+        )
         il.build()
         return il
 

@@ -147,6 +147,10 @@ class ImageListView(QWidget, ThemableMixin):
         if self.preview_widget:
             self.preview_widget.show_loading_state(message)
 
+    def show_empty_state(self, message: str = "") -> None:
+        if self.preview_widget:
+            self.preview_widget.show_empty_state(message)
+
     def load_pixmap(self, image_path: str | None) -> None:
         if self.preview_widget is None:
             return

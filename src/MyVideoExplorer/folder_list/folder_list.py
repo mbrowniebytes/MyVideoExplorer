@@ -222,6 +222,13 @@ class FolderList(QWidget, ThemableMixin):
     def populate_view(self, items: list[FileUtilModel], on_complete: callable = None):
         """Sorts and populates the FolderListView."""
 
+        if not items and not self._has_valid_media_folders():
+            self.folder_list_view.show_empty_state(message=_EMPTY_STATE_NO_MEDIA_FOLDERS)
+            self._update_button_states()
+            if on_complete:
+                on_complete(items)
+            return
+
         def _on_populate_complete(items_result):
             self._update_button_states()
             if on_complete:
@@ -335,7 +342,7 @@ class FolderList(QWidget, ThemableMixin):
                 self._current_history_index < len(self._folder_history) - 1
             )
         if self.random_folder_button:
-            has_folders = self.folder_list_view.count() > 0
+            has_folders = self.folder_list_view.has_folders()
             self.random_folder_button.setEnabled(has_folders)
 
     def _add_to_history(self, folder_path: str) -> None:
