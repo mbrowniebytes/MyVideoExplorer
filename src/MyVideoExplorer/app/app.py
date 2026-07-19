@@ -69,7 +69,7 @@ class App:
         return self.window
 
     def _create_app_icon(self):
-        path_to_icon = self.file_util.get_resource_path("assets/app.png")
+        path_to_icon = self.file_util.get_resource_path("asset/app.png")
         pixmap = QPixmap()
         pixmap.loadFromData(Path(path_to_icon).read_bytes())
         appIcon = QIcon(pixmap)
@@ -130,23 +130,23 @@ class App:
         prior_folder = self.controller.state.current_folder
         # window_geometry = self.window.saveGeometry().data().hex()
         window_size = self.window.size()
-        launch_app_size = ""
+        app_size = ""
         if window_size:
             # hard code windows titlebar offset
             app_height = window_size.height() - 147
             app_height = window_size.height()
             app_width = window_size.width()
-            launch_app_size = f"app_size_{app_width}x{app_height}"
+            app_size = f"{app_width}x{app_height}"
 
         window_pos = self.window.pos()
-        launch_app_pos = ""
+        app_pos = ""
         if window_pos:
-            launch_app_pos = f"app_pos_{window_pos.x()},{window_pos.y()}"
+            app_pos = f"{window_pos.x()},{window_pos.y()}"
 
         settings = {
             "prior_folder": prior_folder,
-            "launch_app_size": launch_app_size,
-            "launch_app_pos": launch_app_pos,
+            "app_size": app_size,
+            "app_pos": app_pos,
         }
         self.container.settings.settings_data_model.save_state(settings)
 

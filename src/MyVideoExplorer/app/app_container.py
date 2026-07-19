@@ -323,14 +323,13 @@ class AppContainer:
 
         if launch_size and "x" in launch_size:
             # Parse resolution like "1920x1080"
-            launch_size = launch_size.replace("app_size_", "")
             try:
                 width, height = map(int, launch_size.split("x"))
-                # self.log_util.info(f"resize_window: width:{width} height:{height}")
-                if width < 1400:
-                    width = 1400
-                if height < 900:
-                    height = 900
+                self.log_util.info(f"resize_window: width:{width} height:{height}")
+                if width < 1000:
+                    width = 1000
+                if height < 500:
+                    height = 500
                 window.resize(width, height)
             except ValueError, IndexError:
                 window.resize(1400, 900)
@@ -349,10 +348,10 @@ class AppContainer:
             launch_pos = app_pos
 
         if launch_pos == "app_pos_last" and hasattr(
-            self.settings.settings_data_model, "launch_app_pos_state"
+            self.settings.settings_data_model, "app_pos"
         ):
             app_pos_coords = getattr(
-                self.settings.settings_data_model, "launch_app_pos_state", ""
+                self.settings.settings_data_model, "app_pos", ""
             )
             if app_pos_coords and "," in app_pos_coords:
                 try:

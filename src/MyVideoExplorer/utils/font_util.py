@@ -15,7 +15,7 @@ class FontUtil:
 
     def load_custom_fonts(self):
         """Loads all .ttf and .otf fonts from the specified directory."""
-        path_to_fonts = self.file_util.get_resource_path("assets/fonts")
+        path_to_fonts = self.file_util.get_resource_path("asset/fonts")
         fonts_dir = Path(path_to_fonts)
         if not fonts_dir.exists():
             self.log_util.error(f"Font directory not found: {fonts_dir}")

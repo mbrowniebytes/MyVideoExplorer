@@ -65,10 +65,16 @@ skip for now, errors "cannot be installed when requiring hashes"
 ### quality tools
 
 #### ruff https://docs.astral.sh/ruff/linter/
+code quality, formatting
 
 > ruff check --unsafe-fixes
 
 > ruff check --fix
+
+#### ty https://docs.astral.sh/ty/
+code type checker
+
+> ty check
 
 #### Code
 
@@ -109,7 +115,7 @@ python version using [pyinstaller](https://pyinstaller.org/en/stable/usage.html)
 > pip install --upgrade PyInstaller pyinstaller-hooks-contrib
 
 fyi, creates [main.spec](https://pyinstaller.org/en/stable/spec-files.html)  
-skip as already exists
+skip as `main.spec` already exists
 > pyinstaller src/main.py
 
 creates dist

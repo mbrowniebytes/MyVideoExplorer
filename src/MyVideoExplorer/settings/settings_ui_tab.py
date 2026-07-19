@@ -74,7 +74,7 @@ class SettingsUITab(SettingsBaseTab):
         # App Font
         self.font_family_combo = QComboBox()
 
-        path_to_fonts = self.file_util.get_resource_path("assets/fonts")
+        path_to_fonts = self.file_util.get_resource_path("asset/fonts")
         fonts_dir = Path(path_to_fonts)
 
         ttf_fonts = list(fonts_dir.glob("*.ttf"))
