@@ -93,7 +93,8 @@ class ThemeManager:
 
         # Handle Custom Application Widgets
         if self._is_custom_widget(widget):
-            if hasattr(widget, "apply_theme"):
+            from MyVideoExplorer.theme.themable_mixin import ThemableMixin
+            if isinstance(widget, ThemableMixin):
                 # We expect custom apply_theme to NOT call refresh_theme again
                 # OR if it does, it should check is_refreshing
                 widget.setFont(font)
@@ -107,6 +108,7 @@ class ThemeManager:
 
         # Recurse for all children
         # findChildren(QWidget) is expensive, but FindDirectChildrenOnly is better.
+        # ty: ignore
         for child in widget.findChildren(QWidget, options=Qt.FindDirectChildrenOnly):
             child.setFont(font)
             self._refresh_recursive(child, font)
@@ -164,7 +166,7 @@ class ThemeManager:
     def setup_tab_widget(self, widget: QTabWidget) -> None:
         widget.setStyleSheet(StyleFactory.get_tabs_qss(self.config))
 
-    def setup_button(self, widget: QAbstractButton) -> None:
+    def setup_button(self, widget: QAbstractButton | QSpinBox) -> None:
         if isinstance(widget, (QPushButton, QToolButton)):
             object_name = widget.objectName()
             if object_name in (

@@ -1,6 +1,6 @@
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QLayout, QSizePolicy, QVBoxLayout, QWidget
 
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
@@ -30,13 +30,13 @@ class LabelValueWidget(QWidget, ThemableMixin):
         # )
         # self.layout = self.set_compact_layout(layout_type)
         if orientation == Qt.Orientation.Horizontal:
-            self.layout = QHBoxLayout(self)
-            self.layout.setSpacing(8)
+            self._layout = QHBoxLayout(self)
+            self._layout.setSpacing(8)
         else:
-            self.layout = QVBoxLayout(self)
-            self.layout.setSpacing(4)
+            self._layout = QVBoxLayout(self)
+            self._layout.setSpacing(4)
 
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setContentsMargins(0, 0, 0, 0)
 
         self.label_name = QLabel(name, parent=self)
         self.label_name.setWordWrap(False)
@@ -68,9 +68,13 @@ class LabelValueWidget(QWidget, ThemableMixin):
             self.label_name.setAlignment(Qt.AlignmentFlag.AlignRight)
             self.label_value.setAlignment(Qt.AlignmentFlag.AlignRight)
 
-        self.layout.addWidget(self.label_name)
-        self.layout.addWidget(self.label_value)
+        self._layout.addWidget(self.label_name)
+        self._layout.addWidget(self.label_value)
         self.apply_theme()
+
+    @property
+    def layout(self) -> QLayout:
+        return self._layout
 
     def apply_theme(self) -> None:
         if not APP_THEME.is_refreshing:

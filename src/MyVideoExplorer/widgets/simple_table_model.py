@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
+from collections.abc import Callable
 
 from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex, QPersistentModelIndex
 
@@ -33,15 +34,15 @@ class SimpleTableModel(QAbstractTableModel):
         key = self._cols[col]
         value = self._rows[row].get(key)
 
-        # Qt roles - use type: ignore for Qt attributes that mypy may not recognize
-        if role == Qt.DisplayRole:  # type: ignore[attr-defined]
+        # Qt roles
+        if role == Qt.ItemDataRole.DisplayRole:
             return str(value) if value is not None else ""
 
-        if role == Qt.TextAlignmentRole:  # type: ignore[attr-defined]
+        if role == Qt.ItemDataRole.TextAlignmentRole:
             # Right-align numbers for better readability
             if isinstance(value, (int, float)):
-                return (Qt.AlignRight | Qt.AlignVCenter)  # type: ignore[attr-defined]
-            return (Qt.AlignLeft | Qt.AlignVCenter)  # type: ignore[attr-defined]
+                return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+            return Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
 
         return None
 
@@ -59,7 +60,7 @@ class SimpleTableModel(QAbstractTableModel):
             self._cols = cols
         self.endResetModel()
 
-    def sort(self, column: int, order: int = Qt.AscendingOrder):  # type: ignore[attr-defined]
+    def sort(self, column: int, order: Qt.SortOrder = Qt.SortOrder.AscendingOrder) -> None:
         # Sort using the dict key (not header label)
         key_field = self._cols[column]
 
@@ -73,7 +74,10 @@ class SimpleTableModel(QAbstractTableModel):
 
         self.layoutAboutToBeChanged.emit()
         try:
-            self._rows.sort(key=key_func, reverse=(order == Qt.DescendingOrder))  # type: ignore[attr-defined]
+            self._rows.sort(
+                key=cast(Callable[[dict[str, Any]], Any], key_func),
+                reverse=(order == Qt.SortOrder.DescendingOrder),
+            )
         except Exception as e:
             print(f"SimpleTableModel: sort failed for column {column}, key_field={key_field}: {e}")
         self.layoutChanged.emit()
@@ -84,6 +88,6 @@ class SimpleTableModel(QAbstractTableModel):
         orientation: Qt.Orientation,
         role: int = 0,
     ) -> object | None:
-        if role == Qt.DisplayRole and orientation == Qt.Horizontal:  # type: ignore[attr-defined]
+        if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
             return self._headers[section]
         return None

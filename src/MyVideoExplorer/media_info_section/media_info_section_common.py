@@ -25,10 +25,14 @@ class MediaInfoCommonSection(QWidget, ThemableMixin):
         self.setObjectName("section_common")
         self.setStyleSheet(APP_THEME.bottom_border_qss())
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-        self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.setSpacing(4)
+        self._layout = QVBoxLayout(self)
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setSpacing(4)
         self.str_util = str_util
+
+    @property
+    def layout(self) -> QVBoxLayout:
+        return self._layout
 
     def apply_theme(self) -> None:
         super().apply_theme()
@@ -77,11 +81,14 @@ class MediaInfoCommonSection(QWidget, ThemableMixin):
         existing_widgets = []
         for i in range(self.layout.count()):
             item = self.layout.itemAt(i)
-            if item.layout():
-                for j in range(item.layout().count()):
-                    w = item.layout().itemAt(j).widget()
-                    if isinstance(w, LabelValueWidget):
-                        existing_widgets.append(w)
+            if item is not None and item.layout() is not None:
+                item_layout = item.layout()
+                if item_layout is not None:
+                    for j in range(item_layout.count()):
+                        sub_item = item_layout.itemAt(j)
+                        w = sub_item.widget() if sub_item else None
+                        if isinstance(w, LabelValueWidget):
+                            existing_widgets.append(w)
 
         # Flatten top_fields for easier matching
         flat_fields = []

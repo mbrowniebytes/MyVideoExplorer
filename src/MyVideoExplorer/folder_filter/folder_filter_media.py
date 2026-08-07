@@ -91,7 +91,7 @@ class FolderFilterMedia(QWidget, ThemableMixin):
             btn.setCheckable(True)
             # No longer manually applying small_button_qss; ThemeManager will apply it based on objectName
 
-            qicon = APP_THEME.icon(display_icon_name)
+            qicon = APP_THEME.icon(display_icon_name or "fa5s.folder")
             if qicon:
                 icon_pixmap = qicon.pixmap(18, 18)
                 btn.setIcon(icon_pixmap)
@@ -139,13 +139,14 @@ class FolderFilterMedia(QWidget, ThemableMixin):
         # Clear existing
         for i in reversed(range(self.media_layout.count())):
             item = self.media_layout.itemAt(i)
-            if item and item.widget() and item.widget() != self.all_none_button:
-                item.widget().setParent(None)
+            widget = item.widget() if item else None
+            if widget and widget != self.all_none_button:
+                widget.setParent(None)
 
         # Remove stretch if it exists
         for i in reversed(range(self.media_layout.count())):
             item = self.media_layout.itemAt(i)
-            if item.spacerItem():
+            if item is not None and item.spacerItem():
                 self.media_layout.removeItem(item)
 
         self.media_button_group = []

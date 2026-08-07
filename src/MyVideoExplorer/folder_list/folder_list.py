@@ -1,5 +1,6 @@
 from pathlib import Path
 import random
+from collections.abc import Callable
 
 from PySide6.QtCore import Qt, Signal, QSize
 from PySide6.QtGui import QFont
@@ -161,7 +162,7 @@ class FolderList(QWidget, ThemableMixin):
         self._add_to_history(folder_path)
         # Important: Don't call refresh here as it might trigger a full rebuild
 
-    def show_loading_state(self, folders: list[str] = None) -> None:
+    def show_loading_state(self, folders: list[str] | None = None) -> None:
         self.folder_list_view.show_loading_state(folders)
         self._update_button_states()
 
@@ -185,14 +186,14 @@ class FolderList(QWidget, ThemableMixin):
 
     # used by tests
     def update_folder_list_by_path(
-        self, path: str, on_complete: callable = None
+        self, path: str, on_complete: Callable[[], None] | None = None
     ) -> None:
         """Loads folders from a path and updates the view."""
         self.folder_list_view.show_loading_state([path])
         self.file_util.get_files_from_path_async(
             path,
             on_complete=lambda items: self.populate_view(
-                items, on_complete=on_complete
+                items, on_complete=lambda _: on_complete() if on_complete else None
             ),
         )
 
@@ -219,7 +220,9 @@ class FolderList(QWidget, ThemableMixin):
         # breaks app theme apply
         # self.folder_list_view.setStyleSheet(APP_THEME.get_list_qss())
 
-    def populate_view(self, items: list[FileUtilModel], on_complete: callable = None):
+    def populate_view(
+        self, items: list[FileUtilModel], on_complete: Callable[[list[FileUtilModel]], None] | None = None
+    ):
         """Sorts and populates the FolderListView."""
 
         if not items and not self._has_valid_media_folders():

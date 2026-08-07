@@ -7,8 +7,8 @@ a = Analysis(
     datas=[
         ( 'README.md', './' ),
         ( 'cfg/defaults*.json', 'cfg/' ),
-        ( 'assets/app.png', 'assets/' ),
-        ( 'assets/fonts/', 'assets/fonts/' ),
+        ( 'asset/app.png', 'asset/' ),
+        ( 'asset/fonts/', 'asset/fonts/' ),
     ],
     hiddenimports=[],
     hookspath=[],
@@ -108,7 +108,7 @@ exe = EXE(
         'qwindows.dll',
     ],
     console=False,
-    icon='assets/app.ico',
+    icon='asset/app.ico',
     onefile=False,
 )
 

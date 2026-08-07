@@ -60,7 +60,7 @@ class Theme(ThemeManager):
         return StyleFactory.get_button_highlight_qss(self.config)
 
     def label_qss(self, variant: str | None = None) -> str:
-        return StyleFactory.get_label_qss(self.config, variant=variant)
+        return StyleFactory.get_label_qss(self.config, variant=variant or "default")
 
     def help_icon_label_qss(self) -> str:
         return StyleFactory.get_label_qss(self.config, variant="help_icon")

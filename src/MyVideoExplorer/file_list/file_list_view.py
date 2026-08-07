@@ -38,7 +38,7 @@ class FileListView(QListWidget):
         # In ListMode, the item contains icon on the left and text on the right.
         # Since we want the icon to "fit and resize to FileListView height",
         # we can make it nearly as tall as the viewport.
-        self.setMinimumHeight(APP_THEME.font_size * 2.5)
+        self.setMinimumHeight(int(APP_THEME.font_size * 2.5))
 
         # Leave some space for padding (top/bottom)
         size = min(APP_THEME.font_size, height - 20)

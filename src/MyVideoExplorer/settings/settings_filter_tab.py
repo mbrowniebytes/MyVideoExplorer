@@ -23,6 +23,13 @@ from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
 
 
+class FilterRowContainer(QWidget):
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.name_edit: QLineEdit | None = None
+        self.filter_table: FolderFilterTable | None = None
+
+
 class SettingsFilterTab(SettingsBaseTab):
     # TODO centralize w/ folder_filter
     GENRES = sorted(
@@ -32,11 +39,11 @@ class SettingsFilterTab(SettingsBaseTab):
     def __init__(self, state: SettingsState, log_util: LogUtil, parent: QWidget | None = None) -> None:
         super().__init__(log_util, parent)
         self.state = state
-        self.row_widgets: list[QWidget] = []
+        self.row_widgets: list[FilterRowContainer] = []
 
-        self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.setSpacing(0)
+        self._layout = QVBoxLayout(self)
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setSpacing(0)
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -51,7 +58,11 @@ class SettingsFilterTab(SettingsBaseTab):
         self.content_layout.addStretch()
 
         scroll.setWidget(self.main_widget)
-        self.layout.addWidget(scroll)
+        self._layout.addWidget(scroll)
+
+    @property
+    def layout(self) -> QVBoxLayout:
+        return self._layout
 
     def _build_ui(self) -> None:
         self.filter_group = QGroupBox("Saved Filters")
@@ -108,8 +119,9 @@ class SettingsFilterTab(SettingsBaseTab):
         self.row_widgets = []
         while self.filter_layout.count():
             child = self.filter_layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
+            widget = child.widget() if child else None
+            if widget:
+                widget.deleteLater()
 
         if not self.state.saved_filters:
             self.filter_layout.addWidget(QLabel("No saved filters found."))
@@ -120,8 +132,8 @@ class SettingsFilterTab(SettingsBaseTab):
             self.row_widgets.append(row_widget)
             self.filter_layout.addWidget(row_widget)
 
-    def _make_filter_row(self, filter_cfg: dict[str, Any]) -> QWidget:
-        container = QWidget()
+    def _make_filter_row(self, filter_cfg: dict[str, Any]) -> FilterRowContainer:
+        container = FilterRowContainer()
         layout = QVBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(5)
@@ -200,11 +212,12 @@ class SettingsFilterTab(SettingsBaseTab):
     def _update_state_from_ui(self) -> None:
         new_saved_filters = []
         for row in self.row_widgets:
-            new_filter_cfg = {
-                "name": row.name_edit.text(),
-                "filters": row.filter_table.collect_filters()
-            }
-            new_saved_filters.append(new_filter_cfg)
+            if row.name_edit and row.filter_table:
+                new_filter_cfg = {
+                    "name": row.name_edit.text(),
+                    "filters": row.filter_table.collect_filters()
+                }
+                new_saved_filters.append(new_filter_cfg)
         self.state.saved_filters = new_saved_filters
 
     def _delete_filter(self, filter_cfg: dict[str, Any]) -> None:

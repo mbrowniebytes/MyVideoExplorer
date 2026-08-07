@@ -38,7 +38,7 @@ class MediaInfoSideView(QWidget, ThemableMixin):
         self.nfo_parse_util = nfo_parse_util
         self.str_util = str_util
 
-        self.current_movie_info: dict = {}
+        self.current_movie_info: dict | None = None
         self.current_view_mode = MEDIA_INFO_VIEW_MODE_IMAGE_LIST
 
         self.side_content_widget = MediaInfoSideContentWidget(self.str_util)
@@ -72,7 +72,7 @@ class MediaInfoSideView(QWidget, ThemableMixin):
         parsed_movie_info = self.nfo_parse_util.parse_nfo(folder_path=folder_path)
         self.set_movie_info(parsed_movie_info)
 
-    def set_movie_info(self, movie_info: dict) -> None:
+    def set_movie_info(self, movie_info: dict | None) -> None:
         """Set movie info and update the side view if the data changed."""
         if self.current_movie_info == movie_info:
             return
@@ -95,7 +95,7 @@ class MediaInfoSideView(QWidget, ThemableMixin):
         self.plot_section.build("")
         self.empty_nfo_placeholder_widget.show()
 
-    def build_nfo(self, movie_info: dict) -> None:
+    def build_nfo(self, movie_info: dict | None) -> None:
         """Backward-compatible wrapper for updating from a movie info dictionary."""
         self.build_from_movie_info(movie_info)
 
@@ -103,11 +103,12 @@ class MediaInfoSideView(QWidget, ThemableMixin):
         """Return the plot section widget."""
         return self.plot_section
 
-    def set_plot_text(self, movie_info: dict) -> None:
+    def set_plot_text(self, movie_info: dict | None) -> None:
         """Update the cached plot section from movie info data."""
-        self.plot_section.build(movie_info.get("plot", ""))
+        if movie_info:
+            self.plot_section.build(movie_info.get("plot", ""))
 
-    def build_from_movie_info(self, movie_info: dict) -> None:
+    def build_from_movie_info(self, movie_info: dict | None) -> None:
         """Build or update side view widgets from movie info data."""
         if not movie_info:
             self.clear_nfo()
@@ -124,10 +125,10 @@ class MediaInfoSideView(QWidget, ThemableMixin):
         # Backward-compatible alias.
         self.view_mode = self.current_view_mode
 
-    def play_video(self, payload: SignalPayload = None) -> None:
+    def play_video(self, payload: SignalPayload | None = None) -> None:
         """Emit the side-view play-video signal."""
         self.sig_info_side_play_video_btn_clicked.emit(
-            SignalPayload(
+            payload or SignalPayload(
                 data=None,
                 sender=self.__class__.__name__,
                 name="Play Video Requested",

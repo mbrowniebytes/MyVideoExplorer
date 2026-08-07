@@ -35,9 +35,9 @@ class SettingsMediaTab(SettingsBaseTab):
         super().__init__(log_util, parent)
         self.state = state
 
-        self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.setSpacing(0)
+        self._layout = QVBoxLayout(self)
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setSpacing(0)
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -55,7 +55,11 @@ class SettingsMediaTab(SettingsBaseTab):
         self.content_layout.addStretch()
 
         scroll.setWidget(self.main_widget)
-        self.layout.addWidget(scroll)
+        self._layout.addWidget(scroll)
+
+    @property
+    def layout(self) -> QVBoxLayout:
+        return self._layout
 
     def _build_ui(self) -> None:
         self.folder_nav_group = QGroupBox("Media Folders")
@@ -441,11 +445,12 @@ class SettingsMediaTab(SettingsBaseTab):
         item = self.folder_nav_layout.itemAt(self.folder_nav_layout.rowCount() - 1)
         if item is not None:
             widget = item.widget()
-            for child in widget.findChildren(QLineEdit):
-                if child.text() == "New Folder":
-                    child.setFocus()
-                    child.selectAll()
-                    return
+            if widget is not None:
+                for child in widget.findChildren(QLineEdit):
+                    if child.text() == "New Folder":
+                        child.setFocus()
+                        child.selectAll()
+                        return
 
     def _remove_folder(self, folder_config: dict[str, Any]) -> None:
         label = folder_config.get("label", "")

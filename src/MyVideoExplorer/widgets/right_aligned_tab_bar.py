@@ -1,5 +1,7 @@
-from PySide6.QtWidgets import QTabBar
-from PySide6.QtCore import Qt, QSize
+from typing import cast
+
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtWidgets import QTabBar, QWidget
 
 
 class RightAlignedTabBar(QTabBar):
@@ -38,7 +40,8 @@ class RightAlignedTabBar(QTabBar):
 
         if index == spacer_idx:
             # Calculate remaining space
-            total_width = self.parent().width() if self.parent() else self.width()
+            parent_widget = cast(QWidget, self.parent())
+            total_width = parent_widget.width() if parent_widget else self.width()
             tabs_width = 0
             for i in range(self.count()):
                 if i != index:

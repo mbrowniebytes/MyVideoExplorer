@@ -25,12 +25,16 @@ class SettingsAppTab(SettingsBaseTab):
         super().__init__(log_util, parent)
         self.log_util = log_util
         self.state = state
-        self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(10, 10, 10, 10)
-        self.layout.setSpacing(15)
+        self._layout = QVBoxLayout(self)
+        self._layout.setContentsMargins(10, 10, 10, 10)
+        self._layout.setSpacing(15)
 
         self._build_ui()
-        self.layout.addStretch()
+        self._layout.addStretch()
+
+    @property
+    def internal_layout(self) -> QVBoxLayout:
+        return self._layout
 
     def _build_ui(self) -> None:
         # App Settings group
@@ -114,10 +118,10 @@ class SettingsAppTab(SettingsBaseTab):
         self.logging_level_combo.setToolTip("Verbosity of App info logged to log/")
         app_layout.addRow("Logging Level", self.logging_level_combo)
 
-        self.layout.addWidget(app_group)
+        self.internal_layout.addWidget(app_group)
 
         # Add stretch to push save button to bottom
-        self.layout.addStretch(2)
+        self.internal_layout.addStretch(2)
 
         # Save App Settings button - bottom right, centered
         save_btn_container = QWidget()
@@ -139,7 +143,7 @@ class SettingsAppTab(SettingsBaseTab):
         save_btn_layout.addWidget(self.reset_btn)
         save_btn_layout.addWidget(spacer)
         save_btn_layout.addWidget(self.save_btn)
-        self.layout.addWidget(
+        self.internal_layout.addWidget(
             save_btn_container,
             alignment=Qt.AlignmentFlag.AlignBottom,
         )
@@ -164,7 +168,7 @@ class SettingsAppTab(SettingsBaseTab):
             return
 
         print(f"_on_launch_app_size_changed: index:{index} value:{value}")
-        APP_THEME.launch_app_size = value
+        self.state.launch_app_size = value
 
         self.state.sig_window_size_changed.emit(
             SignalPayload(
@@ -246,7 +250,7 @@ class SettingsAppTab(SettingsBaseTab):
         # Save prior folder selection setting
         current_index = self.app_start_select_prior_combo.currentIndex()
         if current_index >= 0:
-            self.state.auto_select_prior_folder = (
+            self.state.auto_select_folder = (
                 self.app_start_select_prior_combo.itemData(current_index)
             )
 

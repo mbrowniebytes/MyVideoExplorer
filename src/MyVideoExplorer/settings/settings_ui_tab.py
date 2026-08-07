@@ -34,9 +34,9 @@ class SettingsUITab(SettingsBaseTab):
         self.file_util = file_util
         self.state = state
 
-        self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.setSpacing(0)
+        self._layout = QVBoxLayout(self)
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setSpacing(0)
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -51,7 +51,11 @@ class SettingsUITab(SettingsBaseTab):
         self.content_layout.addStretch()
 
         scroll.setWidget(self.main_widget)
-        self.layout.addWidget(scroll)
+        self._layout.addWidget(scroll)
+
+    @property
+    def layout(self) -> QVBoxLayout:
+        return self._layout
 
     def _build_ui(self) -> None:
         display_group = QGroupBox("UI Settings")
@@ -74,7 +78,7 @@ class SettingsUITab(SettingsBaseTab):
         # App Font
         self.font_family_combo = QComboBox()
 
-        path_to_fonts = self.file_util.get_resource_path("assets/fonts")
+        path_to_fonts = self.file_util.get_resource_path("asset/fonts")
         fonts_dir = Path(path_to_fonts)
 
         ttf_fonts = list(fonts_dir.glob("*.ttf"))

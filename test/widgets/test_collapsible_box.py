@@ -20,10 +20,10 @@ class TestCollapsibleBox:
     def test_toggle_collapsed_state(self, collapsible_box, qtbot):
         collapsible_box.show()
         # Click toggle button
-        qtbot.mouseClick(collapsible_box.toggle_button, Qt.LeftButton)
+        qtbot.mouseClick(collapsible_box.toggle_button, Qt.MouseButton.LeftButton)
         assert not collapsible_box.content_area.isVisible()
 
-        qtbot.mouseClick(collapsible_box.toggle_button, Qt.LeftButton)
+        qtbot.mouseClick(collapsible_box.toggle_button, Qt.MouseButton.LeftButton)
         assert collapsible_box.content_area.isVisible()
 
     def test_add_widget(self, collapsible_box):

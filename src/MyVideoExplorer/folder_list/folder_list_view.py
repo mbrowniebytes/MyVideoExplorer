@@ -2,6 +2,7 @@ import os
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QListWidget, QListWidgetItem
+from collections.abc import Callable
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.theme.theme import APP_THEME
@@ -42,7 +43,7 @@ class FolderListView(QListWidget):
             )
             self.sig_folder_selected.emit(payload)
 
-    def show_loading_state(self, folders: list[str] = None) -> None:
+    def show_loading_state(self, folders: list[str] | None = None) -> None:
 
         text = self._loading_state_text
         if folders:
@@ -129,7 +130,7 @@ class FolderListView(QListWidget):
         self,
         items: list[FileUtilModel],
         get_icon_func=None,
-        on_complete: callable = None,
+        on_complete: Callable[[list[FileUtilModel]], None] | None = None,
     ) -> None:
         """Sorts and populates the FolderListView."""
         folder_items = [item for item in items if item.is_dir]

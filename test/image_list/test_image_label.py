@@ -28,8 +28,8 @@ class TestImageLabel:
                 QPoint(0, 0),
                 QPoint(0, 0),
                 QPoint(0, 120),
-                Qt.NoButton,
-                Qt.NoModifier,
+                Qt.MouseButton.NoButton,
+                Qt.KeyboardModifier.NoModifier,
                 Qt.ScrollPhase.NoScrollPhase,
                 False,
             )
@@ -43,8 +43,8 @@ class TestImageLabel:
                 QPoint(0, 0),
                 QPoint(0, 0),
                 QPoint(0, -120),
-                Qt.NoButton,
-                Qt.NoModifier,
+                Qt.MouseButton.NoButton,
+                Qt.KeyboardModifier.NoModifier,
                 Qt.ScrollPhase.NoScrollPhase,
                 False,
             )
@@ -53,10 +53,10 @@ class TestImageLabel:
 
     def test_mouse_press_right_button_emits_signal(self, image_label, qtbot):
         with qtbot.waitSignal(image_label.sig_right_click) as blocker:
-            qtbot.mousePress(image_label, Qt.RightButton)
+            qtbot.mousePress(image_label, Qt.MouseButton.RightButton)
         assert blocker.signal_triggered
 
     def test_mouse_double_click_emits_signal(self, image_label, qtbot):
         with qtbot.waitSignal(image_label.sig_double_click) as blocker:
-            qtbot.mouseDClick(image_label, Qt.LeftButton)
+            qtbot.mouseDClick(image_label, Qt.MouseButton.LeftButton)
         assert blocker.signal_triggered

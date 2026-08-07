@@ -4,6 +4,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QLabel,
+    QLayout,
     QScrollArea,
     QSizePolicy,
     QVBoxLayout,
@@ -97,17 +98,19 @@ class MediaInfoScrollContentWidget(QWidget, ThemableMixin):
             return
 
         last_layout_item = self.section_layout.itemAt(self.section_layout.count() - 1)
-        if last_layout_item.spacerItem() is None:
+        if last_layout_item is not None and last_layout_item.spacerItem() is None:
             self.section_layout.addStretch()
 
     def apply_theme(self) -> None:
         super().apply_theme()
 
     def _clear_layout_without_deleting_persistent_widgets(
-        self, layout: QVBoxLayout
+        self, layout: QLayout
     ) -> None:
         while layout.count():
             layout_item = layout.takeAt(0)
+            if layout_item is None:
+                continue
             layout_widget = layout_item.widget()
             child_layout = layout_item.layout()
 

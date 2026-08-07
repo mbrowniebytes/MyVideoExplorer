@@ -39,10 +39,11 @@ class TestTheme:
 
     def test_refresh_theme(self, theme, qtbot):
         import sys
+        from typing import cast
 
         from PySide6.QtWidgets import QApplication, QLabel, QMainWindow
 
-        qapp = QApplication.instance() or QApplication(sys.argv)
+        qapp = cast(QApplication, QApplication.instance() or QApplication(sys.argv))
         theme.app = qapp
 
         # Use QMainWindow as root, as it is a common root in real app

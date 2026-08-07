@@ -2,6 +2,17 @@
 
 ---
 
+### 2026-08-07
+
+- fix app launch of last size, last pos
+- update screenshot
+- internal:
+    - remove black, mypy in favor of existing ruff and new ty
+    - code quality ty checks
+
+
+release - [MyVideoExplorer-20260807-0.004 ](https://github.com/mbrowniebytes/MyVideoExplorer/releases/tag/20260807-0.004)
+
 ### 2026-07-14
 
 - better handling of initial launch with no Media Folders

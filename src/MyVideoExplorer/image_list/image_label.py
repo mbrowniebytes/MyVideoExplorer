@@ -41,7 +41,7 @@ class ImageLabel(QLabel):
         event.accept()
 
     def mousePressEvent(self, event) -> None:
-        if event.button() == Qt.RightButton:
+        if event.button() == Qt.MouseButton.RightButton:
             payload = SignalPayload(
                 data=None,
                 sender=self.__class__.__name__,
@@ -56,7 +56,7 @@ class ImageLabel(QLabel):
         super().mousePressEvent(event)
 
     def mouseDoubleClickEvent(self, event) -> None:
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             payload = SignalPayload(
                 data=None,
                 sender=self.__class__.__name__,
