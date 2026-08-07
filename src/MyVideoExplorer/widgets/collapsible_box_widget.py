@@ -19,13 +19,17 @@ class CollapsibleBoxWidget(QWidget):
         self.label = label
         self.toggle_button = QPushButton(self.label)
         self.content_area = QWidget(self)
-        self.layout = QVBoxLayout(self)
+        self._layout = QVBoxLayout(self)
         self.content_layout = QVBoxLayout()
 
         self.collapsed = collapsed
 
         self._setup_ui()
         self._apply_initial_state()
+
+    @property
+    def layout(self) -> QVBoxLayout:
+        return self._layout
 
     def _setup_ui(self) -> None:
         """Configure layouts, widget properties, and signal connections."""
@@ -34,10 +38,10 @@ class CollapsibleBoxWidget(QWidget):
         self.toggle_button.clicked.connect(self._toggle_content)
 
         # Main layout configuration
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.setSpacing(0)
-        self.layout.addWidget(self.toggle_button)
-        self.layout.addWidget(self.content_area)
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setSpacing(0)
+        self._layout.addWidget(self.toggle_button)
+        self._layout.addWidget(self.content_area)
 
         # Assign layout to content area immediately for consistent behavior
         self.content_area.setLayout(self.content_layout)

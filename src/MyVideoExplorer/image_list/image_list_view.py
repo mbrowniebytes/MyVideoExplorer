@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pathlib
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
@@ -117,7 +117,7 @@ class ImageListView(QWidget, ThemableMixin):
         title_and_preview_layout.addWidget(self.preview_widget)
 
         top_content_widget = QWidget()
-        top_content_layout = self._ui_utils.apply_compact_layout(top_content_widget, QHBoxLayout)
+        top_content_layout = cast(QHBoxLayout, self._ui_utils.apply_compact_layout(top_content_widget, QHBoxLayout))
         top_content_layout.addWidget(title_and_preview_widget, 2)
         top_content_layout.addWidget(self.media_info_side_view)
 
@@ -125,8 +125,8 @@ class ImageListView(QWidget, ThemableMixin):
         main_layout.addWidget(self.file_list.build())
         main_layout.addWidget(self.plot_text)
 
-        root_layout = self._ui_utils.apply_compact_layout(self, QVBoxLayout)
-        root_layout.addWidget(self.content_container, 0)
+        root_layout = cast(QVBoxLayout, self._ui_utils.apply_compact_layout(self, QVBoxLayout))
+        root_layout.addWidget(self.content_container)
         root_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         self.setMinimumSize(480, 300)

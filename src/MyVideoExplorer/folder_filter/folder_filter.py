@@ -93,6 +93,8 @@ class FolderFilters(QWidget, ThemableMixin):
         # saved_filters_layout.addWidget(self.delete_filter_button)
 
         filter_layout = QVBoxLayout(filter_container)
+        filter_layout.setSpacing(0)
+        filter_layout.setContentsMargins(2, 0, 4, 0)
         filter_layout.addWidget(self.media_filter_widget)
         filter_layout.addLayout(saved_filters_layout)
         filter_layout.addLayout(add_filter_layout)
@@ -161,9 +163,9 @@ class FolderFilters(QWidget, ThemableMixin):
     def _build_saved_filters_combo(self) -> None:
         self.saved_filters_combo = QComboBox()
         self.saved_filters_combo.setEditable(True)
-        self.saved_filters_combo.lineEdit().setPlaceholderText(
-            "- Select Saved Filters -"
-        )
+        line_edit = self.saved_filters_combo.lineEdit()
+        if line_edit is not None:
+            line_edit.setPlaceholderText("- Select Saved Filters -")
         self._refresh_saved_filters_combo()
         self.saved_filters_combo.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
@@ -270,9 +272,9 @@ class FolderFilters(QWidget, ThemableMixin):
     def _delete_filter_clicked(self) -> None:
         index = self.saved_filters_combo.currentIndex()
         if index <= 0:
-            self.saved_filters_combo.lineEdit().setPlaceholderText(
-                "- Select Saved Filters -"
-            )
+            line_edit = self.saved_filters_combo.lineEdit()
+            if line_edit is not None:
+                line_edit.setPlaceholderText("- Select Saved Filters -")
             return
 
         name = self.saved_filters_combo.currentText()

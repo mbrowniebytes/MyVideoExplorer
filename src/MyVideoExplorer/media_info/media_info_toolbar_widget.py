@@ -106,7 +106,9 @@ class MediaInfoToolbarWidget(QWidget):
     def _clear_toolbar_layout(self) -> None:
         while self.toolbar_layout.count():
             layout_item = self.toolbar_layout.takeAt(0)
-            layout_widget = layout_item.widget()
+            if layout_item is None:
+                continue
 
+            layout_widget = layout_item.widget()
             if layout_widget is not None:
                 layout_widget.deleteLater()

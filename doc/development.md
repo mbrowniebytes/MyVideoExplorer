@@ -90,7 +90,7 @@ Please keep PRs small and focused.
 #### AI used:
 
 Local: Qwen, Gemma   
-Remote: Junie, Gemini, CoPilot, GPT
+Remote: Junie, CoPilot
 
 ---
 

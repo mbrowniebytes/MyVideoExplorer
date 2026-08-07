@@ -78,18 +78,18 @@ class TestSettings:
                     mock_file_util = MagicMock()
                     s = Settings(mock_log_util, mock_file_util)
                     # Fully mock build to avoid UI-related access violations in test environment
-                    s.tab_widget = QTabWidget()
+                    s.tab_widget = QTabWidget()  # type: ignore
                     from MyVideoExplorer.widgets.right_aligned_tab_bar import RightAlignedTabBar
 
-                    tab_bar = RightAlignedTabBar(s.tab_widget, spacer_index=0)
-                    s.tab_widget.setTabBar(tab_bar)
-                    s.tab_widget.addTab(QWidget(), "")  # Spacer
-                    s.tab_widget.addTab(QWidget(), "UI")
-                    s.tab_widget.addTab(QWidget(), "Media")
+                    tab_bar = RightAlignedTabBar(s.tab_widget, spacer_index=0)  # type: ignore
+                    s.tab_widget.setTabBar(tab_bar)  # type: ignore
+                    s.tab_widget.addTab(QWidget(), "")  # Spacer  # type: ignore
+                    s.tab_widget.addTab(QWidget(), "UI")  # type: ignore
+                    s.tab_widget.addTab(QWidget(), "Media")  # type: ignore
 
                     # Check if tab bar is RightAlignedTabBar
-                    tab_bar = s.tab_widget.tabBar()
+                    tab_bar = s.tab_widget.tabBar()  # type: ignore
                     assert isinstance(tab_bar, RightAlignedTabBar)
                     # Check spacer tab
-                    assert s.tab_widget.count() == 3
-                    assert s.tab_widget.tabText(0) == ""
+                    assert s.tab_widget.count() == 3  # type: ignore
+                    assert s.tab_widget.tabText(0) == ""  # type: ignore

@@ -105,7 +105,12 @@ class MediaInfo(QWidget, ThemableMixin):
             and self.current_tab_index == tab_index
         )
 
-    def _emit_play_video_requested(self, payload: SignalPayload = None) -> None:
+    def _emit_play_video_requested(self, payload: SignalPayload | None = None) -> None:
+        if payload is None:
+            # Handle potential None if necessary, or create a default payload
+            # Based on the usage, it seems a payload *should* be provided.
+            # Assuming for now we just return if no payload
+            return
         self.sig_play_video.emit(
             SignalPayload(
                 data=self.current_image_path,

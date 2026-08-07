@@ -173,7 +173,8 @@ class MediaInfoDetailsSection(QWidget, ThemableMixin):
 
     def _find_existing_label_value_widget(self) -> LabelValueWidget | None:
         for layout_index in range(self.details_section_layout.count()):
-            layout_widget = self.details_section_layout.itemAt(layout_index).widget()
+            item = self.details_section_layout.itemAt(layout_index)
+            layout_widget = item.widget() if item else None
 
             if isinstance(layout_widget, LabelValueWidget):
                 return layout_widget
@@ -182,7 +183,8 @@ class MediaInfoDetailsSection(QWidget, ThemableMixin):
 
     def _find_existing_table_widget(self) -> SimpleTableWidget | None:
         for layout_index in range(self.details_section_layout.count()):
-            layout_widget = self.details_section_layout.itemAt(layout_index).widget()
+            item = self.details_section_layout.itemAt(layout_index)
+            layout_widget = item.widget() if item else None
 
             if isinstance(layout_widget, SimpleTableWidget):
                 return layout_widget

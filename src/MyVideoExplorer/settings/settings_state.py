@@ -220,7 +220,7 @@ class SettingsState(QObject):
             ui_data.update(self.json_util.load_json(SETTINGS_UI_FILE))
 
         APP_THEME.font_size = ui_data.get("font_size", APP_THEME.font_size)
-        APP_THEME.font_family = ui_data.get("app_font", APP_THEME.font)
+        APP_THEME.font_family = ui_data.get("app_font", APP_THEME.font_family)
 
     def load_app(self) -> None:
         """Reload App settings from file."""

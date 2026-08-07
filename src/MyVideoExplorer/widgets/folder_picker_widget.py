@@ -64,7 +64,6 @@ class FolderPickerWidget(QWidget):
         selected_folder = QFileDialog.getExistingDirectory(
             self,
             "Select a folder",
-            options=QFileDialog.Options(),
             dir=self._selected_folder,
         )
         if not selected_folder:

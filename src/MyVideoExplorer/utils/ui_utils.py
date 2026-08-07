@@ -21,6 +21,8 @@ class UIUtils:
             return
         while layout.count():
             item = layout.takeAt(0)
+            if item is None:
+                continue
             widget = item.widget()
             if widget:
                 widget.deleteLater()

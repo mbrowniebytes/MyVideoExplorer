@@ -117,7 +117,7 @@ class AppContainer:
                 settings=self.settings,
             )
 
-            self.window: QMainWindow = None
+            self.window: QMainWindow | None = None
 
             self._wire_all_signals()
         except Exception as e:

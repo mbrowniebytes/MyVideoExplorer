@@ -48,9 +48,12 @@ class App:
 
         central_widget = QWidget()
         main_layout = QHBoxLayout()
+        main_layout.setSpacing(2)
+        main_layout.setContentsMargins(2, 0, 2, 0)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.setStyleSheet(APP_THEME.splitter_qss())
+        splitter.setContentsMargins(0, 8, 0, 2)
 
         left_panel = self._create_left_panel()
         right_panel = self._create_right_panel()
@@ -81,7 +84,7 @@ class App:
         file_container = QWidget()
         layout_folder_file = QVBoxLayout(file_container)
         layout_folder_file.setContentsMargins(0, 0, 0, 0)
-        layout_folder_file.setSpacing(0)
+        layout_folder_file.setSpacing(2)
         layout_folder_file.addWidget(folder_nav_widget, 0)
         layout_folder_file.addWidget(self.folder_list.build(), 1)
         return file_container

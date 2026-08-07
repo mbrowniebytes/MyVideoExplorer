@@ -56,7 +56,7 @@ class MediaInfoView(QWidget, ThemableMixin):
         self.nfo_parse_util = nfo_parse_util
         self.str_util = str_util
 
-        self.movie_info: dict = {}
+        self.movie_info: dict | None = None
         self.view_mode = MEDIA_INFO_VIEW_MODE_DEFAULT
 
         self.toolbar_widget = MediaInfoToolbarWidget()
@@ -91,7 +91,7 @@ class MediaInfoView(QWidget, ThemableMixin):
         parsed_movie_info = self.nfo_parse_util.parse_nfo(folder_path=folder_path)
         self.set_movie_info(parsed_movie_info)
 
-    def set_movie_info(self, movie_info: dict) -> None:
+    def set_movie_info(self, movie_info: dict | None) -> None:
         if self.movie_info == movie_info:
             return
 
@@ -109,7 +109,7 @@ class MediaInfoView(QWidget, ThemableMixin):
         self.scroll_content_widget.clear_for_empty_nfo()
         self.toolbar_widget.rebuild_for_view_mode(self.view_mode)
 
-    def build_from_movie_info(self, movie_info: dict) -> None:
+    def build_from_movie_info(self, movie_info: dict | None) -> None:
         if not movie_info:
             self.clear_nfo()
             return
@@ -127,9 +127,9 @@ class MediaInfoView(QWidget, ThemableMixin):
         if self.movie_info:
             self.build_from_movie_info(self.movie_info)
 
-    def play_video(self, payload: SignalPayload = None) -> None:
+    def play_video(self, payload: SignalPayload | None = None) -> None:
         self.sig_info_play_video_btn_clicked.emit(
-            SignalPayload(
+            payload or SignalPayload(
                 data=None,
                 sender=self.__class__.__name__,
                 name="Play Video Requested",

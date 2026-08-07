@@ -11,9 +11,11 @@ class TestThemeOnLoad:
         container = AppContainer()
 
         # Ensure we have a clean state
-        APP_THEME.app = QApplication.instance()
+        app_instance = QApplication.instance()
+        assert isinstance(app_instance, QApplication)
+        APP_THEME.app = app_instance
 
-        app = App(APP_THEME.app, container)
+        app = App(app_instance, container)
         window = app.build()
         qtbot.addWidget(window)
 

@@ -13,8 +13,8 @@ class FolderFilterFilter:
     def __init__(
         self,
         nfo_parse_util: NfoParseUtil,
-        folder_configs: list[dict] = None,
-        log_util: LogUtil = None,
+        folder_configs: list[dict] | None = None,
+        log_util: LogUtil | None = None,
     ):
         self.log_util = log_util
         self.nfo_parse_util = nfo_parse_util

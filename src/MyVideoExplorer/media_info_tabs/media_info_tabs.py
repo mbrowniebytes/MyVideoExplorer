@@ -39,6 +39,7 @@ class MediaInfoTabs(QWidget, ThemableMixin):
         # Components
         self.tab_container = QTabWidget()
         self.tab_container.setTabBar(RightAlignedTabBar(self.tab_container))
+        # self.tab_container.setContentsMargins(4, 4, 4, 2)
 
         self.media_info = media_info
         self.image_list = image_list
@@ -46,7 +47,6 @@ class MediaInfoTabs(QWidget, ThemableMixin):
 
         # Layout setup for MediaInfoTabs itself
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.tab_container)
 
     def build(self) -> QTabWidget:
