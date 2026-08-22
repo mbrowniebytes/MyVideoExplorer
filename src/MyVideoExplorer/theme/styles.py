@@ -363,6 +363,16 @@ class StyleFactory:
          """
 
     @staticmethod
+    def get_media_section_container_qss(c: ThemeConfig) -> str:
+        return f"""
+            #media_section_container {{
+                border-radius: 7px;
+                background-color: {c.color_background_section};
+                padding: 2px;
+            }}
+        """
+
+    @staticmethod
     def get_tabs_qss(c: ThemeConfig) -> str:
         font_qss = f"""
             font-family: {c.font_family_default};
@@ -394,3 +404,28 @@ class StyleFactory:
                  color: transparent;
              }}
         """
+
+    @staticmethod
+    def get_progress_bar_qss(c: ThemeConfig, active: bool = True) -> str:
+        if active:
+            return f"""
+                QProgressBar {{
+                    border: 1px solid {c.color_border_default};
+                    background: {c.color_background_main};
+                    border-radius: 3px;
+                }}
+                QProgressBar::chunk {{
+                    background: {c.color_border_default};
+                    border-radius: 2px;
+                }}
+            """
+        else:
+            return """
+                QProgressBar {
+                    border: none;
+                    background: transparent;
+                }
+                QProgressBar::chunk {
+                    background: transparent;
+                }
+            """

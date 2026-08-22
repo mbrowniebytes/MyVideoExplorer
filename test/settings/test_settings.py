@@ -42,6 +42,11 @@ class TestSettings:
         # The code uses "New Folder" in _add_folder
         assert settings.settings_data_model.folder_configs[-1]["label"] == "New Media"
 
+    def test_add_folder_does_not_emit_signal(self, settings, qtbot):
+        with qtbot.assertNotEmitted(settings.media_settings_tab.sig_root_folders_changed):
+            with patch.object(settings.media_settings_tab, "_refresh_folder_nav_settings"):
+                settings.media_settings_tab._add_folder()
+
     def test_remove_folder(self, settings):
         config = settings.settings_data_model.folder_configs[0]
         # Mock refresh_folder_nav_settings and QMessageBox

@@ -2,6 +2,19 @@
 
 ---
 
+### 2026-##-##
+
+- add [duckdb](https://duckdb.org/) support
+- per media config
+  - add a Scan button, saving to duckdb in db/[media].db
+  - add folder and file stats
+- fix when add new media config do not auto refresh folder nav
+- internal:
+  - fix launch of code from cli, using proper python module layout
+  - cleanup docs
+
+release - [MyVideoExplorer-2026####-0.005 ](https://github.com/mbrowniebytes/MyVideoExplorer/releases/tag/2026####-0.005)
+
 ### 2026-08-07
 
 - fix app launch of last size, last pos

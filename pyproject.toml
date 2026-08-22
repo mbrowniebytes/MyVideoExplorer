@@ -12,6 +12,7 @@ dependencies = [
     "PySide6~=6.11.1",
     "qtawesome~=1.4.2",
     "psutil~=7.2.2",
+    "duckdb~=1.5.5",
 ]
 
 [project.optional-dependencies]
@@ -28,6 +29,12 @@ dev = [
     "isort~=8.0.1",
     "platformdirs~=4.10.0",
 ]
+
+[project.scripts]
+myvideoexplorer = "MyVideoExplorer.main:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
 
 [tool.ruff]
 line-length = 88
@@ -68,4 +75,4 @@ markers = [
 qt_api = "pyside6"
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src"]

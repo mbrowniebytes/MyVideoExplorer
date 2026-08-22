@@ -36,7 +36,7 @@ class Settings(QWidget, ThemableMixin):
         self.app_settings_tab = SettingsAppTab(self.settings_data_model, self.log_util)
         self.ui_settings_tab = SettingsUITab(self.settings_data_model, self.log_util, self.file_util)
         self.media_settings_tab = SettingsMediaTab(
-            self.settings_data_model, self.log_util
+            self.settings_data_model, self.log_util, self.file_util
         )
         self.filter_settings_tab = SettingsFilterTab(
             self.settings_data_model, self.log_util

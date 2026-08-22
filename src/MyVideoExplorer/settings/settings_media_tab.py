@@ -1,4 +1,5 @@
 import os
+import re
 from typing import Any
 
 from PySide6.QtCore import QSize, Qt, QTimer, Signal
@@ -16,24 +17,37 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QVBoxLayout,
     QWidget,
+    QProgressBar,
+    QFrame,
+    QGraphicsDropShadowEffect,
 )
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
-from MyVideoExplorer.settings.settings import SettingsBaseTab
+from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
 from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.log_util import LogUtil
+from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.widgets.folder_picker_widget import FolderPickerWidget
+from MyVideoExplorer.db.db_scan import DbScanUtil
+from MyVideoExplorer.db.db_scan_worker import ScanWorker
 
 
 class SettingsMediaTab(SettingsBaseTab):
     sig_root_folders_changed = Signal(object)
 
     def __init__(
-        self, state: SettingsState, log_util: LogUtil, parent: QWidget | None = None
+        self,
+        state: SettingsState,
+        log_util: LogUtil,
+        file_util: FileUtil,
+        parent: QWidget | None = None,
     ) -> None:
         super().__init__(log_util, parent)
         self.state = state
+        self.file_util = file_util
+        self.nfo_util = NfoParseUtil(file_util, log_util)
 
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
@@ -134,6 +148,11 @@ class SettingsMediaTab(SettingsBaseTab):
         )
         print("Media Settings reset")
 
+    def _get_db_path(self, folder_config: dict[str, Any]) -> str:
+        label = folder_config.get("label", "media")
+        safe_label = re.sub(r'[^a-zA-Z0-9_\-.]', '_', label)
+        return os.path.join("db", f"{safe_label}.db")
+
     def _refresh_folder_nav_settings(self) -> None:
         try:
             if self.folder_nav_layout is None:
@@ -144,57 +163,6 @@ class SettingsMediaTab(SettingsBaseTab):
 
         while self.folder_nav_layout.rowCount() > 0:
             self.folder_nav_layout.removeRow(0)
-
-        header_container = QWidget()
-        header_layout = QVBoxLayout(header_container)
-        header_layout.setContentsMargins(0, 0, 0, 0)
-        header_layout.setSpacing(2)
-
-        h_row1 = QHBoxLayout()
-        h_row1.setContentsMargins(0, 0, 0, 0)
-
-        icon_header = QLabel("Icon")
-        icon_header.setFixedWidth(40)
-        icon_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        type_header = QLabel("Type")
-        type_header.setFixedWidth(120)
-        type_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        type_header.setToolTip("Media Type (Movie/Series)")
-        name_header = QLabel("Name")
-        name_header.setFixedWidth(200)
-
-        header_font = QFont(
-            APP_THEME.font_family, APP_THEME.font_size - 4, QFont.Weight.Bold
-        )
-        for lbl in [icon_header, type_header, name_header]:
-            lbl.setFont(header_font)
-
-        h_row1.addWidget(icon_header)
-        h_row1.addWidget(type_header)
-        h_row1.addWidget(name_header)
-        h_row1.addStretch()
-
-        remove_spacer = QWidget()
-        remove_spacer.setFixedWidth(40)
-        h_row1.addWidget(remove_spacer)
-
-        header_layout.addLayout(h_row1)
-
-        h_row2 = QHBoxLayout()
-        h_row2.setContentsMargins(0, 0, 0, 0)
-
-        dir_header = QLabel("Directory")
-        dir_header.setFont(header_font)
-        h_row2.addWidget(dir_header)
-        h_row2.addStretch()
-
-        browse_spacer = QWidget()
-        browse_spacer.setFixedWidth(40)
-        h_row2.addWidget(browse_spacer)
-
-        header_layout.addLayout(h_row2)
-
-        self.folder_nav_layout.addRow(header_container)
 
         if not self.state.folder_configs:
             msg = (
@@ -207,9 +175,14 @@ class SettingsMediaTab(SettingsBaseTab):
             self.folder_nav_layout.addRow(instr)
             return
 
-        for config in self.state.folder_configs:
+        for i, config in enumerate(self.state.folder_configs):
             browser = self._make_folder_browser(config)
             self.folder_nav_layout.addRow(browser)
+            if i < len(self.state.folder_configs) - 1:
+                line = QFrame()
+                line.setFrameShape(QFrame.Shape.HLine)
+                line.setFrameShadow(QFrame.Shadow.Sunken)
+                self.folder_nav_layout.addRow(line)
 
     def _make_folder_browser(self, folder_config: dict[str, Any]) -> QWidget:
         default_folder = folder_config["path"]
@@ -307,26 +280,136 @@ class SettingsMediaTab(SettingsBaseTab):
             )
         )
 
-        container = QWidget()
+        container = QFrame()
+        container.setFrameShape(QFrame.Shape.StyledPanel)
+        container.setObjectName("media_section_container")
+        container.setStyleSheet(APP_THEME.media_section_container_qss())
+
+        shadow = QGraphicsDropShadowEffect(container)
+        shadow.setBlurRadius(10)
+        shadow.setOffset(3, 3)
+        shadow.setColor(Qt.GlobalColor.darkGray)
+        container.setGraphicsEffect(shadow)
+
         outer_layout = QVBoxLayout(container)
-        outer_layout.setContentsMargins(0, 0, 0, 5)
+        outer_layout.setContentsMargins(5, 5, 5, 5)
         outer_layout.setSpacing(2)
 
         row1 = QHBoxLayout()
         row1.setContentsMargins(0, 0, 0, 0)
+        row1.addWidget(QLabel("Icon:"))
         row1.addWidget(icon_combo)
+        row1.addSpacing(10)
+        row1.addWidget(QLabel("Type:"))
         row1.addWidget(type_combo)
+        row1.addSpacing(10)
+        row1.addWidget(QLabel("Name:"))
         row1.addWidget(label_edit)
         row1.addStretch()
         row1.addWidget(remove_btn)
 
         row2 = QHBoxLayout()
         row2.setContentsMargins(0, 0, 0, 0)
+        row2.addWidget(QLabel("Path:"))
         row2.addWidget(folder_edit)
         row2.addWidget(browse_btn)
 
+        # Row 3 (Merged Stats + Scan)
+        row3 = QHBoxLayout()
+        row3.setContentsMargins(0, 5, 0, 0)
+
+        db_path = self._get_db_path(folder_config)
+        stats = None
+        if os.path.exists(db_path):
+            db_util = DbScanUtil(db_path)
+            stats = db_util.get_stats(folder_config["path"])
+
+        # stats: (folder_path, subfolders, files, images, videos, nfo, other, last_scanned)
+        stats_icons = [
+            "fa5s.folder",
+            "fa5s.file",
+            "fa5s.image",
+            "fa5s.film",
+            "fa5s.info-circle",
+            "fa5s.file-alt",
+            "fa5s.clock"
+        ]
+        icon_tooltips = {
+            "fa5s.folder": "Subfolders",
+            "fa5s.file": "Files",
+            "fa5s.image": "Images",
+            "fa5s.film": "Videos",
+            "fa5s.info-circle": "NFO Files",
+            "fa5s.file-alt": "Other Files",
+            "fa5s.clock": "Last Scanned"
+        }
+        stats_data = [
+            str(stats[1]) if stats else "-",
+            str(stats[2]) if stats else "-",
+            str(stats[3]) if stats else "-",
+            str(stats[4]) if stats else "-",
+            str(stats[5]) if stats else "-",
+            str(stats[6]) if stats else "-",
+            stats[7].strftime("%y-%m-%d %I%p").lower() if stats and stats[7] else "n/a"
+        ]
+
+        for i, (icon_name, val) in enumerate(zip(stats_icons, stats_data)):
+            pair_layout = QHBoxLayout()
+            pair_layout.setContentsMargins(0, 0, 0, 0)
+            pair_layout.setSpacing(1)
+            pair_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+
+            lbl = QLabel(val)
+            lbl.setObjectName(f"stats_val_{i}")
+            lbl.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            # Make the last scanned label a bit wider
+            if icon_name == "fa5s.clock":
+                lbl.setFixedWidth(160)
+            else:
+                lbl.setFixedWidth(40)
+            pair_layout.addWidget(lbl)
+
+            icon_lbl = QLabel()
+            icon_lbl.setPixmap(APP_THEME.icon(icon_name, color=APP_THEME.text_color).pixmap(16, 16))
+            icon_lbl.setToolTip(icon_tooltips.get(icon_name, ""))
+            pair_layout.addWidget(icon_lbl)
+
+            row3.addLayout(pair_layout)
+
+            if i < len(stats_icons) - 1:
+                row3.addSpacing(5)
+
+        row3.addStretch()
+
+        progress_bar = QProgressBar()
+        progress_bar.setVisible(True)
+        progress_bar.setFixedHeight(5)
+        progress_bar.setRange(0, 100)
+        progress_bar.setValue(0)
+        progress_bar.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        progress_bar.setFormat(" ")
+        progress_bar.setStyleSheet(
+            "QProgressBar { border: none; background: transparent; } "
+            "QProgressBar::chunk { background: transparent; }"
+        )
+
+        scan_btn = QPushButton("Scan")
+        scan_btn.setStyleSheet(APP_THEME.button_qss())
+        scan_btn.setFixedWidth(scan_btn.sizeHint().width() + 20)
+
+        scan_btn.clicked.connect(
+            lambda: self._start_scan(folder_config, scan_btn, progress_bar)
+        )
+        row3.addWidget(scan_btn)
+
+        row4 = QHBoxLayout()
+        row4.setContentsMargins(0, 0, scan_btn.sizeHint().width(), 0)
+        row4.addWidget(progress_bar)
+
         outer_layout.addLayout(row1)
         outer_layout.addLayout(row2)
+        outer_layout.addLayout(row3)
+        outer_layout.addLayout(row4)
 
         label_edit.editingFinished.connect(
             lambda le=label_edit: self._on_config_changed(
@@ -424,17 +507,6 @@ class SettingsMediaTab(SettingsBaseTab):
 
         self._on_setting_changed()
 
-        paths = self._get_valid_media_paths()
-        self.sig_root_folders_changed.emit(
-            SignalPayload(
-                data=paths,
-                sender=self.__class__.__name__,
-                name="Root Folders Changed",
-                description="Media root folders were updated.",
-                flow=SignalFlow.USER_INPUT,
-            )
-        )
-
         QTimer.singleShot(
             100,
             lambda: self._click_new_folder_label(new_config),
@@ -495,6 +567,67 @@ class SettingsMediaTab(SettingsBaseTab):
 
         self.highlight_save_button()
 
+
+    def _refresh_stats_labels(self, container: QWidget, folder_config: dict[str, Any]) -> None:
+        db_path = self._get_db_path(folder_config)
+        stats = None
+        if os.path.exists(db_path):
+            db_util = DbScanUtil(db_path)
+            stats = db_util.get_stats(folder_config["path"])
+
+        stats_data = [
+            str(stats[1]) if stats else "-",
+            str(stats[2]) if stats else "-",
+            str(stats[3]) if stats else "-",
+            str(stats[4]) if stats else "-",
+            str(stats[5]) if stats else "-",
+            str(stats[6]) if stats else "-",
+            stats[7].strftime("%y-%m-%d %I%p").lower() if stats and stats[7] else "n/a"
+        ]
+
+        for i, val in enumerate(stats_data):
+            lbl = container.findChild(QLabel, f"stats_val_{i}")
+            if lbl:
+                lbl.setText(val)
+
+    def _start_scan(
+        self,
+        folder_config: dict[str, Any],
+        scan_btn: QPushButton,
+        progress_bar: QProgressBar,
+    ) -> None:
+        scan_btn.setEnabled(False)
+        scan_btn.setText("0%")
+
+        progress_bar.setFormat(" ")
+        progress_bar.setStyleSheet(APP_THEME.progress_bar_qss(active=True))
+
+        self.worker = ScanWorker(folder_config, self.file_util, self.nfo_util)
+        self.worker.progress_init.connect(lambda val: progress_bar.setRange(0, val))
+        self.worker.progress_updated.connect(progress_bar.setValue)
+        self.worker.progress_updated.connect(
+            lambda val: scan_btn.setText(f"{min(100, int(val / progress_bar.maximum() * 100))}%")
+            if progress_bar.maximum() > 0
+            else None
+        )
+        self.worker.finished.connect(
+            lambda: self._on_scan_finished(scan_btn, progress_bar, folder_config)
+        )
+        self.worker.start()
+
+    def _on_scan_finished(self, scan_btn: QPushButton, progress_bar: QProgressBar, folder_config: dict[str, Any]) -> None:
+        progress_bar.setValue(0)
+        progress_bar.setRange(0, 100)
+        progress_bar.setFormat(" ")
+        progress_bar.setStyleSheet(APP_THEME.progress_bar_qss(active=False))
+        scan_btn.setText("Scan")
+        scan_btn.setEnabled(True)
+
+        container = scan_btn.parentWidget()
+        if container:
+            self._refresh_stats_labels(container, folder_config)
+
+
     def _save_media_settings(self) -> None:
         """Save only Media tab settings."""
         self.state.save_media()
@@ -514,4 +647,3 @@ class SettingsMediaTab(SettingsBaseTab):
         super().apply_theme()
         font = QFont(APP_THEME.font_family, APP_THEME.font_size)
         self.setFont(font)
-        # QTimer.singleShot(0, self._refresh_folder_nav_settings)

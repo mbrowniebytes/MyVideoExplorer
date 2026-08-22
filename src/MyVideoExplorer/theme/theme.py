@@ -89,6 +89,12 @@ class Theme(ThemeManager):
     def tabs_qss(self) -> str:
         return StyleFactory.get_tabs_qss(self.config)
 
+    def media_section_container_qss(self) -> str:
+        return StyleFactory.get_media_section_container_qss(self.config)
+
+    def progress_bar_qss(self, active: bool = True) -> str:
+        return StyleFactory.get_progress_bar_qss(self.config, active=active)
+
     def small_button_qss(self) -> str:
         return StyleFactory.get_small_button_qss(self.config)
 

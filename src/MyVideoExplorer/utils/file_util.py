@@ -235,27 +235,19 @@ class FileUtil:
         if not target.is_dir():
             return None
 
+        return self.find_nfo_in_list(path, [entry.name for entry in self._scan_directory(target) if entry.is_file(follow_symlinks=False)])
+
+    def find_nfo_in_list(self, path: str, files: list[str]) -> str | None:
+        """Locate an NFO file in a given list of files, prioritizing standard media naming conventions."""
         preferred_names = {"movie.nfo", "tvshow.nfo"}
-        entries = self._scan_directory(target)
 
         # First pass: prioritize standard media NFO names
-        for entry in entries:
-            try:
-                if (
-                    entry.is_file(follow_symlinks=False)
-                    and entry.name.casefold() in preferred_names
-                ):
-                    return entry.path
-            except OSError:
-                continue
+        for f in files:
+            if f.casefold() in preferred_names:
+                return os.path.join(path, f)
 
         # Second pass: fallback to any file with NFO extension
-        for entry in entries:
-            try:
-                if entry.is_file(follow_symlinks=False) and self.file_type.is_nfo_file(
-                    entry.name
-                ):
-                    return entry.path
-            except OSError:
-                continue
+        for f in files:
+            if self.file_type.is_nfo_file(f):
+                return os.path.join(path, f)
         return None

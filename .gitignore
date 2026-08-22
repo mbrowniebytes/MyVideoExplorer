@@ -47,6 +47,6 @@ todo.txt
 tdone.txt
 
 # app
+db/*.db
 cfg/settings*.json
 log/*.log
-
