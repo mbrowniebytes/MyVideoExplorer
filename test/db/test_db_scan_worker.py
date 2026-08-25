@@ -62,16 +62,13 @@ class TestScanWorker:
     @patch("os.remove")
     @patch("os.walk")
     @patch("os.path.isdir", return_value=True)
-    def test_run_replaces_db(self, mock_isdir, mock_walk, mock_remove, mock_exists, mock_db_util_class, folder_config, mock_file_util, mock_nfo_util):
+    def test_run_does_not_replace_db(self, mock_isdir, mock_walk, mock_remove, mock_exists, mock_db_util_class, folder_config, mock_file_util, mock_nfo_util):
         mock_exists.return_value = True
-
+    
         worker = ScanWorker(folder_config, mock_file_util, mock_nfo_util)
         worker.run()
-
-        assert mock_remove.called
-        # Check if remove was called with the db path
-        expected_path = os.path.join("db", "Test.db")
-        assert mock_remove.call_args[0][0].endswith(expected_path) or mock_remove.call_args[0][0].endswith(expected_path.replace("\\", "/"))
+    
+        assert not mock_remove.called
 
     def test_backup_db(self, tmp_path, folder_config, mock_file_util, mock_nfo_util):
         db_dir = tmp_path / "db"
