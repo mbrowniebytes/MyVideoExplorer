@@ -21,7 +21,7 @@ class TestFolderNavFilters:
     def nav_filters(self, qtbot, settings_mock):
         file_util = MagicMock(spec=FileUtil)
         nfo_util = MagicMock(spec=NfoParseUtil)
-        engine = FolderFilterFilter(nfo_util)
+        engine = FolderFilterFilter(nfo_util, settings_mock.settings_data_model)
         engine.apply_filters = MagicMock(side_effect=engine.apply_filters)
         mock_log = MagicMock()
         widget = FolderFilters(engine, file_util, settings_mock, mock_log)
@@ -96,9 +96,12 @@ class TestFolderNavFilters:
 
     def test_apply_filters_logic(self, nav_filters, qtbot):
         """Verify apply_filters calls the filter engine with correct data."""
+        # Ensure db_enabled is False for this test
+        nav_filters.settings.settings_data_model.db_enabled.return_value = False
+        
         nav_filters.root_folder = ["/root"]
         mock_items = [MagicMock()]
-
+    
         # Capture the callback
         captured_callback = None
         def side_effect(path, depth=0, on_complete=None):
@@ -106,20 +109,20 @@ class TestFolderNavFilters:
             captured_callback = on_complete
             if on_complete:
                 on_complete(mock_items)
-
+    
         nav_filters.file_util.get_files_from_path_async.side_effect = side_effect
-
+    
         # Set a filter
         nav_filters.filter_table.add_filter("Folder", "my_movie")
-
+    
         # Mock the final callback
         on_complete_mock = MagicMock()
         with qtbot.waitSignal(nav_filters.sig_loading_started):
             nav_filters.apply_filters(selected_folders=["/root/sub"], on_complete=on_complete_mock)
-
+    
         nav_filters.file_util.get_files_from_path_async.assert_called_with("/root/sub", on_complete=captured_callback)
         nav_filters.folder_nav_filters_filter.apply_filters.assert_called()
-
+    
         # Check if callback was called
         on_complete_mock.assert_called()
 

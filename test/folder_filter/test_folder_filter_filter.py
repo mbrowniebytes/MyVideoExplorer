@@ -3,13 +3,16 @@ from unittest.mock import MagicMock
 from MyVideoExplorer.folder_filter.folder_filter_filter import FolderFilterFilter
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
+from MyVideoExplorer.settings.settings_state import SettingsState
 
 
 class TestFolderNavFiltersFilter:
     @pytest.fixture
     def filter_instance(self):
         nfo_util = MagicMock(spec=NfoParseUtil)
-        instance = FolderFilterFilter(nfo_util)
+        settings_state = MagicMock(spec=SettingsState)
+        settings_state.db_enabled.return_value = False
+        instance = FolderFilterFilter(nfo_util, settings_state)
         return instance
 
     def test_default_folders(self, filter_instance):

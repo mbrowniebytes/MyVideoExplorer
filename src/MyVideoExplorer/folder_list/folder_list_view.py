@@ -24,7 +24,6 @@ class FolderListView(QListWidget):
         if self._signals_connected:
             return
         self.itemClicked.connect(self._on_item_clicked)
-        self.apply_theme()
         self._signals_connected = True
 
     def apply_theme(self) -> None:
@@ -44,36 +43,43 @@ class FolderListView(QListWidget):
             self.sig_folder_selected.emit(payload)
 
     def show_loading_state(self, folders: list[str] | None = None) -> None:
-
-        text = self._loading_state_text
-        if folders:
-            text += f"\n\n{',\n'.join(folders)}"
-        loading_item = QListWidgetItem(f"\n\n\n {text}")
-        loading_item.setFlags(Qt.ItemFlag.NoItemFlags)
-        loading_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.clear()
-        self.addItem(loading_item)
+        self.setUpdatesEnabled(False)
+        try:
+            text = self._loading_state_text
+            if folders:
+                text += f"\n\n{',\n'.join(folders)}"
+            loading_item = QListWidgetItem(f"\n\n\n {text}")
+            loading_item.setFlags(Qt.ItemFlag.NoItemFlags)
+            loading_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.clear()
+            self.addItem(loading_item)
+        finally:
+            self.setUpdatesEnabled(True)
 
     def show_empty_state(self, root_path: str = "", message: str = "") -> None:
         """Show a friendly empty state in the folder list.
-
         Args:
             root_path: optional path that produced no results (displayed when provided)
             message: optional custom message to display instead of the default text
         """
-        self.clear()
-        if message:
-            text = message
-        elif root_path:
-            root_label = os.path.normpath(root_path)
-            text = f"No folders found under\n{root_label}"
-        else:
-            text = "No folders found."
+        print("FolderListView.show_empty_state")
+        self.setUpdatesEnabled(False)
+        try:
+            self.clear()
+            if message:
+                text = message
+            elif root_path:
+                root_label = os.path.normpath(root_path)
+                text = f"No folders found under\n{root_label}"
+            else:
+                text = "No folders found."
 
-        empty_item = QListWidgetItem(text)
-        empty_item.setFlags(Qt.ItemFlag.NoItemFlags)
-        empty_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.addItem(empty_item)
+            empty_item = QListWidgetItem(text)
+            empty_item.setFlags(Qt.ItemFlag.NoItemFlags)
+            empty_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.addItem(empty_item)
+        finally:
+            self.setUpdatesEnabled(True)
 
     def add_folder_item(
         self, item: FileUtilModel, icon_name: str = "fa5s.folder"
@@ -133,51 +139,56 @@ class FolderListView(QListWidget):
         on_complete: Callable[[list[FileUtilModel]], None] | None = None,
     ) -> None:
         """Sorts and populates the FolderListView."""
-        folder_items = [item for item in items if item.is_dir]
+        print(f"FolderListView.populate_view: items={len(items)}")
+        self.setUpdatesEnabled(False)
+        try:
+            folder_items = [item for item in items if item.is_dir]
 
-        if folder_items:
-            # Build parent map
-            last_at_depth = {}
-            # children_map: id(parent) -> list of children
-            children_map = {id(None): []}
+            if folder_items:
+                # Build parent map
+                last_at_depth = {}
+                # children_map: id(parent) -> list of children
+                children_map = {id(None): []}
 
-            for item in folder_items:
-                parent = last_at_depth.get(item.depth - 1) if item.depth > 0 else None
-                parent_id = id(parent)
-                if parent_id not in children_map:
-                    children_map[parent_id] = []
-                children_map[parent_id].append(item)
-                last_at_depth[item.depth] = item
+                for item in folder_items:
+                    parent = last_at_depth.get(item.depth - 1) if item.depth > 0 else None
+                    parent_id = id(parent)
+                    if parent_id not in children_map:
+                        children_map[parent_id] = []
+                    children_map[parent_id].append(item)
+                    last_at_depth[item.depth] = item
 
-            # Sort children
-            for parent_id in children_map:
-                children_map[parent_id].sort(key=lambda x: x.name.lower())
+                # Sort children
+                for parent_id in children_map:
+                    children_map[parent_id].sort(key=lambda x: x.name.lower())
 
-            # Reconstruct
-            sorted_items = []
+                # Reconstruct
+                sorted_items = []
 
-            def add_sorted_children(parent):
-                parent_id = id(parent)
-                if parent_id in children_map:
-                    for child in children_map[parent_id]:
-                        sorted_items.append(child)
-                        add_sorted_children(child)
+                def add_sorted_children(parent):
+                    parent_id = id(parent)
+                    if parent_id in children_map:
+                        for child in children_map[parent_id]:
+                            sorted_items.append(child)
+                            add_sorted_children(child)
 
-            add_sorted_children(None)
-            folder_items = sorted_items
+                add_sorted_children(None)
+                folder_items = sorted_items
 
-        self.clear()
-        if not folder_items:
-            self.show_empty_state()
-        else:
-            for item in folder_items:
-                icon_name = (
-                    get_icon_func(item.full_path) if get_icon_func else "fa5s.folder"
-                )
-                self.add_folder_item(item, icon_name)
+            self.clear()
+            if not folder_items:
+                self.show_empty_state()
+            else:
+                for item in folder_items:
+                    icon_name = (
+                        get_icon_func(item.full_path) if get_icon_func else "fa5s.folder"
+                    )
+                    self.add_folder_item(item, icon_name)
 
-        if on_complete:
-            on_complete(items)
+            if on_complete:
+                on_complete(items)
+        finally:
+            self.setUpdatesEnabled(True)
 
     def select_next_folder(self, step: int = 1) -> None:
         if self.count() == 0:

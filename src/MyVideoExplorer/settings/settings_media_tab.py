@@ -1,5 +1,6 @@
 import os
 import re
+import datetime
 from typing import Any
 
 from PySide6.QtCore import QSize, Qt, QTimer, Signal
@@ -76,6 +77,21 @@ class SettingsMediaTab(SettingsBaseTab):
         return self._layout
 
     def _build_ui(self) -> None:
+        # Dropdown
+        db_dropdown_layout = QHBoxLayout()
+        db_dropdown_layout.setContentsMargins(0, 0, 0, 0)
+        db_dropdown_layout.setSpacing(5)
+        db_dropdown_layout.addWidget(QLabel("Use Local DB:"))
+        self.db_enabled_dropdown = QComboBox()
+        self.db_enabled_dropdown.addItems(['Yes', 'No'])
+        self.db_enabled_dropdown.setCurrentText('Yes' if self.state.db_enabled() else 'No')
+        db_dropdown_layout.addWidget(self.db_enabled_dropdown)
+        db_dropdown_layout.addStretch()
+        
+        self.content_layout.addLayout(db_dropdown_layout)
+
+        self._update_db_tooltip()
+
         self.folder_nav_group = QGroupBox("Media Folders")
         self.folder_nav_group.setFont(
             QFont(APP_THEME.font_family, APP_THEME.font_size - 2)
@@ -146,12 +162,28 @@ class SettingsMediaTab(SettingsBaseTab):
                 flow=SignalFlow.USER_INPUT,
             )
         )
-        print("Media Settings reset")
 
-    def _get_db_path(self, folder_config: dict[str, Any]) -> str:
-        label = folder_config.get("label", "media")
-        safe_label = re.sub(r'[^a-zA-Z0-9_\-.]', '_', label)
-        return os.path.join("db", f"{safe_label}.db")
+
+    def _update_db_tooltip(self) -> None:
+        has_db = self.state.db_enabled()
+        if has_db:
+            latest_date = None
+            for folder_config in self.state.folder_configs:
+                db_path = self.state.get_db_path(folder_config)
+                if os.path.exists(db_path):
+                    mtime = os.path.getmtime(db_path)
+                    date = datetime.datetime.fromtimestamp(mtime).strftime('%Y-%m-%d')
+                    if latest_date is None or date > latest_date:
+                        latest_date = date
+            
+            latest_date_str = latest_date if latest_date else "Unknown"
+            self.db_enabled_dropdown.setToolTip(
+                f"Database filtering enabled (Latest update: {latest_date_str})."
+            )
+        else:
+            self.db_enabled_dropdown.setToolTip(
+                "Database filtering disabled. Filtering will be limited."
+            )
 
     def _refresh_folder_nav_settings(self) -> None:
         try:
@@ -318,7 +350,7 @@ class SettingsMediaTab(SettingsBaseTab):
         row3 = QHBoxLayout()
         row3.setContentsMargins(0, 5, 0, 0)
 
-        db_path = self._get_db_path(folder_config)
+        db_path = self.state.get_db_path(folder_config)
         stats = None
         if os.path.exists(db_path):
             db_util = DbScanUtil(db_path)
@@ -569,7 +601,7 @@ class SettingsMediaTab(SettingsBaseTab):
 
 
     def _refresh_stats_labels(self, container: QWidget, folder_config: dict[str, Any]) -> None:
-        db_path = self._get_db_path(folder_config)
+        db_path = self.state.get_db_path(folder_config)
         stats = None
         if os.path.exists(db_path):
             db_util = DbScanUtil(db_path)
@@ -630,6 +662,7 @@ class SettingsMediaTab(SettingsBaseTab):
 
     def _save_media_settings(self) -> None:
         """Save only Media tab settings."""
+        self.state._db_enabled = self.db_enabled_dropdown.currentText() == 'Yes'
         self.state.save_media()
         self.reset_save_button()
         self.sig_saved.emit(
@@ -641,7 +674,16 @@ class SettingsMediaTab(SettingsBaseTab):
                 flow=SignalFlow.USER_INPUT,
             )
         )
-        print("Media Settings saved")
+        self.state.sig_settings_changed.emit(
+            SignalPayload(
+                data=None,
+                sender=self.__class__.__name__,
+                name="Media Settings Saved",
+                description="Media settings were saved.",
+                flow=SignalFlow.COMPONENT_INTERACTION,
+            )
+        )
+        self._update_db_tooltip()
 
     def apply_theme(self) -> None:
         super().apply_theme()

@@ -9,11 +9,15 @@ from pathlib import Path
 from PySide6 import QtAsyncio
 from PySide6.QtWidgets import (
     QApplication,
+    QMainWindow,
 )
 
 from MyVideoExplorer.app.app import App
 from MyVideoExplorer.app.app_container import AppContainer
 from MyVideoExplorer.app.app_environment import IS_DEVELOPMENT
+from MyVideoExplorer.app.app_loading import AppLoadingWidget
+from MyVideoExplorer.settings.settings_state import SettingsState
+from MyVideoExplorer.utils.log_util import LogUtil
 
 
 # Emergency fallback logging for when normal logging fails
@@ -40,25 +44,45 @@ def main() -> int:
     container = None
     try:
         qapp = QApplication(sys.argv)
+        window = QMainWindow()
 
-        # Create and configure logging FIRST, before anything else
-        container = AppContainer()
+        # window.hide()
+        window.resize(512, 512)
 
+        log_util = LogUtil().configure("error")
+        settings_state = SettingsState(log_util)
+        if getattr(settings_state, "show_loading_screen", True):
+            loading_widget = AppLoadingWidget()
+            window.setCentralWidget(loading_widget)
+            loading_widget.setup_window(window, qapp)
+            window.show()
+            qapp.processEvents()
+        # # Create and configure logging FIRST, before anything else
+        container = AppContainer(window)
         # Set up exception hooks BEFORE initializing the app UI
         sys.excepthook = container.log_util.handle_exception
 
-        app = App(qapp, container)
-        window = app.build()
+        #resize loading screen
+        # container.resize_window(window)
         window.show()
+        qapp.processEvents()
 
-        # Initialize state after showing window to avoid flicker
+        container.build_ui()
+        # qapp.processEvents()
+
+        app = App(qapp, container, window)
+        main_widget = app.build()
+        window.setCentralWidget(main_widget)
+        # qapp.processEvents()
+
+        # # Initialize state before showing window to avoid flicker
         app.initialize()
+        window.show()
 
         # result = qapp.exec()
         result = QtAsyncio.run()
 
         app.close()
-
 
         return result
     except Exception as e:

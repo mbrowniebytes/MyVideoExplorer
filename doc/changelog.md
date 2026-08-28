@@ -5,9 +5,12 @@
 ### 2026-##-##
 
 - add [duckdb](https://duckdb.org/) support
+  - loading from db is faster and allows for more filtering
+- add setting to load from db or filesystem
 - per media config
-  - add a Scan button, saving to duckdb in db/[media].db
+  - add a Scan button, saving to db/[media].db in duckdb format
   - add folder and file stats
+- add loading screen option
 - fix when add new media config do not auto refresh folder nav
 - internal:
   - fix launch of code from cli, using proper python module layout

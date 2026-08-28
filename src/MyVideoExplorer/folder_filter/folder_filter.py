@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import duckdb
 from collections.abc import Callable
 
 from PySide6.QtCore import QSize, Qt, Signal
@@ -13,6 +15,7 @@ from PySide6.QtWidgets import (
 )
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
+from MyVideoExplorer.db import db_query
 from MyVideoExplorer.folder_filter.folder_filter_filter import FolderFilterFilter
 from MyVideoExplorer.folder_filter.folder_filter_genre_combo_widget import (
     GenreComboWidget,
@@ -313,6 +316,30 @@ class FolderFilters(QWidget, ThemableMixin):
             folder_paths = selected_folders
         else:
             folder_paths = self.root_folders
+
+        if self.settings.settings_data_model.db_enabled():
+            # Use database
+            for folder_path in folder_paths:
+                self.sig_loading_started.emit([folder_path])
+                # Find folder config
+                db_path = None
+                for config in self.settings.settings_data_model.folder_configs:
+                    if config["path"] == folder_path:
+                        db_path = self.settings.settings_data_model.get_db_path(config)
+                        break
+                
+                if db_path and os.path.exists(db_path):
+                    con = duckdb.connect(db_path)
+                    res = con.execute(db_query.DbQuery.MediaFile.SELECT_ALL_PATHS).fetchall()
+                    con.close()
+                    
+                    # 1. Add files and their parent directories
+                    paths = [r[0] for r in res]
+                    items.extend(self.file_util.build_hierarchy_from_paths(paths, folder_path))
+
+            if on_complete:
+                on_complete(self._apply_filters_internal(items))
+            return
 
         # Sequential processing helper
         def run_scan(index: int):

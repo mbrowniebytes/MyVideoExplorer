@@ -3,22 +3,29 @@ from __future__ import annotations
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QWidget
 
+from typing import Any
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
+from MyVideoExplorer.settings.settings_state import SettingsState
+from MyVideoExplorer.db.db_scan import DbScanUtil
+from MyVideoExplorer.db import db_query
+import os
+import duckdb
+import json
 
 
 class FolderFilterFilter:
     def __init__(
         self,
         nfo_parse_util: NfoParseUtil,
-        folder_configs: list[dict] | None = None,
+        settings_state: SettingsState,
         log_util: LogUtil | None = None,
     ):
         self.log_util = log_util
         self.nfo_parse_util = nfo_parse_util
-        self.folder_configs = folder_configs or []
+        self.settings_state = settings_state
         if self.log_util:
             self.log_util.debug(f"__init__ {self.__class__.__name__}")
 
@@ -82,6 +89,15 @@ class FolderFilterFilter:
 
         # AND across types, OR within types
         for filter_type, values in grouped_filters.items():
+            if not self.settings_state.db_enabled() and filter_type in {
+                "genre",
+                "actor",
+                "director",
+                "title",
+                "plot",
+            }:
+                continue
+
             type_match = False
             for filter_value in values:
                 # print(f"filter_type:{filter_type} filter_value:{filter_value}")
@@ -118,18 +134,47 @@ class FolderFilterFilter:
                 }:
                     continue
 
-                movie_info = self.nfo_parse_util.parse_nfo(nfo_file=item.full_path)
+                movie_info = self._get_movie_info(item)
                 if movie_info is None:
                     continue
 
                 if self._matches_nfo_filter(filter_type, filter_value, movie_info):
                     type_match = True
                     break
-
+            
             if not type_match:
                 return False
 
         return True
+
+    def _get_movie_info(self, item: FileUtilModel) -> dict[str, Any] | None:
+        if self.settings_state.db_enabled():
+            # Find folder config
+            for config in self.settings_state.folder_configs:
+                if item.full_path.startswith(config["path"]):
+                    db_path = self.settings_state.get_db_path(config)
+                    if os.path.exists(db_path):
+                        # Query DB
+                        con = duckdb.connect(db_path)
+                        res = con.execute(db_query.DbQuery.MediaFile.SELECT_METADATA, (item.full_path,)).fetchone()
+                        con.close()
+                        
+                        if res:
+                            return {
+                                "title": res[0],
+                                "year": res[1],
+                                "plot": res[2],
+                                "score": res[3],
+                                "rated": res[4],
+                                "runtime": res[5],
+                                "tags": res[6],
+                                "genres": res[7],
+                                "actors": res[8],
+                                "director": res[9]
+                            }
+        
+        # Fallback
+        return self.nfo_parse_util.parse_nfo(nfo_file=item.full_path)
 
     @staticmethod
     def _matches_folder_filter(

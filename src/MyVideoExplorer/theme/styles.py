@@ -334,6 +334,9 @@ class StyleFactory:
                 border-radius: 8px;
                 border-bottom: 2px solid {c.color_border_default};
             """
+        elif variant == "app_loading":
+            font_size_qss = f"font-size: {c.font_size_base + 10}px;"
+            weight = "700"
         elif variant == "help_icon":
             font_size_qss = f"font-size: {c.font_size_base - 2}px;"
             extra_label = f"""
@@ -399,9 +402,11 @@ class StyleFactory:
                 color: {c.color_interaction_selected_text};
             }}
              QTabBar::tab:disabled {{
-                 background: {c.color_background_main};
+                 background: transparent;
                  border: none;
                  color: transparent;
+                 padding: 0;
+                 margin: 0;
              }}
         """
 

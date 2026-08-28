@@ -33,7 +33,8 @@ class AppContainer:
     Separates CONSTRUCTION from LAYOUT (which stays in App.build()).
     """
 
-    def __init__(self) -> None:
+    def __init__(self, window: QMainWindow) -> None:
+        self.window = window
         # Load saved log level
         log_util = LogUtil().configure("error")
         self.log_util = log_util  # Set early so available even if initialization fails
@@ -69,63 +70,85 @@ class AppContainer:
             self.signals = SignalRegistry()
             self.controller = AppController(self.log_util, self.signals)
 
-            self.folder_nav_filters_filter = FolderFilterFilter(
-                self.nfo_parse_util,
-                self.settings.settings_data_model.folder_configs,
-                self.log_util,
-            )
-            self.folder_list = FolderList(self.file_util, self.settings, self.log_util)
-
-            self.folder_nav_filters = FolderFilters(
-                self.folder_nav_filters_filter,
-                self.file_util,
-                self.settings,
-                self.log_util,
-            )
-            self.folder_nav = FolderNav(self.folder_nav_filters, self.log_util)
-            self.file_list = FileList(self.file_util, self.log_util)
-
-            self.media_info_view = MediaInfoView(
-                self.nfo_parse_util, self.str_util, self.log_util
-            )
-            self.media_info_side_view = MediaInfoSideView(
-                self.nfo_parse_util, self.str_util, self.log_util
-            )
-            self.media_info = MediaInfo(
-                self.media_info_view, self.media_info_side_view, self.log_util
-            )
-
-            self.image_list_view = ImageListView(
-                self.str_util, self.media_info_side_view, self.file_list, self.log_util
-            )
-            self.image_list = ImageList(
-                self.file_util,
-                self.settings,
-                self.nfo_parse_util,
-                self.str_util,
-                self.image_list_view,
-                self.file_list,
-                self.log_util,
-            )
-
-            self.video_player = VideoPlayer(self.file_util, self.log_util)
-
-            self.media_info_tabs = MediaInfoTabs(
-                self.log_util,
-                media_info=self.media_info,
-                image_list=self.image_list,
-                settings=self.settings,
-            )
-
-            self.window: QMainWindow | None = None
-
-            self._wire_all_signals()
+            self.folder_nav_filters_filter = None
+            self.folder_list = None
+            self.folder_nav_filters = None
+            self.folder_nav = None
+            self.file_list = None
+            self.media_info_view = None
+            self.media_info_side_view = None
+            self.media_info = None
+            self.image_list_view = None
+            self.image_list = None
+            self.video_player = None
+            self.media_info_tabs = None
         except Exception as e:
             self.log_util.error(
                 f"Error during component initialization: {e}",
                 extra_info={"component_error": str(e)},
             )
             raise
+
+    def build_ui(self) -> None:
+        self.folder_nav_filters_filter = FolderFilterFilter(
+            self.nfo_parse_util,
+            self.settings.settings_data_model,
+            self.log_util,
+        )
+        self.folder_list = FolderList(self.file_util, self.settings, self.log_util)
+        self.folder_list.setParent(self.window)
+
+        self.folder_nav_filters = FolderFilters(
+            self.folder_nav_filters_filter,
+            self.file_util,
+            self.settings,
+            self.log_util,
+        )
+        self.folder_nav_filters.setParent(self.window)
+        self.folder_nav = FolderNav(self.folder_nav_filters, self.log_util)
+        self.folder_nav.setParent(self.window)
+        self.file_list = FileList(self.file_util, self.log_util)
+        self.file_list.setParent(self.window)
+
+        self.media_info_view = MediaInfoView(
+            self.nfo_parse_util, self.str_util, self.log_util
+        )
+        self.media_info_view.setParent(self.window)
+        self.media_info_side_view = MediaInfoSideView(
+            self.nfo_parse_util, self.str_util, self.log_util
+        )
+        self.media_info_side_view.setParent(self.window)
+        self.media_info = MediaInfo(
+            self.media_info_view, self.media_info_side_view, self.log_util
+        )
+        self.media_info.setParent(self.window)
+
+        self.image_list_view = ImageListView(
+            self.str_util, self.media_info_side_view, self.file_list, self.log_util
+        )
+        self.image_list_view.setParent(self.window)
+        self.image_list = ImageList(
+            self.file_util,
+            self.settings,
+            self.nfo_parse_util,
+            self.str_util,
+            self.image_list_view,
+            self.file_list,
+            self.log_util,
+        )
+        self.image_list.setParent(self.window)
+
+        self.video_player = VideoPlayer(self.file_util, self.log_util)
+
+        self.media_info_tabs = MediaInfoTabs(
+            self.log_util,
+            media_info=self.media_info,
+            image_list=self.image_list,
+            settings=self.settings,
+        )
+        self.media_info_tabs.setParent(self.window)
+
+        self._wire_all_signals()
 
     def _wire_all_signals(self) -> None:
         """
@@ -292,51 +315,52 @@ class AppContainer:
         self.video_player.set_folder_path(folder_path)
         self.media_info.refresh(folder_path, self.controller.state.current_tab)
 
-    def resize_window(self, window:QMainWindow|None, app_size:str="", app_pos:str="") -> None:
+    def resize_window(self, window:QMainWindow|None, app_size:str="", app_pos:str="", apply_resize: bool = True) -> None:
         if not window:
             print("resize_window no window obj")
             return
 
         self.window = window
 
-        # Apply launch window size based on settings
-        launch_size = getattr(
-            self.settings.settings_data_model,
-            "launch_app_size",
-            "app_size_min",
-        )
-        if app_size:
-            launch_size = app_size
-
-        # self.log_util.info(f"resize_window: launch_size:{launch_size}")
-        if launch_size == "app_size_maximized":
-            window.showMaximized()
-        elif launch_size == "app_size_last" and hasattr(
-            self.settings.settings_data_model, "app_size"
-        ):
-            # Restore saved window app_size if available
-            app_size = getattr(
-                self.settings.settings_data_model, "app_size", ""
+        if apply_resize:
+            # Apply launch window size based on settings
+            launch_size = getattr(
+                self.settings.settings_data_model,
+                "launch_app_size",
+                "app_size_min",
             )
-            self.log_util.info(f"resize_window: app_size:{app_size}")
-            launch_size = app_size
+            if app_size:
+                launch_size = app_size
 
-        if launch_size and "x" in launch_size:
-            # Parse resolution like "1920x1080"
-            try:
-                width, height = map(int, launch_size.split("x"))
-                self.log_util.info(f"resize_window: width:{width} height:{height}")
-                if width < 1000:
-                    width = 1000
-                if height < 500:
-                    height = 500
-                window.resize(width, height)
-            except ValueError, IndexError:
+            # self.log_util.info(f"resize_window: launch_size:{launch_size}")
+            if launch_size == "app_size_maximized":
+                window.showMaximized()
+            elif launch_size == "app_size_last" and hasattr(
+                self.settings.settings_data_model, "app_size"
+            ):
+                # Restore saved window app_size if available
+                app_size = getattr(
+                    self.settings.settings_data_model, "app_size", ""
+                )
+                self.log_util.info(f"resize_window: app_size:{app_size}")
+                launch_size = app_size
+
+            if launch_size and "x" in launch_size:
+                # Parse resolution like "1920x1080"
+                try:
+                    width, height = map(int, launch_size.split("x"))
+                    self.log_util.info(f"resize_window: width:{width} height:{height}")
+                    if width < 1000:
+                        width = 1000
+                    if height < 500:
+                        height = 500
+                    window.resize(width, height)
+                except (ValueError, IndexError):
+                    window.resize(1400, 900)
+                    self.log_util.error(f"resize_window: launch_size:{launch_size}: {ValueError, IndexError}")
+            else:
+                # app_size_min
                 window.resize(1400, 900)
-                self.log_util.error(f"resize_window: launch_size:{launch_size}: {ValueError, IndexError}")
-        else:
-            # app_size_min
-            window.resize(1400, 900)
 
         # Apply launch window position based on settings
         launch_pos = getattr(

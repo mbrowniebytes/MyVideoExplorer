@@ -101,6 +101,19 @@ class SettingsAppTab(SettingsBaseTab):
 
         app_layout.addRow("Launch App Position", self.launch_app_pos_combo)
 
+        # Show Loading Screen
+        self.show_loading_screen_combo = QComboBox()
+        self.show_loading_screen_combo.addItem("Yes", True)
+        self.show_loading_screen_combo.addItem("No", False)
+
+        show_loading = getattr(self.state, "show_loading_screen", True)
+        index = self.show_loading_screen_combo.findData(show_loading)
+        if index >= 0:
+            self.show_loading_screen_combo.setCurrentIndex(index)
+
+        self.show_loading_screen_combo.setToolTip("Show loading screen when app launches")
+        app_layout.addRow("Show Loading Screen", self.show_loading_screen_combo)
+
 
         # Logging level combo box - populated from LogUtil.LEVEL_MAP
         self.logging_level_combo = QComboBox()
@@ -227,6 +240,12 @@ class SettingsAppTab(SettingsBaseTab):
         if index >= 0:
             self.launch_app_pos_combo.setCurrentIndex(index)
 
+        # Update show loading screen combo
+        current_show_loading = getattr(self.state, "show_loading_screen", True)
+        index = self.show_loading_screen_combo.findData(current_show_loading)
+        if index >= 0:
+            self.show_loading_screen_combo.setCurrentIndex(index)
+
         self.reset_save_button()
         self.sig_saved.emit(
             SignalPayload(
@@ -241,6 +260,13 @@ class SettingsAppTab(SettingsBaseTab):
 
     def _save_app_settings(self) -> None:
         """Save only App tab settings."""
+        # Save Show Loading Screen setting
+        current_index = self.show_loading_screen_combo.currentIndex()
+        if current_index >= 0:
+            self.state.show_loading_screen = (
+                self.show_loading_screen_combo.itemData(current_index)
+            )
+
         # Get current logging level
         current_index = self.logging_level_combo.currentIndex()
         if current_index >= 0:

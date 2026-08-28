@@ -71,6 +71,9 @@ class Theme(ThemeManager):
     def title_label_qss(self) -> str:
         return StyleFactory.get_label_qss(self.config, variant="title")
 
+    def loading_label_qss(self) -> str:
+        return StyleFactory.get_label_qss(self.config, variant="app_loading")
+
     def field_value_qss(self) -> str:
         return StyleFactory.get_label_qss(self.config, variant="field_value")
 

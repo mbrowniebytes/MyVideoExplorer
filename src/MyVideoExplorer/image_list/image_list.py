@@ -17,6 +17,7 @@ from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.utils.str_util import StrUtil
+from MyVideoExplorer.lang.lang_loader import LangLoader
 
 
 _EMPTY_STATE_NO_MEDIA_FOLDERS = (
@@ -71,14 +72,8 @@ class ImageList(QWidget, ThemableMixin):
         if not self._has_valid_media_folders():
             self.image_list_view.show_empty_state(_EMPTY_STATE_NO_MEDIA_FOLDERS)
         else:
-            msgs = [
-                "Scrolling through the bits..",
-                "Calculate calculate..",
-                "Shuffling through the 1s and 0s..",
-                "Rollin', rollin', rollin'..",
-                "Nom nom nom..",
-            ]
-            msg = random.choice(msgs)
+            lang = LangLoader.get_lang("en")
+            msg = random.choice(lang.messages)
             self.image_list_view.show_loading_state(msg)
         self._connect_internal_sigs()
         self.clear_nfo()

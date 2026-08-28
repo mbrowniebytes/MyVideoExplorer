@@ -88,6 +88,9 @@ class MediaInfoTabs(QWidget, ThemableMixin):
         bar = self.tab_container.tabBar()
         bar.setTabButton(self.spacer_tab_index, QTabBar.ButtonPosition.LeftSide, None)
         bar.setTabButton(self.spacer_tab_index, QTabBar.ButtonPosition.RightSide, None)
+        
+        if isinstance(bar, RightAlignedTabBar):
+            bar.setSpacerIndex(self.spacer_tab_index)
 
     def _add_settings_tab(self, settings: Settings) -> None:
         self.settings_tab_index = self._add_content_tab(
@@ -118,6 +121,10 @@ class MediaInfoTabs(QWidget, ThemableMixin):
         self.active_tab_index = index
         self.sig_tab_selection_changed.emit(index)
         # self.log_util.debug(f"Tab selection changed to index: {index}")
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self.tab_container.tabBar().update()
 
     def set_folder_path(self, folder_path: str) -> None:
         self.folder_path = folder_path

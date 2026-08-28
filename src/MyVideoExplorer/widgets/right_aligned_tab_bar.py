@@ -13,8 +13,12 @@ class RightAlignedTabBar(QTabBar):
 
     def __init__(self, parent=None, spacer_index: int | None = None) -> None:
         super().__init__(parent)
-        self.setExpanding(True)
+        self.setExpanding(False)
         self._spacer_index = spacer_index
+
+    def setSpacerIndex(self, index: int) -> None:
+        self._spacer_index = index
+        self.update()
 
     def tabSizeHint(self, index: int) -> QSize:
         """
@@ -37,6 +41,8 @@ class RightAlignedTabBar(QTabBar):
         # Handle negative index (e.g. -1 for last tab, -2 for second to last)
         if spacer_idx < 0:
             spacer_idx = self.count() + spacer_idx
+
+        # print(f"DEBUG: spacer_idx={spacer_idx}, count={self.count()}, index={index}")
 
         if index == spacer_idx:
             # Calculate remaining space

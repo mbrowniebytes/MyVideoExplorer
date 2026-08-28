@@ -1,0 +1,25 @@
+class LangEn:
+    def __init__(self):
+        self.messages = [
+            "Scrolling through the bits..",
+            "Calculate calculate..",
+            "Shuffling through the 1s and 0s..",
+            "Rollin', rollin', rollin'..",
+            "Nom nom nom..",
+            "Wrangling electrons into place..",
+            "Petting the hamsters in the wheel..",
+            "Convincing the pixels to cooperate..",
+            "Brewing a fresh batch of data..",
+            "Feeding the gremlins..",
+            "Polishing each byte by bit..",
+            "Herding wild packets across the wire..",
+            "Consulting the magic 8-ball..",
+            "Teaching the algorithms to sit..",
+            "Counting infinity twice to be sure..",
+            "Negotiating with the cache goblins..",
+            "Loading the unloading loader..",
+            "Reversing the polarity of the neutron flow..",
+            "Conjuring results from the digital ether..",
+            "Spin spin spin..",
+            "Spin spun spin..",
+        ]

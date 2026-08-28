@@ -1,5 +1,6 @@
 {
-    "folder_configs": []
+    "folder_configs": [],
+    "db_enabled": false
 }
 
 

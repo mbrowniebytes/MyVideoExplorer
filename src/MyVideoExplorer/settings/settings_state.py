@@ -1,3 +1,5 @@
+import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -41,8 +43,10 @@ class SettingsState(QObject):
         self.log_level = "info"
         self.launch_app_size = "app_size_min"
         self.launch_app_pos = "app_pos_center_center"
+        self.show_loading_screen = True
 
         self.folder_configs: list[dict[str, Any]] = []
+        self._db_enabled = True
         self.saved_filters: list[dict[str, Any]] = []
         self._load_settings()
         self.log_util.debug(f"__init__ {self.__class__.__name__}")
@@ -62,13 +66,15 @@ class SettingsState(QObject):
             "auto_select_folder": self.auto_select_folder,
             "launch_app_size": self.launch_app_size,
             "launch_app_pos": self.launch_app_pos,
+            "show_loading_screen": self.show_loading_screen,
         }
         ui_defaults: dict[str, int | str] = {
             "font_size": 18,
             "app_font": "Lato",
         }
-        media_defaults: dict[str, list[dict[str, Any]]] = {
+        media_defaults: dict[str, Any] = {
             "folder_configs": self.folder_configs,
+            "db_enabled": self._db_enabled,
         }
         filter_defaults: dict[str, list[dict[str, Any]]] = {
             "saved_filters": self.saved_filters,
@@ -104,6 +110,7 @@ class SettingsState(QObject):
         )
         self.launch_app_size = app_data.get("launch_app_size", "app_size_min")
         self.launch_app_pos = app_data.get("launch_app_pos", "app_pos_center_center")
+        self.show_loading_screen = app_data.get("show_loading_screen", True)
 
         # Load UI Settings
         ui_data = self.json_util.load_json(DEFAULTS_UI_FILE)
@@ -118,6 +125,7 @@ class SettingsState(QObject):
         if SETTINGS_MEDIA_FILE.exists():
             media_data.update(self.json_util.load_json(SETTINGS_MEDIA_FILE))
         self.folder_configs = media_data.get("folder_configs", self.folder_configs)
+        self._db_enabled = media_data.get("db_enabled", False)
 
         # Ensure each folder config has an icon
         for config in self.folder_configs:
@@ -160,6 +168,7 @@ class SettingsState(QObject):
             "auto_select_folder": self.auto_select_folder,
             "launch_app_size": self.launch_app_size,
             "launch_app_pos": self.launch_app_pos,
+            "show_loading_screen": self.show_loading_screen,
         }
 
         # Backup then save
@@ -183,8 +192,9 @@ class SettingsState(QObject):
         """Save only Media tab settings."""
         self._ensure_defaults()
 
-        media_settings: dict[str, list[dict[str, Any]]] = {
+        media_settings: dict[str, Any] = {
             "folder_configs": self.folder_configs,
+            "db_enabled": self._db_enabled,
         }
 
         # Backup then save
@@ -233,6 +243,7 @@ class SettingsState(QObject):
         )
         self.launch_app_size = app_data.get("launch_app_size", "app_size_min")
         self.launch_app_pos = app_data.get("launch_app_pos", "app_pos_last")
+        self.show_loading_screen = app_data.get("show_loading_screen", True)
 
     def load_media(self) -> None:
         """Reload Media settings from file."""
@@ -240,6 +251,7 @@ class SettingsState(QObject):
         if SETTINGS_MEDIA_FILE.exists():
             media_data.update(self.json_util.load_json(SETTINGS_MEDIA_FILE))
         self.folder_configs = media_data.get("folder_configs", self.folder_configs)
+        self._db_enabled = media_data.get("db_enabled", True)
         # Ensure each folder config has an icon
         for config in self.folder_configs:
             if "icon" not in config:
@@ -296,6 +308,24 @@ class SettingsState(QObject):
                 flow=SignalFlow.COMPONENT_INTERACTION,
             )
         )
+
+    def get_db_path(self, folder_config: dict[str, Any]) -> str:
+        label = folder_config.get("label", "media")
+        safe_label = re.sub(r'[^a-zA-Z0-9_\-.]', '_', label)
+        return os.path.join("db", f"{safe_label}.db")
+
+    def db_enabled(self) -> bool:
+        # Check if the setting is 'Yes' (True)
+        if not self._db_enabled:
+            return False
+
+        # Check if at least one DB exists
+        for folder_config in self.folder_configs:
+            db_path = self.get_db_path(folder_config)
+            if os.path.exists(db_path):
+                return True
+        return False
+
 
     def save_settings(self) -> None:
         """Save all tabs' settings (legacy method for backward compatibility)."""

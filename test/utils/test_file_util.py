@@ -89,3 +89,26 @@ class TestFileUtil:
 
         images, poster = file_util.get_images_from_folder(".")
         assert poster == "/test/poster.jpg"
+
+    def test_build_hierarchy_from_paths(self, file_util):
+        paths = ["/root/sub/file.mp4", "/root/sub/file2.mp4", "/root/sub2/file3.mp4"]
+        root = "/root"
+        items = file_util.build_hierarchy_from_paths(paths, root)
+
+        # Check folders: /root/sub, /root/sub2
+        # Check files: /root/sub/file.mp4, /root/sub/file2.mp4, /root/sub2/file3.mp4
+
+        assert len(items) == 5
+        folders = [item for item in items if item.is_dir]
+        files = [item for item in items if item.is_file]
+
+        assert len(folders) == 2
+        assert len(files) == 3
+
+        # Check sub
+        sub = next(f for f in folders if f.name == "sub")
+        assert sub.depth == 1
+
+        # Check file
+        f = next(f for f in files if f.name == "file.mp4")
+        assert f.depth == 2

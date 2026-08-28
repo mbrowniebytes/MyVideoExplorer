@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QApplication, QTabWidget, QComboBox
+from PySide6.QtWidgets import QApplication, QTabWidget, QComboBox, QMainWindow
 from MyVideoExplorer.app.app import App
 from MyVideoExplorer.app.app_container import AppContainer
 from MyVideoExplorer.theme.theme import APP_THEME
@@ -8,15 +8,18 @@ class TestThemeOnLoad:
         # We need to mock or use a real AppContainer
         # Since AppContainer initializes a lot of things, let's try to use it if possible
         # or mock the minimal parts.
-        container = AppContainer()
+        window = QMainWindow()
+        container = AppContainer(window)
+        container.build_ui()
 
         # Ensure we have a clean state
         app_instance = QApplication.instance()
         assert isinstance(app_instance, QApplication)
         APP_THEME.app = app_instance
 
-        app = App(app_instance, container)
-        window = app.build()
+        app = App(app_instance, container, window)
+        main_widget = app.build()
+        window.setCentralWidget(main_widget)
         qtbot.addWidget(window)
 
         # Find Settings widget

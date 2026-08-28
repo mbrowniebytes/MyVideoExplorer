@@ -1,7 +1,8 @@
 import os
+import time
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
@@ -10,9 +11,11 @@ from PySide6.QtWidgets import (
     QSplitter,
     QVBoxLayout,
     QWidget,
+    QLabel,
 )
 
 from MyVideoExplorer.app.app_container import AppContainer
+from MyVideoExplorer.app.app_environment import IS_DEVELOPMENT
 from MyVideoExplorer.theme.theme import APP_THEME
 
 
@@ -21,8 +24,13 @@ class App:
         self,
         app: QApplication,
         container: AppContainer,
+        window: QMainWindow,
     ) -> None:
-        self.window: QMainWindow = QMainWindow()
+        self.window = window
+
+        # self.window.hide()
+        # self.window.resize(1000, 700)
+
         self.app = app
         self.container = container
 
@@ -38,16 +46,11 @@ class App:
         self.video_player = container.video_player
         self.media_info = container.media_info
 
-    def build(self) -> QMainWindow:
+    def build(self) -> QWidget:
         self.font_util.load_custom_fonts()
 
-        self._create_app_icon()
-        self.window.setWindowTitle("MyVideoExplorer")
-
-        self.container.resize_window(self.window)
-
-        central_widget = QWidget()
-        main_layout = QHBoxLayout()
+        main_widget = QWidget()
+        main_layout = QHBoxLayout(main_widget)
         main_layout.setSpacing(2)
         main_layout.setContentsMargins(2, 0, 2, 0)
 
@@ -63,20 +66,11 @@ class App:
         splitter.setSizes([600, 900])
 
         main_layout.addWidget(splitter)
-        central_widget.setLayout(main_layout)
-        self.window.setCentralWidget(central_widget)
 
         APP_THEME.app = self.app
         APP_THEME.refresh_theme(self.window)
 
-        return self.window
-
-    def _create_app_icon(self):
-        path_to_icon = self.file_util.get_resource_path("asset/app.png")
-        pixmap = QPixmap()
-        pixmap.loadFromData(Path(path_to_icon).read_bytes())
-        appIcon = QIcon(pixmap)
-        self.app.setWindowIcon(appIcon)
+        return main_widget
 
     def _create_left_panel(self) -> QWidget:
         folder_nav_widget = self.folder_nav.build()
@@ -97,7 +91,16 @@ class App:
         return self.media_tabs.build()
 
     def initialize(self) -> None:
+        # QTimer.singleShot(150, lambda: self._init_app_and_show())
+        self._init_app_and_show()
+
+    def _init_app_and_show(self) -> None:
+        # if IS_DEVELOPMENT:
+        #     time.sleep(2.5)
+        self.window.setUpdatesEnabled(False)
         self._initialize_app_state()
+        self.container.resize_window(self.window)
+        self.window.setUpdatesEnabled(True)
 
     def _initialize_app_state(self) -> None:
         # Initialize app by iterating over all configured Media folders.

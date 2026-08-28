@@ -15,7 +15,7 @@ from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.widgets.right_aligned_tab_bar import RightAlignedTabBar
-
+from MyVideoExplorer.settings.settings_ui_tab import SettingsUITab
 
 class Settings(QWidget, ThemableMixin):
     """Container widget for application settings, managing tabs and state persistence."""
@@ -30,33 +30,64 @@ class Settings(QWidget, ThemableMixin):
         # Data Model (State Management)
         self.settings_data_model = SettingsState(self.log_util)
 
-        # View Components (Settings Tabs)
-        from MyVideoExplorer.settings.settings_ui_tab import SettingsUITab
+        # View Components (Settings Tabs) - Initialized in _build_ui
+        self.managed_tabs: list[SettingsBaseTab] = []
+        self._app_settings_tab = None
+        self._ui_settings_tab = None
+        self._media_settings_tab = None
+        self._filter_settings_tab = None
 
-        self.app_settings_tab = SettingsAppTab(self.settings_data_model, self.log_util)
-        self.ui_settings_tab = SettingsUITab(self.settings_data_model, self.log_util, self.file_util)
-        self.media_settings_tab = SettingsMediaTab(
-            self.settings_data_model, self.log_util, self.file_util
-        )
-        self.filter_settings_tab = SettingsFilterTab(
-            self.settings_data_model, self.log_util
-        )
+    @property
+    def app_settings_tab(self):
+        if self._app_settings_tab is None:
+            self._build_ui()
+            self._connect_signals()
+        return self._app_settings_tab
 
-        # Group tabs for centralized management (DRY principle)
-        self.managed_tabs: list[SettingsBaseTab] = [
-            self.app_settings_tab,
-            self.ui_settings_tab,
-            self.media_settings_tab,
-            self.filter_settings_tab,
-        ]
+    @property
+    def ui_settings_tab(self):
+        if self._ui_settings_tab is None:
+            self._build_ui()
+            self._connect_signals()
+        return self._ui_settings_tab
 
-        self._build_ui()
-        self._connect_signals()
+    @property
+    def media_settings_tab(self):
+        if self._media_settings_tab is None:
+            self._build_ui()
+            self._connect_signals()
+        return self._media_settings_tab
+
+    @property
+    def filter_settings_tab(self):
+        if self._filter_settings_tab is None:
+            self._build_ui()
+            self._connect_signals()
+        return self._filter_settings_tab
 
     def _build_ui(self) -> None:
         """Constructs the settings UI layout and registers tabs."""
         if self.layout() is not None:
             return
+
+        # Initialize tabs if not already done
+        if not self.managed_tabs:
+            self._app_settings_tab = SettingsAppTab(self.settings_data_model, self.log_util)
+            self._ui_settings_tab = SettingsUITab(self.settings_data_model, self.log_util, self.file_util)
+            self._media_settings_tab = SettingsMediaTab(
+                self.settings_data_model, self.log_util, self.file_util
+            )
+            self._filter_settings_tab = SettingsFilterTab(
+                self.settings_data_model, self.log_util
+            )
+
+            # Group tabs for centralized management (DRY principle)
+            self.managed_tabs = [
+                self._app_settings_tab,
+                self._ui_settings_tab,
+                self._media_settings_tab,
+                self._filter_settings_tab,
+            ]
 
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -150,6 +181,10 @@ class Settings(QWidget, ThemableMixin):
     def apply_theme(self) -> None:
         """Applies current theme to the settings container and all managed tabs."""
         super().apply_theme()
+        
+        if self.layout() is None:
+            return
+
         font = QFont(APP_THEME.font_family, APP_THEME.font_size)
         self.setFont(font)
 

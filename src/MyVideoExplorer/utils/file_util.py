@@ -189,6 +189,49 @@ class FileUtil:
             depth=depth,
         )
 
+    def build_hierarchy_from_paths(
+        self, paths: list[str], root_path: str
+    ) -> list[FileUtilModel]:
+        """Builds a hierarchy of FileUtilModel from a list of paths."""
+        items: list[FileUtilModel] = []
+        dir_paths = set()
+
+        # 1. Collect all parent directories
+        for path in paths:
+            # Get parent directories up to root_path
+            curr = os.path.dirname(path)
+            while curr.startswith(root_path):
+                if curr not in dir_paths:
+                    dir_paths.add(curr)
+                if curr == root_path:
+                    break
+                parent = os.path.dirname(curr)
+                if parent == curr:
+                    break
+                curr = parent
+
+        # 2. Build items for dirs
+        for p in dir_paths:
+            if p == root_path:
+                continue
+
+            # depth: number of levels below root_path
+            relative = os.path.relpath(p, root_path)
+            depth = relative.count(os.sep) + 1 if relative != "." else 0
+
+            items.append(self.build_folder_item(p, depth=depth))
+
+        # 3. Build items for files
+        for path in paths:
+            # depth: number of levels below root_path + 1 for file
+            relative = os.path.relpath(path, root_path)
+            # if relative is "." then file is directly in root_path (depth 0, wait, depth 0 should be folder)
+            # if depth 0 is root, then files inside root should be depth 1
+            depth = relative.count(os.sep) + 1
+            items.append(self.build_file_item(path, depth=depth))
+
+        return items
+
     def build_file_item(self, path: str, depth: int = 0) -> FileUtilModel:
         """Construct a FileUtilModel representing a file."""
         target = Path(path)
