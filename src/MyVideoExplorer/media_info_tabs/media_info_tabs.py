@@ -88,7 +88,7 @@ class MediaInfoTabs(QWidget, ThemableMixin):
         bar = self.tab_container.tabBar()
         bar.setTabButton(self.spacer_tab_index, QTabBar.ButtonPosition.LeftSide, None)
         bar.setTabButton(self.spacer_tab_index, QTabBar.ButtonPosition.RightSide, None)
-        
+
         if isinstance(bar, RightAlignedTabBar):
             bar.setSpacerIndex(self.spacer_tab_index)
 

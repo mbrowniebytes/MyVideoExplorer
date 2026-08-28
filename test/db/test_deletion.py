@@ -1,4 +1,3 @@
-import json
 from MyVideoExplorer.db.db_scan import DbScanUtil
 import duckdb
 

@@ -24,11 +24,34 @@ class FileList(QWidget, ThemableMixin):
     def __init__(self, file_util: FileUtil, log_util: LogUtil) -> None:
         super().__init__()
         self.log_util = log_util
-        self.title_widget = QWidget()
-        self.file_list_view = FileListView()
         self.file_util = file_util
         self._signals_connected = False
         self._container = QWidget()
+        self.file_list_view = FileListView()
+
+        self.title_label = QLabel("Folder Contents:")
+        self.help_icon = QLabel("?")
+
+        tooltip = (
+            "File List Usage:\n"
+            "- Double-click video to play it\n"
+            "- Single-click, selected image will be shown above\n"
+            "- Use the scrollbar or mouse wheel to browse files"
+        )
+        self.help_icon.setToolTip(tooltip)
+
+        self.explorer_button = QToolButton()
+        self.explorer_button.setText("Open Folder")
+        self.explorer_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+        self.explorer_button.setIcon(
+            APP_THEME.icon("fa5s.folder", color=APP_THEME.text_color)
+        )
+        self.explorer_button.setIconSize(
+            QSize(APP_THEME.icon_size, APP_THEME.icon_size)
+        )
+        self.explorer_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.explorer_button.clicked.connect(self._on_open_folder_clicked)
+        self.explorer_button.setVisible(False)
 
     def build(self) -> QWidget:
         self._container = self._build_container()
@@ -55,39 +78,6 @@ class FileList(QWidget, ThemableMixin):
         layout = QHBoxLayout(widget)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(5)
-
-        self.title_label = QLabel("Folder Contents:")
-        # self.title_label.setStyleSheet(APP_THEME.label_qss("small"))
-
-        self.help_icon = QLabel("?")
-        # self.help_icon.setStyleSheet(APP_THEME.help_icon_label_qss())
-        # self.help_icon.setFixedSize(16, 16)
-        # self.help_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        tooltip = (
-            "File List Usage:\n"
-            "- Double-click video to play it\n"
-            "- Single-click, selected image will be shown above\n"
-            "- Use the scrollbar or mouse wheel to browse files"
-        )
-        self.help_icon.setToolTip(tooltip)
-
-        self.explorer_button = QToolButton()
-        self.explorer_button.setText("Open Folder")
-        # self.explorer_button.setToolButtonStyle(
-        #     Qt.ToolButtonStyle.ToolButtonTextBesideIcon
-        # )
-        self.explorer_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
-        self.explorer_button.setIcon(
-            APP_THEME.icon("fa5s.folder", color=APP_THEME.text_color)
-        )
-        self.explorer_button.setIconSize(
-            QSize(APP_THEME.icon_size, APP_THEME.icon_size)
-        )
-        # self.explorer_button.setStyleSheet(APP_THEME.small_button_qss())
-        self.explorer_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.explorer_button.clicked.connect(self._on_open_folder_clicked)
-        self.explorer_button.setVisible(False)
 
         layout.addWidget(self.title_label)
         layout.addWidget(self.help_icon)

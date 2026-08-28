@@ -66,8 +66,6 @@ def main() -> int:
         # container.resize_window(window)
         window.show()
         qapp.processEvents()
-
-        container.build_ui()
         # qapp.processEvents()
 
         app = App(qapp, container, window)

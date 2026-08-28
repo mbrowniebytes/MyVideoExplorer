@@ -23,7 +23,7 @@ class AppLoadingWidget(QWidget):
         app_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         app_label.setStyleSheet(APP_THEME.loading_label_qss())
         layout.addWidget(app_label)
-        
+
         path_to_icon = FileUtil.get_resource_path("asset/app.png")
         pixmap = QPixmap()
         pixmap.loadFromData(Path(path_to_icon).read_bytes())

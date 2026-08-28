@@ -47,7 +47,7 @@ class ImageList(QWidget, ThemableMixin):
         self.nfo_parse_util = nfo_parse_util
         self.file_util = file_util
         self.str_util = str_util
-        self.image_list = None
+        self.image_list: QWidget | None = None
         self.images: list[str] = []
         self.selected_image_index = -1
         self.selected_image_path = ""

@@ -32,37 +32,41 @@ class Settings(QWidget, ThemableMixin):
 
         # View Components (Settings Tabs) - Initialized in _build_ui
         self.managed_tabs: list[SettingsBaseTab] = []
-        self._app_settings_tab = None
-        self._ui_settings_tab = None
-        self._media_settings_tab = None
-        self._filter_settings_tab = None
+        self._app_settings_tab: SettingsAppTab | None = None
+        self._ui_settings_tab: SettingsUITab | None = None
+        self._media_settings_tab: SettingsMediaTab | None = None
+        self._filter_settings_tab: SettingsFilterTab | None = None
 
     @property
-    def app_settings_tab(self):
+    def app_settings_tab(self) -> SettingsAppTab:
         if self._app_settings_tab is None:
             self._build_ui()
             self._connect_signals()
+        assert self._app_settings_tab is not None
         return self._app_settings_tab
 
     @property
-    def ui_settings_tab(self):
+    def ui_settings_tab(self) -> SettingsUITab:
         if self._ui_settings_tab is None:
             self._build_ui()
             self._connect_signals()
+        assert self._ui_settings_tab is not None
         return self._ui_settings_tab
 
     @property
-    def media_settings_tab(self):
+    def media_settings_tab(self) -> SettingsMediaTab:
         if self._media_settings_tab is None:
             self._build_ui()
             self._connect_signals()
+        assert self._media_settings_tab is not None
         return self._media_settings_tab
 
     @property
-    def filter_settings_tab(self):
+    def filter_settings_tab(self) -> SettingsFilterTab:
         if self._filter_settings_tab is None:
             self._build_ui()
             self._connect_signals()
+        assert self._filter_settings_tab is not None
         return self._filter_settings_tab
 
     def _build_ui(self) -> None:
@@ -181,7 +185,7 @@ class Settings(QWidget, ThemableMixin):
     def apply_theme(self) -> None:
         """Applies current theme to the settings container and all managed tabs."""
         super().apply_theme()
-        
+
         if self.layout() is None:
             return
 

@@ -16,26 +16,41 @@ class TestFolderNavFiltersDB:
             {"label": "Movies", "path": "movies"},
         ]
         settings.settings_data_model.db_enabled.return_value = True
-        
+
         # Mock get_db_path to return a path that exists
         # We'll create a dummy db file
         os.makedirs("db", exist_ok=True)
         db_path = "db/Movies.db"
         with open(db_path, "w") as f:
             f.write("dummy")
-            
+
         settings.settings_data_model.get_db_path.return_value = db_path
-        
+
         settings.saved_filters = []
         return settings
 
     @pytest.fixture
     def nav_filters(self, qtbot, settings_mock):
         file_util = MagicMock(spec=FileUtil)
+        # Mock build_hierarchy_from_paths
+        mock_dir = MagicMock(spec=FileUtilModel)
+        mock_dir.is_dir = True
+        mock_dir.is_file = False
+        mock_dir.full_path = "movies"
+        mock_dir.name = "movies"
+
+        mock_file = MagicMock(spec=FileUtilModel)
+        mock_file.is_dir = False
+        mock_file.is_file = True
+        mock_file.full_path = "movies/movie1.mp4"
+        mock_file.name = "movie1.mp4"
+
+        file_util.build_hierarchy_from_paths.return_value = [mock_dir, mock_file]
+
         nfo_util = MagicMock(spec=NfoParseUtil)
         # We need to ensure FolderFilterFilter also uses the updated db_enabled status
         engine = FolderFilterFilter(nfo_util, settings_mock.settings_data_model)
-        
+
         mock_log = MagicMock()
         widget = FolderFilters(engine, file_util, settings_mock, mock_log)
         widget.root_folders = ["movies"] # Matches config path
@@ -50,17 +65,17 @@ class TestFolderNavFiltersDB:
             mock_connect.return_value = mock_con
             # Mock the query result
             mock_con.execute.return_value.fetchall.return_value = [("movies/movie1.mp4",)]
-            
+
             # Add a filter to ensure we get results back
             nav_filters.filter_table.add_filter("File", "movie1")
-            
+
             on_complete_mock = MagicMock()
-            
+
             nav_filters.apply_filters(selected_folders=["movies"], on_complete=on_complete_mock)
-            
+
             # Verify that duckdb was called
             mock_connect.assert_called_with("db/Movies.db")
-            
+
             # Verify that items were added
             assert on_complete_mock.called
             items = on_complete_mock.call_args[0][0]

@@ -1,5 +1,4 @@
 import os
-import re
 import datetime
 from typing import Any
 
@@ -87,7 +86,7 @@ class SettingsMediaTab(SettingsBaseTab):
         self.db_enabled_dropdown.setCurrentText('Yes' if self.state.db_enabled() else 'No')
         db_dropdown_layout.addWidget(self.db_enabled_dropdown)
         db_dropdown_layout.addStretch()
-        
+
         self.content_layout.addLayout(db_dropdown_layout)
 
         self._update_db_tooltip()
@@ -175,7 +174,7 @@ class SettingsMediaTab(SettingsBaseTab):
                     date = datetime.datetime.fromtimestamp(mtime).strftime('%Y-%m-%d')
                     if latest_date is None or date > latest_date:
                         latest_date = date
-            
+
             latest_date_str = latest_date if latest_date else "Unknown"
             self.db_enabled_dropdown.setToolTip(
                 f"Database filtering enabled (Latest update: {latest_date_str})."

@@ -15,23 +15,35 @@ class TestNestedFolderStructure:
             {"label": "Movies", "path": "movies"},
         ]
         settings.settings_data_model.db_enabled.return_value = True
-        
+
         os.makedirs("db", exist_ok=True)
         db_path = "db/Movies.db"
         with open(db_path, "w") as f:
             f.write("dummy")
-            
+
         settings.settings_data_model.get_db_path.return_value = db_path
-        
+
         settings.saved_filters = []
         return settings
 
     @pytest.fixture
     def nav_filters(self, qtbot, settings_mock):
         file_util = MagicMock(spec=FileUtil)
+        # Mock build_hierarchy_from_paths
+        def build_hierarchy_mock(paths, folder_path):
+            models = []
+            for p in ["movies", "movies/subdir1", "movies/subdir1/movie1.mp4", "movies/subdir1/movie2.mp4"]:
+                m = MagicMock(spec=FileUtilModel)
+                m.full_path = p
+                m.is_dir = p in ["movies", "movies/subdir1"]
+                m.is_file = not m.is_dir
+                models.append(m)
+            return models
+        file_util.build_hierarchy_from_paths = build_hierarchy_mock
+
         nfo_util = MagicMock(spec=NfoParseUtil)
         engine = FolderFilterFilter(nfo_util, settings_mock.settings_data_model)
-        
+
         mock_log = MagicMock()
         widget = FolderFilters(engine, file_util, settings_mock, mock_log)
         widget.root_folders = ["movies"]
@@ -48,29 +60,29 @@ class TestNestedFolderStructure:
                 ("movies/subdir1/movie1.mp4",),
                 ("movies/subdir1/movie2.mp4",)
             ]
-            
+
             # Add a filter
             nav_filters.filter_table.add_filter("File", "movie")
-            
+
             on_complete_mock = MagicMock()
-            
+
             # Bypass filtering for verification
             with patch.object(nav_filters, "_apply_filters_internal", side_effect=lambda x: x):
                 nav_filters.apply_filters(selected_folders=["movies"], on_complete=on_complete_mock)
-            
+
             # Verify that items were added.
             # We expect 'movies', 'movies/subdir1', 'movie1.mp4', 'movie2.mp4' (or similar)
             # Actually, the file scan logic adds dirs.
-            
+
             items = on_complete_mock.call_args[0][0]
-            
+
             # The expected structure is nested folders, so we should see 'movies' and 'subdir1' as dirs.
-            
+
             paths = [item.full_path for item in items]
-            
+
             # Print paths for debugging
             print(f"Paths: {paths}")
-            
+
             assert "movies" in paths
             assert "movies/subdir1" in paths
             assert "movies/subdir1/movie1.mp4" in paths

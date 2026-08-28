@@ -10,7 +10,7 @@ class TestThemeOnLoad:
         # or mock the minimal parts.
         window = QMainWindow()
         container = AppContainer(window)
-        container.build_ui()
+        # container.build_ui()
 
         # Ensure we have a clean state
         app_instance = QApplication.instance()

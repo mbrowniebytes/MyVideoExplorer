@@ -9,11 +9,9 @@ from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.settings.settings_state import SettingsState
-from MyVideoExplorer.db.db_scan import DbScanUtil
 from MyVideoExplorer.db import db_query
 import os
 import duckdb
-import json
 
 
 class FolderFilterFilter:
@@ -46,10 +44,13 @@ class FolderFilterFilter:
             if item.is_dir:
                 current_dir = item
 
+            # print(f"DEBUG: item={item.full_path}, is_dir={item.is_dir}, current_dir={current_dir.full_path if current_dir else None}")
+
             if current_dir is None:
                 continue
 
             if self._item_matches(item=item, filters=filters):
+                # print(f"DEBUG: match! item={item.full_path}")
                 if current_dir.full_path and current_dir.full_path not in seen_paths:
                     filtered_items.append(current_dir)
                     seen_paths.add(current_dir.full_path)
@@ -141,7 +142,7 @@ class FolderFilterFilter:
                 if self._matches_nfo_filter(filter_type, filter_value, movie_info):
                     type_match = True
                     break
-            
+
             if not type_match:
                 return False
 
@@ -158,7 +159,7 @@ class FolderFilterFilter:
                         con = duckdb.connect(db_path)
                         res = con.execute(db_query.DbQuery.MediaFile.SELECT_METADATA, (item.full_path,)).fetchone()
                         con.close()
-                        
+
                         if res:
                             return {
                                 "title": res[0],
@@ -172,7 +173,7 @@ class FolderFilterFilter:
                                 "actors": res[8],
                                 "director": res[9]
                             }
-        
+
         # Fallback
         return self.nfo_parse_util.parse_nfo(nfo_file=item.full_path)
 

@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QMainWindow
 
@@ -19,9 +20,9 @@ class VideoPlayer:
         self.file_util = file_util
         self.video_finder = VideoFinder(log_util)
         self.video_launcher = VideoLauncher(log_util)
-        self.active_folder_path = None
-        self.main_window = None
-        self.internal_playback_engine = None
+        self.active_folder_path: str | None = None
+        self.main_window: QMainWindow | None = None
+        self.internal_playback_engine: Any | None = None
         self.log_util.debug(f"Initializing {self.__class__.__name__}")
 
     def build(self) -> QMainWindow:

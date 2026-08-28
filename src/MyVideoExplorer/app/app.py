@@ -1,9 +1,7 @@
 import os
-import time
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QIcon, QPixmap
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QApplication,
     QHBoxLayout,
@@ -11,11 +9,9 @@ from PySide6.QtWidgets import (
     QSplitter,
     QVBoxLayout,
     QWidget,
-    QLabel,
 )
 
 from MyVideoExplorer.app.app_container import AppContainer
-from MyVideoExplorer.app.app_environment import IS_DEVELOPMENT
 from MyVideoExplorer.theme.theme import APP_THEME
 
 

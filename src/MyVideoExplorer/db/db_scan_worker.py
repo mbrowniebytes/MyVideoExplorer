@@ -117,7 +117,7 @@ class ScanWorker(QThread):
         # Save to DB
         db_path = self._get_db_path()
         self._backup_db(db_path)
-        
+
         db_util = DbScanUtil(db_path)
         db_util.save_media(new_results, folder_path)
         db_util.save_stats(stats)

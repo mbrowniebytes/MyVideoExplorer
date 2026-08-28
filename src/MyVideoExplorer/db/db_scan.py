@@ -32,7 +32,7 @@ class DbScanUtil:
 
     def save_media(self, media_list: list[dict[str, Any]], folder_path: str):
         con = duckdb.connect(self.db_path)
-        
+
         # 1. Delete records for the scanned folder that are no longer present
         if media_list:
             # Prepare a list of paths
@@ -42,7 +42,7 @@ class DbScanUtil:
         else:
             # If no media found, all files in this folder are gone
             con.execute(db_query.DbQuery.MediaFile.DELETE_ALL_BY_DIR, (f"{folder_path}%",))
-        
+
         if not media_list:
             con.close()
             return
@@ -71,7 +71,7 @@ class DbScanUtil:
         # Create a temporary table with the incoming data
         con.execute(db_query.DbQuery.MediaFile.CREATE_TEMP_INCOMING, data[0])
         con.executemany(db_query.DbQuery.MediaFile.INSERT_INTO_INCOMING, data)
-        
+
         # Use MERGE to upsert
         con.execute(db_query.DbQuery.MediaFile.MERGE)
         con.close()

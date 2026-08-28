@@ -1,5 +1,4 @@
 import pytest
-import os
 from unittest.mock import MagicMock, patch
 from MyVideoExplorer.db.db_scan_worker import ScanWorker
 from MyVideoExplorer.utils.file_util import FileUtil
@@ -64,10 +63,10 @@ class TestScanWorker:
     @patch("os.path.isdir", return_value=True)
     def test_run_does_not_replace_db(self, mock_isdir, mock_walk, mock_remove, mock_exists, mock_db_util_class, folder_config, mock_file_util, mock_nfo_util):
         mock_exists.return_value = True
-    
+
         worker = ScanWorker(folder_config, mock_file_util, mock_nfo_util)
         worker.run()
-    
+
         assert not mock_remove.called
 
     def test_backup_db(self, tmp_path, folder_config, mock_file_util, mock_nfo_util):

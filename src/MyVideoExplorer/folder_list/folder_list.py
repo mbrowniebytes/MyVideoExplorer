@@ -52,9 +52,9 @@ class FolderList(QWidget, ThemableMixin):
         self.settings = settings
         self._signals_connected = False
         self._container = QWidget()
-        self.backward_folder_button = None
-        self.forward_folder_button = None
-        self.random_folder_button = None
+        self.backward_folder_button = self._create_nav_folder_button("backward")
+        self.forward_folder_button = self._create_nav_folder_button("forward")
+        self.random_folder_button = self._create_nav_folder_button("random")
         self._folder_history: list[str] = []
         self._current_history_index = -1
 
@@ -79,11 +79,11 @@ class FolderList(QWidget, ThemableMixin):
         header_layout.addStretch()
 
         # Add prior folder navigation button
-        self.backward_folder_button = self._create_nav_folder_button("backward", header_layout)
+        header_layout.addWidget(self.backward_folder_button)
         # Add forward folder navigation button
-        self.forward_folder_button = self._create_nav_folder_button("forward", header_layout)
+        header_layout.addWidget(self.forward_folder_button)
         # Add random folder navigation button
-        self.random_folder_button = self._create_nav_folder_button("random", header_layout)
+        header_layout.addWidget(self.random_folder_button)
 
         layout.addLayout(header_layout)
         layout.addWidget(self.stack)
@@ -178,7 +178,7 @@ class FolderList(QWidget, ThemableMixin):
         self.folder_list_view.sig_folder_selected.connect(
             self._handle_folder_selected_intent
         )
-        if self.settings and hasattr(self.settings, "settings_data_model"):
+        if self.settings:
             self.settings.settings_data_model.sig_settings_changed.connect(
                 lambda _: self._update_help_tooltip()
             )
@@ -287,8 +287,8 @@ class FolderList(QWidget, ThemableMixin):
 
         return "fa5s.folder"
 
-    def _create_nav_folder_button(self, direction: str, header_layout: QHBoxLayout) -> QToolButton:
-        """Create and add the forward folder navigation button."""
+    def _create_nav_folder_button(self, direction: str) -> QToolButton:
+        """Create and return the forward folder navigation button."""
 
         if direction == "forward":
             button_name = "goto_forward_folder"
@@ -324,8 +324,6 @@ class FolderList(QWidget, ThemableMixin):
         nav_folder_button.setIconSize(QSize(APP_THEME.icon_size, APP_THEME.icon_size))
         nav_folder_button.clicked.connect(button_clicked)
         nav_folder_button.setEnabled(False)
-
-        header_layout.addWidget(nav_folder_button)
 
         return nav_folder_button
 
@@ -368,15 +366,12 @@ class FolderList(QWidget, ThemableMixin):
             self.log_util.error(f"Error navigating to random folder: {e}")
 
     def _update_button_states(self) -> None:
-        if self.backward_folder_button:
-            self.backward_folder_button.setEnabled(self._current_history_index > 0)
-        if self.forward_folder_button:
-            self.forward_folder_button.setEnabled(
-                self._current_history_index < len(self._folder_history) - 1
-            )
-        if self.random_folder_button:
-            has_folders = self.folder_list_view.has_folders()
-            self.random_folder_button.setEnabled(has_folders)
+        self.backward_folder_button.setEnabled(self._current_history_index > 0)
+        self.forward_folder_button.setEnabled(
+            self._current_history_index < len(self._folder_history) - 1
+        )
+        has_folders = self.folder_list_view.has_folders()
+        self.random_folder_button.setEnabled(has_folders)
 
     def _add_to_history(self, folder_path: str) -> None:
         if self._folder_history and self._folder_history[self._current_history_index] == folder_path:

@@ -110,10 +110,6 @@ class FolderFilters(QWidget, ThemableMixin):
         return self
 
     def build_nav_combo(self) -> None:
-        if not hasattr(self, "nav_combo"):
-            self.nav_combo = QComboBox()
-            self.nav_combo.currentIndexChanged.connect(self._handle_media_selection)
-
         self.nav_combo.blockSignals(True)
         self.nav_combo.clear()
         self.nav_combo.addItem("- Select Folder -", userData="")
@@ -210,6 +206,7 @@ class FolderFilters(QWidget, ThemableMixin):
         return btn
 
     def _connect_sigs(self) -> None:
+        self.nav_combo.currentIndexChanged.connect(self._handle_media_selection)
         self.apply_button.clicked.connect(self.sig_apply_filters.emit)
         self.media_filter_widget.sig_apply_filters.connect(self.sig_apply_filters.emit)
         self.add_filter_button.clicked.connect(self._add_filter_clicked)
@@ -327,15 +324,18 @@ class FolderFilters(QWidget, ThemableMixin):
                     if config["path"] == folder_path:
                         db_path = self.settings.settings_data_model.get_db_path(config)
                         break
-                
+
                 if db_path and os.path.exists(db_path):
                     con = duckdb.connect(db_path)
                     res = con.execute(db_query.DbQuery.MediaFile.SELECT_ALL_PATHS).fetchall()
                     con.close()
-                    
+
                     # 1. Add files and their parent directories
                     paths = [r[0] for r in res]
-                    items.extend(self.file_util.build_hierarchy_from_paths(paths, folder_path))
+                    print(f"DEBUG: paths={paths}")
+                    h = self.file_util.build_hierarchy_from_paths(paths, folder_path)
+                    print(f"DEBUG: h={h}")
+                    items.extend(h)
 
             if on_complete:
                 on_complete(self._apply_filters_internal(items))

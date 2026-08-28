@@ -244,15 +244,15 @@ class TestFolderList:
             # But we can patch the underlying config if needed, or just let it use the defaults.
             # The test checks font family "Arial" which needs the theme to have it.
             # But APP_THEME is a real object here.
-            
+
             # Instead of patching APP_THEME, let's just assert on the outcome if possible,
             # or patch the methods that return QSS.
-            
+
             # The font family in FolderList is taken from APP_THEME.font_family.
             # If we don't patch it, it will be the real one.
-            
+
             folder_list.apply_theme()
-            
+
             mock_set_style_container.assert_called_with("container { color: red; }")
             # We cannot easily change APP_THEME.font_family in the real object,
             # so we check if it was set to the *current* APP_THEME.font_family.
@@ -269,16 +269,16 @@ class TestFolderList:
             {"label": "M2", "path": "/p2"}
         ]
         folder_list.settings.settings_data_model.db_enabled.return_value = True
-        
+
         folder_list._update_help_tooltip()
-        
+
         tooltip = folder_list.help_icon.toolTip()
         assert "Checking 2 media folders" in tooltip
         assert "Loading from: 2 Databases" in tooltip
-        
+
         folder_list.settings.settings_data_model.db_enabled.return_value = False
         folder_list._update_help_tooltip()
-        
+
         tooltip = folder_list.help_icon.toolTip()
         assert "Loading from: File System" in tooltip
 
@@ -286,18 +286,18 @@ class TestFolderList:
         """Verify the help tooltip updates when sig_settings_changed is emitted."""
         # 1. Connect
         folder_list.connect_sigs()
-        
+
         # 2. Get the callback
         connect_mock = folder_list.settings.settings_data_model.sig_settings_changed.connect
         callback = connect_mock.call_args[0][0]
-        
+
         # 3. Setup initial state
         folder_list.settings.settings_data_model.db_enabled.return_value = True
         folder_list._update_help_tooltip()
         assert "Loading from: " in folder_list.help_icon.toolTip()
-        
+
         # 4. Change state and trigger callback
         folder_list.settings.settings_data_model.db_enabled.return_value = False
         callback(None) # Trigger signal
-        
+
         assert "Loading from: File System" in folder_list.help_icon.toolTip()
