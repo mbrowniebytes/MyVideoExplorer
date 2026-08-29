@@ -45,8 +45,10 @@ htmlcov/
 # local
 todo.txt
 tdone.txt
+tmp/*
 
 # app
 db/*.db
 cfg/settings*.json
 log/*.log
+

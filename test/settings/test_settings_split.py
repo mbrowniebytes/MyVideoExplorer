@@ -60,7 +60,7 @@ class TestSettingsSplit:
     def test_save_settings_creates_split_files(self, setup_cfg, mock_log_util):
         cfg_dir = setup_cfg
         state = SettingsState(mock_log_util)
-        state.folder_configs = [{"label": "Test", "path": "/test", "icon": "folder"}]
+        state.media_configs = [{"label": "Test", "path": "/test", "icon": "folder"}]
         state.save_settings()
 
         assert (cfg_dir / "settings_ui.json").exists()
@@ -69,7 +69,7 @@ class TestSettingsSplit:
 
         with open(cfg_dir / "settings_media.json") as f:
             media_data = json.load(f)
-            assert media_data["folder_configs"][0]["label"] == "Test"
+            assert media_data["media_configs"][0]["label"] == "Test"
 
     def test_load_settings_merges_split_files(self, setup_cfg, mock_log_util):
         cfg_dir = setup_cfg
@@ -79,7 +79,7 @@ class TestSettingsSplit:
             json.dumps({"font_size": 22}), encoding="utf-8"
         )
         (cfg_dir / "settings_media.json").write_text(
-            json.dumps({"folder_configs": [{"label": "Loaded", "path": "/loaded"}]}),
+            json.dumps({"media_configs": [{"label": "Loaded", "path": "/loaded"}]}),
             encoding="utf-8",
         )
 
@@ -89,9 +89,9 @@ class TestSettingsSplit:
         from MyVideoExplorer.theme.theme import APP_THEME
 
         assert APP_THEME.font_size == 22
-        assert state.folder_configs[0]["label"] == "Loaded"
+        assert state.media_configs[0]["label"] == "Loaded"
         # Check if icon was added by migration/ensure logic
-        assert state.folder_configs[0]["icon"] == "folder"
+        assert state.media_configs[0]["icon"] == "folder"
 
     def test_backups_for_each_file(self, setup_cfg, mock_log_util):
         state = SettingsState(mock_log_util)

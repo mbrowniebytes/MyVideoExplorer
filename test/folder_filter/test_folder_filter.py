@@ -10,7 +10,7 @@ class TestFolderNavFilters:
     @pytest.fixture
     def settings_mock(self):
         settings = MagicMock()
-        settings.settings_data_model.folder_configs = [
+        settings.settings_data_model.media_configs = [
             {"label": "Movies", "path": "movies"},
             {"label": "TV Shows", "path": "tv"},
         ]

@@ -117,6 +117,16 @@ MyVideoExplorer/
 └── test/              # Test suite
 ```
 
+#### UI Component Mapping
+
+The application uses a `QSplitter` to divide the screen:
+
+- **Left Panel** (`folder_nav/`, `folder_list/`): Directory navigation and selection.
+- **Right Panel** (`media_info_tabs/`): Tabbed workspace containing:
+    - **media**: `image_list/` (Content browsing)
+    - **info**: `media_info/` (Metadata and details)
+    - **⚙**: `settings/` (Configuration)
+
 #### AI used:
 
 Local: Qwen, Gemma   

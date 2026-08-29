@@ -37,7 +37,7 @@ class FolderFilterMedia(QWidget, ThemableMixin):
 
         self._build_buttons()
         self.settings.settings_data_model.sig_settings_changed.connect(
-            self.refresh_buttons
+            lambda p: self.refresh_buttons()
         )
 
     def _build_buttons(self) -> None:
@@ -48,7 +48,7 @@ class FolderFilterMedia(QWidget, ThemableMixin):
             str, list[tuple[str, str]]
         ] = {}  # label -> [(path, icon_name), ...]
 
-        for config in self.settings.settings_data_model.folder_configs:
+        for config in self.settings.settings_data_model.media_configs:
             label = config.get("label", "")
             path = config.get("path", "")
             if not path:

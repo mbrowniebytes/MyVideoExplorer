@@ -11,7 +11,7 @@ class TestFolderListRandom:
     def folder_list(self, qtbot):
         file_util = MagicMock(spec=FileUtil)
         settings = MagicMock()
-        settings.settings_data_model.folder_configs = []
+        settings.settings_data_model.media_configs = []
 
         mock_log = MagicMock()
 

@@ -35,10 +35,10 @@ class FolderFilterTable(QTableWidget):
     sig_genre_changed = Signal(object)
     sig_root_folder = Signal(object)
 
-    def __init__(self, genres: list[str], folder_configs: list[dict]):
+    def __init__(self, genres: list[str], media_configs: list[dict]):
         super().__init__()
         self.genres = genres
-        self.folder_configs = folder_configs
+        self.media_configs = media_configs
         self._setup_ui()
 
     def _setup_ui(self) -> None:
@@ -131,7 +131,7 @@ class FolderFilterTable(QTableWidget):
             # For Media, we use a new combo box
             combo = QComboBox()
             combo.addItem("- Select Folder -", userData="")
-            for config in self.folder_configs:
+            for config in self.media_configs:
                 combo.addItem(config["label"], userData=config["path"])
             if filter_value:
                 # Try to find by text first, then by data if that fails

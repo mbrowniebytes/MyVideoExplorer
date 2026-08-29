@@ -174,7 +174,7 @@ class SettingsFilterTab(SettingsBaseTab):
         name_layout.addWidget(filter_type_combo)
 
         # Create filter table for this specific row
-        filter_table = FolderFilterTable(self.GENRES, self.state.folder_configs)
+        filter_table = FolderFilterTable(self.GENRES, self.state.media_configs)
         filters_data = filter_cfg.get("filters") or []
         for f in filters_data:
             filter_table.add_filter(f.get("filter", ""), f.get("value", ""))

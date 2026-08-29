@@ -62,7 +62,6 @@ class FolderListView(QListWidget):
             root_path: optional path that produced no results (displayed when provided)
             message: optional custom message to display instead of the default text
         """
-        print("FolderListView.show_empty_state")
         self.setUpdatesEnabled(False)
         try:
             self.clear()

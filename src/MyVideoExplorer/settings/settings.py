@@ -210,11 +210,11 @@ class Settings(QWidget, ThemableMixin):
         return self
 
     # --- Data Model Delegation ---
-    def get_folder_configs(self):
-        return self.settings_data_model.folder_configs
+    def get_media_configs(self):
+        return self.settings_data_model.media_configs
 
-    def set_folder_configs(self, value):
-        self.settings_data_model.folder_configs = value
+    def set_media_configs(self, value):
+        self.settings_data_model.media_configs = value
 
     def save_filter(self, name: str, filters: list[dict]) -> None:
         self.settings_data_model.save_filter(name, filters)

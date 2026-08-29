@@ -335,11 +335,11 @@ class AppContainer:
                         height = 500
                     window.resize(width, height)
                 except (ValueError, IndexError):
-                    window.resize(1400, 900)
+                    window.resize(1200, 700)
                     self.log_util.error(f"resize_window: launch_size:{launch_size}: {ValueError, IndexError}")
             else:
                 # app_size_min
-                window.resize(1400, 900)
+                window.resize(1200, 700)
 
         # Apply launch window position based on settings
         launch_pos = self.settings.settings_data_model.launch_app_pos

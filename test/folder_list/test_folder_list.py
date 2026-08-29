@@ -14,7 +14,7 @@ class TestFolderList:
     def folder_list(self, qtbot):
         file_util = MagicMock(spec=FileUtil)
         settings = MagicMock()
-        settings.folder_configs = [{"label": "Test", "path": "/path/to"}]
+        settings.media_configs = [{"label": "Test", "path": "/path/to"}]
         with patch(
             "MyVideoExplorer.folder_list.folder_list.FolderList._has_valid_media_folders",
             return_value=True,
@@ -264,7 +264,7 @@ class TestFolderList:
     def test_help_tooltip(self, folder_list):
         """Verify the help tooltip contains expected information."""
         # Need to patch settings in the fixture or the test
-        folder_list.settings.settings_data_model.folder_configs = [
+        folder_list.settings.settings_data_model.media_configs = [
             {"label": "M1", "path": "/p1"},
             {"label": "M2", "path": "/p2"}
         ]

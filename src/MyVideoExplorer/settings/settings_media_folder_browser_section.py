@@ -1,0 +1,330 @@
+import os
+from typing import Any
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import (
+    QComboBox,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QProgressBar,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
+
+from MyVideoExplorer.db.db_scan import DbScanUtil
+from MyVideoExplorer.db.db_scan_worker import ScanWorker
+from MyVideoExplorer.theme.themable_mixin import ThemableMixin
+from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.utils.file_util import FileUtil
+from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
+from MyVideoExplorer.widgets.folder_picker_widget import FolderPickerWidget
+
+
+class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
+    sig_config_changed = Signal(dict, str, Any)
+    sig_remove_requested = Signal(dict)
+
+    def __init__(
+        self,
+        media_config: dict[str, Any],
+        get_db_path_callback: Any,
+        file_util: FileUtil,
+        nfo_util: NfoParseUtil,
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.media_config = media_config
+        self.get_db_path_callback = get_db_path_callback
+        self.file_util = file_util
+        self.nfo_util = nfo_util
+        self.worker = None
+
+        self._build_ui()
+        self.apply_theme()
+
+    def _build_ui(self) -> None:
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        # Configuration UI (Label, Type, Icon, Path)
+        row1_layout = QHBoxLayout()
+        row1_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.label_edit = QLineEdit(self.media_config.get("label", ""))
+        self.label_edit.setPlaceholderText("Media Name")
+        self.label_edit.editingFinished.connect(
+            lambda: self.sig_config_changed.emit(self.media_config, "label", self.label_edit.text())
+        )
+        row1_layout.addWidget(self.label_edit)
+
+        self.type_combo = QComboBox()
+        self.type_combo.addItem("Movie", "movie")
+        self.type_combo.addItem("Series", "series")
+        current_type = self.media_config.get("media_type", "movie")
+        index = self.type_combo.findData(current_type)
+        if index >= 0:
+            self.type_combo.setCurrentIndex(index)
+        self.type_combo.currentTextChanged.connect(
+            lambda text: self.sig_config_changed.emit(self.media_config, "media_type", self.type_combo.currentData())
+        )
+        row1_layout.addWidget(self.type_combo)
+
+        # Delete button
+        self.remove_btn = QPushButton()
+        self.remove_btn.setIcon(APP_THEME.icon("fa5s.times"))
+        self.remove_btn.setStyleSheet(APP_THEME.button_qss())
+        self.remove_btn.setFixedWidth(30)
+        self.remove_btn.clicked.connect(lambda: self.sig_remove_requested.emit(self.media_config))
+
+        standard_icons = [
+            "fa5s.folder",
+            "fa5s.folder-open",
+            "fa5s.folder-minus",
+            "fa5s.folder-plus",
+            "fa5s.video",
+            "fa5s.film",
+            "fa5s.tv",
+            "fa5s.star",
+            "fa5s.heart",
+            "fa5s.user",
+            "fa5s.users",
+            "fa5s.home",
+            "fa5s.search",
+            "fa5s.cog",
+            "fa5s.list",
+            "fa5s.th",
+            "fa5s.image",
+            "fa5s.images",
+            "fa5s.file",
+            "fa5s.file-video",
+            "fa5s.camera",
+            "fa5s.camera-retro",
+            "fa5s.compact-disc",
+            "fa5s.database",
+            "fa5s.download",
+            "fa5s.external-link-alt",
+            "fa5s.eye",
+            "fa5s.eye-slash",
+            "fa5s.fire",
+            "fa5s.flag",
+            "fa5s.globe",
+            "fa5s.info-circle",
+            "fa5s.music",
+            "fa5s.play-circle",
+            "fa5s.rss",
+            "fa5s.tag",
+            "fa5s.tags",
+        ]
+        self.icon_combo = QComboBox()
+        for icon_name in standard_icons:
+            self.icon_combo.addItem(APP_THEME.icon(icon_name), "", icon_name)
+
+        current_icon = self.media_config.get("icon", "fa5s.folder")
+        index = self.icon_combo.findData(current_icon)
+        if index >= 0:
+            self.icon_combo.setCurrentIndex(index)
+        self.icon_combo.currentIndexChanged.connect(
+            lambda index: self.sig_config_changed.emit(self.media_config, "icon", self.icon_combo.itemData(index))
+        )
+        row1_layout.addWidget(self.icon_combo)
+
+        layout.addLayout(row1_layout)
+
+        self.folder_picker = FolderPickerWidget(self)
+        self.folder_picker.setVisible(False)
+        self.folder_picker.selected_folder = self.media_config["path"]
+        self.folder_picker.sig_selected_folder.connect(
+            lambda payload: self._on_folder_selected(payload.data)
+        )
+
+        self.folder_edit = QLineEdit(self.media_config["path"])
+        self.folder_edit.setPlaceholderText("Media Path")
+        self.folder_edit.editingFinished.connect(
+            lambda: self.sig_config_changed.emit(self.media_config, "path", self.folder_edit.text())
+        )
+
+        browse_btn = QPushButton("Browse")
+        browse_btn.clicked.connect(self.folder_picker.pick_folder)
+
+        row2_layout = QHBoxLayout()
+        row2_layout.setContentsMargins(0, 0, 0, 0)
+        row2_layout.addWidget(self.folder_edit)
+        row2_layout.addWidget(browse_btn)
+        row2_layout.addSpacing(10)
+        row2_layout.addWidget(self.remove_btn)
+
+        layout.addLayout(row2_layout)
+
+        # Stats + Scan UI
+        self.stats_layout = QHBoxLayout()
+        self.stats_layout.setContentsMargins(0, 5, 0, 0)
+
+        db_path = self.get_db_path_callback(self.media_config)
+        stats = None
+        if db_path and os.path.exists(db_path):
+            db_util = DbScanUtil(db_path)
+            stats = db_util.get_stats(self.media_config["path"])
+
+        # stats: (folder_path, subfolders, files, images, videos, nfo, other, last_scanned)
+        stats_icons = [
+            "fa5s.folder",
+            "fa5s.file",
+            "fa5s.image",
+            "fa5s.film",
+            "fa5s.info-circle",
+            "fa5s.file-alt",
+            "fa5s.clock"
+        ]
+        icon_tooltips = {
+            "fa5s.folder": "Subfolders",
+            "fa5s.file": "Files",
+            "fa5s.image": "Images",
+            "fa5s.film": "Videos",
+            "fa5s.info-circle": "NFO Files",
+            "fa5s.file-alt": "Other Files",
+            "fa5s.clock": "Last Scanned"
+        }
+        stats_data = [
+            str(stats[1]) if stats else "-",
+            str(stats[2]) if stats else "-",
+            str(stats[3]) if stats else "-",
+            str(stats[4]) if stats else "-",
+            str(stats[5]) if stats else "-",
+            str(stats[6]) if stats else "-",
+            stats[7].strftime("%y-%m-%d %I%p").lower() if stats and stats[7] else "n/a"
+        ]
+
+        for i, (icon_name, val) in enumerate(zip(stats_icons, stats_data)):
+            pair_layout = QHBoxLayout()
+            pair_layout.setContentsMargins(0, 0, 0, 0)
+            pair_layout.setSpacing(1)
+            pair_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+
+            lbl = QLabel(val)
+            lbl.setObjectName(f"stats_val_{i}")
+            lbl.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            # Make the last scanned label a bit wider
+            if icon_name == "fa5s.clock":
+                lbl.setFixedWidth(140)
+            else:
+                lbl.setFixedWidth(35)
+            pair_layout.addWidget(lbl)
+
+            icon_lbl = QLabel()
+            icon_lbl.setPixmap(APP_THEME.icon(icon_name, color=APP_THEME.text_color).pixmap(16, 16))
+            icon_lbl.setToolTip(icon_tooltips.get(icon_name, ""))
+            pair_layout.addWidget(icon_lbl)
+
+            self.stats_layout.addLayout(pair_layout)
+
+            if i < len(stats_icons) - 1:
+                self.stats_layout.addSpacing(5)
+
+        self.stats_layout.addStretch()
+
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setVisible(True)
+        self.progress_bar.setFixedHeight(5)
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.progress_bar.setFormat(" ")
+        # self.progress_bar.setStyleSheet(
+        #     "QProgressBar { border: none; background: transparent; } "
+        #     "QProgressBar::chunk { background: transparent; }"
+        # )
+        self.progress_bar.setStyleSheet(APP_THEME.progress_bar_qss(active=False))
+
+        self.scan_btn = QPushButton("Scan")
+        self.scan_btn.setStyleSheet(APP_THEME.button_qss())
+        self.scan_btn.setFixedWidth(self.scan_btn.sizeHint().width() + 20)
+
+        self.scan_btn.clicked.connect(
+            lambda: self._start_scan(self.media_config, self.scan_btn, self.progress_bar)
+        )
+        self.stats_layout.addWidget(self.scan_btn)
+
+        layout.addLayout(self.stats_layout)
+        layout.addWidget(self.progress_bar)
+
+    def apply_theme(self) -> None:
+        super().apply_theme()
+
+        custom_qss = APP_THEME.settings_media_folder_browser_section_qss()
+        if custom_qss not in self.styleSheet():
+             self.setStyleSheet(self.styleSheet() + custom_qss)
+
+    def apply_changes(self) -> None:
+        self.media_config["label"] = self.label_edit.text()
+        self.media_config["media_type"] = self.type_combo.currentData()
+        self.media_config["icon"] = self.icon_combo.currentData()
+        self.media_config["path"] = self.folder_edit.text()
+        self.sig_config_changed.emit(self.media_config, "label", self.media_config["label"])
+        self.sig_config_changed.emit(self.media_config, "media_type", self.media_config["media_type"])
+        self.sig_config_changed.emit(self.media_config, "icon", self.media_config["icon"])
+        self.sig_config_changed.emit(self.media_config, "path", self.media_config["path"])
+
+    def _refresh_stats_labels(self, media_config: dict[str, Any]) -> None:
+        db_path = self.get_db_path_callback(media_config)
+        stats = None
+        if os.path.exists(db_path):
+            db_util = DbScanUtil(db_path)
+            stats = db_util.get_stats(media_config["path"])
+
+        stats_data = [
+            str(stats[1]) if stats else "-",
+            str(stats[2]) if stats else "-",
+            str(stats[3]) if stats else "-",
+            str(stats[4]) if stats else "-",
+            str(stats[5]) if stats else "-",
+            str(stats[6]) if stats else "-",
+            stats[7].strftime("%y-%m-%d %I%p").lower() if stats and stats[7] else "n/a"
+        ]
+
+        for i, val in enumerate(stats_data):
+            lbl = self.findChild(QLabel, f"stats_val_{i}")
+            if lbl:
+                lbl.setText(val)
+
+    def _start_scan(
+        self,
+        media_config: dict[str, Any],
+        scan_btn: QPushButton,
+        progress_bar: QProgressBar,
+    ) -> None:
+        self.apply_changes()
+        scan_btn.setEnabled(False)
+        scan_btn.setText("0%")
+
+        progress_bar.setFormat(" ")
+        progress_bar.setStyleSheet(APP_THEME.progress_bar_qss(active=True))
+
+        self.worker = ScanWorker(media_config, self.file_util, self.nfo_util)
+        self.worker.progress_init.connect(lambda val: progress_bar.setRange(0, val))
+        self.worker.progress_updated.connect(progress_bar.setValue)
+        self.worker.progress_updated.connect(
+            lambda val: scan_btn.setText(f"{min(100, int(val / progress_bar.maximum() * 100))}%")
+            if progress_bar.maximum() > 0
+            else None
+        )
+        self.worker.finished.connect(
+            lambda: self._on_scan_finished(scan_btn, progress_bar, media_config)
+        )
+        self.worker.start()
+
+    def _on_scan_finished(self, scan_btn: QPushButton, progress_bar: QProgressBar, media_config: dict[str, Any]) -> None:
+        progress_bar.setValue(0)
+        progress_bar.setRange(0, 100)
+        progress_bar.setFormat(" ")
+        progress_bar.setStyleSheet(APP_THEME.progress_bar_qss(active=False))
+        scan_btn.setText("Scan")
+        scan_btn.setEnabled(True)
+
+        self._refresh_stats_labels(media_config)
+
+    def _on_folder_selected(self, path: str) -> None:
+        self.folder_edit.setText(path)
+        # self.sig_config_changed.emit(self.media_config, "path", path)

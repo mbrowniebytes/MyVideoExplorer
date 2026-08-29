@@ -68,7 +68,7 @@ class SettingsAppTab(SettingsBaseTab):
 
         current_launch_size = getattr(self.state, "launch_app_size", "app_size_min")
         if current_launch_size == "app_size_min":
-            current_launch_size = "app_size_1400x900"
+            current_launch_size = "app_size_1200x800"
         index = self.launch_app_size_combo.findData(current_launch_size)
         if index >= 0:
             self.launch_app_size_combo.setCurrentIndex(index)
@@ -111,7 +111,10 @@ class SettingsAppTab(SettingsBaseTab):
         if index >= 0:
             self.show_loading_screen_combo.setCurrentIndex(index)
 
-        self.show_loading_screen_combo.setToolTip("Show loading screen when app launches")
+        self.show_loading_screen_combo.currentIndexChanged.connect(
+            self._on_loading_screen_changed
+        )
+        self.show_loading_screen_combo.currentIndexChanged.connect(self._on_setting_changed)
         app_layout.addRow("Show Loading Screen", self.show_loading_screen_combo)
 
 
@@ -211,6 +214,21 @@ class SettingsAppTab(SettingsBaseTab):
             )
         )
 
+    def _on_loading_screen_changed(self, index: int) -> None:
+        value = self.show_loading_screen_combo.itemData(index, role=Qt.ItemDataRole.UserRole)
+
+        self.state.show_loading_screen = value
+
+        self.state.sig_settings_changed.emit(
+            SignalPayload(
+                data=value,
+                sender=self.__class__.__name__,
+                name="Settings Changed",
+                description="Show loading screen setting was changed.",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
+
     def reset_settings(self) -> None:
         """Reset settings for this tab."""
         self.state.load_app()
@@ -229,7 +247,7 @@ class SettingsAppTab(SettingsBaseTab):
         # Update launch app size combo
         current_launch_size = getattr(self.state, "launch_app_size", "app_size_min")
         if current_launch_size == "app_size_min":
-            current_launch_size = "app_size_1400x900"
+            current_launch_size = "app_size_1200x800"
         index = self.launch_app_size_combo.findData(current_launch_size)
         if index >= 0:
             self.launch_app_size_combo.setCurrentIndex(index)

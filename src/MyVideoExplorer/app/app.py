@@ -1,18 +1,12 @@
-import os
-from pathlib import Path
-
-from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QApplication,
-    QHBoxLayout,
     QMainWindow,
-    QSplitter,
-    QVBoxLayout,
     QWidget,
 )
 
 from MyVideoExplorer.app.app_container import AppContainer
-from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.app.app_builder import AppBuilder
+from MyVideoExplorer.app.app_state_handler import AppStateHandler
 
 
 class App:
@@ -22,135 +16,17 @@ class App:
         container: AppContainer,
         window: QMainWindow,
     ) -> None:
-        self.window = window
-
-        # self.window.hide()
-        # self.window.resize(1000, 700)
-
         self.app = app
+        self.window = window
         self.container = container
-
-        self.file_util = container.file_util
-        self.font_util = container.font_util
-
-        self.controller = container.controller
-        self.folder_nav = container.folder_nav
-        self.folder_list = container.folder_list
-        self.file_list = container.file_list
-        self.image_list = container.image_list
-        self.media_tabs = container.media_info_tabs
-        self.video_player = container.video_player
-        self.media_info = container.media_info
+        self.builder = AppBuilder(container, app, window)
+        self.state_handler = AppStateHandler(container, window)
 
     def build(self) -> QWidget:
-        self.font_util.load_custom_fonts()
-
-        main_widget = QWidget()
-        main_layout = QHBoxLayout(main_widget)
-        main_layout.setSpacing(2)
-        main_layout.setContentsMargins(2, 0, 2, 0)
-
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        splitter.setStyleSheet(APP_THEME.splitter_qss())
-        splitter.setContentsMargins(0, 8, 0, 2)
-
-        left_panel = self._create_left_panel()
-        right_panel = self._create_right_panel()
-
-        splitter.addWidget(left_panel)
-        splitter.addWidget(right_panel)
-        splitter.setSizes([600, 900])
-
-        main_layout.addWidget(splitter)
-
-        APP_THEME.app = self.app
-        APP_THEME.refresh_theme(self.window)
-
-        return main_widget
-
-    def _create_left_panel(self) -> QWidget:
-        folder_nav_widget = self.folder_nav.build()
-
-        file_container = QWidget()
-        layout_folder_file = QVBoxLayout(file_container)
-        layout_folder_file.setContentsMargins(0, 0, 0, 0)
-        layout_folder_file.setSpacing(2)
-        layout_folder_file.addWidget(folder_nav_widget, 0)
-        layout_folder_file.addWidget(self.folder_list.build(), 1)
-        return file_container
-
-    def _create_right_panel(self) -> QWidget:
-        self.image_list.image_list_view.media_info_side_view = (
-            self.media_info.media_info_side_view
-        )
-
-        return self.media_tabs.build()
+        return self.builder.build()
 
     def initialize(self) -> None:
-        # QTimer.singleShot(150, lambda: self._init_app_and_show())
-        self._init_app_and_show()
-
-    def _init_app_and_show(self) -> None:
-        # if IS_DEVELOPMENT:
-        #     time.sleep(2.5)
-        self.window.setUpdatesEnabled(False)
-        self._initialize_app_state()
-        self.container.resize_window(self.window)
-        self.window.setUpdatesEnabled(True)
-
-    def _initialize_app_state(self) -> None:
-        # Initialize app by iterating over all configured Media folders.
-        # For each valid folder path, set it as the current root so the
-        # UI components (folder nav, folder list, image list) refresh.
-
-        media_configs = self.container.settings.settings_data_model.folder_configs
-        valid_paths = []
-        for media_folder_config in media_configs:
-            path_string = media_folder_config.get("path", "")
-            if not path_string:
-                continue
-            try:
-                # real_path = os.path.realpath(path_string)
-                real_path = Path(path_string).as_posix()
-            except Exception:
-                continue
-            if os.path.isdir(real_path):
-                valid_paths.append(real_path)
-
-        # If we have at least one valid media folder, iterate and set each so
-        # the container refreshes components for each root. Otherwise leave
-        # the controller with an empty selection which will show the empty state.
-        if valid_paths:
-            # Let controller handle multiple roots at once
-            self.controller.set_root_folders(valid_paths)
-        else:
-            # No valid media folders configured - emit empty selection so UI
-            # shows the instruction to add media folders in settings.
-            self.controller.set_root_folders([])
+        self.state_handler.initialize()
 
     def close(self) -> None:
-        prior_folder = self.controller.state.current_folder
-        # window_geometry = self.window.saveGeometry().data().hex()
-        window_size = self.window.size()
-        app_size = ""
-        if window_size:
-            # hard code windows titlebar offset
-            app_height = window_size.height() - 147
-            app_height = window_size.height()
-            app_width = window_size.width()
-            app_size = f"{app_width}x{app_height}"
-
-        window_pos = self.window.pos()
-        app_pos = ""
-        if window_pos:
-            app_pos = f"{window_pos.x()},{window_pos.y()}"
-
-        settings = {
-            "prior_folder": prior_folder,
-            "app_size": app_size,
-            "app_pos": app_pos,
-        }
-        self.container.settings.settings_data_model.save_state(settings)
-
-        self.container.log_util.log_memory("Application closing...")
-        self.container.log_util.close()
+        self.state_handler.close()

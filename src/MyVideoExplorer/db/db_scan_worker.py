@@ -20,9 +20,9 @@ class ScanWorker(QThread):
     progress_init = Signal(int)
     progress_updated = Signal(int)
 
-    def __init__(self, folder_config: dict[str, Any], file_util: FileUtil, nfo_util: NfoParseUtil):
+    def __init__(self, media_config: dict[str, Any], file_util: FileUtil, nfo_util: NfoParseUtil):
         super().__init__()
-        self.folder_config = folder_config
+        self.media_config = media_config
         self.file_util = file_util
         self.nfo_util = nfo_util
 
@@ -58,17 +58,17 @@ class ScanWorker(QThread):
     def run(self):
         # Scan folder
         new_results = []
-        folder_path = self.folder_config.get("path", "")
+        media_path = self.media_config.get("path", "")
 
         # Count all folders for progress bar
         total_folders = 0
-        if os.path.isdir(folder_path):
-            for _, dirs, _ in os.walk(folder_path):
+        if os.path.isdir(media_path):
+            for _, dirs, _ in os.walk(media_path):
                 total_folders += 1
         self.progress_init.emit(total_folders)
 
         stats = {
-            'folder_path': folder_path,
+            'media_path': media_path,
             'subfolders_count': 0,
             'files_count': 0,
             'images_count': 0,
@@ -79,8 +79,8 @@ class ScanWorker(QThread):
         }
 
         progress = 0
-        if os.path.isdir(folder_path):
-            for root, dirs, files in os.walk(folder_path):
+        if media_path and os.path.isdir(media_path):
+            for root, dirs, files in os.walk(media_path):
                 stats['subfolders_count'] += len(dirs)
                 stats['files_count'] += len(files)
 
@@ -96,16 +96,15 @@ class ScanWorker(QThread):
                     ext = os.path.splitext(file)[1].lower()
                     if ext in FileUtilType.VIDEO_EXTS:
                         stats['videos_count'] += 1
-                        video_path = os.path.join(root, file).replace(os.path.sep, '/')
+                        file_path = os.path.join(root, file).replace(os.path.sep, '/')
 
                         # Find NFO in the same directory as the video
                         nfo_path = self.file_util.find_nfo_in_list(root, files)
                         metadata = None
                         if nfo_path:
                             metadata = self.nfo_util.parse_nfo_file(nfo_path)
-
                         new_results.append(
-                            {"path": video_path, "metadata": metadata}
+                            {"file_path": file_path, "metadata": metadata}
                         )
                     elif ext in FileUtilType.NFO_EXTS:
                         stats['nfo_count'] += 1
@@ -116,15 +115,24 @@ class ScanWorker(QThread):
 
         # Save to DB
         db_path = self._get_db_path()
+        # TODO inject log_util
+        if db_path == "":
+            print(f"no db path from label name: {self.media_config.get("label", "")}")
+            return
+
         self._backup_db(db_path)
 
         db_util = DbScanUtil(db_path)
-        db_util.save_media(new_results, folder_path)
+        db_util.save_media(new_results, media_path)
         db_util.save_stats(stats)
 
         self.finished.emit()
 
     def _get_db_path(self):
-        label = self.folder_config.get("label", "media")
+        label = self.media_config.get("label", "")
+        if label == "":
+            return ""
         safe_label = re.sub(r'[^a-zA-Z0-9_\-.]', '_', label)
+        if safe_label == "":
+            return ""
         return os.path.join("db", f"{safe_label}.db")

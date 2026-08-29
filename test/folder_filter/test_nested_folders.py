@@ -11,13 +11,13 @@ class TestNestedFolderStructure:
     @pytest.fixture
     def settings_mock(self):
         settings = MagicMock()
-        settings.settings_data_model.folder_configs = [
+        settings.settings_data_model.media_configs = [
             {"label": "Movies", "path": "movies"},
         ]
         settings.settings_data_model.db_enabled.return_value = True
 
-        os.makedirs("db", exist_ok=True)
-        db_path = "db/Movies.db"
+        os.makedirs("tmp/db", exist_ok=True)
+        db_path = "tmp/db/Test.db"
         with open(db_path, "w") as f:
             f.write("dummy")
 

@@ -1,3 +1,6 @@
+import os
+from pathlib import Path
+
 import pytest
 from unittest.mock import MagicMock, patch
 from MyVideoExplorer.db.db_scan_worker import ScanWorker
@@ -48,9 +51,9 @@ class TestScanWorker:
 
         saved_media = mock_db_util.save_media.call_args[0][0]
         assert len(saved_media) == 2
-        assert saved_media[0]["path"] == "D:/TestVideos/video1.mp4"
+        assert saved_media[0]["file_path"] == "D:/TestVideos/video1.mp4"
         assert saved_media[0]["metadata"] == {"title": "Test Movie"}
-        assert saved_media[1]["path"] == "D:/TestVideos/subdir/video2.mkv"
+        assert saved_media[1]["file_path"] == "D:/TestVideos/subdir/video2.mkv"
         assert saved_media[1]["metadata"] == {"title": "Test Movie"}
 
         saved_stats = mock_db_util.save_stats.call_args[0][0]
@@ -70,9 +73,11 @@ class TestScanWorker:
         assert not mock_remove.called
 
     def test_backup_db(self, tmp_path, folder_config, mock_file_util, mock_nfo_util):
-        db_dir = tmp_path / "db"
-        db_dir.mkdir()
-        db_file = db_dir / "Test.db"
+        # db_dir = tmp_path / "db"
+        # db_dir.mkdir()
+        db_dir = Path("tmp/db")
+        os.makedirs("tmp/db", exist_ok=True)
+        db_file = Path("tmp/db/Test.db")
         db_file.write_text("dummy db content")
 
         worker = ScanWorker(folder_config, mock_file_util, mock_nfo_util)
@@ -89,9 +94,12 @@ class TestScanWorker:
 
     def test_backup_db_rotation(self, tmp_path, folder_config, mock_file_util, mock_nfo_util):
         import time
-        db_dir = tmp_path / "db"
-        db_dir.mkdir()
-        db_file = db_dir / "Test.db"
+        # db_dir = tmp_path / "db"
+        # db_dir.mkdir()
+        # db_file = db_dir / "Test.db"
+        db_dir = Path("tmp/db")
+        os.makedirs("tmp/db", exist_ok=True)
+        db_file = Path("tmp/db/Test.db")
         db_file.write_text("dummy db content")
 
         worker = ScanWorker(folder_config, mock_file_util, mock_nfo_util)

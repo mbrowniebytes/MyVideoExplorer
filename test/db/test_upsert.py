@@ -1,8 +1,10 @@
+import os
 from MyVideoExplorer.db.db_scan import DbScanUtil
 import duckdb
 
 # Re-init db
-db_util = DbScanUtil('db/test_upsert.db')
+os.makedirs("tmp/db", exist_ok=True)
+db_util = DbScanUtil('tmp/db/test_upsert.db')
 
 # Initial data
 media_list_1 = [
@@ -32,8 +34,8 @@ media_list_2 = [
 ]
 db_util.save_media(media_list_2, 'path/to')
 
-con = duckdb.connect('db/test_upsert.db')
+con = duckdb.connect('tmp/db/test_upsert.db')
 print("Data in media_file:")
-for row in con.execute("SELECT path, title, year FROM media_file ORDER BY path").fetchall():
+for row in con.execute("SELECT file_path, title, year FROM media_file ORDER BY file_path").fetchall():
     print(row)
 con.close()

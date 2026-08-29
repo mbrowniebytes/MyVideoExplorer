@@ -11,16 +11,16 @@ class TestFolderNavFiltersDB:
     @pytest.fixture
     def settings_mock(self):
         settings = MagicMock()
-        # Mock folder_configs with absolute paths or paths that will match
-        settings.settings_data_model.folder_configs = [
+        # Mock media_configs with absolute paths or paths that will match
+        settings.settings_data_model.media_configs = [
             {"label": "Movies", "path": "movies"},
         ]
         settings.settings_data_model.db_enabled.return_value = True
 
         # Mock get_db_path to return a path that exists
         # We'll create a dummy db file
-        os.makedirs("db", exist_ok=True)
-        db_path = "db/Movies.db"
+        os.makedirs("tmp/db", exist_ok=True)
+        db_path = "tmp/db/Test.db"
         with open(db_path, "w") as f:
             f.write("dummy")
 
@@ -74,7 +74,7 @@ class TestFolderNavFiltersDB:
             nav_filters.apply_filters(selected_folders=["movies"], on_complete=on_complete_mock)
 
             # Verify that duckdb was called
-            mock_connect.assert_called_with("db/Movies.db")
+            mock_connect.assert_called_with("tmp/db/Test.db")
 
             # Verify that items were added
             assert on_complete_mock.called

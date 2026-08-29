@@ -7,7 +7,7 @@ def test_refresh_on_signal(qtbot):
     with patch("MyVideoExplorer.settings.settings_state.SettingsState._load_settings"):
         with patch("MyVideoExplorer.settings.settings_state.SettingsState._ensure_defaults"):
             state = SettingsState(mock_log_util)
-            state.folder_configs = [{"label": "Media1", "path": "/path1"}]
+            state.media_configs = [{"label": "Media1", "path": "/path1"}]
 
             # Need a mock settings object that has settings_data_model
             settings = MagicMock()
@@ -20,7 +20,7 @@ def test_refresh_on_signal(qtbot):
             assert folder_filter.media_button_group[0].text() == "Medi" # 4 chars
 
             # Update label
-            state.folder_configs[0]["label"] = "NewMedia"
+            state.media_configs[0]["label"] = "NewMedia"
 
             from MyVideoExplorer.app.app_signals_model import SignalPayload, SignalFlow
             # Emit signal - this is what SHOULD happen when saving settings

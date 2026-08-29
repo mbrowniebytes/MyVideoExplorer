@@ -151,7 +151,7 @@ class FolderFilterFilter:
     def _get_movie_info(self, item: FileUtilModel) -> dict[str, Any] | None:
         if self.settings_state.db_enabled():
             # Find folder config
-            for config in self.settings_state.folder_configs:
+            for config in self.settings_state.media_configs:
                 if item.full_path.startswith(config["path"]):
                     db_path = self.settings_state.get_db_path(config)
                     if os.path.exists(db_path):

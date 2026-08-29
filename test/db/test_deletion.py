@@ -1,8 +1,10 @@
+import os
 from MyVideoExplorer.db.db_scan import DbScanUtil
 import duckdb
 
 # Re-init db
-db_util = DbScanUtil('db/test_deletion.db')
+os.makedirs("tmp/db", exist_ok=True)
+db_util = DbScanUtil('tmp/db/test_deletion.db')
 
 # Initial data: 2 files
 media_list_1 = [
@@ -29,8 +31,8 @@ media_list_2 = [
 ]
 db_util.save_media(media_list_2, 'path/to')
 
-con = duckdb.connect('db/test_deletion.db')
+con = duckdb.connect('tmp/db/test_deletion.db')
 print("Data in media_file (should only have Movie 1):")
-for row in con.execute("SELECT path, title FROM media_file").fetchall():
+for row in con.execute("SELECT file_path, title FROM media_file").fetchall():
     print(row)
 con.close()

@@ -14,6 +14,8 @@ class TestMediaSettingsSignals:
 
             tab = SettingsMediaTab(mock_state, mock_log_util, mock_file_util)
             tab.reset_save_button = MagicMock()
+            tab.folder_nav_layout = MagicMock()
+            tab.folder_nav_content = MagicMock()
 
             # Setup mock dropdown
             tab.db_enabled_dropdown = MagicMock()

@@ -20,12 +20,12 @@ class TestDbScanUtil:
         tables = con.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
         table_names = [table[0] for table in tables]
         assert "media_file" in table_names
-        assert "folder_stats" in table_names
+        assert "media_path_stats" in table_names
         con.close()
 
     def test_save_and_get_stats(self, db_util, db_path):
         stats = {
-            'folder_path': '/test/path',
+            'media_path': '/test/path',
             'subfolders_count': 1,
             'files_count': 2,
             'images_count': 0,
@@ -43,12 +43,12 @@ class TestDbScanUtil:
 
     def test_save_media(self, db_util, db_path):
         media_list = [
-            {'path': '/test/path/video1.mp4', 'metadata': {'title': 'Movie 1'}},
-            {'path': '/test/path/video2.mp4', 'metadata': {'title': 'Movie 2'}}
+            {'file_path': '/test/path/video1.mp4', 'metadata': {'title': 'Movie 1'}},
+            {'file_path': '/test/path/video2.mp4', 'metadata': {'title': 'Movie 2'}}
         ]
         db_util.save_media(media_list, '/test/path')
         con = duckdb.connect(db_path)
-        data = con.execute("SELECT path, title FROM media_file").fetchall()
+        data = con.execute("SELECT file_path, title FROM media_file").fetchall()
         assert len(data) == 2
         assert data[0][0] == '/test/path/video1.mp4'
         assert data[0][1] == 'Movie 1'

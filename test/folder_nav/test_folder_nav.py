@@ -14,7 +14,7 @@ class TestFolderNav:
         # Create real widgets to satisfy PySide6's type checking in layout.addWidget
         # but keep them minimal or stub their logic if needed
         settings = MagicMock(spec=Settings)
-        settings.folder_configs = []
+        settings.media_configs = []
         settings.saved_filters = {}
         settings.settings_data_model = MagicMock()
         settings.sig_changed = MagicMock()

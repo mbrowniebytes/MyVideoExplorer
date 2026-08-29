@@ -45,7 +45,7 @@ class SettingsState(QObject):
         self.launch_app_pos = "app_pos_center_center"
         self.show_loading_screen = True
 
-        self.folder_configs: list[dict[str, Any]] = []
+        self.media_configs: list[dict[str, Any]] = []
         self._db_enabled = True
         self.saved_filters: list[dict[str, Any]] = []
         self._load_settings()
@@ -73,7 +73,7 @@ class SettingsState(QObject):
             "app_font": "Lato",
         }
         media_defaults: dict[str, Any] = {
-            "folder_configs": self.folder_configs,
+            "media_configs": self.media_configs,
             "db_enabled": self._db_enabled,
         }
         filter_defaults: dict[str, list[dict[str, Any]]] = {
@@ -124,13 +124,13 @@ class SettingsState(QObject):
         media_data = self.json_util.load_json(DEFAULTS_MEDIA_FILE)
         if SETTINGS_MEDIA_FILE.exists():
             media_data.update(self.json_util.load_json(SETTINGS_MEDIA_FILE))
-        self.folder_configs = media_data.get("folder_configs", self.folder_configs)
+        self.media_configs = media_data.get("media_configs", self.media_configs)
         self._db_enabled = media_data.get("db_enabled", False)
 
         # Ensure each folder config has an icon
-        for config in self.folder_configs:
+        for config in self.media_configs:
             if "icon" not in config:
-                config["icon"] = "folder"
+                config["icon"] = "fa5s.folder"
 
         # Load Filter Settings
         filter_data = self.json_util.load_json(DEFAULTS_FILTER_FILE)
@@ -193,10 +193,11 @@ class SettingsState(QObject):
         self._ensure_defaults()
 
         media_settings: dict[str, Any] = {
-            "folder_configs": self.folder_configs,
+            "media_configs": self.media_configs,
             "db_enabled": self._db_enabled,
         }
 
+        self.log_util.info(f"Saving media_settings: {media_settings}")
         # Backup then save
         self.json_util.backup_file(SETTINGS_MEDIA_FILE, max_backups=5)
         self.json_util.save_json(SETTINGS_MEDIA_FILE, media_settings)
@@ -250,12 +251,13 @@ class SettingsState(QObject):
         media_data = self.json_util.load_json(DEFAULTS_MEDIA_FILE)
         if SETTINGS_MEDIA_FILE.exists():
             media_data.update(self.json_util.load_json(SETTINGS_MEDIA_FILE))
-        self.folder_configs = media_data.get("folder_configs", self.folder_configs)
+        self.media_configs = media_data.get("media_configs", self.media_configs)
+        self.log_util.info(f"Loaded media_configs: {self.media_configs}")
         self._db_enabled = media_data.get("db_enabled", True)
         # Ensure each folder config has an icon
-        for config in self.folder_configs:
+        for config in self.media_configs:
             if "icon" not in config:
-                config["icon"] = "folder"
+                config["icon"] = "fa5s.folder"
 
     def load_filters(self) -> None:
         """Reload Filter settings from file."""
@@ -320,8 +322,8 @@ class SettingsState(QObject):
             return False
 
         # Check if at least one DB exists
-        for folder_config in self.folder_configs:
-            db_path = self.get_db_path(folder_config)
+        for media_config in self.media_configs:
+            db_path = self.get_db_path(media_config)
             if os.path.exists(db_path):
                 return True
         return False

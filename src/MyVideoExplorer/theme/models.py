@@ -51,6 +51,7 @@ class ThemeConfig:
     # Structure & Layout
     color_section_divider: str = "#4B4246"
     size_border_radius_standard: int = 8
+    settings_media_folder_browser_section_divider: str = "#6B8286"
 
     # List Item Padding
     padding_list_item_vertical: int = 4

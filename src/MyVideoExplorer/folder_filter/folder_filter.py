@@ -61,7 +61,7 @@ class FolderFilters(QWidget, ThemableMixin):
         # self.delete_filter_button = QToolButton()
         self.media_filter_widget = FolderFilterMedia(self.settings, log_util, self)
         self.filter_table = FolderFilterTable(
-            self.GENRES, self.settings.settings_data_model.folder_configs
+            self.GENRES, self.settings.settings_data_model.media_configs
         )
         # support multiple roots
         self.root_folders: list[str] = []
@@ -80,7 +80,7 @@ class FolderFilters(QWidget, ThemableMixin):
         # self._build_delete_filter_button()
 
         self.filter_table = FolderFilterTable(
-            self.GENRES, self.settings.settings_data_model.folder_configs
+            self.GENRES, self.settings.settings_data_model.media_configs
         )
 
         # Add filter controls row
@@ -113,7 +113,7 @@ class FolderFilters(QWidget, ThemableMixin):
         self.nav_combo.blockSignals(True)
         self.nav_combo.clear()
         self.nav_combo.addItem("- Select Folder -", userData="")
-        for config in self.settings.settings_data_model.folder_configs:
+        for config in self.settings.settings_data_model.media_configs:
             label = config.get("label", "")
             if not label:
                 label = config.get("path", "")
@@ -227,6 +227,7 @@ class FolderFilters(QWidget, ThemableMixin):
             self.build_nav_combo()
             self._refresh_saved_filters_combo()
             self._load_saved_filter(self.saved_filters_combo.currentIndex())
+            self.sig_apply_filters.emit()
 
         self.settings.settings_data_model.sig_settings_changed.connect(refresh_all)
 
@@ -312,7 +313,7 @@ class FolderFilters(QWidget, ThemableMixin):
         if selected_folders:
             folder_paths = selected_folders
         else:
-            folder_paths = self.root_folders
+            folder_paths = [config["path"] for config in self.settings.settings_data_model.media_configs if config.get("path")]
 
         if self.settings.settings_data_model.db_enabled():
             # Use database
@@ -320,7 +321,7 @@ class FolderFilters(QWidget, ThemableMixin):
                 self.sig_loading_started.emit([folder_path])
                 # Find folder config
                 db_path = None
-                for config in self.settings.settings_data_model.folder_configs:
+                for config in self.settings.settings_data_model.media_configs:
                     if config["path"] == folder_path:
                         db_path = self.settings.settings_data_model.get_db_path(config)
                         break
@@ -332,9 +333,7 @@ class FolderFilters(QWidget, ThemableMixin):
 
                     # 1. Add files and their parent directories
                     paths = [r[0] for r in res]
-                    print(f"DEBUG: paths={paths}")
                     h = self.file_util.build_hierarchy_from_paths(paths, folder_path)
-                    print(f"DEBUG: h={h}")
                     items.extend(h)
 
             if on_complete:

@@ -237,7 +237,7 @@ class ImageList(QWidget, ThemableMixin):
             return False
         import os
 
-        for config in self.settings.settings_data_model.folder_configs:
+        for config in self.settings.settings_data_model.media_configs:
             p = config.get("path", "")
             if p and os.path.isdir(p):
                 return True

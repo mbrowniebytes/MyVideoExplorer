@@ -13,7 +13,7 @@ class TestImageList:
     def image_list(self, qtbot):
         file_util = MagicMock(spec=FileUtil)
         settings = MagicMock()
-        settings.settings_data_model.folder_configs = []
+        settings.settings_data_model.media_configs = []
         nfo_parse_util = MagicMock(spec=NfoParseUtil)
         nfo_parse_util.parse_nfo_folder.return_value = {}
 

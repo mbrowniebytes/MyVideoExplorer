@@ -6,16 +6,19 @@
 
 - add [duckdb](https://duckdb.org/) support
   - loading from db is faster and allows for more filtering
-- add setting to load from db or filesystem
-- per media config
-  - add a Scan button, saving to db/[media].db in duckdb format
-  - add folder and file stats
+  - add setting to load from db or filesystem
+  - per media config
+    - add a Scan button, saving to db/[media].db in duckdb format
+    - add folder and file stats
+  - add db migration process
 - add loading screen option
 - fix when add new media config do not auto refresh folder nav
 - internal:
   - fix launch of code from cli, using proper python module layout
   - typing for ide
   - remove excessive hasattr checks
+  - refactors into smaller, focused modules 
+  - add basic db data checks
   - cleanup docs
 
 release - [MyVideoExplorer-2026####-0.005 ](https://github.com/mbrowniebytes/MyVideoExplorer/releases/tag/2026####-0.005)
