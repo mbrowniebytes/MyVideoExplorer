@@ -185,7 +185,7 @@ class SettingsFilterTab(SettingsBaseTab):
         container.filter_table = filter_table
 
         add_btn = QPushButton("Add")
-        add_btn.setIcon(APP_THEME.icon("fa5s.plus-circle", color=APP_THEME.text_color))
+        add_btn.setIcon(APP_THEME.icon("fa6s.plus-circle", color=APP_THEME.text_color))
         add_btn.setIconSize(QSize(APP_THEME.icon_size - 5, APP_THEME.icon_size - 5))
         add_btn.setStyleSheet(APP_THEME.button_qss())
         add_btn.clicked.connect(
@@ -193,7 +193,7 @@ class SettingsFilterTab(SettingsBaseTab):
         )
 
         delete_btn = QPushButton("")
-        delete_btn.setIcon(APP_THEME.icon("fa5s.trash-alt", color=APP_THEME.text_color))
+        delete_btn.setIcon(APP_THEME.icon("fa6s.trash-alt", color=APP_THEME.text_color))
         delete_btn.setIconSize(QSize(APP_THEME.icon_size - 5, APP_THEME.icon_size - 5))
         delete_btn.setStyleSheet(APP_THEME.button_qss())
         delete_btn.clicked.connect(lambda: self._delete_filter(filter_cfg))

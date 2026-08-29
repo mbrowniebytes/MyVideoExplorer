@@ -44,7 +44,7 @@ class FileList(QWidget, ThemableMixin):
         self.explorer_button.setText("Open Folder")
         self.explorer_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
         self.explorer_button.setIcon(
-            APP_THEME.icon("fa5s.folder", color=APP_THEME.text_color)
+            APP_THEME.icon("fa6s.folder", color=APP_THEME.text_color)
         )
         self.explorer_button.setIconSize(
             QSize(APP_THEME.icon_size, APP_THEME.icon_size)

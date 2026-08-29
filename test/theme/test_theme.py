@@ -64,7 +64,7 @@ class TestTheme:
         from PySide6.QtGui import QIcon
 
         # Test valid icon
-        icon = theme.icon("fa5s.folder")
+        icon = theme.icon("fa6s.folder")
         assert isinstance(icon, QIcon)
         assert not icon.isNull()
 

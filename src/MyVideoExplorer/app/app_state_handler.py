@@ -1,13 +1,41 @@
 import os
-from pathlib import Path
 from PySide6.QtWidgets import QMainWindow
+
 from MyVideoExplorer.app.app_container import AppContainer
+from MyVideoExplorer.utils.file_util import FileUtil
+
 
 class AppStateHandler:
     def __init__(self, container: AppContainer, window: QMainWindow) -> None:
         self.container = container
         self.window = window
         self.controller = container.controller
+
+    @staticmethod
+    def _normalize_root_path(path_string: str) -> str:
+        """Return a canonical directory path suitable for comparison and storage."""
+        return FileUtil.normalize_path(path_string)
+
+    @classmethod
+    def _collect_valid_root_paths(cls, media_configs: list[dict]) -> list[str]:
+        valid_paths: list[str] = []
+        seen: set[str] = set()
+
+        for media_folder_config in media_configs:
+            if not isinstance(media_folder_config, dict):
+                continue
+            path_string = str(media_folder_config.get("path", "")).strip()
+            if not path_string:
+                continue
+            try:
+                real_path = cls._normalize_root_path(path_string)
+            except Exception:
+                continue
+            if os.path.isdir(real_path) and real_path not in seen:
+                seen.add(real_path)
+                valid_paths.append(real_path)
+
+        return valid_paths
 
     def initialize(self) -> None:
         self.window.setUpdatesEnabled(False)
@@ -17,22 +45,8 @@ class AppStateHandler:
 
     def _initialize_app_state(self) -> None:
         media_configs = self.container.settings.settings_data_model.media_configs
-        valid_paths = []
-        for media_folder_config in media_configs:
-            path_string = media_folder_config.get("path", "")
-            if not path_string:
-                continue
-            try:
-                real_path = Path(path_string).as_posix()
-            except Exception:
-                continue
-            if os.path.isdir(real_path):
-                valid_paths.append(real_path)
-
-        if valid_paths:
-            self.controller.set_root_folders(valid_paths)
-        else:
-            self.controller.set_root_folders([])
+        valid_paths = self._collect_valid_root_paths(media_configs)
+        self.controller.set_root_folders(valid_paths)
 
     def close(self) -> None:
         prior_folder = self.controller.state.current_folder

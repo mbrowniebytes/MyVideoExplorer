@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import sys
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from time import sleep
 
@@ -26,6 +26,12 @@ class FileUtil:
         self.active_tasks: list[dict] = []
 
         self.log_util.debug(f"__init__ {self.__class__.__name__}")
+
+    @staticmethod
+    def normalize_path(path: str | os.PathLike[str]) -> str:
+        """Return a normalized filesystem path using forward-slash separators."""
+        candidate = Path(path).expanduser().resolve(strict=False)
+        return candidate.as_posix()
 
     @staticmethod
     def get_resource_path(relative_path: str) -> str:
@@ -280,7 +286,7 @@ class FileUtil:
 
         return self.find_nfo_in_list(path, [entry.name for entry in self._scan_directory(target) if entry.is_file(follow_symlinks=False)])
 
-    def find_nfo_in_list(self, path: str, files: list[str]) -> str | None:
+    def find_nfo_in_list(self, path: str, files: Sequence[str]) -> str | None:
         """Locate an NFO file in a given list of files, prioritizing standard media naming conventions."""
         preferred_names = {"movie.nfo", "tvshow.nfo"}
 

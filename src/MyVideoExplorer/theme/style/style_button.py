@@ -10,7 +10,7 @@ class StyleButton:
                 border-radius: {c.size_border_radius_standard}px;
                 padding: {c.padding_button_standard_v}px {c.padding_button_standard_h}px;
                 background: {c.color_surface_primary};
-                text-align: left;
+                text-align: center;
             }}
             QAbstractButton:hover {{
                 background: {c.color_interaction_hover};

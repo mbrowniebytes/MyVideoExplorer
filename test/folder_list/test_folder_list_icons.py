@@ -14,8 +14,8 @@ class TestFolderListIcons:
         file_util = MagicMock(spec=FileUtil)
         settings = MagicMock()
         settings.settings_data_model.media_configs = [
-            {"path": "/path/to/Folder A", "icon": "fa5s.video"},
-            {"path": "/path/to/Folder B", "icon": "fa5s.image"},
+            {"path": "/path/to/Folder A", "icon": "fa6s.video"},
+            {"path": "/path/to/Folder B", "icon": "fa6s.image"},
         ]
 
 
@@ -46,17 +46,17 @@ class TestFolderListIcons:
         # Folder A should have video icon
         assert (
             folder_list.folder_list_view.item(0).data(Qt.ItemDataRole.UserRole + 1)
-            == "fa5s.video"
+            == "fa6s.video"
         )
         # Folder B should have image icon
         assert (
             folder_list.folder_list_view.item(1).data(Qt.ItemDataRole.UserRole + 1)
-            == "fa5s.image"
+            == "fa6s.image"
         )
         # Folder C should have default folder icon
         assert (
             folder_list.folder_list_view.item(2).data(Qt.ItemDataRole.UserRole + 1)
-            == "fa5s.folder"
+            == "fa6s.folder"
         )
 
     def test_refresh_icons_updates_existing_items(self, folder_list):
@@ -69,11 +69,11 @@ class TestFolderListIcons:
             folder_list.update_folder_list_by_items(items)
         assert (
             folder_list.folder_list_view.item(0).data(Qt.ItemDataRole.UserRole + 1)
-            == "fa5s.video"
+            == "fa6s.video"
         )
 
         # Change icon in settings
-        folder_list.settings.settings_data_model.media_configs[0]["icon"] = "fa5s.star"
+        folder_list.settings.settings_data_model.media_configs[0]["icon"] = "fa6s.star"
 
         # Call refresh_icons
         folder_list.refresh_icons()
@@ -81,7 +81,7 @@ class TestFolderListIcons:
         # Verify it updated
         assert (
             folder_list.folder_list_view.item(0).data(Qt.ItemDataRole.UserRole + 1)
-            == "fa5s.star"
+            == "fa6s.star"
         )
 
     def test_refresh_icons_case_insensitivity(self, folder_list):
@@ -96,7 +96,7 @@ class TestFolderListIcons:
         # It should match /path/to/Folder A from settings despite casing
         assert (
             folder_list.folder_list_view.item(0).data(Qt.ItemDataRole.UserRole + 1)
-            == "fa5s.video"
+            == "fa6s.video"
         )
 
     def test_refresh_icons_no_change(self, folder_list):
@@ -114,5 +114,5 @@ class TestFolderListIcons:
 
         assert (
             folder_list.folder_list_view.item(0).data(Qt.ItemDataRole.UserRole + 1)
-            == "fa5s.video"
+            == "fa6s.video"
         )

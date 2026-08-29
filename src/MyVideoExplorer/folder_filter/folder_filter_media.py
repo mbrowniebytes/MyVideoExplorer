@@ -54,7 +54,7 @@ class FolderFilterMedia(QWidget, ThemableMixin):
             if not path:
                 continue
 
-            icon_name = config.get("icon", "fa5s.folder")
+            icon_name = config.get("icon", "fa6s.folder")
 
             if not label:
                 continue
@@ -83,7 +83,7 @@ class FolderFilterMedia(QWidget, ThemableMixin):
 
             if not display_icon_name and info_list:
                 # Default to folder icon if no valid icon found
-                display_icon_name = "fa5s.folder"
+                display_icon_name = "fa6s.folder"
 
             btn = QPushButton(abbrev)
             btn.setObjectName("folder_filter_media_nav_button")
@@ -91,7 +91,7 @@ class FolderFilterMedia(QWidget, ThemableMixin):
             btn.setCheckable(True)
             # No longer manually applying small_button_qss; ThemeManager will apply it based on objectName
 
-            qicon = APP_THEME.icon(display_icon_name or "fa5s.folder")
+            qicon = APP_THEME.icon(display_icon_name or "fa6s.folder")
             if qicon:
                 icon_pixmap = qicon.pixmap(18, 18)
                 btn.setIcon(icon_pixmap)

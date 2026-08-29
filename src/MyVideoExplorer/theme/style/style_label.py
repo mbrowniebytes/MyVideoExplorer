@@ -26,9 +26,10 @@ class StyleLabel:
         elif variant == "title":
             font_size_qss = f"font-size: {c.font_size_base + 10}px;"
             weight = "700"
-            padding = "2px 0px 2px 0px"
+            padding = "0px"
             extra_label = f"""
-                border-radius: 8px;
+                margin: 0 0 3px 0;
+                border-radius: 7px;
                 border-bottom: 2px solid {c.color_border_default};
             """
         elif variant == "app_loading":

@@ -97,7 +97,7 @@ class FolderFilters(QWidget, ThemableMixin):
 
         filter_layout = QVBoxLayout(filter_container)
         filter_layout.setSpacing(0)
-        filter_layout.setContentsMargins(2, 0, 4, 0)
+        filter_layout.setContentsMargins(2, 0, 2, 0)
         filter_layout.addWidget(self.media_filter_widget)
         filter_layout.addLayout(saved_filters_layout)
         filter_layout.addLayout(add_filter_layout)
@@ -149,15 +149,15 @@ class FolderFilters(QWidget, ThemableMixin):
         )
 
     def _build_apply_button(self) -> None:
-        self.apply_button = self._make_tool_button("Apply Filters", "fa5s.sync-alt")
+        self.apply_button = self._make_tool_button("Apply Filters", "fa6s.rotate")
         self.apply_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
-        self.apply_button.setFixedWidth(60)
+        self.apply_button.setFixedWidth(50)
 
     def _build_add_filter_button(self) -> None:
         self.add_filter_button = self._make_tool_button(
-            "Add Filter", "fa5s.plus-circle"
+            "Add Filter", "fa6s.circle-plus"
         )
-        self.add_filter_button.setFixedWidth(60)
+        self.add_filter_button.setFixedWidth(50)
 
     def _build_saved_filters_combo(self) -> None:
         self.saved_filters_combo = QComboBox()
@@ -181,8 +181,8 @@ class FolderFilters(QWidget, ThemableMixin):
             self.saved_filters_combo.addItem(name)
 
     def _build_save_filter_button(self) -> None:
-        self.save_filter_button = self._make_tool_button("Save Filter", "fa5s.save")
-        self.save_filter_button.setFixedWidth(60)
+        self.save_filter_button = self._make_tool_button("Save Filter", "fa6s.floppy-disk")
+        self.save_filter_button.setFixedWidth(50)
 
     def _build_delete_filter_button(self) -> None:
         pass
@@ -192,12 +192,13 @@ class FolderFilters(QWidget, ThemableMixin):
         # self.delete_filter_button.setFixedWidth(60)
 
     def _make_tool_button(
-        self, label: str, icon_name: str = "fa5s.folder"
+        self, label: str, icon_name: str = "fa6s.folder"
     ) -> QToolButton:
         btn = QToolButton()
         btn.setToolTip(label)
         # btn.setText(label)
-        btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        # btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
         btn.setIcon(APP_THEME.icon(icon_name, color=APP_THEME.text_color))
         btn.setIconSize(QSize(APP_THEME.icon_size, APP_THEME.icon_size))
         # btn.setText(f"  {label}")

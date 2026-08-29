@@ -81,7 +81,7 @@ class FolderListView(QListWidget):
             self.setUpdatesEnabled(True)
 
     def add_folder_item(
-        self, item: FileUtilModel, icon_name: str = "fa5s.folder"
+        self, item: FileUtilModel, icon_name: str = "fa6s.folder"
     ) -> None:
         prefix = "  " * item.depth
         if item.depth > 0:
@@ -180,7 +180,7 @@ class FolderListView(QListWidget):
             else:
                 for item in folder_items:
                     icon_name = (
-                        get_icon_func(item.full_path) if get_icon_func else "fa5s.folder"
+                        get_icon_func(item.full_path) if get_icon_func else "fa6s.folder"
                     )
                     self.add_folder_item(item, icon_name)
 

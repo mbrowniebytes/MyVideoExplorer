@@ -268,7 +268,7 @@ class FolderList(QWidget, ThemableMixin):
 
     def _get_icon_for_path(self, path: str) -> str:
         if not self.settings:
-            return "fa5s.folder"
+            return "fa6s.folder"
 
         norm_path = path.lower()
         for config in self.settings.settings_data_model.media_configs:
@@ -278,9 +278,9 @@ class FolderList(QWidget, ThemableMixin):
             cfg_path = Path(cfg_path).as_posix().lower()
             # print(f"_get_icon_for_path: cfg_path: {cfg_path}, norm_path: {norm_path}")
             if norm_path.startswith(cfg_path):
-                return config.get("icon", "fa5s.folder")
+                return config.get("icon", "fa6s.folder")
 
-        return "fa5s.folder"
+        return "fa6s.folder"
 
 
     def _on_backward_folder_clicked(self) -> None:

@@ -296,7 +296,7 @@ class SettingsMediaTab(SettingsBaseTab):
         new_config = {
             "label": "",
             "path": "",
-            "icon": "fa5s.folder",
+            "icon": "fa6s.folder",
             "media_type": "movie",
         }
         self.state.media_configs.append(new_config)
@@ -363,7 +363,7 @@ class SettingsMediaTab(SettingsBaseTab):
         self.state._db_enabled = self.db_enabled_dropdown.currentText() == 'Yes'
         self.state.save_media()
         self.reset_save_button()
-        
+
         paths = self._get_valid_media_paths()
         self.sig_root_folders_changed.emit(
             SignalPayload(
@@ -374,7 +374,7 @@ class SettingsMediaTab(SettingsBaseTab):
                 flow=SignalFlow.USER_INPUT,
             )
         )
-        
+
         self.sig_saved.emit(
             SignalPayload(
                 data=None,

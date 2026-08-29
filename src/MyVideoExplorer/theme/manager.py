@@ -147,7 +147,7 @@ class ThemeManager:
             return qta.icon(name, **kwargs)
         except Exception:
             try:
-                return qta.icon("fa5s.folder", **kwargs)
+                return qta.icon("fa6s.folder", **kwargs)
             except Exception:
                 return QIcon()
 

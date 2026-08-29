@@ -130,7 +130,7 @@ class SettingsState(QObject):
         # Ensure each folder config has an icon
         for config in self.media_configs:
             if "icon" not in config:
-                config["icon"] = "fa5s.folder"
+                config["icon"] = "fa6s.folder"
 
         # Load Filter Settings
         filter_data = self.json_util.load_json(DEFAULTS_FILTER_FILE)
@@ -257,7 +257,7 @@ class SettingsState(QObject):
         # Ensure each folder config has an icon
         for config in self.media_configs:
             if "icon" not in config:
-                config["icon"] = "fa5s.folder"
+                config["icon"] = "fa6s.folder"
 
     def load_filters(self) -> None:
         """Reload Filter settings from file."""

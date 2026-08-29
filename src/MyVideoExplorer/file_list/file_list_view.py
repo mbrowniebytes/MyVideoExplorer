@@ -72,16 +72,16 @@ class FileListView(QListWidget):
         self.addItem(list_item)
 
     def _get_icon(self, file_type: str | None) -> QIcon:
-        icon_name = "fa5s.file"
+        icon_name = "fa6s.file"
 
         if file_type == "video":
-            icon_name = "fa5s.file-video"
+            icon_name = "fa6s.file-video"
         elif file_type in ("image", "poster"):
-            icon_name = "fa5s.file-image"
+            icon_name = "fa6s.file-image"
         elif file_type == "nfo":
-            icon_name = "fa5s.file-alt"
+            icon_name = "fa6s.file-alt"
         else:
-            icon_name = "fa5s.file"
+            icon_name = "fa6s.file"
 
         return APP_THEME.icon(icon_name, color=APP_THEME.text_color)
 

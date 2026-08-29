@@ -163,7 +163,7 @@ class FolderFilterTable(QTableWidget):
     def _set_remove_button_cell(self, row_nbr: int) -> None:
 
         remove_btn = QToolButton()
-        remove_btn.setIcon(APP_THEME.icon("fa5s.times", color=APP_THEME.text_color))
+        remove_btn.setIcon(APP_THEME.icon("fa6s.xmark", color=APP_THEME.text_color))
         remove_btn.setToolTip("Remove filter")
         remove_btn.clicked.connect(lambda: self._remove_filter_row(remove_btn))
         self.setCellWidget(row_nbr, 2, remove_btn)

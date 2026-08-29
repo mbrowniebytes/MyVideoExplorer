@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from MyVideoExplorer.app.app_controller import AppController
 from MyVideoExplorer.app.app_state import AppState
 from MyVideoExplorer.app.app_signals import SignalRegistry
@@ -18,13 +18,14 @@ class TestAppController:
         assert controller.state.root_folder == ""
 
     def test_set_root_folders(self, controller, qtbot):
-        with qtbot.waitSignal(controller.signals.sig_root_folders) as blocker:
-            controller.set_root_folders(["/root"])
+        with patch('MyVideoExplorer.app.app_controller.FileUtil.normalize_path', side_effect=lambda x: x):
+            with qtbot.waitSignal(controller.signals.sig_root_folders) as blocker:
+                controller.set_root_folders(["/root"])
 
-        assert controller.state.root_folder == "/root"
-        assert controller.state.current_folder == "/root"
-        assert isinstance(blocker.args[0], SignalPayload)
-        assert blocker.args[0].data == ["/root"]
+            assert controller.state.root_folder == "/root"
+            assert controller.state.current_folder == "/root"
+            assert isinstance(blocker.args[0], SignalPayload)
+            assert blocker.args[0].data == ["/root"]
 
     def test_set_current_file(self, controller, qtbot):
         with qtbot.waitSignal(controller.signals.sig_file_changed) as blocker:

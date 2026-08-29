@@ -91,7 +91,7 @@ class TestSettingsSplit:
         assert APP_THEME.font_size == 22
         assert state.media_configs[0]["label"] == "Loaded"
         # Check if icon was added by migration/ensure logic
-        assert state.media_configs[0]["icon"] == "folder"
+        assert state.media_configs[0]["icon"] == "fa6s.folder"
 
     def test_backups_for_each_file(self, setup_cfg, mock_log_util):
         state = SettingsState(mock_log_util)

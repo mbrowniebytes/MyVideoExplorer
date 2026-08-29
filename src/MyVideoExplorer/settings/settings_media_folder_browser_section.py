@@ -74,55 +74,55 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
 
         # Delete button
         self.remove_btn = QPushButton()
-        self.remove_btn.setIcon(APP_THEME.icon("fa5s.times"))
+        self.remove_btn.setIcon(APP_THEME.icon("fa6s.xmark"))
         self.remove_btn.setStyleSheet(APP_THEME.button_qss())
         self.remove_btn.setFixedWidth(30)
         self.remove_btn.clicked.connect(lambda: self.sig_remove_requested.emit(self.media_config))
 
         standard_icons = [
-            "fa5s.folder",
-            "fa5s.folder-open",
-            "fa5s.folder-minus",
-            "fa5s.folder-plus",
-            "fa5s.video",
-            "fa5s.film",
-            "fa5s.tv",
-            "fa5s.star",
-            "fa5s.heart",
-            "fa5s.user",
-            "fa5s.users",
-            "fa5s.home",
-            "fa5s.search",
-            "fa5s.cog",
-            "fa5s.list",
-            "fa5s.th",
-            "fa5s.image",
-            "fa5s.images",
-            "fa5s.file",
-            "fa5s.file-video",
-            "fa5s.camera",
-            "fa5s.camera-retro",
-            "fa5s.compact-disc",
-            "fa5s.database",
-            "fa5s.download",
-            "fa5s.external-link-alt",
-            "fa5s.eye",
-            "fa5s.eye-slash",
-            "fa5s.fire",
-            "fa5s.flag",
-            "fa5s.globe",
-            "fa5s.info-circle",
-            "fa5s.music",
-            "fa5s.play-circle",
-            "fa5s.rss",
-            "fa5s.tag",
-            "fa5s.tags",
+            "fa6s.folder",
+            "fa6s.folder-open",
+            "fa6s.folder-minus",
+            "fa6s.folder-plus",
+            "fa6s.video",
+            "fa6s.film",
+            "fa6s.tv",
+            "fa6s.star",
+            "fa6s.heart",
+            "fa6s.user",
+            "fa6s.users",
+            "fa6s.home",
+            "fa6s.search",
+            "fa6s.cog",
+            "fa6s.list",
+            "fa6s.th",
+            "fa6s.image",
+            "fa6s.images",
+            "fa6s.file",
+            "fa6s.file-video",
+            "fa6s.camera",
+            "fa6s.camera-retro",
+            "fa6s.compact-disc",
+            "fa6s.database",
+            "fa6s.download",
+            "fa6s.external-link-alt",
+            "fa6s.eye",
+            "fa6s.eye-slash",
+            "fa6s.fire",
+            "fa6s.flag",
+            "fa6s.globe",
+            "fa6s.info-circle",
+            "fa6s.music",
+            "fa6s.play-circle",
+            "fa6s.rss",
+            "fa6s.tag",
+            "fa6s.tags",
         ]
         self.icon_combo = QComboBox()
         for icon_name in standard_icons:
             self.icon_combo.addItem(APP_THEME.icon(icon_name), "", icon_name)
 
-        current_icon = self.media_config.get("icon", "fa5s.folder")
+        current_icon = self.media_config.get("icon", "fa6s.folder")
         index = self.icon_combo.findData(current_icon)
         if index >= 0:
             self.icon_combo.setCurrentIndex(index)
@@ -170,22 +170,22 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
 
         # stats: (folder_path, subfolders, files, images, videos, nfo, other, last_scanned)
         stats_icons = [
-            "fa5s.folder",
-            "fa5s.file",
-            "fa5s.image",
-            "fa5s.film",
-            "fa5s.info-circle",
-            "fa5s.file-alt",
-            "fa5s.clock"
+            "fa6s.folder",
+            "fa6s.file",
+            "fa6s.image",
+            "fa6s.film",
+            "fa6s.info-circle",
+            "fa6s.file-alt",
+            "fa6s.clock"
         ]
         icon_tooltips = {
-            "fa5s.folder": "Subfolders",
-            "fa5s.file": "Files",
-            "fa5s.image": "Images",
-            "fa5s.film": "Videos",
-            "fa5s.info-circle": "NFO Files",
-            "fa5s.file-alt": "Other Files",
-            "fa5s.clock": "Last Scanned"
+            "fa6s.folder": "Subfolders",
+            "fa6s.file": "Files",
+            "fa6s.image": "Images",
+            "fa6s.film": "Videos",
+            "fa6s.info-circle": "NFO Files",
+            "fa6s.file-alt": "Other Files",
+            "fa6s.clock": "Last Scanned"
         }
         stats_data = [
             str(stats[1]) if stats else "-",
@@ -207,7 +207,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             lbl.setObjectName(f"stats_val_{i}")
             lbl.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             # Make the last scanned label a bit wider
-            if icon_name == "fa5s.clock":
+            if icon_name == "fa6s.clock":
                 lbl.setFixedWidth(140)
             else:
                 lbl.setFixedWidth(35)

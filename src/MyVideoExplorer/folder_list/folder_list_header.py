@@ -42,15 +42,15 @@ class FolderListHeader(QWidget, ThemableMixin):
         button.setEnabled(False)
 
         if direction == "backward":
-            button.setIcon(APP_THEME.icon("fa5s.arrow-left"))
+            button.setIcon(APP_THEME.icon("fa6s.reply")) # fa6s.arrow-left
             button.setToolTip("Backward")
             button.clicked.connect(self.sig_backward_clicked)
         elif direction == "forward":
-            button.setIcon(APP_THEME.icon("fa5s.arrow-right"))
+            button.setIcon(APP_THEME.icon("fa6s.share")) # fa6s.arrow-right
             button.setToolTip("Forward")
             button.clicked.connect(self.sig_forward_clicked)
         elif direction == "random":
-            button.setIcon(APP_THEME.icon("fa5s.random"))
+            button.setIcon(APP_THEME.icon("fa6s.dice"))
             button.setToolTip("Random")
             button.clicked.connect(self.sig_random_clicked)
 
