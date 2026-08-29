@@ -360,6 +360,25 @@ class SettingsMediaTab(SettingsBaseTab):
         for widget in self.folder_nav_content.findChildren(SettingsMediaFolderBrowserSection):
             widget.apply_changes()
 
+        errors = self.state.validate_media_configs(self.state.media_configs)
+        if isinstance(errors, list) and errors:
+            QMessageBox.critical(
+                self,
+                "Invalid Media Settings",
+                "<br>".join(errors),
+            )
+            return
+
+        try:
+            self.state.sync_db_file_names(self.state.media_configs)
+        except (OSError, ValueError) as exc:
+            QMessageBox.critical(
+                self,
+                "Media DB Rename Error",
+                str(exc),
+            )
+            return
+
         self.state._db_enabled = self.db_enabled_dropdown.currentText() == 'Yes'
         self.state.save_media()
         self.reset_save_button()

@@ -13,6 +13,12 @@ class RightAlignedTabBar(QTabBar):
 
     def __init__(self, parent=None, spacer_index: int | None = None) -> None:
         super().__init__(parent)
+        # Hide the built-in scroll/arrows since tabs fit for the current UI
+        try:
+            # setUsesScrollButtons may not exist in all Qt bindings, guard it
+            self.setUsesScrollButtons(False)
+        except AttributeError:
+            pass
         self.setExpanding(False)
         self._spacer_index = spacer_index
 
@@ -45,21 +51,7 @@ class RightAlignedTabBar(QTabBar):
         # print(f"DEBUG: spacer_idx={spacer_idx}, count={self.count()}, index={index}")
 
         if index == spacer_idx:
-            # Calculate remaining space
-            parent_widget = cast(QWidget, self.parent())
-            total_width = parent_widget.width() if parent_widget else self.width()
-            tabs_width = 0
-            for i in range(self.count()):
-                if i != index:
-                    tabs_width += super().tabSizeHint(i).width()
-
-            # If there's extra space, make the spacer expand
-            if total_width > tabs_width:
-                return size.expandedTo(
-                    size.scaled(
-                        total_width - tabs_width,
-                        size.height(),
-                        Qt.AspectRatioMode.IgnoreAspectRatio,
-                    )
-                )
+            # Return a minimal width for the spacer tab so it doesn't influence
+            # the overall tab bar sizeHint or force the window to expand.
+            return QSize(0, size.height())
         return size

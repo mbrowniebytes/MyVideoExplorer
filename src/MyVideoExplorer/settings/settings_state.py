@@ -311,10 +311,89 @@ class SettingsState(QObject):
             )
         )
 
-    def get_db_path(self, folder_config: dict[str, Any]) -> str:
-        label = folder_config.get("label", "media")
-        safe_label = re.sub(r'[^a-zA-Z0-9_\-.]', '_', label)
-        return os.path.join("db", f"{safe_label}.db")
+    @staticmethod
+    def sanitize_media_label(label: Any) -> str:
+        text = str(label).strip()
+        if not text:
+            return ""
+        text = re.sub(r"[\\/:*?\"<>|]", "_", text)
+        text = re.sub(r"[^a-zA-Z0-9_.\-\s]", "_", text)
+        text = re.sub(r"\s+", " ", text).strip()
+        text = text.strip(" ._-")
+        return text
+
+    def get_db_path(self, folder_config: dict[str, Any], label_override: str | None = None) -> str:
+        label = self.sanitize_media_label(
+            label_override if label_override is not None else folder_config.get("label", "media")
+        )
+        if not label:
+            label = "media"
+        if label in {".", ".."}:
+            label = "media"
+        return os.path.join("db", f"{label}.db")
+
+    def validate_media_configs(self, media_configs: list[dict[str, Any]]) -> list[str]:
+        errors: list[str] = []
+        seen_names: set[str] = set()
+
+        for idx, config in enumerate(media_configs, start=1):
+            label = str(config.get("label", "")).strip()
+            path = str(config.get("path", "")).strip()
+            safe_label = self.sanitize_media_label(label)
+
+            if not label:
+                errors.append(f"Media config #{idx} is missing a name.")
+            elif not safe_label:
+                errors.append(f"Media config #{idx} has an invalid name: '{label}'")
+
+            if not path:
+                errors.append(f"Media config '{label or f'#{idx}'}' is missing a folder path.")
+            elif not os.path.isdir(path):
+                errors.append(f"Media config '{label or f'#{idx}'}' path does not exist: {path}")
+
+            if safe_label:
+                normalized_name = safe_label.casefold()
+                if normalized_name in seen_names:
+                    errors.append(f"Media names must be unique. '{safe_label}' is used more than once.")
+                seen_names.add(normalized_name)
+
+        return errors
+
+    def rename_db_for_media_config(self, media_config: dict[str, Any]) -> None:
+        previous_label = str(media_config.get("_previous_label", "")).strip()
+        current_label = str(media_config.get("label", "")).strip()
+        if not previous_label or previous_label == current_label:
+            return
+
+        old_db = self.get_db_path({"label": previous_label}, previous_label)
+        new_db = self.get_db_path({"label": current_label}, current_label)
+
+        if os.path.abspath(old_db) == os.path.abspath(new_db):
+            media_config["_previous_label"] = current_label
+            return
+
+        if os.path.exists(new_db) and not os.path.exists(old_db):
+            raise ValueError(
+                f"The database file '{os.path.basename(new_db)}' already exists. "
+                "Please choose a unique media name."
+            )
+
+        if os.path.exists(old_db):
+            try:
+                os.replace(old_db, new_db)
+            except OSError as exc:
+                raise OSError(
+                    f"Unable to rename database file from '{os.path.basename(old_db)}' to '{os.path.basename(new_db)}'. "
+                    f"Original media name kept. Details: {exc}"
+                ) from exc
+
+        media_config["_previous_label"] = current_label
+
+    def sync_db_file_names(self, media_configs: list[dict[str, Any]]) -> None:
+        for config in media_configs:
+            if not isinstance(config, dict):
+                continue
+            self.rename_db_for_media_config(config)
 
     def db_enabled(self) -> bool:
         # Check if the setting is 'Yes' (True)

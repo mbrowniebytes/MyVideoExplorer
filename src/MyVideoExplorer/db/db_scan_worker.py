@@ -17,6 +17,7 @@ from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 
 class ScanWorker(QThread):
     finished = Signal()
+    error = Signal(str)
     progress_init = Signal(int)
     progress_updated = Signal(int)
 
@@ -25,6 +26,27 @@ class ScanWorker(QThread):
         self.media_config = media_config
         self.file_util = file_util
         self.nfo_util = nfo_util
+
+    @staticmethod
+    def _format_error(exc: BaseException) -> str:
+        details = str(exc).strip()
+        if not details:
+            return "The scan could not be saved to the database."
+        cleaned = details.replace("\n", " ")
+        if "permission" in cleaned.lower():
+            return (
+                "The scan could not be saved because the database file is not writable. "
+                f"Please check folder permissions. Details: {cleaned}"
+            )
+        if "no such file" in cleaned.lower() or "not found" in cleaned.lower():
+            return (
+                "The selected media folder could not be found or is no longer available. "
+                f"Details: {cleaned}"
+            )
+        return (
+            "The scan could not be saved to the database. "
+            f"Please check the media name, folder path, and database permissions. Details: {cleaned}"
+        )
 
     def _backup_db(self, db_path: str):
         if not os.path.exists(db_path):
@@ -56,83 +78,88 @@ class ScanWorker(QThread):
                 pass
 
     def run(self):
-        # Scan folder
-        new_results = []
-        media_path = self.media_config.get("path", "")
+        try:
+            # Scan folder
+            new_results = []
+            media_path = self.media_config.get("path", "")
 
-        # Count all folders for progress bar
-        total_folders = 0
-        if os.path.isdir(media_path):
-            for _, dirs, _ in os.walk(media_path):
-                total_folders += 1
-        self.progress_init.emit(total_folders)
+            # Count all folders for progress bar
+            total_folders = 0
+            if os.path.isdir(media_path):
+                for _, dirs, _ in os.walk(media_path):
+                    total_folders += 1
+            self.progress_init.emit(total_folders)
 
-        stats = {
-            'media_path': media_path,
-            'subfolders_count': 0,
-            'files_count': 0,
-            'images_count': 0,
-            'videos_count': 0,
-            'nfo_count': 0,
-            'other_count': 0,
-            'last_scanned': datetime.datetime.now()
-        }
+            stats = {
+                'media_path': media_path,
+                'subfolders_count': 0,
+                'files_count': 0,
+                'images_count': 0,
+                'videos_count': 0,
+                'nfo_count': 0,
+                'other_count': 0,
+                'last_scanned': datetime.datetime.now()
+            }
 
-        progress = 0
-        if media_path and os.path.isdir(media_path):
-            for root, dirs, files in os.walk(media_path):
-                stats['subfolders_count'] += len(dirs)
-                stats['files_count'] += len(files)
+            progress = 0
+            if media_path and os.path.isdir(media_path):
+                for root, dirs, files in os.walk(media_path):
+                    stats['subfolders_count'] += len(dirs)
+                    stats['files_count'] += len(files)
 
-                # Update progress for each directory visited
-                progress += 1
-                self.progress_updated.emit(progress)
+                    # Update progress for each directory visited
+                    progress += 1
+                    self.progress_updated.emit(progress)
 
-                for file in files:
-                    # dev test large qty folders
-                    if IS_DEVELOPMENT:
-                        sleep(0.011)
+                    for file in files:
+                        # dev test large qty folders
+                        if IS_DEVELOPMENT:
+                            sleep(0.011)
 
-                    ext = os.path.splitext(file)[1].lower()
-                    if ext in FileUtilType.VIDEO_EXTS:
-                        stats['videos_count'] += 1
-                        file_path = os.path.join(root, file).replace(os.path.sep, '/')
+                        ext = os.path.splitext(file)[1].lower()
+                        if ext in FileUtilType.VIDEO_EXTS:
+                            stats['videos_count'] += 1
+                            file_path = os.path.join(root, file).replace(os.path.sep, '/')
 
-                        # Find NFO in the same directory as the video
-                        nfo_path = self.file_util.find_nfo_in_list(root, files)
-                        metadata = None
-                        if nfo_path:
-                            metadata = self.nfo_util.parse_nfo_file(nfo_path)
-                        new_results.append(
-                            {"file_path": file_path, "metadata": metadata}
-                        )
-                    elif ext in FileUtilType.NFO_EXTS:
-                        stats['nfo_count'] += 1
-                    elif ext in FileUtilType.IMAGE_EXTS:
-                        stats['images_count'] += 1
-                    else:
-                        stats['other_count'] += 1
+                            # Find NFO in the same directory as the video
+                            nfo_path = self.file_util.find_nfo_in_list(root, files)
+                            metadata = None
+                            if nfo_path:
+                                metadata = self.nfo_util.parse_nfo_file(nfo_path)
+                            new_results.append(
+                                {"file_path": file_path, "metadata": metadata}
+                            )
+                        elif ext in FileUtilType.NFO_EXTS:
+                            stats['nfo_count'] += 1
+                        elif ext in FileUtilType.IMAGE_EXTS:
+                            stats['images_count'] += 1
+                        else:
+                            stats['other_count'] += 1
 
-        # Save to DB
-        db_path = self._get_db_path()
-        # TODO inject log_util
-        if db_path == "":
-            print(f"no db path from label name: {self.media_config.get("label", "")}")
-            return
+            # Save to DB
+            db_path = self._get_db_path()
+            if db_path == "":
+                raise ValueError(
+                    "The media name is empty or contains no valid characters for database storage."
+                )
+            if not media_path or not os.path.isdir(media_path):
+                raise FileNotFoundError(f"Media folder not found: {media_path}")
 
-        self._backup_db(db_path)
+            self._backup_db(db_path)
 
-        db_util = DbScanUtil(db_path)
-        db_util.save_media(new_results, media_path)
-        db_util.save_stats(stats)
-
-        self.finished.emit()
+            db_util = DbScanUtil(db_path)
+            db_util.save_media(new_results, media_path)
+            db_util.save_stats(stats)
+        except Exception as exc:  # pragma: no cover - surfaced via UI dialog
+            self.error.emit(self._format_error(exc))
+        finally:
+            self.finished.emit()
 
     def _get_db_path(self):
-        label = self.media_config.get("label", "")
+        label = str(self.media_config.get("label", "")).strip()
         if label == "":
             return ""
         safe_label = re.sub(r'[^a-zA-Z0-9_\-.]', '_', label)
-        if safe_label == "":
+        if safe_label.strip("._-") == "":
             return ""
         return os.path.join("db", f"{safe_label}.db")

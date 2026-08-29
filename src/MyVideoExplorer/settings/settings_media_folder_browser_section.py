@@ -1,4 +1,5 @@
 import os
+import re
 from typing import Any
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
@@ -7,6 +8,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QProgressBar,
     QPushButton,
     QVBoxLayout,
@@ -55,6 +57,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
 
         self.label_edit = QLineEdit(self.media_config.get("label", ""))
         self.label_edit.setPlaceholderText("Media Name")
+        self.label_edit.textChanged.connect(self._refresh_scan_button_state)
         self.label_edit.editingFinished.connect(
             lambda: self.sig_config_changed.emit(self.media_config, "label", self.label_edit.text())
         )
@@ -142,6 +145,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
 
         self.folder_edit = QLineEdit(self.media_config["path"])
         self.folder_edit.setPlaceholderText("Media Path")
+        self.folder_edit.textChanged.connect(self._refresh_scan_button_state)
         self.folder_edit.editingFinished.connect(
             lambda: self.sig_config_changed.emit(self.media_config, "path", self.folder_edit.text())
         )
@@ -241,10 +245,12 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         self.scan_btn = QPushButton("Scan")
         self.scan_btn.setStyleSheet(APP_THEME.button_qss())
         self.scan_btn.setFixedWidth(self.scan_btn.sizeHint().width() + 20)
+        self.scan_btn.setEnabled(False)
 
         self.scan_btn.clicked.connect(
             lambda: self._start_scan(self.media_config, self.scan_btn, self.progress_bar)
         )
+        self._refresh_scan_button_state()
         self.stats_layout.addWidget(self.scan_btn)
 
         layout.addLayout(self.stats_layout)
@@ -257,8 +263,65 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         if custom_qss not in self.styleSheet():
              self.setStyleSheet(self.styleSheet() + custom_qss)
 
+    @staticmethod
+    def _safe_db_label(label: str) -> str:
+        text = str(label).strip()
+        if not text:
+            return ""
+        text = re.sub(r"[\\/:*?\"<>|]", "_", text)
+        text = re.sub(r"[^a-zA-Z0-9_.\-\s]", "_", text)
+        text = re.sub(r"\s+", " ", text).strip()
+        text = text.strip(" ._-")
+        return text
+
+    def _rename_db_file_if_needed(self, media_config: dict[str, Any]) -> None:
+        previous_label = str(media_config.get("_previous_label", "")).strip()
+        current_label = str(media_config.get("label", "")).strip()
+        if not previous_label or previous_label == current_label:
+            media_config["_previous_label"] = current_label
+            return
+
+        previous_db = os.path.join("db", f"{self._safe_db_label(previous_label)}.db")
+        current_db = os.path.join("db", f"{self._safe_db_label(current_label)}.db")
+
+        if previous_db == current_db:
+            media_config["_previous_label"] = current_label
+            return
+
+        if os.path.exists(current_db) and not os.path.exists(previous_db):
+            raise ValueError(
+                f"The database file '{os.path.basename(current_db)}' already exists. "
+                "Choose a unique media name."
+            )
+
+        if os.path.exists(previous_db):
+            try:
+                os.replace(previous_db, current_db)
+            except OSError as exc:
+                raise OSError(
+                    f"Unable to rename database file from '{os.path.basename(previous_db)}' to '{os.path.basename(current_db)}'. "
+                    f"Original media name kept. Details: {exc}"
+                ) from exc
+
+        media_config["_previous_label"] = current_label
+
+    def _refresh_scan_button_state(self) -> None:
+        if not hasattr(self, "scan_btn"):
+            return
+
+        label = self.label_edit.text().strip()
+        path = self.folder_edit.text().strip()
+        worker = getattr(self, "worker", None)
+        is_running = worker is not None and worker.isRunning()
+        self.scan_btn.setEnabled(bool(label) and bool(path) and not is_running)
+
     def apply_changes(self) -> None:
-        self.media_config["label"] = self.label_edit.text()
+        previous_label = str(self.media_config.get("label", "")).strip()
+        new_label = self.label_edit.text().strip()
+        if new_label != previous_label:
+            self.media_config["_previous_label"] = previous_label
+
+        self.media_config["label"] = new_label
         self.media_config["media_type"] = self.type_combo.currentData()
         self.media_config["icon"] = self.icon_combo.currentData()
         self.media_config["path"] = self.folder_edit.text()
@@ -266,6 +329,39 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         self.sig_config_changed.emit(self.media_config, "media_type", self.media_config["media_type"])
         self.sig_config_changed.emit(self.media_config, "icon", self.media_config["icon"])
         self.sig_config_changed.emit(self.media_config, "path", self.media_config["path"])
+        self._refresh_scan_button_state()
+
+    @staticmethod
+    def _format_scan_error(error: BaseException, media_config: dict[str, Any]) -> str:
+        label = str(media_config.get("label", "")).strip()
+        folder = str(media_config.get("path", "")).strip()
+
+        if not label:
+            return "Please enter a media name before scanning."
+        if not folder:
+            return "Please choose a media folder before scanning."
+
+        if "invalid" in str(error).lower() or "name" in str(error).lower() and "label" in str(error).lower():
+            return (
+                f"The media name '{label}' is not valid for database storage. "
+                "Use letters, numbers, spaces, dashes, underscores, or periods and try again."
+            )
+
+        details = str(error).strip()
+        if not details:
+            details = "The database could not be written to disk."
+        return (
+            "The scan could not be saved to the database. "
+            f"Please check the media name, folder path, and database permissions.\n\n{details}"
+        )
+
+    def _show_scan_error(self, error: BaseException, media_config: dict[str, Any]) -> None:
+        message = self._format_scan_error(error, media_config)
+        QMessageBox.critical(
+            self,
+            "Scan failed",
+            message,
+        )
 
     def _refresh_stats_labels(self, media_config: dict[str, Any]) -> None:
         db_path = self.get_db_path_callback(media_config)
@@ -296,6 +392,27 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         progress_bar: QProgressBar,
     ) -> None:
         self.apply_changes()
+        label = str(media_config.get("label", "")).strip()
+        folder = str(media_config.get("path", "")).strip()
+        if not label or not folder:
+            QMessageBox.warning(
+                self,
+                "Scan required",
+                "Please enter both a media name and a media folder before scanning.",
+            )
+            self._refresh_scan_button_state()
+            return
+
+        try:
+            self._rename_db_file_if_needed(media_config)
+        except (OSError, ValueError) as exc:
+            QMessageBox.critical(
+                self,
+                "Invalid Media Name",
+                str(exc),
+            )
+            return
+
         scan_btn.setEnabled(False)
         scan_btn.setText("0%")
 
@@ -310,6 +427,9 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             if progress_bar.maximum() > 0
             else None
         )
+        self.worker.error.connect(
+            lambda message: self._show_scan_error(RuntimeError(message), media_config)
+        )
         self.worker.finished.connect(
             lambda: self._on_scan_finished(scan_btn, progress_bar, media_config)
         )
@@ -321,7 +441,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         progress_bar.setFormat(" ")
         progress_bar.setStyleSheet(APP_THEME.progress_bar_qss(active=False))
         scan_btn.setText("Scan")
-        scan_btn.setEnabled(True)
+        self._refresh_scan_button_state()
 
         self._refresh_stats_labels(media_config)
 
