@@ -59,16 +59,17 @@ class MediaInfoView(QWidget, ThemableMixin):
         self.movie_info: dict | None = None
         self.view_mode = MEDIA_INFO_VIEW_MODE_DEFAULT
 
-        self.toolbar_widget = MediaInfoToolbarWidget()
-        self.scroll_content_widget = MediaInfoScrollContentWidget(log_util)
+        # Create child widgets with this view as parent to avoid top-level windows
+        self.toolbar_widget = MediaInfoToolbarWidget(parent=self)
+        self.scroll_content_widget = MediaInfoScrollContentWidget(log_util, parent=self)
 
-        self.common_section = MediaInfoCommonSection(self.str_util)
-        self.plot_section = MediaInfoPlotSection()
-        self.ids_section = MediaInfoDetailsSection()
-        self.videos_section = MediaInfoDetailsSection()
-        self.audios_section = MediaInfoDetailsSection()
-        self.subtitles_section = MediaInfoDetailsSection()
-        self.actors_section = MediaInfoActorsSection()
+        self.common_section = MediaInfoCommonSection(self.str_util, parent=self)
+        self.plot_section = MediaInfoPlotSection(parent=self)
+        self.ids_section = MediaInfoDetailsSection(parent=self)
+        self.videos_section = MediaInfoDetailsSection(parent=self)
+        self.audios_section = MediaInfoDetailsSection(parent=self)
+        self.subtitles_section = MediaInfoDetailsSection(parent=self)
+        self.actors_section = MediaInfoActorsSection(parent=self)
 
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(0, 0, 0, 0)

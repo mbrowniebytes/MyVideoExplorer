@@ -23,7 +23,7 @@ class FolderFilterMedia(QWidget, ThemableMixin):
         self.media_layout = QHBoxLayout(self)
         self.media_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.all_none_button = QPushButton("O")
+        self.all_none_button = QPushButton("O", parent=self)
         self.all_none_button.setObjectName("folder_filter_media_nav_button")
         self.all_none_button.setCheckable(True)
         self.all_none_button.setChecked(False)
@@ -85,7 +85,7 @@ class FolderFilterMedia(QWidget, ThemableMixin):
                 # Default to folder icon if no valid icon found
                 display_icon_name = "fa6s.folder"
 
-            btn = QPushButton(abbrev)
+            btn = QPushButton(abbrev, parent=self)
             btn.setObjectName("folder_filter_media_nav_button")
             btn.setToolTip(label)
             btn.setCheckable(True)

@@ -42,7 +42,7 @@ class SettingsAppTab(SettingsBaseTab):
         app_layout = QFormLayout(app_group)
 
         # App start prior folder selection combo box
-        self.app_start_select_prior_combo = QComboBox()
+        self.app_start_select_prior_combo = QComboBox(self)
         self.app_start_select_prior_combo.addItem("First Folder", "auto_select_first_folder")
         self.app_start_select_prior_combo.addItem("Prior Folder", "auto_select_prior_folder")
 
@@ -56,7 +56,7 @@ class SettingsAppTab(SettingsBaseTab):
         self.app_start_select_prior_combo.setToolTip("When Folder Nav list refreshes, either select the First Folder, or the Prior Folder")
 
         # Launch App Size
-        self.launch_app_size_combo = QComboBox()
+        self.launch_app_size_combo = QComboBox(self)
         self.launch_app_size_combo.addItem("Last Window Size", "app_size_last")
         self.launch_app_size_combo.addItem("Maximized", "app_size_maximized")
         self.launch_app_size_combo.addItem("2560x1440", "app_size_2560x1440")
@@ -81,7 +81,7 @@ class SettingsAppTab(SettingsBaseTab):
         app_layout.addRow("Launch App Size", self.launch_app_size_combo)
 
         # Launch App Position
-        self.launch_app_pos_combo = QComboBox()
+        self.launch_app_pos_combo = QComboBox(self)
         self.launch_app_pos_combo.addItem("Last Position", "app_pos_last")
         self.launch_app_pos_combo.addItem("Center Center", "app_pos_center_center")
         self.launch_app_pos_combo.addItem("Center Bottom", "app_pos_center_bottom")
@@ -102,7 +102,7 @@ class SettingsAppTab(SettingsBaseTab):
         app_layout.addRow("Launch App Position", self.launch_app_pos_combo)
 
         # Show Loading Screen
-        self.show_loading_screen_combo = QComboBox()
+        self.show_loading_screen_combo = QComboBox(self)
         self.show_loading_screen_combo.addItem("Yes", True)
         self.show_loading_screen_combo.addItem("No", False)
 
@@ -119,7 +119,7 @@ class SettingsAppTab(SettingsBaseTab):
 
 
         # Logging level combo box - populated from LogUtil.LEVEL_MAP
-        self.logging_level_combo = QComboBox()
+        self.logging_level_combo = QComboBox(self)
         for label, value in LogUtil.LEVEL_MAP.items():
             # Use capitalized display label matching the original format
             display_label = label.capitalize()
@@ -140,11 +140,11 @@ class SettingsAppTab(SettingsBaseTab):
         self.internal_layout.addStretch(2)
 
         # Save App Settings button - bottom right, centered
-        save_btn_container = QWidget()
+        save_btn_container = QWidget(self)
         save_btn_layout = QHBoxLayout(save_btn_container)
         save_btn_layout.setContentsMargins(20, 15, 20, 15)
 
-        self.save_btn = QPushButton("Save App Settings")
+        self.save_btn = QPushButton("Save App Settings", parent=self)
         self.save_btn.setFixedWidth(200)
         self.save_btn.clicked.connect(self._save_app_settings)
 
@@ -152,7 +152,7 @@ class SettingsAppTab(SettingsBaseTab):
             "Reset App Settings", self.reset_settings
         )
 
-        spacer = QWidget()
+        spacer = QWidget(self)
         spacer.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 

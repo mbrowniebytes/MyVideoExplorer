@@ -1,111 +1,13 @@
 #!/usr/bin/env python3
-"""Main entry point for the application."""
+"""Thin launcher that delegates startup to MyVideoExplorer.app.app_main.run()."""
 
-import datetime
 import sys
-import traceback
-from pathlib import Path
 
-from PySide6 import QtAsyncio
-from PySide6.QtWidgets import (
-    QApplication,
-    QMainWindow,
-)
-
-from MyVideoExplorer.app.app import App
-from MyVideoExplorer.app.app_container import AppContainer
-from MyVideoExplorer.app.app_environment import IS_DEVELOPMENT
-from MyVideoExplorer.app.app_loading import AppLoadingWidget
-from MyVideoExplorer.settings.settings_state import SettingsState
-from MyVideoExplorer.utils.log_util import LogUtil
-
-
-# Emergency fallback logging for when normal logging fails
-def _emergency_log(message: str, exc_info: bool = False) -> None:
-    """Write to log file immediately without relying on configured handlers."""
-    log_dir = Path("log")
-    log_dir.mkdir(parents=True, exist_ok=True)
-    log_file = log_dir / "app.log"
-    try:
-        with open(log_file, "a", encoding="utf-8") as f:
-            # Try to get timestamp from event loop, but don't fail if it doesn't exist
-            date_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            f.write(f"{date_str} - EMERGENCY - {message}\n")
-            if exc_info:
-                f.write(traceback.format_exc())
-                f.write("\n")
-            f.flush()
-    except Exception:
-        pass  # If emergency logging fails, nothing we can do
-
+from MyVideoExplorer.app.app_main import run
 
 def main() -> int:
-    """Application entry point."""
-    container = None
-    try:
-        qapp = QApplication(sys.argv)
-        window = QMainWindow()
-
-        # window.hide()
-        window.resize(512, 512)
-
-        log_util = LogUtil().configure("error")
-        settings_state = SettingsState(log_util)
-        if getattr(settings_state, "show_loading_screen", True):
-            loading_widget = AppLoadingWidget()
-            window.setCentralWidget(loading_widget)
-            loading_widget.setup_window(window, qapp)
-            window.show()
-            qapp.processEvents()
-        # # Create and configure logging FIRST, before anything else
-        container = AppContainer(window)
-        # Set up exception hooks BEFORE initializing the app UI
-        sys.excepthook = container.log_util.handle_exception
-
-        #resize loading screen
-        # container.resize_window(window)
-        window.show()
-        qapp.processEvents()
-        # qapp.processEvents()
-
-        app = App(qapp, container, window)
-        main_widget = app.build()
-        window.setCentralWidget(main_widget)
-        # qapp.processEvents()
-
-        # # Initialize state before showing window to avoid flicker
-        app.initialize()
-        window.show()
-
-        # result = qapp.exec()
-        result = QtAsyncio.run()
-
-        app.close()
-
-        return result
-    except Exception as e:
-        # Emergency logging if container isn't initialized
-        if container is None:
-            _emergency_log(
-                f"Exception during container initialization: {str(e)}", exc_info=True
-            )
-        else:
-            # Container exists, use configured logging
-            container.log_util.error(
-                "Exception in main",
-                extra_info={
-                    "exc_type": type(e).__name__,
-                    "exc_value": str(e),
-                },
-            )
-            tb_str = "".join(traceback.format_exception(type(e), e, e.__traceback__))
-            container.log_util.error(f"{tb_str}")
-
-        if IS_DEVELOPMENT:
-            # dev, raise in ide
-            raise e
-    return -1
-
+    """Entry point for the application."""
+    return run()
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(run())

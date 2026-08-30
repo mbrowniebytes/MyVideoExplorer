@@ -41,7 +41,8 @@ class MediaInfoSideView(QWidget, ThemableMixin):
         self.current_movie_info: dict | None = None
         self.current_view_mode = MEDIA_INFO_VIEW_MODE_IMAGE_LIST
 
-        self.side_content_widget = MediaInfoSideContentWidget(self.str_util)
+        # Make child widgets owned by this view to avoid creating top-level windows
+        self.side_content_widget = MediaInfoSideContentWidget(self.str_util, parent=self)
         self.side_content_widget.hide()
         self.side_content_widget.sig_play_video_requested.connect(self.play_video)
 
@@ -52,7 +53,7 @@ class MediaInfoSideView(QWidget, ThemableMixin):
             parent=self,
         )
 
-        self.plot_section = MediaInfoPlotSection()
+        self.plot_section = MediaInfoPlotSection(parent=self)
 
         self.media_info_side_layout = self._ui_utils.apply_compact_layout(self, QVBoxLayout)
         self.media_info_side_layout.setAlignment(Qt.AlignmentFlag.AlignTop)

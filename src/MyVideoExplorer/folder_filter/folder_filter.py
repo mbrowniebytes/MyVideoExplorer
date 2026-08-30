@@ -51,14 +51,26 @@ class FolderFilters(QWidget, ThemableMixin):
         self.log_util = log_util
         self._ui_utils = UIUtils()
         self.settings = settings
-        self.apply_button = QToolButton()
-        self.add_filter_button = QToolButton()
-        self.filter_type_combo = QComboBox()
-        self.genre_combo = GenreComboWidget(self.GENRES)
-        self.nav_combo = QComboBox()
-        self.saved_filters_combo = QComboBox()
-        self.save_filter_button = QToolButton()
-        # self.delete_filter_button = QToolButton()
+        # Create child widgets with explicit parent to avoid becoming top-level windows
+        # TODO these are rebuilt using _make_tool_button, declare instead of init
+        self.apply_button = QToolButton(self)
+        self.add_filter_button = QToolButton(self)
+        self.filter_type_combo = QComboBox(self)
+        self.genre_combo = GenreComboWidget(self.GENRES, parent=self)
+        self.nav_combo = QComboBox(self)
+        self.saved_filters_combo = QComboBox(self)
+        self.save_filter_button = QToolButton(self)
+        # These are helper controls kept for signal plumbing / future reuse. They
+        # are intentionally hidden because the actual filter editors live inside the
+        # table rows and should not duplicate at the top-left of the app.
+        self.genre_combo.setVisible(False)
+        self.nav_combo.setVisible(False)
+        # self.saved_filters_combo.setVisible(False)
+        self.save_filter_button.setVisible(False)
+        # self.filter_type_combo.setVisible(False)
+        self.add_filter_button.setVisible(False)
+        self.apply_button.setVisible(False)
+        # self.delete_filter_button = QToolButton(self)
         self.media_filter_widget = FolderFilterMedia(self.settings, log_util, self)
         self.filter_table = FolderFilterTable(
             self.GENRES, self.settings.settings_data_model.media_configs
@@ -69,7 +81,7 @@ class FolderFilters(QWidget, ThemableMixin):
         self.file_util = file_util
 
     def build(self) -> QWidget:
-        filter_container = QWidget()
+        filter_container = QWidget(self)
 
         self.build_nav_combo()
         self._build_filter_type_combo()
@@ -105,6 +117,8 @@ class FolderFilters(QWidget, ThemableMixin):
 
         left_layout = QVBoxLayout(self)
         left_layout.addWidget(filter_container)
+        # for debug, move filters down 2, 30, 2, 0
+        left_layout.setContentsMargins(2, 0, 2, 0)
 
         self._connect_sigs()
         return self
@@ -126,7 +140,7 @@ class FolderFilters(QWidget, ThemableMixin):
         self.nav_combo.blockSignals(False)
 
     def _build_filter_type_combo(self) -> None:
-        self.filter_type_combo = QComboBox()
+        # self.filter_type_combo = QComboBox(self)
         self.filter_type_combo.setEditable(True)
         index = 0
         for filter_type in FolderFilterTable.FILTER_TYPES:
@@ -160,7 +174,7 @@ class FolderFilters(QWidget, ThemableMixin):
         self.add_filter_button.setFixedWidth(50)
 
     def _build_saved_filters_combo(self) -> None:
-        self.saved_filters_combo = QComboBox()
+        # self.saved_filters_combo = QComboBox(self)
         self.saved_filters_combo.setEditable(True)
         line_edit = self.saved_filters_combo.lineEdit()
         if line_edit is not None:
@@ -194,7 +208,7 @@ class FolderFilters(QWidget, ThemableMixin):
     def _make_tool_button(
         self, label: str, icon_name: str = "fa6s.folder"
     ) -> QToolButton:
-        btn = QToolButton()
+        btn = QToolButton(self)
         btn.setToolTip(label)
         # btn.setText(label)
         # btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)

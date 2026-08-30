@@ -55,7 +55,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         row1_layout = QHBoxLayout()
         row1_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.label_edit = QLineEdit(self.media_config.get("label", ""))
+        self.label_edit = QLineEdit(self.media_config.get("label", ""), parent=self)
         self.label_edit.setPlaceholderText("Media Name")
         self.label_edit.textChanged.connect(self._refresh_scan_button_state)
         self.label_edit.editingFinished.connect(
@@ -63,7 +63,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         )
         row1_layout.addWidget(self.label_edit)
 
-        self.type_combo = QComboBox()
+        self.type_combo = QComboBox(self)
         self.type_combo.addItem("Movie", "movie")
         self.type_combo.addItem("Series", "series")
         current_type = self.media_config.get("media_type", "movie")
@@ -76,7 +76,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         row1_layout.addWidget(self.type_combo)
 
         # Delete button
-        self.remove_btn = QPushButton()
+        self.remove_btn = QPushButton(parent=self)
         self.remove_btn.setIcon(APP_THEME.icon("fa6s.xmark"))
         self.remove_btn.setStyleSheet(APP_THEME.button_qss())
         self.remove_btn.setFixedWidth(30)
@@ -121,7 +121,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             "fa6s.tag",
             "fa6s.tags",
         ]
-        self.icon_combo = QComboBox()
+        self.icon_combo = QComboBox(self)
         for icon_name in standard_icons:
             self.icon_combo.addItem(APP_THEME.icon(icon_name), "", icon_name)
 
@@ -143,14 +143,14 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             lambda payload: self._on_folder_selected(payload.data)
         )
 
-        self.folder_edit = QLineEdit(self.media_config["path"])
+        self.folder_edit = QLineEdit(self.media_config["path"], parent=self)
         self.folder_edit.setPlaceholderText("Media Path")
         self.folder_edit.textChanged.connect(self._refresh_scan_button_state)
         self.folder_edit.editingFinished.connect(
             lambda: self.sig_config_changed.emit(self.media_config, "path", self.folder_edit.text())
         )
 
-        browse_btn = QPushButton("Browse")
+        browse_btn = QPushButton("Browse", parent=self)
         browse_btn.clicked.connect(self.folder_picker.pick_folder)
 
         row2_layout = QHBoxLayout()
@@ -207,7 +207,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             pair_layout.setSpacing(1)
             pair_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
-            lbl = QLabel(val)
+            lbl = QLabel(val, parent=self)
             lbl.setObjectName(f"stats_val_{i}")
             lbl.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             # Make the last scanned label a bit wider
@@ -217,7 +217,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
                 lbl.setFixedWidth(35)
             pair_layout.addWidget(lbl)
 
-            icon_lbl = QLabel()
+            icon_lbl = QLabel(parent=self)
             icon_lbl.setPixmap(APP_THEME.icon(icon_name, color=APP_THEME.text_color).pixmap(16, 16))
             icon_lbl.setToolTip(icon_tooltips.get(icon_name, ""))
             pair_layout.addWidget(icon_lbl)
@@ -229,7 +229,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
 
         self.stats_layout.addStretch()
 
-        self.progress_bar = QProgressBar()
+        self.progress_bar = QProgressBar(self)
         self.progress_bar.setVisible(True)
         self.progress_bar.setFixedHeight(5)
         self.progress_bar.setRange(0, 100)
@@ -242,7 +242,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         # )
         self.progress_bar.setStyleSheet(APP_THEME.progress_bar_qss(active=False))
 
-        self.scan_btn = QPushButton("Scan")
+        self.scan_btn = QPushButton("Scan", parent=self)
         self.scan_btn.setStyleSheet(APP_THEME.button_qss())
         self.scan_btn.setFixedWidth(self.scan_btn.sizeHint().width() + 20)
         self.scan_btn.setEnabled(False)

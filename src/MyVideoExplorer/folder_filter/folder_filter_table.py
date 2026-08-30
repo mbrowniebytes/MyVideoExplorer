@@ -116,7 +116,7 @@ class FolderFilterTable(QTableWidget):
         clean_type = filter_type.casefold().strip()
         if clean_type == "genre":
             # For Genre, we use a new combo box
-            combo = QComboBox()
+            combo = QComboBox(self)
             combo.addItem("-none-")
             for genre in self.genres:
                 combo.addItem(genre)
@@ -129,7 +129,7 @@ class FolderFilterTable(QTableWidget):
 
         if clean_type == "media":
             # For Media, we use a new combo box
-            combo = QComboBox()
+            combo = QComboBox(self)
             combo.addItem("- Select Folder -", userData="")
             for config in self.media_configs:
                 combo.addItem(config["label"], userData=config["path"])
@@ -162,7 +162,7 @@ class FolderFilterTable(QTableWidget):
 
     def _set_remove_button_cell(self, row_nbr: int) -> None:
 
-        remove_btn = QToolButton()
+        remove_btn = QToolButton(self)
         remove_btn.setIcon(APP_THEME.icon("fa6s.xmark", color=APP_THEME.text_color))
         remove_btn.setToolTip("Remove filter")
         remove_btn.clicked.connect(lambda: self._remove_filter_row(remove_btn))

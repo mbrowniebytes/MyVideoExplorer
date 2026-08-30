@@ -26,8 +26,8 @@ class ImagePreviewWidget(QWidget, ThemableMixin):
     sig_right_click = Signal(object)
     sig_double_click = Signal(object)
 
-    def __init__(self, log_util:LogUtil) -> None:
-        super().__init__()
+    def __init__(self, log_util:LogUtil, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
         self.log_util = log_util
         self._ui_utils = UIUtils()
         self.timer = QTimer()

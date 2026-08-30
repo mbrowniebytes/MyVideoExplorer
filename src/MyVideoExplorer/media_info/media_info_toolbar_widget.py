@@ -50,7 +50,7 @@ class MediaInfoToolbarWidget(QWidget):
     def _add_section_toggle_button(
         self, section_id: str, section_label: str
     ) -> QPushButton:
-        section_toggle_button = QPushButton(section_label)
+        section_toggle_button = QPushButton(section_label, parent=self)
         section_toggle_button.setObjectName("media_info_toolbar_toggle_button")
         section_toggle_button.setCheckable(True)
         section_toggle_button.setChecked(True)
@@ -84,7 +84,7 @@ class MediaInfoToolbarWidget(QWidget):
         )
 
     def _add_play_button(self) -> QPushButton:
-        play_video_button = QPushButton("▶")
+        play_video_button = QPushButton("▶", parent=self)
         play_video_button.setObjectName("media_info_toolbar_play_button")
         play_video_button.setMinimumWidth(40)
         play_video_button.clicked.connect(

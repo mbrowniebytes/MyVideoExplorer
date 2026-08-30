@@ -10,8 +10,8 @@ class FolderListHeader(QWidget, ThemableMixin):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.title_label = QLabel("Folders")
-        self.help_icon = QLabel("?")
+        self.title_label = QLabel("Folders", parent=self)
+        self.help_icon = QLabel("?", parent=self)
         self.backward_folder_button = self._create_nav_folder_button("backward")
         self.forward_folder_button = self._create_nav_folder_button("forward")
         self.random_folder_button = self._create_nav_folder_button("random")
@@ -36,7 +36,7 @@ class FolderListHeader(QWidget, ThemableMixin):
         layout.addWidget(self.random_folder_button)
 
     def _create_nav_folder_button(self, direction: str) -> QToolButton:
-        button = QToolButton()
+        button = QToolButton(self)
         button.setFixedSize(30, 30)
         button.setStyleSheet(APP_THEME.button_qss())
         button.setEnabled(False)

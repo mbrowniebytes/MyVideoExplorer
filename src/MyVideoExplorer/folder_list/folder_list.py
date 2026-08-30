@@ -40,16 +40,16 @@ class FolderList(QWidget, ThemableMixin):
         self.log_util = log_util
         self._ui_utils = UIUtils()
         self.folder_list_view = FolderListView(log_util=self.log_util)
-        self.loading_label = QLabel("Loading...")
+        self.loading_label = QLabel("Loading...", parent=self)
         self.loading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.stack = QStackedWidget()
+        self.stack = QStackedWidget(self)
         self.stack.addWidget(self.folder_list_view)
         self.stack.addWidget(self.loading_label)
         self.file_util = file_util
         self.settings = settings
         self._signals_connected = False
-        self._container = QWidget()
-        self.header = FolderListHeader()
+        self._container = QWidget(self)
+        self.header = FolderListHeader(parent=self)
         self.navigation_controller = FolderNavigationController()
 
     @property
@@ -121,7 +121,7 @@ class FolderList(QWidget, ThemableMixin):
         self.help_icon.setToolTip(tooltip)
 
     def _build_container(self) -> QWidget:
-        container = QWidget()
+        container = QWidget(self)
         container.setObjectName("folderListContainer")
         container.setMinimumWidth(200)
         container.setSizePolicy(

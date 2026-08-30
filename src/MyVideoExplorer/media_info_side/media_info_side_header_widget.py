@@ -23,7 +23,7 @@ class MediaInfoSideHeaderWidget(QWidget, ThemableMixin):
         self.header_layout.setSpacing(8)
         self.header_layout.setAlignment(Qt.AlignmentFlag.AlignRight)
 
-        self.play_video_button = QPushButton("▶")
+        self.play_video_button = QPushButton("▶", parent=self)
         self.play_video_button.setMinimumWidth(60)
 
         self.play_video_button.clicked.connect(
@@ -38,7 +38,7 @@ class MediaInfoSideHeaderWidget(QWidget, ThemableMixin):
             )
         )
 
-        self.title_label = QLabel("NFO")
+        self.title_label = QLabel("NFO", parent=self)
         self.title_label.setWordWrap(False)
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignRight)
 

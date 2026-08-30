@@ -1,6 +1,6 @@
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QFont, Qt
-from PySide6.QtWidgets import QTabBar, QTabWidget, QVBoxLayout, QWidget, QSizePolicy, QToolButton
+from PySide6.QtWidgets import QTabBar, QTabWidget, QVBoxLayout, QWidget, QToolButton
 
 from MyVideoExplorer.image_list.image_list import ImageList
 from MyVideoExplorer.media_info.media_info import MediaInfo
@@ -37,12 +37,12 @@ class MediaInfoTabs(QWidget, ThemableMixin):
         self._signals_connected: bool = False
 
         # Components
-        self.tab_container = QTabWidget()
+        self.tab_container = QTabWidget(self)
         self.tab_container.setTabBar(RightAlignedTabBar(self.tab_container))
         # self.tab_container.setContentsMargins(4, 4, 4, 2)
 
         # Corner button for settings (will be placed at top-right)
-        self.settings_button = QToolButton()
+        self.settings_button = QToolButton(self)
         self.settings_button.setText(self.LABEL_SETTINGS)
         self.settings_button.setAutoRaise(True)
         self.settings_button.clicked.connect(self.show_settings_tab)
@@ -87,18 +87,18 @@ class MediaInfoTabs(QWidget, ThemableMixin):
         bar.setTabButton(self.settings_tab_index, QTabBar.ButtonPosition.RightSide, None)
 
         # Place the settings button at the top-right corner of the tab widget
-        self.tab_container.setCornerWidget(self.settings_button, Qt.TopRightCorner)
+        self.tab_container.setCornerWidget(self.settings_button, Qt.Corner.TopRightCorner)
 
     def _add_content_tab(self, widget: QWidget, label: str) -> int:
         """Wraps a widget in a layout-managed container and adds it as a tab."""
-        tab_page = QWidget()
+        tab_page = QWidget(self)
         layout = QVBoxLayout(tab_page)
         layout.addWidget(widget)
         return self.tab_container.addTab(tab_page, label)
 
     def _add_spacer_tab(self) -> None:
         """Adds a non-functional spacer tab to push following tabs to the right."""
-        spacer = QWidget()
+        spacer = QWidget(self)
         # Spacer is a placeholder tab; keep default size policy so it doesn't force the window to expand
         spacer.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self.spacer_tab_index = self.tab_container.addTab(spacer, "")

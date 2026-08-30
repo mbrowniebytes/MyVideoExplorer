@@ -50,8 +50,8 @@ class ImageListView(QWidget, ThemableMixin):
         self.file_list = file_list
         self._ui_utils = UIUtils()
 
-        self.title_widget = ImageTitleWidget(log_util)
-        self.preview_widget = ImagePreviewWidget(log_util)
+        self.title_widget = ImageTitleWidget(log_util, parent=self)
+        self.preview_widget = ImagePreviewWidget(log_util, parent=self)
         self.plot_text = self.media_info_side_view.get_plot_section().get_plot_text()
         self._loading_state_text = "Loading..."
 
@@ -101,7 +101,7 @@ class ImageListView(QWidget, ThemableMixin):
         self.preview_widget.sig_right_click.connect(self._handle_right_click)
         self.preview_widget.sig_double_click.connect(self._handle_double_click)
 
-        self.content_container = QWidget()
+        self.content_container = QWidget(self)
         self.content_container.setStyleSheet(APP_THEME.container_qss())
         self.content_container.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
@@ -109,14 +109,14 @@ class ImageListView(QWidget, ThemableMixin):
 
         main_layout = self._ui_utils.apply_compact_layout(self.content_container, QVBoxLayout)
 
-        title_and_preview_widget = QWidget()
+        title_and_preview_widget = QWidget(self)
         title_and_preview_layout = self._ui_utils.apply_compact_layout(
             title_and_preview_widget, QVBoxLayout
         )
         title_and_preview_layout.addWidget(self.title_widget)
         title_and_preview_layout.addWidget(self.preview_widget)
 
-        top_content_widget = QWidget()
+        top_content_widget = QWidget(self)
         top_content_layout = cast(QHBoxLayout, self._ui_utils.apply_compact_layout(top_content_widget, QHBoxLayout))
         top_content_layout.addWidget(title_and_preview_widget, 2)
         top_content_layout.addWidget(self.media_info_side_view)

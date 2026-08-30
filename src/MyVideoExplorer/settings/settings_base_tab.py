@@ -42,7 +42,7 @@ class SettingsBaseTab(QWidget, ThemableMixin):
     def _build_reset_button(
         self, label: str, callback: Callable[[], None]
     ) -> QPushButton:
-        self.reset_btn = QPushButton(label)
+        self.reset_btn = QPushButton(label, parent=self)
         self.reset_btn.setStyleSheet(APP_THEME.button_qss())
         self.reset_btn.clicked.connect(callback)
         self.reset_btn.setEnabled(False)

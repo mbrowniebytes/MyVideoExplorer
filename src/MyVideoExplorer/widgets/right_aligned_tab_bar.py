@@ -1,7 +1,6 @@
-from typing import cast
 
-from PySide6.QtCore import QSize, Qt
-from PySide6.QtWidgets import QTabBar, QWidget
+from PySide6.QtCore import QSize
+from PySide6.QtWidgets import QTabBar
 
 
 class RightAlignedTabBar(QTabBar):

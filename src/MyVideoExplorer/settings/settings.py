@@ -76,13 +76,13 @@ class Settings(QWidget, ThemableMixin):
 
         # Initialize tabs if not already done
         if not self.managed_tabs:
-            self._app_settings_tab = SettingsAppTab(self.settings_data_model, self.log_util)
-            self._ui_settings_tab = SettingsUITab(self.settings_data_model, self.log_util, self.file_util)
+            self._app_settings_tab = SettingsAppTab(self.settings_data_model, self.log_util, parent=self)
+            self._ui_settings_tab = SettingsUITab(self.settings_data_model, self.log_util, self.file_util, parent=self)
             self._media_settings_tab = SettingsMediaTab(
-                self.settings_data_model, self.log_util, self.file_util
+                self.settings_data_model, self.log_util, self.file_util, parent=self
             )
             self._filter_settings_tab = SettingsFilterTab(
-                self.settings_data_model, self.log_util
+                self.settings_data_model, self.log_util, parent=self
             )
 
             # Group tabs for centralized management (DRY principle)
@@ -97,13 +97,13 @@ class Settings(QWidget, ThemableMixin):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
-        self.settings_tabs_container = QTabWidget()
+        self.settings_tabs_container = QTabWidget(self)
         tab_bar = RightAlignedTabBar(self.settings_tabs_container, spacer_index=0)
         self.settings_tabs_container.setTabBar(tab_bar)
         self.settings_tabs_container.setTabPosition(QTabWidget.TabPosition.North)
 
         # Add invisible spacer tab to push functional tabs right
-        self._add_spacer_tab(self.settings_tabs_container, tab_bar)
+        self._add_spacer_tab( self.settings_tabs_container, tab_bar)
 
         # Register settings tabs with consistent labels
         tab_labels = ["App", "UI", "Media", "Filters"]
@@ -118,10 +118,9 @@ class Settings(QWidget, ThemableMixin):
 
         self.apply_theme()
 
-    @staticmethod
-    def _add_spacer_tab(tab_widget: QTabWidget, tab_bar: QTabBar) -> None:
+    def _add_spacer_tab(self, tab_widget: QTabWidget, tab_bar: QTabBar) -> None:
         """Adds a disabled spacer tab to align other tabs to the right."""
-        spacer = QWidget()
+        spacer = QWidget(self)
         spacer.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         tab_widget.addTab(spacer, "")
         tab_widget.setTabEnabled(0, False)

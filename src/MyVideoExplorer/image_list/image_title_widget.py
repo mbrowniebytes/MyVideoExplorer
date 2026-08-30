@@ -8,21 +8,21 @@ from MyVideoExplorer.utils.log_util import LogUtil
 
 
 class ImageTitleWidget(QWidget):
-    def __init__(self, log_util: LogUtil) -> None:
-        super().__init__()
+    def __init__(self, log_util: LogUtil, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
         self.log_util = log_util
         layout = QHBoxLayout(self)
         layout.setContentsMargins(30, 0, 15, 0)
         layout.setSpacing(0)
 
-        self.title_label = QLabel("")
+        self.title_label = QLabel("", parent=self)
         self.title_label.setAlignment(
             Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
         )
         self.title_label.setStyleSheet(APP_THEME.title_label_qss())
         self.update_title("")
 
-        self.help_icon = QLabel("?")
+        self.help_icon = QLabel("?", parent=self)
         self.help_icon.setFixedSize(20, 20)
         self.help_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.help_icon.setStyleSheet(APP_THEME.help_icon_label_qss())

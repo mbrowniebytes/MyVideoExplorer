@@ -49,11 +49,11 @@ class SettingsMediaTab(SettingsBaseTab):
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(0)
 
-        scroll = QScrollArea()
+        scroll = QScrollArea(self)
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QScrollArea.Shape.NoFrame)
 
-        self.main_widget = QWidget()
+        self.main_widget = QWidget(self)
         self.content_layout = QVBoxLayout(self.main_widget)
         self.content_layout.setContentsMargins(10, 10, 10, 10)
         self.content_layout.setSpacing(15)
@@ -76,8 +76,9 @@ class SettingsMediaTab(SettingsBaseTab):
         db_dropdown_layout = QHBoxLayout()
         db_dropdown_layout.setContentsMargins(0, 0, 0, 0)
         db_dropdown_layout.setSpacing(5)
-        db_dropdown_layout.addWidget(QLabel("Use Local DB:"))
-        self.db_enabled_dropdown = QComboBox()
+        lbl_db = QLabel("Use Local DB:", parent=self)
+        db_dropdown_layout.addWidget(lbl_db)
+        self.db_enabled_dropdown = QComboBox(self)
         self.db_enabled_dropdown.addItems(['Yes', 'No'])
         self.db_enabled_dropdown.setCurrentText('Yes' if self.state.db_enabled() else 'No')
         self.db_enabled_dropdown.currentIndexChanged.connect(self._on_db_enabled_changed)
@@ -97,7 +98,7 @@ class SettingsMediaTab(SettingsBaseTab):
         self.folder_nav_group.setLayout(folder_layout)
         folder_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.folder_nav_content = QWidget()
+        self.folder_nav_content = QWidget(self)
         self.folder_nav_layout = QFormLayout(self.folder_nav_content)
 
         # Header for the media sections
@@ -105,24 +106,24 @@ class SettingsMediaTab(SettingsBaseTab):
         header.setContentsMargins(10, 0, 10, 0)
         for text in ["Name", "", "Type", "Icon"]:
             if text:
-                label = QLabel(text)
+                label = QLabel(text, parent=self)
                 label.setStyleSheet(APP_THEME.label_qss("secondary"))
                 label.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size - 1))
                 label.setContentsMargins(10, 0, 30, 0)
                 header.addWidget(label)
             else:
-                spacer = QWidget()
+                spacer = QWidget(self.folder_nav_content)
                 spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
                 header.addWidget(spacer)
         folder_layout.addLayout(header)
 
-        line = QFrame()
+        line = QFrame(self)
         line.setFrameShape(QFrame.Shape.HLine)
         line.setStyleSheet(APP_THEME.separator_line_qss())
         folder_layout.addWidget(line)
 
 
-        self.folder_scroll_area = QScrollArea()
+        self.folder_scroll_area = QScrollArea(self)
         self.folder_scroll_area.setWidgetResizable(True)
         self.folder_scroll_area.setFrameShape(QScrollArea.Shape.NoFrame)
         self.folder_scroll_area.setWidget(self.folder_nav_content)
@@ -142,7 +143,7 @@ class SettingsMediaTab(SettingsBaseTab):
 
         add_btn_layout = QHBoxLayout()
         add_btn_layout.addStretch()
-        add_btn = QPushButton("Add Media Folder")
+        add_btn = QPushButton("Add Media Folder", parent=self)
         add_btn.clicked.connect(self._add_folder)
         add_btn_layout.addWidget(add_btn)
         add_btn_layout.addStretch()
@@ -151,18 +152,18 @@ class SettingsMediaTab(SettingsBaseTab):
 
         self.content_layout.addStretch()
 
-        save_btn_container = QWidget()
+        save_btn_container = QWidget(self)
         save_btn_layout = QHBoxLayout(save_btn_container)
         save_btn_layout.setContentsMargins(20, 15, 20, 15)
 
-        self.save_btn = QPushButton("Save Media Settings")
+        self.save_btn = QPushButton("Save Media Settings", parent=self)
         self.save_btn.clicked.connect(self._save_media_settings)
 
         self.reset_btn = self._build_reset_button(
             "Reset Media Settings", self.reset_settings
         )
 
-        spacer = QWidget()
+        spacer = QWidget(self)
         spacer.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
@@ -240,7 +241,7 @@ class SettingsMediaTab(SettingsBaseTab):
             msg = (
                 "No media folders configured.\nClick the Add Media Folder button below."
             )
-            instr = QLabel(msg)
+            instr = QLabel(msg, parent=self)
             instr.setWordWrap(True)
             instr.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size - 4))
             instr.setStyleSheet(APP_THEME.label_qss("small"))

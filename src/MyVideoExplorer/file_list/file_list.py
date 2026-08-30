@@ -26,11 +26,11 @@ class FileList(QWidget, ThemableMixin):
         self.log_util = log_util
         self.file_util = file_util
         self._signals_connected = False
-        self._container = QWidget()
+        self._container = QWidget(self)
         self.file_list_view = FileListView()
 
-        self.title_label = QLabel("Folder Contents:")
-        self.help_icon = QLabel("?")
+        self.title_label = QLabel("Folder Contents:", parent=self)
+        self.help_icon = QLabel("?", parent=self)
 
         tooltip = (
             "File List Usage:\n"
@@ -40,7 +40,7 @@ class FileList(QWidget, ThemableMixin):
         )
         self.help_icon.setToolTip(tooltip)
 
-        self.explorer_button = QToolButton()
+        self.explorer_button = QToolButton(self)
         self.explorer_button.setText("Open Folder")
         self.explorer_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
         self.explorer_button.setIcon(
@@ -67,14 +67,14 @@ class FileList(QWidget, ThemableMixin):
         return self._container
 
     def _build_container(self) -> QWidget:
-        container = QWidget()
+        container = QWidget(self)
         container.setObjectName("fileListContainer")
         # container.setStyleSheet(APP_THEME.container_qss())
         container.setMaximumHeight(120)
         return container
 
     def _build_title_widget(self) -> QWidget:
-        widget = QWidget()
+        widget = QWidget(self)
         layout = QHBoxLayout(widget)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(5)

@@ -22,7 +22,7 @@ class AppBuilder:
     def build(self) -> QWidget:
         self.container.font_util.load_custom_fonts()
 
-        main_widget = QWidget()
+        main_widget = QWidget(self.window)
         main_layout = QHBoxLayout(main_widget)
         main_layout.setSpacing(2)
         main_layout.setContentsMargins(2, 0, 2, 0)
@@ -47,7 +47,7 @@ class AppBuilder:
     def _create_left_panel(self) -> QWidget:
         folder_nav_widget = self.container.folder_nav.build()
 
-        file_container = QWidget()
+        file_container = QWidget(self.window)
         layout_folder_file = QVBoxLayout(file_container)
         layout_folder_file.setContentsMargins(0, 0, 0, 0)
         layout_folder_file.setSpacing(2)

@@ -17,7 +17,7 @@ class CollapsibleBoxWidget(QWidget):
 
         # Eager initialization removes the need for redundant None checks later
         self.label = label
-        self.toggle_button = QPushButton(self.label)
+        self.toggle_button = QPushButton(self.label, parent=self)
         self.content_area = QWidget(self)
         self._layout = QVBoxLayout(self)
         self.content_layout = QVBoxLayout()
