@@ -53,7 +53,7 @@ class MediaInfoSideView(QWidget, ThemableMixin):
             parent=self,
         )
 
-        self.plot_section = MediaInfoPlotSection(parent=self)
+        self.plot_section = MediaInfoPlotSection()
 
         self.media_info_side_layout = self._ui_utils.apply_compact_layout(self, QVBoxLayout)
         self.media_info_side_layout.setAlignment(Qt.AlignmentFlag.AlignTop)

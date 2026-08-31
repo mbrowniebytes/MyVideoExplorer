@@ -54,8 +54,9 @@ or after install:
 > myvideoexplorer
 
 ### list outdated packages
-
+list top level packages and all dependencies
 > pip list --outdated
+> pip install -U [pkg]
 
 ### upgrade pip
 

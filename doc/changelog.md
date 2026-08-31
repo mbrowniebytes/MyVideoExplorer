@@ -5,20 +5,26 @@
 ### 2026-##-##
 
 - add [duckdb](https://duckdb.org/) support
-  - loading from db is faster and allows for more filtering
+  - loading from db is faster and allows for more future filtering, local media tracking
   - add setting to load from db or filesystem
   - per media config
     - add a Scan button, saving to db/[media].db in duckdb format
     - add folder and file stats
+    - fix when add new media config do not auto refresh folder nav
+    - adjust layout
+    - add basic validation for saving to db
   - add db migration process
 - add loading screen option
-- fix when add new media config do not auto refresh folder nav
+
 - internal:
   - fix launch of code from cli, using proper python module layout
-  - typing for ide
+  - add more typing for ide
   - remove excessive hasattr checks
-  - refactors into smaller, focused modules 
+  - refactors into smaller, more focused modules
+  - for qt, addd parent to more widgets
+  - on app launch, fix flicker of few widgets initialization
   - add basic db data checks
+  - update pyside6, ruff, ty, pyinstaller, etc
   - cleanup docs
 
 release - [MyVideoExplorer-2026####-0.005 ](https://github.com/mbrowniebytes/MyVideoExplorer/releases/tag/2026####-0.005)

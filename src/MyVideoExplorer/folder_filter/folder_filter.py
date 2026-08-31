@@ -189,7 +189,7 @@ class FolderFilters(QWidget, ThemableMixin):
         self.saved_filters_combo.clear()
         self.saved_filters_combo.addItem("")
         filter_names = [
-            f.get("name") for f in self.settings.settings_data_model.saved_filters
+            f.get("name", "") for f in self.settings.settings_data_model.saved_filters
         ]
         for name in sorted(filter_names):
             self.saved_filters_combo.addItem(name)
