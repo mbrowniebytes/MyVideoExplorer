@@ -25,6 +25,7 @@
   - for qt, addd parent to more widgets
   - on app launch, fix flicker of few widgets initialization
   - add basic db data checks
+  - remove more packages from build, reducing build size
   - update pyside6, ruff, ty, pyinstaller, etc
   - cleanup docs
 

@@ -28,6 +28,7 @@ Screenshot:
 - right click over poster to cycle through current folder images
 - basic filtering of folder and files
 - filter media folders shown
+- optional scan media folder and save to local [duckdb]([duckdb](https://duckdb.org/))
 - basic movie.nfo parsing: plot, mpaa, runtime, genres, imdb id, tmdb id, actors, directors, etc (if nfo files exists
   and xml data is available)
 - basic tooltips for inline help
@@ -38,13 +39,12 @@ Screenshot:
 
 ### Wishlist:
 
-- to allow more and faster filtering, scan media folders and build local database
 - tags for filtering
 - track played count, last played
 - add filters for nfo, tags, played
 - more ui settings
-- play episodes
-- ffmpeg info
+- play series episodes
+- ffmpeg info to infer video quality
 - export db
 - import db backup and compare
 - and more

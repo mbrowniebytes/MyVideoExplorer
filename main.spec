@@ -84,6 +84,76 @@ a = Analysis(
     ],
 )
 
+# -- start additional removals from build
+
+# --- Strip unused Qt binaries & data that excludes can't touch ---
+EXCLUDED_BINARIES = (
+    'Qt6AxContainer',
+    'Qt6Bluetooth',
+    'Qt6Charts',
+    'Qt6DataVisualization',
+    'Qt6Designers',
+    'Qt6Help',
+    'Qt6Location',
+    'Qt6Multimedia',
+    'Qt6Nfc',
+    'Qt6OpenGL',
+    'Qt6Pdf',
+    'Qt6Positioning',
+    'Qt6PrintSupport',
+    'Qt6Qml',
+    'Qt6Quick',
+    'Qt6RemoteObjects',
+    'Qt6Scxml',
+    'Qt6Sensors',
+    'Qt6SerialPort',
+    'Qt6ShaderTools',
+    'Qt6StateMachine',
+    'Qt6Test',
+    'Qt6TextToSpeech',
+    'Qt6VirtualKeyboard',
+    'Qt6WebChannel',
+    'Qt6WebEngine',
+    'Qt6WebSockets',
+    'Qt6Xml',
+    'Qt63D',
+)
+EXCLUDED_BINARIES = tuple(b.lower() for b in EXCLUDED_BINARIES)
+
+# Languages to KEEP in Qt translations (None = remove all)
+# KEEP_LANGS = ('en', 'de', 'es')
+KEEP_LANGS = ('en')
+
+# Folder prefixes to drop entirely (QML + leftover Qt data)
+EXCLUDED_DATA_PREFIXES = (
+    'PySide6/qml',
+    'PySide6/Qt/qml',
+)
+
+def _keep(item):
+    """Filter predicate for a.binaries and a.datas tuples."""
+    path = item[0].replace('\\', '/')
+    path_lower = path.lower()
+
+    name = path_lower.rsplit('/', 1)[-1]
+    if name.startswith(EXCLUDED_BINARIES):
+        return False
+
+    if any(path_lower.startswith(p) for p in EXCLUDED_DATA_PREFIXES):
+        return False
+
+    if 'translations' in path_lower and path_lower.endswith('.qm'):
+        if KEEP_LANGS is None:
+            return False
+        return any(f'_{lang}.' in path_lower for lang in KEEP_LANGS)
+
+    return True
+
+a.binaries = [x for x in a.binaries if _keep(x)]
+a.datas = [x for x in a.datas if _keep(x)]
+
+# -- end additional removals from build
+
 pyz = PYZ(
     a.pure,
     a.zipped_data,
