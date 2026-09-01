@@ -31,10 +31,10 @@ from MyVideoExplorer.utils.ui_utils import UIUtils
 
 
 class FolderFilters(QWidget, ThemableMixin):
-    sig_apply_filters = Signal()
-    sig_genre_changed = Signal(object)
-    sig_root_folder = Signal(object)
-    sig_loading_started = Signal(object)
+    filters_requested = Signal()
+    genre_changed = Signal(object)
+    root_folder = Signal(object)
+    loading_started = Signal(object)
 
     GENRES = sorted(
         ["Action", "Comedy", "Sci-Fi", "Mystery", "Thriller", "Drama", "Adventure"]
@@ -222,29 +222,30 @@ class FolderFilters(QWidget, ThemableMixin):
 
     def _connect_sigs(self) -> None:
         self.nav_combo.currentIndexChanged.connect(self._handle_media_selection)
-        self.apply_button.clicked.connect(self.sig_apply_filters.emit)
-        self.media_filter_widget.sig_apply_filters.connect(self.sig_apply_filters.emit)
+        self.apply_button.clicked.connect(self.filters_requested.emit)
+        self.media_filter_widget.apply_filters.connect(self.filters_requested.emit)
         self.add_filter_button.clicked.connect(self._add_filter_clicked)
         self.save_filter_button.clicked.connect(self._save_filter_clicked)
         # self.delete_filter_button.clicked.connect(self._delete_filter_clicked)
         self.saved_filters_combo.currentIndexChanged.connect(self._load_saved_filter)
-        self.genre_combo.sig_genre_changed.connect(
-            lambda payload: self.sig_genre_changed.emit(payload)
+        self.genre_combo.genre_changed.connect(
+            lambda payload: self.genre_changed.emit(payload)
         )
-        self.filter_table.sig_genre_changed.connect(
-            lambda payload: self.sig_genre_changed.emit(payload)
+        self.filter_table.genre_changed.connect(
+            lambda payload: self.genre_changed.emit(payload)
         )
-        self.filter_table.sig_root_folder.connect(
-            lambda payload: self.sig_root_folder.emit(payload)
+        self.filter_table.root_folder.connect(
+            lambda payload: self.root_folder.emit(payload)
         )
 
         def refresh_all():
             self.build_nav_combo()
             self._refresh_saved_filters_combo()
             self._load_saved_filter(self.saved_filters_combo.currentIndex())
-            self.sig_apply_filters.emit()
+            self.apply_filters()
+            self.filters_requested.emit()
 
-        self.settings.settings_data_model.sig_settings_changed.connect(refresh_all)
+        self.settings.settings_data_model.settings_changed.connect(refresh_all)
 
     def _handle_media_selection(self, index: int) -> None:
         if index < 0:
@@ -261,7 +262,7 @@ class FolderFilters(QWidget, ThemableMixin):
             description="Emitted when a root folder is selected in FolderFilter.",
             flow=SignalFlow.USER_INPUT,
         )
-        self.sig_root_folder.emit(payload)
+        self.root_folder.emit(payload)
 
     def _add_filter_clicked(self) -> None:
         filter_type = self.filter_type_combo.currentText().strip()
@@ -333,7 +334,7 @@ class FolderFilters(QWidget, ThemableMixin):
         if self.settings.settings_data_model.db_enabled():
             # Use database
             for folder_path in folder_paths:
-                self.sig_loading_started.emit([folder_path])
+                self.loading_started.emit([folder_path])
                 # Find folder config
                 db_path = None
                 for config in self.settings.settings_data_model.media_configs:
@@ -367,7 +368,7 @@ class FolderFilters(QWidget, ThemableMixin):
                 run_scan(index + 1)
                 return
 
-            self.sig_loading_started.emit([folder_path])
+            self.loading_started.emit([folder_path])
 
             def folder_scanned(path_items: list[FileUtilModel]):
                 items.extend(path_items)

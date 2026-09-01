@@ -4,9 +4,9 @@ from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 
 class FolderListHeader(QWidget, ThemableMixin):
-    sig_backward_clicked = Signal()
-    sig_forward_clicked = Signal()
-    sig_random_clicked = Signal()
+    backward_clicked = Signal()
+    forward_clicked = Signal()
+    random_clicked = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -44,15 +44,15 @@ class FolderListHeader(QWidget, ThemableMixin):
         if direction == "backward":
             button.setIcon(APP_THEME.icon("fa6s.reply")) # fa6s.arrow-left
             button.setToolTip("Backward")
-            button.clicked.connect(self.sig_backward_clicked)
+            button.clicked.connect(self.backward_clicked)
         elif direction == "forward":
             button.setIcon(APP_THEME.icon("fa6s.share")) # fa6s.arrow-right
             button.setToolTip("Forward")
-            button.clicked.connect(self.sig_forward_clicked)
+            button.clicked.connect(self.forward_clicked)
         elif direction == "random":
             button.setIcon(APP_THEME.icon("fa6s.dice"))
             button.setToolTip("Random")
-            button.clicked.connect(self.sig_random_clicked)
+            button.clicked.connect(self.random_clicked)
 
         return button
 

@@ -186,7 +186,7 @@ class SettingsAppTab(SettingsBaseTab):
         print(f"_on_launch_app_size_changed: index:{index} value:{value}")
         self.state.launch_app_size = value
 
-        self.state.sig_window_size_changed.emit(
+        self.state.window_size_changed.emit(
             SignalPayload(
                 data=value,
                 sender=self.__class__.__name__,
@@ -204,7 +204,7 @@ class SettingsAppTab(SettingsBaseTab):
 
         print(f"_on_launch_app_pos_changed: index:{index} value:{value}")
 
-        self.state.sig_window_pos_changed.emit(
+        self.state.window_pos_changed.emit(
             SignalPayload(
                 data=value,
                 sender=self.__class__.__name__,
@@ -219,7 +219,7 @@ class SettingsAppTab(SettingsBaseTab):
 
         self.state.show_loading_screen = value
 
-        self.state.sig_settings_changed.emit(
+        self.state.settings_changed.emit(
             SignalPayload(
                 data=value,
                 sender=self.__class__.__name__,
@@ -265,7 +265,7 @@ class SettingsAppTab(SettingsBaseTab):
             self.show_loading_screen_combo.setCurrentIndex(index)
 
         self.reset_save_button()
-        self.sig_saved.emit(
+        self.saved.emit(
             SignalPayload(
                 data=None,
                 sender=self.__class__.__name__,
@@ -312,7 +312,7 @@ class SettingsAppTab(SettingsBaseTab):
 
         self.state.save_app()
         self.reset_save_button()
-        self.sig_saved.emit(
+        self.saved.emit(
             SignalPayload(
                 data=None,
                 sender=self.__class__.__name__,

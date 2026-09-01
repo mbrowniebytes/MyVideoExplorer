@@ -13,7 +13,7 @@ from MyVideoExplorer.utils.ui_utils import UIUtils
 
 
 class MediaInfo(QWidget, ThemableMixin):
-    sig_play_video = Signal(object)
+    play_video_requested = Signal(object)
 
     def __init__(
         self,
@@ -91,10 +91,10 @@ class MediaInfo(QWidget, ThemableMixin):
         if self._are_child_signals_connected:
             return
 
-        self.media_info_view.sig_info_play_video_btn_clicked.connect(
+        self.media_info_view.info_play_video_btn_clicked.connect(
             self._emit_play_video_requested
         )
-        self.media_info_side_view.sig_info_side_play_video_btn_clicked.connect(
+        self.media_info_side_view.info_side_play_video_btn_clicked.connect(
             self._emit_play_video_requested
         )
         self._are_child_signals_connected = True
@@ -111,7 +111,7 @@ class MediaInfo(QWidget, ThemableMixin):
             # Based on the usage, it seems a payload *should* be provided.
             # Assuming for now we just return if no payload
             return
-        self.sig_play_video.emit(
+        self.play_video_requested.emit(
             SignalPayload(
                 data=self.current_image_path,
                 sender=self.__class__.__name__,

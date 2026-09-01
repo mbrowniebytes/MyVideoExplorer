@@ -31,7 +31,7 @@ from MyVideoExplorer.settings.settings_media_folder_browser_section import Setti
 
 
 class SettingsMediaTab(SettingsBaseTab):
-    sig_root_folders_changed = Signal(object)
+    root_folders_changed = Signal(object)
 
     def __init__(
         self,
@@ -180,7 +180,7 @@ class SettingsMediaTab(SettingsBaseTab):
         self.state.load_media()
         self._refresh_folder_nav_settings()
         self.reset_save_button()
-        self.sig_saved.emit(
+        self.saved.emit(
             SignalPayload(
                 data=None,
                 sender=self.__class__.__name__,
@@ -195,7 +195,7 @@ class SettingsMediaTab(SettingsBaseTab):
         value = self.db_enabled_dropdown.currentText() == 'Yes'
         self.state._db_enabled = value
 
-        self.state.sig_settings_changed.emit(
+        self.state.settings_changed.emit(
             SignalPayload(
                 data=value,
                 sender=self.__class__.__name__,
@@ -252,8 +252,8 @@ class SettingsMediaTab(SettingsBaseTab):
             browser = SettingsMediaFolderBrowserSection(
                 media_config, self.state.get_db_path, self.file_util, self.nfo_util
             )
-            browser.sig_config_changed.connect(self._on_config_changed)
-            browser.sig_remove_requested.connect(self._remove_folder)
+            browser.config_changed.connect(self._on_config_changed)
+            browser.remove_requested.connect(self._remove_folder)
             self.folder_nav_layout.addRow(browser)
 
     def _has_valid_media_folders(self) -> bool:
@@ -342,7 +342,7 @@ class SettingsMediaTab(SettingsBaseTab):
 
             self._refresh_folder_nav_settings()
             self._on_setting_changed()
-            self.state.sig_settings_changed.emit(
+            self.state.settings_changed.emit(
                 SignalPayload(
                     data=None,
                     sender=self.__class__.__name__,
@@ -385,7 +385,7 @@ class SettingsMediaTab(SettingsBaseTab):
         self.reset_save_button()
 
         paths = self._get_valid_media_paths()
-        self.sig_root_folders_changed.emit(
+        self.root_folders_changed.emit(
             SignalPayload(
                 data=paths,
                 sender=self.__class__.__name__,
@@ -395,7 +395,7 @@ class SettingsMediaTab(SettingsBaseTab):
             )
         )
 
-        self.sig_saved.emit(
+        self.saved.emit(
             SignalPayload(
                 data=None,
                 sender=self.__class__.__name__,
@@ -404,7 +404,7 @@ class SettingsMediaTab(SettingsBaseTab):
                 flow=SignalFlow.USER_INPUT,
             )
         )
-        self.state.sig_settings_changed.emit(
+        self.state.settings_changed.emit(
             SignalPayload(
                 data=None,
                 sender=self.__class__.__name__,

@@ -8,9 +8,9 @@ from MyVideoExplorer.utils.log_util import LogUtil
 
 
 class ImageLabel(QLabel):
-    sig_wheel_step = Signal(object)
-    sig_right_click = Signal(object)
-    sig_double_click = Signal(object)
+    wheel_step = Signal(object)
+    context_menu_requested = Signal(object)
+    double_click_requested = Signal(object)
 
     def __init__(
         self, log_util: LogUtil, text: str = "", parent: QWidget | None = None
@@ -37,7 +37,7 @@ class ImageLabel(QLabel):
             description="Emitted when mouse wheel moves in ImageLabel.",
             flow=SignalFlow.USER_INPUT,
         )
-        self.sig_wheel_step.emit(payload)
+        self.wheel_step.emit(payload)
         event.accept()
 
     def mousePressEvent(self, event) -> None:
@@ -49,7 +49,7 @@ class ImageLabel(QLabel):
                 description="Emitted when right click in ImageLabel.",
                 flow=SignalFlow.USER_INPUT,
             )
-            self.sig_right_click.emit(payload)
+            self.context_menu_requested.emit(payload)
             event.accept()
             return
 
@@ -64,7 +64,7 @@ class ImageLabel(QLabel):
                 description="Emitted when double click in ImageLabel.",
                 flow=SignalFlow.USER_INPUT,
             )
-            self.sig_double_click.emit(payload)
+            self.double_click_requested.emit(payload)
             event.accept()
             return
 

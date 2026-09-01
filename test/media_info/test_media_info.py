@@ -40,7 +40,7 @@ class TestMediaInfo:
                 mock_side_refresh.assert_called_with(folder_path="/test/path")
 
     def test_play_video_signal_forwarding_from_view(self, media_info, qtbot):
-        with qtbot.waitSignal(media_info.sig_play_video) as blocker:
+        with qtbot.waitSignal(media_info.play_video_requested) as blocker:
             payload = SignalPayload(
                 data=None,
                 sender="Test",
@@ -48,11 +48,11 @@ class TestMediaInfo:
                 description="Test",
                 flow=SignalFlow.USER_INPUT,
             )
-            media_info.media_info_view.sig_info_play_video_btn_clicked.emit(payload)
+            media_info.media_info_view.info_play_video_btn_clicked.emit(payload)
         assert blocker.signal_triggered
 
     def test_play_video_signal_forwarding_from_side_view(self, media_info, qtbot):
-        with qtbot.waitSignal(media_info.sig_play_video) as blocker:
+        with qtbot.waitSignal(media_info.play_video_requested) as blocker:
             payload = SignalPayload(
                 data=None,
                 sender="Test",
@@ -60,7 +60,7 @@ class TestMediaInfo:
                 description="Test",
                 flow=SignalFlow.USER_INPUT,
             )
-            media_info.media_info_side_view.sig_info_side_play_video_btn_clicked.emit(payload)
+            media_info.media_info_side_view.info_side_play_video_btn_clicked.emit(payload)
         assert blocker.signal_triggered
 
     def test_apply_theme(self, media_info):

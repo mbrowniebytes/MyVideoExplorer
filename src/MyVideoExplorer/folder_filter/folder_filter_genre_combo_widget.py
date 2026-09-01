@@ -3,7 +3,7 @@ from PySide6.QtCore import Signal
 from MyVideoExplorer.app.app_signals_model import SignalPayload, SignalFlow
 
 class GenreComboWidget(QComboBox):
-    sig_genre_changed = Signal(object)
+    genre_changed = Signal(object)
 
     def __init__(self, genres: list[str], parent=None):
         super().__init__(parent)
@@ -22,4 +22,4 @@ class GenreComboWidget(QComboBox):
             description="Emitted when the genre changes in GenreComboWidget.",
             flow=SignalFlow.USER_INPUT,
         )
-        self.sig_genre_changed.emit(payload)
+        self.genre_changed.emit(payload)

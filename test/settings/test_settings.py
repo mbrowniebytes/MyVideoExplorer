@@ -46,7 +46,7 @@ class TestSettings:
         assert settings.settings_data_model.media_configs[-1]["label"] == ""
 
     def test_add_folder_does_not_emit_signal(self, settings, qtbot):
-        with qtbot.assertNotEmitted(settings.media_settings_tab.sig_root_folders_changed):
+        with qtbot.assertNotEmitted(settings.media_settings_tab.root_folders_changed):
             with patch.object(settings.media_settings_tab, "_refresh_folder_nav_settings"):
                 settings.media_settings_tab._add_folder()
 

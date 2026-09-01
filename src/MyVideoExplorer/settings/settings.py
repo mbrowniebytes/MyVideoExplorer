@@ -20,7 +20,7 @@ from MyVideoExplorer.settings.settings_ui_tab import SettingsUITab
 class Settings(QWidget, ThemableMixin):
     """Container widget for application settings, managing tabs and state persistence."""
 
-    sig_dirty_changed = Signal(object)
+    dirty_changed = Signal(object)
 
     def __init__(self, log_util: LogUtil, file_util: FileUtil) -> None:
         super().__init__()
@@ -129,19 +129,19 @@ class Settings(QWidget, ThemableMixin):
 
     def _connect_signals(self) -> None:
         """Wires up signals between tabs, state, and the container."""
-        self.settings_data_model.sig_settings_changed.connect(
+        self.settings_data_model.settings_changed.connect(
             lambda p: self.apply_theme()
         )
 
         for tab in self.managed_tabs:
             # Use default argument to capture current loop variable correctly
-            tab.sig_changed.connect(lambda _, t=tab: self._mark_tab_dirty(t))
-            tab.sig_saved.connect(self._check_all_tabs_saved)
+            tab.changed.connect(lambda _, t=tab: self._mark_tab_dirty(t))
+            tab.saved.connect(self._check_all_tabs_saved)
 
     def _mark_tab_dirty(self, tab: SettingsBaseTab) -> None:
         """Marks a specific tab as dirty and notifies the container."""
         tab.highlight_save_button()
-        self.sig_dirty_changed.emit(
+        self.dirty_changed.emit(
             SignalPayload(
                 data=True,
                 sender=self.__class__.__name__,
@@ -160,7 +160,7 @@ class Settings(QWidget, ThemableMixin):
                 break
 
         if not is_dirty:
-            self.sig_dirty_changed.emit(
+            self.dirty_changed.emit(
                 SignalPayload(
                     data=False,
                     sender=self.__class__.__name__,

@@ -156,38 +156,38 @@ class AppContainer:
 
     def _wire_user_inputs(self) -> None:
         """User interactions → Controller state."""
-        self._connect(self.folder_nav.sig_root_folder, lambda p: self.controller.set_root_folders(p.data))
-        self._connect(self.folder_nav.sig_selected_folder, lambda p: self.controller.set_current_folder(p.data))
-        self._connect(self.folder_list.sig_folder_selected_intent, lambda p: self.controller.set_current_folder(p.data))
-        self._connect(self.folder_list.sig_navigate_to_folder, lambda p: self.controller.set_current_folder(p))
-        self._connect(self.file_list.sig_file_selected_intent, lambda payload: self.controller.set_current_file(payload.data))
-        self._connect(self.image_list.sig_image_selected_intent, lambda p: self.controller.set_current_file(p.data))
-        self._connect(self.media_info_tabs.sig_tab_selection_changed, self.controller.set_current_tab)
-        self._connect(self.settings.media_settings_tab.sig_changed, lambda p: self.folder_list.refresh_icons())
-        self._connect(self.settings.media_settings_tab.sig_root_folders_changed, lambda p: self.controller.set_root_folders(p.data))
-        self._connect(self.folder_nav_filters.sig_loading_started, self.folder_list.show_loading_state)
+        self._connect(self.folder_nav.root_folder_changed, lambda p: self.controller.set_root_folders(p.data))
+        self._connect(self.folder_nav.selected_folder_changed, lambda p: self.controller.set_current_folder(p.data))
+        self._connect(self.folder_list.folder_selected_intent, lambda p: self.controller.set_current_folder(p.data))
+        self._connect(self.folder_list.folder_navigation_requested, lambda p: self.controller.set_current_folder(p.data))
+        self._connect(self.file_list.file_selected_intent, lambda payload: self.controller.set_current_file(payload.data))
+        self._connect(self.image_list.image_selected_intent, lambda p: self.controller.set_current_file(p.data))
+        self._connect(self.media_info_tabs.tab_selection_changed, self.controller.set_current_tab)
+        self._connect(self.settings.media_settings_tab.changed, lambda p: self.folder_list.refresh_icons())
+        self._connect(self.settings.media_settings_tab.root_folders_changed, lambda p: self.controller.set_root_folders(p.data))
+        self._connect(self.folder_nav_filters.loading_started, self.folder_list.show_loading_state)
 
     def _wire_controller_outputs(self) -> None:
         """Controller state changes → Component refreshes."""
-        self._connect(self.signals.sig_root_folders, lambda p: self.folder_nav.set_root_folders(p.data))
-        self._connect(self.signals.sig_selected_folder, lambda p: self._on_folder_selected(p.data))
-        self._connect(self.signals.sig_file_changed, lambda p: self.file_list.set_selected_file(p.data))
-        self._connect(self.signals.sig_file_changed, lambda p: self.media_info.set_image_path(p.data))
-        self._connect(self.signals.sig_file_changed, lambda p: self.image_list.update_image_from_item(p.data))
-        self._connect(self.signals.sig_image_changed, lambda p: self.image_list.set_selected_image(p.data))
-        self._connect(self.signals.sig_tab_changed, lambda p: self._on_tab_changed(p.data))
-        self._connect(self.settings.settings_data_model.sig_settings_changed, lambda p: self.folder_list.refresh_icons())
-        self._connect(self.settings.settings_data_model.sig_window_size_changed, lambda p: self.resize_window(self.window, p.data))
-        self._connect(self.settings.settings_data_model.sig_window_pos_changed, lambda p: self.resize_window(self.window, app_pos=p.data))
-        self._connect(self.settings.media_settings_tab.sig_root_folders_changed, lambda p: self.controller.set_root_folders(p.data))
+        self._connect(self.signals.root_folders_changed, lambda p: self.folder_nav.set_root_folders(p.data))
+        self._connect(self.signals.selected_folder_changed, lambda p: self._on_folder_selected(p.data))
+        self._connect(self.signals.file_changed, lambda p: self.file_list.set_selected_file(p.data))
+        self._connect(self.signals.file_changed, lambda p: self.media_info.set_image_path(p.data))
+        self._connect(self.signals.file_changed, lambda p: self.image_list.update_image_from_item(p.data))
+        self._connect(self.signals.image_changed, lambda p: self.image_list.set_selected_image(p.data))
+        self._connect(self.signals.tab_changed, lambda p: self._on_tab_changed(p.data))
+        self._connect(self.settings.settings_data_model.settings_changed, lambda p: self.folder_list.refresh_icons())
+        self._connect(self.settings.settings_data_model.window_size_changed, lambda p: self.resize_window(self.window, p.data))
+        self._connect(self.settings.settings_data_model.window_pos_changed, lambda p: self.resize_window(self.window, app_pos=p.data))
+        self._connect(self.settings.media_settings_tab.root_folders_changed, lambda p: self.controller.set_root_folders(p.data))
 
     def _wire_component_interactions(self) -> None:
         """Component-to-component interactions (local, not via controller)."""
-        self._connect(self.image_list.sig_wheel_step, lambda p: self.folder_list.select_next_folder(p.data))
-        self._connect(self.image_list.sig_right_click, lambda p: self.image_list.request_next_image())
-        self._connect(self.image_list.sig_double_click, lambda p: self._play_video_from_current_folder())
-        self._connect(self.media_info.sig_play_video, lambda p: self._play_video_from_current_folder())
-        self._connect(self.folder_nav.sig_selected_items, lambda p: self._on_filtered_items(p.data))
+        self._connect(self.image_list.wheel_step, lambda p: self.folder_list.select_next_folder(p.data))
+        self._connect(self.image_list.context_menu_requested, lambda p: self.image_list.request_next_image())
+        self._connect(self.image_list.double_click_requested, lambda p: self._play_video_from_current_folder())
+        self._connect(self.media_info.play_video_requested, lambda p: self._play_video_from_current_folder())
+        self._connect(self.folder_nav.filtered_items_updated, lambda p: self._on_filtered_items(p.data))
 
     def _on_tab_changed(self, tab_index: int) -> None:
         """Bridge: translate controller signal to component method."""

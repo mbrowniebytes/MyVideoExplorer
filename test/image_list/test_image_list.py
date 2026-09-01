@@ -49,7 +49,7 @@ class TestImageList:
         image_list.images = ["img1.jpg", "img2.jpg"]
         image_list.selected_image_index = 0
 
-        with qtbot.waitSignal(image_list.sig_image_selected_intent) as blocker:
+        with qtbot.waitSignal(image_list.image_selected_intent) as blocker:
             image_list.request_next_image(1)
 
         assert blocker.args[0].data == "img2.jpg"

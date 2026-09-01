@@ -22,9 +22,9 @@ class ImagePreviewWidget(QWidget, ThemableMixin):
     Widget for previewing an image with automatic scaling and delayed rendering.
     """
 
-    sig_wheel_step = Signal(object)
-    sig_right_click = Signal(object)
-    sig_double_click = Signal(object)
+    wheel_step = Signal(object)
+    context_menu_requested = Signal(object)
+    double_click_requested = Signal(object)
 
     def __init__(self, log_util:LogUtil, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -37,9 +37,9 @@ class ImagePreviewWidget(QWidget, ThemableMixin):
         self._loading_state_text = "Loading..."
 
         self.image_label = ImageLabel(log_util, _NO_IMAGE_FOUND)
-        self.image_label.sig_wheel_step.connect(self.sig_wheel_step.emit)
-        self.image_label.sig_right_click.connect(self.sig_right_click.emit)
-        self.image_label.sig_double_click.connect(self.sig_double_click.emit)
+        self.image_label.wheel_step.connect(self.wheel_step.emit)
+        self.image_label.context_menu_requested.connect(self.context_menu_requested.emit)
+        self.image_label.double_click_requested.connect(self.double_click_requested.emit)
 
         layout = self._ui_utils.apply_compact_layout(self, QVBoxLayout)
         layout.addWidget(self.image_label)

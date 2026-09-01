@@ -21,6 +21,7 @@
   - add more typing for ide
   - remove excessive hasattr checks
   - refactors into smaller, more focused modules
+  - better SignalPayload usage
   - for qt, addd parent to more widgets
   - on app launch, fix flicker of few widgets initialization
   - add basic db data checks

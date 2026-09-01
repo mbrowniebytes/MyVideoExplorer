@@ -25,9 +25,9 @@ DEFAULTS_FILTER_FILE = CFG_DIR / "defaults_filter.json"
 
 
 class SettingsState(QObject):
-    sig_settings_changed = Signal(object)
-    sig_window_size_changed = Signal(object)
-    sig_window_pos_changed = Signal(object)
+    settings_changed = Signal(object)
+    window_size_changed = Signal(object)
+    window_pos_changed = Signal(object)
 
     def __init__(self, log_util: Any) -> None:
         super().__init__()
@@ -214,7 +214,7 @@ class SettingsState(QObject):
         self.json_util.backup_file(SETTINGS_FILTER_FILE, max_backups=5)
         self.json_util.save_json(SETTINGS_FILTER_FILE, filter_settings)
 
-        self.sig_settings_changed.emit(
+        self.settings_changed.emit(
             SignalPayload(
                 data=None,
                 sender=self.__class__.__name__,
@@ -287,7 +287,7 @@ class SettingsState(QObject):
             self.saved_filters.append({"name": name, "filters": filter_cfg})
 
         self.save_filters()
-        self.sig_settings_changed.emit(
+        self.settings_changed.emit(
             SignalPayload(
                 data=None,
                 sender=self.__class__.__name__,
@@ -301,7 +301,7 @@ class SettingsState(QObject):
         """Deletes a named filter configuration."""
         self.saved_filters = [f for f in self.saved_filters if f.get("name") != name]
         self.save_filters()
-        self.sig_settings_changed.emit(
+        self.settings_changed.emit(
             SignalPayload(
                 data=None,
                 sender=self.__class__.__name__,

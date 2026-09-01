@@ -32,9 +32,9 @@ class ImageListView(QWidget, ThemableMixin):
     View for displaying an image and its related metadata.
     """
 
-    sig_wheel_step = Signal(object)
-    sig_right_click = Signal(object)
-    sig_double_click = Signal(object)
+    wheel_step = Signal(object)
+    context_menu_requested = Signal(object)
+    double_click_requested = Signal(object)
 
     def __init__(
         self,
@@ -71,35 +71,35 @@ class ImageListView(QWidget, ThemableMixin):
             description="Emitted when mouse wheel moves in ImageListView.",
             flow=SignalFlow.USER_INPUT,
         )
-        self.sig_wheel_step.emit(new_payload)
-        self.log_util.debug(f"sig_wheel_step emitted with: {step}")
+        self.wheel_step.emit(new_payload)
+        self.log_util.debug(f"wheel_step emitted with: {step}")
 
     def _handle_right_click(self, payload: SignalPayload) -> None:
         new_payload = SignalPayload(
             data=None,
             sender=self.__class__.__name__,
-            name="Right Click",
+            name="Context Menu Requested",
             description="Emitted when right click in ImageListView.",
             flow=SignalFlow.USER_INPUT,
         )
-        self.sig_right_click.emit(new_payload)
-        self.log_util.debug("sig_right_click emitted")
+        self.context_menu_requested.emit(new_payload)
+        self.log_util.debug("context_menu_requested emitted")
 
     def _handle_double_click(self, payload: SignalPayload) -> None:
         new_payload = SignalPayload(
             data=None,
             sender=self.__class__.__name__,
-            name="Double Click",
+            name="Double Click Requested",
             description="Emitted when double click in ImageListView.",
             flow=SignalFlow.USER_INPUT,
         )
-        self.sig_double_click.emit(new_payload)
-        self.log_util.debug("sig_double_click emitted")
+        self.double_click_requested.emit(new_payload)
+        self.log_util.debug("double_click_requested emitted")
 
     def _build_ui(self) -> None:
-        self.preview_widget.sig_wheel_step.connect(self._handle_wheel_step)
-        self.preview_widget.sig_right_click.connect(self._handle_right_click)
-        self.preview_widget.sig_double_click.connect(self._handle_double_click)
+        self.preview_widget.wheel_step.connect(self._handle_wheel_step)
+        self.preview_widget.context_menu_requested.connect(self._handle_right_click)
+        self.preview_widget.double_click_requested.connect(self._handle_double_click)
 
         self.content_container = QWidget(self)
         self.content_container.setStyleSheet(APP_THEME.container_qss())

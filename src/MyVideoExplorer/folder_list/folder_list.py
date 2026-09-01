@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
     QStackedWidget,
 )
 
-from MyVideoExplorer.app.app_signals_model import SignalPayload
+from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.folder_list.folder_list_view import FolderListView
 from MyVideoExplorer.folder_list.folder_list_header import FolderListHeader
 from MyVideoExplorer.folder_list.folder_navigation_controller import FolderNavigationController
@@ -29,8 +29,8 @@ _EMPTY_STATE_NO_MEDIA_FOLDERS = (
 
 
 class FolderList(QWidget, ThemableMixin):
-    sig_folder_selected_intent = Signal(object)
-    sig_navigate_to_folder = Signal(str)
+    folder_selected_intent = Signal(object)
+    folder_navigation_requested = Signal(object)
     HISTORY_FOLDER_LENGTH = 100
 
     def __init__(
@@ -76,9 +76,9 @@ class FolderList(QWidget, ThemableMixin):
         self._container = self._build_container()
         layout = QVBoxLayout(self._container)
 
-        self.header.sig_backward_clicked.connect(self._on_backward_folder_clicked)
-        self.header.sig_forward_clicked.connect(self._on_forward_folder_clicked)
-        self.header.sig_random_clicked.connect(self._on_random_folder_clicked)
+        self.header.backward_clicked.connect(self._on_backward_folder_clicked)
+        self.header.forward_clicked.connect(self._on_forward_folder_clicked)
+        self.header.random_clicked.connect(self._on_random_folder_clicked)
 
         layout.addWidget(self.header)
         layout.addWidget(self.stack)
@@ -160,21 +160,21 @@ class FolderList(QWidget, ThemableMixin):
 
         self.folder_list_view.show_loading_state()
 
-        # folder_Filter.apply_filters also loading
+        # folder_Filter.apply_filters_requested also loading
         # QTimer.singleShot(250, lambda: self.update_folder_list_by_path(folder_path))
 
     def _handle_folder_selected_intent(self, payload: SignalPayload) -> None:
-        self.sig_folder_selected_intent.emit(payload)
-        self.log_util.debug(f"sig_folder_selected_intent emitted for: {payload.data}")
+        self.folder_selected_intent.emit(payload)
+        self.log_util.debug(f"folder_selected_intent emitted for: {payload.data}")
 
     def connect_sigs(self):
         if self._signals_connected:
             return
-        self.folder_list_view.sig_folder_selected.connect(
+        self.folder_list_view.folder_selected.connect(
             self._handle_folder_selected_intent
         )
         if self.settings:
-            self.settings.settings_data_model.sig_settings_changed.connect(
+            self.settings.settings_data_model.settings_changed.connect(
                 lambda _: self._update_help_tooltip()
             )
         self._signals_connected = True
@@ -283,12 +283,22 @@ class FolderList(QWidget, ThemableMixin):
         return "fa6s.folder"
 
 
+    def _emit_folder_navigation_requested(self, folder_path: str) -> None:
+        payload = SignalPayload(
+            data=folder_path,
+            sender=self.__class__.__name__,
+            name="Folder Navigation Requested",
+            description="Emitted when the user requests navigation to a different folder.",
+            flow=SignalFlow.USER_INPUT,
+        )
+        self.folder_navigation_requested.emit(payload)
+
     def _on_backward_folder_clicked(self) -> None:
         """Handle button click to navigate to prior folder."""
         try:
             folder_path = self.navigation_controller.get_backward_folder()
             if folder_path:
-                self.sig_navigate_to_folder.emit(folder_path)
+                self._emit_folder_navigation_requested(folder_path)
                 self._update_button_states()
 
         except (IndexError, ValueError) as e:
@@ -299,7 +309,7 @@ class FolderList(QWidget, ThemableMixin):
         try:
             folder_path = self.navigation_controller.get_forward_folder()
             if folder_path:
-                self.sig_navigate_to_folder.emit(folder_path)
+                self._emit_folder_navigation_requested(folder_path)
                 self._update_button_states()
 
         except (IndexError, ValueError) as e:
@@ -317,7 +327,7 @@ class FolderList(QWidget, ThemableMixin):
 
             folder_path = self.navigation_controller.select_random_folder(valid_folders)
             if folder_path:
-                self.sig_navigate_to_folder.emit(folder_path)
+                self._emit_folder_navigation_requested(folder_path)
         except (IndexError, ValueError) as e:
             self.log_util.error(f"Error navigating to random folder: {e}")
 

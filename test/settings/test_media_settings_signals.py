@@ -27,13 +27,13 @@ class TestMediaSettingsSignals:
     def test_save_media_settings_emits_settings_changed(self, settings_media_tab):
         """Verify that _save_media_settings emits settings_changed signal on state."""
 
-        # When save_media_settings is called, it should call state.sig_settings_changed.emit
+        # When save_media_settings is called, it should call state.settings_changed.emit
         settings_media_tab._save_media_settings()
 
-        # Check if sig_settings_changed was emitted
-        assert settings_media_tab.state.sig_settings_changed.emit.called
+        # Check if settings_changed was emitted
+        assert settings_media_tab.state.settings_changed.emit.called
 
         # Verify the payload
-        args = settings_media_tab.state.sig_settings_changed.emit.call_args[0][0]
+        args = settings_media_tab.state.settings_changed.emit.call_args[0][0]
         assert isinstance(args, SignalPayload)
         assert args.name == "Media Settings Saved"

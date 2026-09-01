@@ -102,7 +102,7 @@ class TestMediaInfoView:
         media_info_view.build_from_movie_info(mock_nfo_data)
 
         with qtbot.waitSignal(
-            media_info_view.sig_info_play_video_btn_clicked
+            media_info_view.info_play_video_btn_clicked
         ) as blocker:
             media_info_view.play_video()
 

@@ -41,7 +41,7 @@ from MyVideoExplorer.utils.ui_utils import UIUtils
 
 
 class MediaInfoView(QWidget, ThemableMixin):
-    sig_info_play_video_btn_clicked = Signal(object)
+    info_play_video_btn_clicked = Signal(object)
 
     def __init__(
         self,
@@ -76,10 +76,10 @@ class MediaInfoView(QWidget, ThemableMixin):
         self.main_layout.addWidget(self.toolbar_widget)
         self.main_layout.addWidget(self.scroll_content_widget)
 
-        self.toolbar_widget.sig_section_visibility_toggle_requested.connect(
+        self.toolbar_widget.section_visibility_toggle_requested.connect(
             lambda p: self._toggle_section(p.data)
         )
-        self.toolbar_widget.sig_play_video_requested.connect(self.play_video)
+        self.toolbar_widget.play_video_requested.connect(self.play_video)
 
         # Backward-compatible aliases for existing tests/callers.
         self.section_widgets = self.scroll_content_widget.section_widgets_by_id
@@ -129,7 +129,7 @@ class MediaInfoView(QWidget, ThemableMixin):
             self.build_from_movie_info(self.movie_info)
 
     def play_video(self, payload: SignalPayload | None = None) -> None:
-        self.sig_info_play_video_btn_clicked.emit(
+        self.info_play_video_btn_clicked.emit(
             payload or SignalPayload(
                 data=None,
                 sender=self.__class__.__name__,

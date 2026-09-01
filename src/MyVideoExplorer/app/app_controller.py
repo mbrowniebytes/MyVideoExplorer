@@ -52,8 +52,7 @@ class AppController(QObject):
         return normalized
 
     def _emit_signal(self, signal_name: str, value: object) -> None:
-        payload = self.signals.create_payload(signal_name, value, self.__class__.__name__)
-        getattr(self.signals, signal_name).emit(payload)
+        self.signals.emit_payload(signal_name, value, self.__class__.__name__)
 
     def set_root_folders(self, folder_paths: list[str] | tuple[str, ...] | set[str] | str | None) -> None:
         """Accept a single folder path or an iterable of folder paths."""
@@ -73,8 +72,10 @@ class AppController(QObject):
         self.state.current_file = ""
         self.state.current_image = ""
 
-        self._emit_signal("sig_root_folders", valid_paths)
-        self.log_util.debug(f"sig_root_folders emitted for: {valid_paths}")
+        self._emit_signal("root_folders_changed", valid_paths)
+        if self.state.root_folder:
+            self._emit_signal("root_folder_changed", self.state.root_folder)
+        self.log_util.debug(f"root_folders_changed emitted for: {valid_paths}")
 
     def set_current_folder(self, folder_path: str, force: bool = False) -> None:
         try:
@@ -84,8 +85,8 @@ class AppController(QObject):
             self.state.current_folder = folder_path
             self.state.current_file = ""
             self.state.current_image = ""
-            self._emit_signal("sig_selected_folder", folder_path)
-            self.log_util.debug(f"sig_selected_folder emitted for: {folder_path}")
+            self._emit_signal("selected_folder_changed", folder_path)
+            self.log_util.debug(f"selected_folder_changed emitted for: {folder_path}")
         except Exception as e:
             self.log_util.error(f"Error setting current folder: {str(e)}")
 
@@ -95,8 +96,8 @@ class AppController(QObject):
             if self.state.current_file == file_path:
                 return
             self.state.current_file = file_path
-            self._emit_signal("sig_file_changed", file_path)
-            self.log_util.debug(f"sig_file_changed emitted for: {file_path}")
+            self._emit_signal("file_changed", file_path)
+            self.log_util.debug(f"file_changed emitted for: {file_path}")
         except Exception as e:
             self.log_util.error(f"Error setting current file: {str(e)}")
 
@@ -104,23 +105,23 @@ class AppController(QObject):
         if self.state.current_image == image_path:
             return
         self.state.current_image = image_path
-        self._emit_signal("sig_image_changed", image_path)
-        self.log_util.debug(f"sig_image_changed emitted for: {image_path}")
+        self._emit_signal("image_changed", image_path)
+        self.log_util.debug(f"image_changed emitted for: {image_path}")
 
     def set_current_tab(self, tab_index: int) -> None:
         if self.state.current_tab == tab_index:
             return
         self.state.current_tab = tab_index
-        self._emit_signal("sig_tab_changed", tab_index)
+        self._emit_signal("tab_changed", tab_index)
 
     def emit_current_selection(self) -> None:
         if self.state.current_folder:
-            self._emit_signal("sig_selected_folder", self.state.current_folder)
+            self._emit_signal("selected_folder_changed", self.state.current_folder)
             self.log_util.debug(
-                f"sig_selected_folder emitted for: {self.state.current_folder}"
+                f"selected_folder_changed emitted for: {self.state.current_folder}"
             )
         if self.state.current_file:
-            self._emit_signal("sig_file_changed", self.state.current_file)
+            self._emit_signal("file_changed", self.state.current_file)
             self.log_util.debug(
-                f"sig_file_changed emitted for: {self.state.current_file}"
+                f"file_changed emitted for: {self.state.current_file}"
             )

@@ -24,7 +24,7 @@ def test_refresh_on_signal(qtbot):
 
             from MyVideoExplorer.app.app_signals_model import SignalPayload, SignalFlow
             # Emit signal - this is what SHOULD happen when saving settings
-            state.sig_settings_changed.emit(
+            state.settings_changed.emit(
                 SignalPayload(
                     data=None,
                     sender="Test",

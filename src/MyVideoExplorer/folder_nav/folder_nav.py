@@ -16,10 +16,10 @@ class FolderNav(QWidget, ThemableMixin):
     Navigation sidebar combining folder selection buttons and filters.
     """
 
-    sig_root_folder = Signal(object)
-    sig_selected_folder = Signal(object)
-    sig_selected_items = Signal(object)
-    sig_genre_changed = Signal(object)
+    root_folder_changed = Signal(object)
+    selected_folder_changed = Signal(object)
+    filtered_items_updated = Signal(object)
+    genre_changed = Signal(object)
 
     def __init__(self, folder_filter_widget: FolderFilters, log_util: LogUtil) -> None:
         super().__init__()
@@ -44,19 +44,19 @@ class FolderNav(QWidget, ThemableMixin):
         return self
 
     def _handle_root_folder(self, payload: SignalPayload) -> None:
-        self.sig_root_folder.emit(payload)
-        self.log_util.debug(f"sig_root_folder emitted with: {payload.data}")
+        self.root_folder_changed.emit(payload)
+        self.log_util.debug(f"root_folder_changed emitted with: {payload.data}")
 
     def _handle_genre_changed(self, payload: SignalPayload) -> None:
-        self.sig_genre_changed.emit(payload)
-        self.log_util.debug(f"sig_genre_changed emitted with: {payload.data}")
+        self.genre_changed.emit(payload)
+        self.log_util.debug(f"genre_changed emitted with: {payload.data}")
 
     def _connect_sigs(self) -> None:
         if self._signals_connected:
             return
-        self.folder_filter_widget.sig_root_folder.connect(self._handle_root_folder)
-        self.folder_filter_widget.sig_apply_filters.connect(self.apply_filters)
-        self.folder_filter_widget.sig_genre_changed.connect(self._handle_genre_changed)
+        self.folder_filter_widget.root_folder.connect(self._handle_root_folder)
+        self.folder_filter_widget.filters_requested.connect(self.apply_filters)
+        self.folder_filter_widget.genre_changed.connect(self._handle_genre_changed)
         self._signals_connected = True
 
     def set_root_folders(self, paths: list[str]) -> None:
@@ -76,7 +76,7 @@ class FolderNav(QWidget, ThemableMixin):
             # Rebuild media buttons to reflect current settings and roots
             self.folder_filter_widget.media_filter_widget.refresh_buttons()
 
-            # self.apply_filters()
+            # self.apply_filters_requested()
             QTimer.singleShot(150, lambda: self.apply_filters())
         except Exception as e:
             self.log_util.error(f"Error in _refresh_filters: {e}")
@@ -87,9 +87,9 @@ class FolderNav(QWidget, ThemableMixin):
         """Applies filters and emits results."""
         # Let FolderNavFilters choose a default root (first configured) when
         # no explicit folder is passed.
-        # QTimer.singleShot(wait, lambda: self.folder_filter_widget.apply_filters(on_complete=self._on_filters_applied))
+        # QTimer.singleShot(wait, lambda: self.folder_filter_widget.apply_filters_requested(on_complete=self._on_filters_applied))
         self.folder_filter_widget.apply_filters(on_complete=self._on_filters_applied)
-        # self._timer.timeout.connect(lambda: self.folder_filter_widget.apply_filters(on_complete=self._on_filters_applied))
+        # self._timer.timeout.connect(lambda: self.folder_filter_widget.apply_filters_requested(on_complete=self._on_filters_applied))
         # self._timer.start(150)
 
     def _on_filters_applied(self, filtered_items: list[FileUtilModel]) -> None:
@@ -100,10 +100,10 @@ class FolderNav(QWidget, ThemableMixin):
             description="Emitted when filtered items are updated.",
             flow=SignalFlow.USER_INPUT,
         )
-        self.sig_selected_items.emit(payload)
+        self.filtered_items_updated.emit(payload)
         if self.log_util:
             self.log_util.debug(
-                f"sig_selected_items emitted with {len(filtered_items)} items"
+                f"filtered_items_updated emitted with {len(filtered_items)} items"
             )
 
         # if filtered_items and filtered_items[0] and filtered_items[0].full_path:
@@ -115,7 +115,6 @@ class FolderNav(QWidget, ThemableMixin):
         #         description="Emitted when filtered items are updated.",
         #         flow=SignalFlow.COMPONENT_INTERACTION,
         #     )
-        #     self.sig_selected_folder.emit(payload)
 
     def apply_theme(self) -> None:
         """Applies theme to itself and nested navigation components."""

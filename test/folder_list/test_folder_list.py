@@ -118,7 +118,7 @@ class TestFolderList:
         folder_list.folder_list_view.setCurrentRow(0)
 
         with qtbot.waitSignal(
-            folder_list.folder_list_view.sig_folder_selected
+            folder_list.folder_list_view.folder_selected
         ) as blocker:
             folder_list.select_next_folder(1)
 
@@ -135,7 +135,7 @@ class TestFolderList:
         item = folder_list.folder_list_view.item(0)
 
         with qtbot.waitSignal(
-            folder_list.folder_list_view.sig_folder_selected
+            folder_list.folder_list_view.folder_selected
         ) as blocker:
             folder_list.folder_list_view.itemClicked.emit(item)
 
@@ -283,12 +283,12 @@ class TestFolderList:
         assert "Loading from: File System" in tooltip
 
     def test_help_tooltip_updates_on_signal(self, folder_list):
-        """Verify the help tooltip updates when sig_settings_changed is emitted."""
+        """Verify the help tooltip updates when settings_changed is emitted."""
         # 1. Connect
         folder_list.connect_sigs()
 
         # 2. Get the callback
-        connect_mock = folder_list.settings.settings_data_model.sig_settings_changed.connect
+        connect_mock = folder_list.settings.settings_data_model.settings_changed.connect
         callback = connect_mock.call_args[0][0]
 
         # 3. Setup initial state

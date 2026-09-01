@@ -11,7 +11,7 @@ from MyVideoExplorer.utils.log_util import LogUtil
 
 
 class FolderListView(QListWidget):
-    sig_folder_selected = Signal(object)
+    folder_selected = Signal(object)
 
     def __init__(self, log_util: LogUtil) -> None:
         super().__init__()
@@ -40,7 +40,7 @@ class FolderListView(QListWidget):
                 description="Emitted when a folder is selected in FolderListView.",
                 flow=SignalFlow.USER_INPUT,
             )
-            self.sig_folder_selected.emit(payload)
+            self.folder_selected.emit(payload)
 
     def show_loading_state(self, folders: list[str] | None = None) -> None:
         self.setUpdatesEnabled(False)
@@ -218,7 +218,7 @@ class FolderListView(QListWidget):
             description="Emitted when a folder is selected in FolderListView.",
             flow=SignalFlow.USER_INPUT,
         )
-        self.sig_folder_selected.emit(payload)
+        self.folder_selected.emit(payload)
 
     def has_folders(self) -> bool:
         """Returns True if the list contains at least one real folder item."""

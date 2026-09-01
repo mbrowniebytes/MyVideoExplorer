@@ -102,7 +102,7 @@ class SettingsFilterTab(SettingsBaseTab):
         self.state.load_filters()
         self._refresh_filters()
         self.reset_save_button()
-        self.sig_saved.emit(
+        self.saved.emit(
             SignalPayload(
                 data=None,
                 sender=self.__class__.__name__,
@@ -238,7 +238,7 @@ class SettingsFilterTab(SettingsBaseTab):
         self._update_state_from_ui()
         self.state.save_filters()
         self.reset_save_button()
-        self.sig_saved.emit(
+        self.saved.emit(
             SignalPayload(
                 data=None,
                 sender=self.__class__.__name__,

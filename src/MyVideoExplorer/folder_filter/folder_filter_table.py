@@ -32,8 +32,8 @@ class FolderFilterTable(QTableWidget):
         # "Plot",
     ]
 
-    sig_genre_changed = Signal(object)
-    sig_root_folder = Signal(object)
+    genre_changed = Signal(object)
+    root_folder = Signal(object)
 
     def __init__(self, genres: list[str], media_configs: list[dict]):
         super().__init__()
@@ -234,7 +234,7 @@ class FolderFilterTable(QTableWidget):
             description="Emitted when the genre changes in FolderFilterTable.",
             flow=SignalFlow.USER_INPUT,
         )
-        self.sig_genre_changed.emit(payload)
+        self.genre_changed.emit(payload)
 
     def _on_root_folder_changed(self, idx: int, combo: QComboBox):
         if idx > 0:
@@ -245,4 +245,4 @@ class FolderFilterTable(QTableWidget):
                 description="Emitted when a root folder is selected in FolderFilterTable.",
                 flow=SignalFlow.USER_INPUT,
             )
-            self.sig_root_folder.emit(payload)
+            self.root_folder.emit(payload)

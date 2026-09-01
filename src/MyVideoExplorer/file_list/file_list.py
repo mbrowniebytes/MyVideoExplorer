@@ -19,7 +19,7 @@ from MyVideoExplorer.utils.log_util import LogUtil
 
 
 class FileList(QWidget, ThemableMixin):
-    sig_file_selected_intent = Signal(object)
+    file_selected_intent = Signal(object)
 
     def __init__(self, file_util: FileUtil, log_util: LogUtil) -> None:
         super().__init__()
@@ -92,13 +92,13 @@ class FileList(QWidget, ThemableMixin):
             QDesktopServices.openUrl(QUrl.fromLocalFile(folder_path))
 
     def _handle_file_selected_intent(self, payload: SignalPayload) -> None:
-        self.sig_file_selected_intent.emit(payload)
-        self.log_util.debug(f"sig_file_selected_intent emitted for: {payload.data}")
+        self.file_selected_intent.emit(payload)
+        self.log_util.debug(f"file_selected_intent emitted for: {payload.data}")
 
     def connect_sigs(self):
         if self._signals_connected:
             return
-        self.file_list_view.sig_file_selected.connect(self._handle_file_selected_intent)
+        self.file_list_view.file_selected.connect(self._handle_file_selected_intent)
         self.file_list_view.connect_sigs()
         self._signals_connected = True
 

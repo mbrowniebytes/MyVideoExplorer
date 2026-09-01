@@ -32,7 +32,7 @@ class TestMediaTabs:
         assert media_tabs.tab_container.tabText(3) == ""
 
     def test_tab_changed_emits_signal(self, media_tabs, qtbot):
-        with qtbot.waitSignal(media_tabs.sig_tab_selection_changed) as blocker:
+        with qtbot.waitSignal(media_tabs.tab_selection_changed) as blocker:
             media_tabs.tab_container.setCurrentIndex(1)
         assert blocker.args[0] == 1
         assert media_tabs.active_tab_index == 1

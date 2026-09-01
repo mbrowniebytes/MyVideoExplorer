@@ -68,7 +68,7 @@ class TestFileList:
 
         item = file_list.file_list_view.item(0)
 
-        with qtbot.waitSignal(file_list.sig_file_selected_intent) as blocker:
+        with qtbot.waitSignal(file_list.file_selected_intent) as blocker:
             file_list.file_list_view.itemClicked.emit(item)
 
         assert blocker.args[0].data == "/path/to/video1.mp4"

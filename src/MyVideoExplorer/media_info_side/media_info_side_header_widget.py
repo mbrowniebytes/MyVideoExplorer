@@ -12,7 +12,7 @@ from MyVideoExplorer.utils.log_util import LogUtil
 class MediaInfoSideHeaderWidget(QWidget, ThemableMixin):
     """Compact side header with quick actions for the selected media item."""
 
-    sig_play_video_requested = Signal(object)
+    play_video_requested = Signal(object)
 
     def __init__(self, log_util: LogUtil | None = None, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -27,7 +27,7 @@ class MediaInfoSideHeaderWidget(QWidget, ThemableMixin):
         self.play_video_button.setMinimumWidth(60)
 
         self.play_video_button.clicked.connect(
-            lambda: self.sig_play_video_requested.emit(
+            lambda: self.play_video_requested.emit(
                 SignalPayload(
                     data=None,
                     sender=self.__class__.__name__,

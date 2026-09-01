@@ -26,7 +26,7 @@ class MediaInfoSideView(QWidget, ThemableMixin):
     Side view displaying metadata and quick actions for a media item.
     """
 
-    sig_info_side_play_video_btn_clicked = Signal(object)
+    info_side_play_video_btn_clicked = Signal(object)
 
     def __init__(
         self, nfo_parse_util: NfoParseUtil, str_util: StrUtil, log_util
@@ -44,7 +44,7 @@ class MediaInfoSideView(QWidget, ThemableMixin):
         # Make child widgets owned by this view to avoid creating top-level windows
         self.side_content_widget = MediaInfoSideContentWidget(self.str_util, parent=self)
         self.side_content_widget.hide()
-        self.side_content_widget.sig_play_video_requested.connect(self.play_video)
+        self.side_content_widget.play_video_requested.connect(self.play_video)
 
         self.empty_nfo_placeholder_widget = LabelValueWidget(
             name="",
@@ -128,7 +128,7 @@ class MediaInfoSideView(QWidget, ThemableMixin):
 
     def play_video(self, payload: SignalPayload | None = None) -> None:
         """Emit the side-view play-video signal."""
-        self.sig_info_side_play_video_btn_clicked.emit(
+        self.info_side_play_video_btn_clicked.emit(
             payload or SignalPayload(
                 data=None,
                 sender=self.__class__.__name__,

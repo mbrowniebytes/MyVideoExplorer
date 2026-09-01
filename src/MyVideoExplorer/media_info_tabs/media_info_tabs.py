@@ -14,7 +14,7 @@ from MyVideoExplorer.widgets.right_aligned_tab_bar import RightAlignedTabBar
 class MediaInfoTabs(QWidget, ThemableMixin):
     """Widget container managing the tabbed interface for media, metadata, and settings."""
 
-    sig_tab_selection_changed = Signal(int)
+    tab_selection_changed = Signal(int)
 
     LABEL_MEDIA = "media"
     LABEL_INFO = "info"
@@ -117,7 +117,7 @@ class MediaInfoTabs(QWidget, ThemableMixin):
         self.settings_tab_index = self._add_content_tab(
             settings.build(), self.LABEL_SETTINGS
         )
-        settings.sig_dirty_changed.connect(
+        settings.dirty_changed.connect(
             lambda p: self._on_settings_dirty_changed(p.data)
         )
 
@@ -144,7 +144,7 @@ class MediaInfoTabs(QWidget, ThemableMixin):
             return
 
         self.active_tab_index = index
-        self.sig_tab_selection_changed.emit(index)
+        self.tab_selection_changed.emit(index)
         # self.log_util.debug(f"Tab selection changed to index: {index}")
 
     def resizeEvent(self, event) -> None:

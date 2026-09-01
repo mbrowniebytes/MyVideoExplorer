@@ -8,7 +8,7 @@ from MyVideoExplorer.settings.settings_state import SettingsState
 def test_db_toggle_refreshes_filters(qtbot):
     # Setup
     log_util = MagicMock()
-    # We need to NOT mock sig_settings_changed, but it's defined as a Signal object
+    # We need to NOT mock settings_changed, but it's defined as a Signal object
     settings_state = SettingsState(log_util)
     settings_state._db_enabled = False # Initial state
     settings_state.media_configs = [{"path": "D:/Test", "label": "Test"}]
@@ -31,8 +31,8 @@ def test_db_toggle_refreshes_filters(qtbot):
 
     # Simulate settings change
     widget._connect_sigs() # ensure connections are active
-    with qtbot.waitSignal(widget.sig_apply_filters):
-        settings_state.sig_settings_changed.emit(None)
+    with qtbot.waitSignal(widget.filters_requested):
+        settings_state.settings_changed.emit(None)
 
     # We successfully emitted the signal
     assert True

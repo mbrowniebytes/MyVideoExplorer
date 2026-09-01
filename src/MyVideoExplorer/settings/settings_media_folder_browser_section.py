@@ -25,8 +25,8 @@ from MyVideoExplorer.widgets.folder_picker_widget import FolderPickerWidget
 
 
 class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
-    sig_config_changed = Signal(dict, str, Any)
-    sig_remove_requested = Signal(dict)
+    config_changed = Signal(dict, str, Any)
+    remove_requested = Signal(dict)
 
     def __init__(
         self,
@@ -59,7 +59,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         self.label_edit.setPlaceholderText("Media Name")
         self.label_edit.textChanged.connect(self._refresh_scan_button_state)
         self.label_edit.editingFinished.connect(
-            lambda: self.sig_config_changed.emit(self.media_config, "label", self.label_edit.text())
+            lambda: self.config_changed.emit(self.media_config, "label", self.label_edit.text())
         )
         row1_layout.addWidget(self.label_edit)
 
@@ -71,7 +71,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         if index >= 0:
             self.type_combo.setCurrentIndex(index)
         self.type_combo.currentTextChanged.connect(
-            lambda text: self.sig_config_changed.emit(self.media_config, "media_type", self.type_combo.currentData())
+            lambda text: self.config_changed.emit(self.media_config, "media_type", self.type_combo.currentData())
         )
         row1_layout.addWidget(self.type_combo)
 
@@ -80,7 +80,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         self.remove_btn.setIcon(APP_THEME.icon("fa6s.xmark"))
         self.remove_btn.setStyleSheet(APP_THEME.button_qss())
         self.remove_btn.setFixedWidth(30)
-        self.remove_btn.clicked.connect(lambda: self.sig_remove_requested.emit(self.media_config))
+        self.remove_btn.clicked.connect(lambda: self.remove_requested.emit(self.media_config))
 
         standard_icons = [
             "fa6s.folder",
@@ -130,7 +130,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         if index >= 0:
             self.icon_combo.setCurrentIndex(index)
         self.icon_combo.currentIndexChanged.connect(
-            lambda index: self.sig_config_changed.emit(self.media_config, "icon", self.icon_combo.itemData(index))
+            lambda index: self.config_changed.emit(self.media_config, "icon", self.icon_combo.itemData(index))
         )
         row1_layout.addWidget(self.icon_combo)
 
@@ -147,7 +147,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         self.folder_edit.setPlaceholderText("Media Path")
         self.folder_edit.textChanged.connect(self._refresh_scan_button_state)
         self.folder_edit.editingFinished.connect(
-            lambda: self.sig_config_changed.emit(self.media_config, "path", self.folder_edit.text())
+            lambda: self.config_changed.emit(self.media_config, "path", self.folder_edit.text())
         )
 
         browse_btn = QPushButton("Browse", parent=self)
@@ -325,10 +325,10 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         self.media_config["media_type"] = self.type_combo.currentData()
         self.media_config["icon"] = self.icon_combo.currentData()
         self.media_config["path"] = self.folder_edit.text()
-        self.sig_config_changed.emit(self.media_config, "label", self.media_config["label"])
-        self.sig_config_changed.emit(self.media_config, "media_type", self.media_config["media_type"])
-        self.sig_config_changed.emit(self.media_config, "icon", self.media_config["icon"])
-        self.sig_config_changed.emit(self.media_config, "path", self.media_config["path"])
+        self.config_changed.emit(self.media_config, "label", self.media_config["label"])
+        self.config_changed.emit(self.media_config, "media_type", self.media_config["media_type"])
+        self.config_changed.emit(self.media_config, "icon", self.media_config["icon"])
+        self.config_changed.emit(self.media_config, "path", self.media_config["path"])
         self._refresh_scan_button_state()
 
     @staticmethod
@@ -447,4 +447,3 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
 
     def _on_folder_selected(self, path: str) -> None:
         self.folder_edit.setText(path)
-        # self.sig_config_changed.emit(self.media_config, "path", path)

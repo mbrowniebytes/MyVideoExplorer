@@ -29,7 +29,7 @@ class TestFolderNavFiltersFilter:
         assert result[1].name == "Dir2"
 
     def test_apply_filters_empty(self, filter_instance):
-        """Verify apply_filters returns default folders when no filters are provided."""
+        """Verify apply_filters_requested returns default folders when no filters are provided."""
         items = [
             FileUtilModel(type="dir", name="Dir1", full_path="/path/1", depth=0),
             FileUtilModel(type="file", name="File1", full_path="/path/f1", depth=0),

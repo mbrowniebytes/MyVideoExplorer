@@ -14,7 +14,7 @@ from MyVideoExplorer.utils.str_util import StrUtil
 class MediaInfoSideContentWidget(QWidget, ThemableMixin):
     """Reusable framed side panel content for media metadata and quick actions."""
 
-    sig_play_video_requested = Signal(object)
+    play_video_requested = Signal(object)
 
     def __init__(
         self,
@@ -36,8 +36,8 @@ class MediaInfoSideContentWidget(QWidget, ThemableMixin):
         self.content_layout.addWidget(self.header_widget)
         self.content_layout.addWidget(self.facts_widget)
 
-        self.header_widget.sig_play_video_requested.connect(
-            lambda p: self.sig_play_video_requested.emit(p)
+        self.header_widget.play_video_requested.connect(
+            lambda p: self.play_video_requested.emit(p)
         )
 
         self.apply_theme()

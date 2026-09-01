@@ -163,7 +163,7 @@ class SettingsUITab(SettingsBaseTab):
 
         APP_THEME.refresh_theme()
         self.reset_save_button()
-        self.sig_saved.emit(
+        self.saved.emit(
             SignalPayload(
                 data=None,
                 sender=self.__class__.__name__,
@@ -192,7 +192,7 @@ class SettingsUITab(SettingsBaseTab):
         finally:
             self.font_size_combo.blockSignals(False)
 
-        self.state.sig_settings_changed.emit(
+        self.state.settings_changed.emit(
             SignalPayload(
                 data=value,
                 sender=self.__class__.__name__,
@@ -219,7 +219,7 @@ class SettingsUITab(SettingsBaseTab):
         finally:
             self.font_family_combo.blockSignals(False)
 
-        # self.state.sig_settings_changed.emit(
+        # self.state.settings_changed.emit(
         #     SignalPayload(
         #         data=family,
         #         sender=self.__class__.__name__,
@@ -234,7 +234,7 @@ class SettingsUITab(SettingsBaseTab):
         """Save only UI tab settings."""
         self.state.save_ui()
         self.reset_save_button()
-        self.sig_saved.emit(
+        self.saved.emit(
             SignalPayload(
                 data=None,
                 sender=self.__class__.__name__,

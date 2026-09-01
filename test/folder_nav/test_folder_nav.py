@@ -44,7 +44,7 @@ class TestFolderNav:
         assert folder_nav.folder_filter_widget.root_folders == test_paths
 
     def test_apply_filters_call(self, folder_nav, qtbot):
-        """Verify apply_filters propagates items from sub-widget."""
+        """Verify apply_filters_requested propagates items from sub-widget."""
         mock_items = [MagicMock()]
 
         # Patch the real sub-widget's method to use a callback
@@ -55,7 +55,7 @@ class TestFolderNav:
         with patch.object(
             folder_nav.folder_filter_widget, "apply_filters", side_effect=side_effect
         ) as mock_apply:
-            with qtbot.waitSignal(folder_nav.sig_selected_items) as blocker:
+            with qtbot.waitSignal(folder_nav.filtered_items_updated) as blocker:
                 folder_nav.apply_filters()
 
             mock_apply.assert_called()
@@ -63,8 +63,8 @@ class TestFolderNav:
 
     def test_signal_forwarding(self, folder_nav, qtbot):
         """Verify signals from sub-widgets are forwarded."""
-        # Test sig_root_folder forwarding (emitted by filters when folder is selected from combo)
-        with qtbot.waitSignal(folder_nav.sig_root_folder) as blocker:
+        # Test root_folder_changed forwarding (emitted by filters when folder is selected from combo)
+        with qtbot.waitSignal(folder_nav.root_folder_changed) as blocker:
             payload = SignalPayload(
                 data="/emitted/path",
                 sender="Test",
@@ -72,11 +72,11 @@ class TestFolderNav:
                 description="Test",
                 flow=SignalFlow.USER_INPUT,
             )
-            folder_nav.folder_filter_widget.sig_root_folder.emit(payload)
+            folder_nav.folder_filter_widget.root_folder.emit(payload)
         assert blocker.args[0].data == "/emitted/path"
 
-        # Test sig_genre_changed forwarding
-        with qtbot.waitSignal(folder_nav.sig_genre_changed) as blocker:
+        # Test genre_changed forwarding
+        with qtbot.waitSignal(folder_nav.genre_changed) as blocker:
             payload = SignalPayload(
                 data="Action",
                 sender="Test",
@@ -84,7 +84,7 @@ class TestFolderNav:
                 description="Test",
                 flow=SignalFlow.USER_INPUT,
             )
-            folder_nav.folder_filter_widget.sig_genre_changed.emit(payload)
+            folder_nav.folder_filter_widget.genre_changed.emit(payload)
         assert blocker.args[0].data == "Action"
 
     def test_apply_theme(self, folder_nav):
