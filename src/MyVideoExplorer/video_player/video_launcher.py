@@ -18,7 +18,7 @@ class VideoLauncher:
         # test async
         # await asyncio.sleep(5)
 
-        normalized_path = str(Path(video_path))
+        normalized_path = Path(video_path).as_posix()
 
         try:
             if os.name == "nt":  # Windows

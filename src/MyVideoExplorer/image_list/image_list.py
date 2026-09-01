@@ -177,7 +177,7 @@ class ImageList(QWidget, ThemableMixin):
             self.clear_nfo()
             return False
 
-        folder_path = str(pathlib.Path(image_path).parent)
+        folder_path = pathlib.Path(image_path).parent.as_posix()
         images, _poster_path = self.file_util.get_images_from_folder(folder_path)
 
         if not images:

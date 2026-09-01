@@ -168,12 +168,13 @@ class FileUtil:
                     continue
                 if self.is_image_file(entry.path):
                     stem = Path(entry.name).stem.casefold()
+                    normalized_path = Path(entry.path).as_posix()
                     if stem.endswith("poster"):
-                        posters.append(entry.path)
+                        posters.append(normalized_path)
                     elif stem.endswith("fanart"):
-                        fanarts.append(entry.path)
+                        fanarts.append(normalized_path)
                     else:
-                        others.append(entry.path)
+                        others.append(normalized_path)
             except OSError:
                 continue
 
@@ -244,7 +245,7 @@ class FileUtil:
         return FileUtilModel(
             type="file",
             name=target.name,
-            full_path=str(target),
+            full_path=target.as_posix(),
             depth=depth,
             file_type=self.classify_file(target.name),
         )
@@ -273,7 +274,7 @@ class FileUtil:
                     entry.is_file(follow_symlinks=False)
                     and Path(entry.name).suffix.casefold() in exts
                 ):
-                    return entry.path
+                    return Path(entry.path).as_posix()
             except OSError:
                 continue
         return None
@@ -293,10 +294,10 @@ class FileUtil:
         # First pass: prioritize standard media NFO names
         for f in files:
             if f.casefold() in preferred_names:
-                return os.path.join(path, f)
+                return str(Path(path, f).as_posix())
 
         # Second pass: fallback to any file with NFO extension
         for f in files:
             if self.file_type.is_nfo_file(f):
-                return os.path.join(path, f)
+                return str(Path(path, f).as_posix())
         return None

@@ -1,5 +1,7 @@
-import pytest
+from pathlib import Path
 from unittest.mock import patch, MagicMock
+
+import pytest
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 
@@ -35,6 +37,26 @@ class TestFileUtil:
     def test_is_video_file(self, file_util):
         assert file_util.is_video_file("test.mkv") is True
         assert file_util.is_video_file("test.txt") is False
+
+    def test_build_file_item_normalizes_to_posix(self, file_util, tmp_path):
+        target = tmp_path / "movie.mp4"
+        target.write_bytes(b"x")
+
+        item = file_util.build_file_item(str(target))
+
+        assert item.full_path == target.as_posix()
+        assert "/" in item.full_path
+        assert "\\" not in item.full_path
+
+        poster = tmp_path / "folder-poster.png"
+        poster.write_bytes(b"x")
+        image = tmp_path / "image1.jpg"
+        image.write_bytes(b"x")
+
+        images, selected = file_util.get_images_from_folder(str(tmp_path))
+
+        assert any(Path(img).as_posix() == image.as_posix() for img in images)
+        assert selected in {image.as_posix(), poster.as_posix()}
 
     @patch("MyVideoExplorer.utils.file_util.FileUtil._scan_directory")
     def test_get_images_from_folder(self, _scan_directory, file_util):

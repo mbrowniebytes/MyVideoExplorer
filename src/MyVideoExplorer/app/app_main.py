@@ -15,7 +15,7 @@ from PySide6.QtWidgets import QApplication, QMainWindow
 
 from MyVideoExplorer.app.app import App
 from MyVideoExplorer.app.app_container import AppContainer
-from MyVideoExplorer.app.app_environment import IS_DEVELOPMENT
+from MyVideoExplorer.app.app_environment import IS_DEVELOPMENT, ensure_required_directories
 from MyVideoExplorer.app_loading.app_loading_controller import AppLoadingController
 from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.utils.log_util import LogUtil
@@ -46,6 +46,7 @@ def run() -> int:
 
     try:
         qapp = QApplication(sys.argv)
+        ensure_required_directories()
 
         # Configure early logging and settings (used to decide whether to show splash)
         log_util = LogUtil().configure("error")
