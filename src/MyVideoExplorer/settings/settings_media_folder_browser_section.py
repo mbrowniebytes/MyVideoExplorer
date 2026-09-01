@@ -281,8 +281,8 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             media_config["_previous_label"] = current_label
             return
 
-        previous_db = os.path.join("db", f"{self._safe_db_label(previous_label)}.db")
-        current_db = os.path.join("db", f"{self._safe_db_label(current_label)}.db")
+        previous_db = f"db/{self._safe_db_label(previous_label)}.db"
+        current_db = f"db/{self._safe_db_label(current_label)}.db"
 
         if previous_db == current_db:
             media_config["_previous_label"] = current_label
@@ -341,10 +341,10 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         if not folder:
             return "Please choose a media folder before scanning."
 
-        if "invalid" in str(error).lower() or "name" in str(error).lower() and "label" in str(error).lower():
+        if "media name is empty or contains no valid characters for database storage" in str(error).lower():
             return (
                 f"The media name '{label}' is not valid for database storage. "
-                "Use letters, numbers, spaces, dashes, underscores, or periods and try again."
+                "Use letters, numbers, spaces, dashes, or underscores and try again."
             )
 
         details = str(error).strip()

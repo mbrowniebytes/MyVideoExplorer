@@ -330,7 +330,8 @@ class SettingsState(QObject):
             label = "media"
         if label in {".", ".."}:
             label = "media"
-        return os.path.join("db", f"{label}.db")
+        # Store DB path using POSIX separator to keep file naming consistent across platforms
+        return f"db/{label}.db"
 
     def validate_media_configs(self, media_configs: list[dict[str, Any]]) -> list[str]:
         errors: list[str] = []

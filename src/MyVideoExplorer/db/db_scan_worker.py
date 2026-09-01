@@ -159,7 +159,8 @@ class ScanWorker(QThread):
         label = str(self.media_config.get("label", "")).strip()
         if label == "":
             return ""
-        safe_label = re.sub(r'[^a-zA-Z0-9_\-.]', '_', label)
+        safe_label = re.sub(r'[^a-zA-Z0-9_\-]', '_', label)
         if safe_label.strip("._-") == "":
             return ""
-        return os.path.join("db", f"{safe_label}.db")
+        # Return path using POSIX separator so DB filenames use '/' even on Windows
+        return f"db/{safe_label}.db"

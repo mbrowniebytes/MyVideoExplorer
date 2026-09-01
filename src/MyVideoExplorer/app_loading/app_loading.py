@@ -176,7 +176,7 @@ class AppLoadingWidget(QWidget):
 
         return container_widget
 
-    def fade_and_remove(self, container_widget: QWidget | None, app: QApplication, duration: int = 500) -> None:
+    def fade_and_remove(self, container_widget: QWidget | None, app: QApplication, duration: int = 750) -> None:
         """Fade out this loading overlay and remove it, revealing the main UI."""
         try:
             effect = QGraphicsOpacityEffect(self)

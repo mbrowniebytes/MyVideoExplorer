@@ -30,6 +30,6 @@ class AppLoadingController:
         """
         return self._widget.create_overlay_with_main(window, main_widget, app)
 
-    def remove(self, container_widget: QWidget | None, app: QApplication, duration: int = 500) -> None:
+    def remove(self, container_widget: QWidget | None, app: QApplication, duration: int = 750) -> None:
         """Fade and remove the splash, either top-level (container_widget is None) or overlay."""
         self._widget.fade_and_remove(container_widget, app, duration)

@@ -6,11 +6,14 @@ a = Analysis(
     binaries=[],
     datas=[
         ( 'README.md', './' ),
-        ( 'cfg/defaults*.json', 'cfg/' ),
+        ( 'doc/', 'doc/' ),
         ( 'asset/app.png', 'asset/' ),
         ( 'asset/fonts/', 'asset/fonts/' ),
+        ( 'cfg/defaults*.json', 'cfg/' ),
+        ( 'src/MyVideoExplorer/db/migrations/*.sql', 'MyVideoExplorer/db/migrations/' ),
     ],
-    hiddenimports=[],
+    hiddenimports=['uuid', '_uuid', 'duckdb', 'pandas'],
+    collect_all=['duckdb'],
     hookspath=[],
     runtime_hooks=[],
     excludes=[
@@ -66,7 +69,6 @@ a = Analysis(
         'http',
         'lib2to3',
         'msilib',
-        'multiprocessing',
         'nntplib',
         'pydoc',
         'pydoc_data',
@@ -99,7 +101,7 @@ exe = EXE(
     name='MyVideoExplorer',
     debug=False,
     bootloader_ignore_signals=False,
-    strip=True,
+    strip=False,
     upx=True,
     upx_exclude=[
         'qwindows.dll',
@@ -114,7 +116,7 @@ coll = COLLECT(
     a.binaries,
     a.zipfiles,
     a.datas,
-    strip=True,
+    strip=False,
     upx=True,
     upx_exclude=[
         'qwindows.dll',
