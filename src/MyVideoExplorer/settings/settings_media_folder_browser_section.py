@@ -174,6 +174,8 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             db_util = DbScanUtil(db_path)
             stats = db_util.get_stats(self.media_config["path"])
 
+        last_scanned_short, last_scanned_full = self._format_last_scanned(stats[7] if stats else None)
+
         # stats: (folder_path, subfolders, files, images, videos, nfo, other, last_scanned)
         stats_icons = [
             "fa6s.folder",
@@ -191,8 +193,9 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             "fa6s.film": "Videos",
             "fa6s.info-circle": "NFO Files",
             "fa6s.file-alt": "Other Files",
-            "fa6s.clock": "Last Scanned"
+            "fa6s.clock": f"Last Scanned: {last_scanned_full}"
         }
+
         stats_data = [
             str(stats[1]) if stats else "-",
             str(stats[2]) if stats else "-",
@@ -200,7 +203,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             str(stats[4]) if stats else "-",
             str(stats[5]) if stats else "-",
             str(stats[6]) if stats else "-",
-            stats[7].strftime("%y-%m-%d %I%p").lower() if stats and stats[7] else "n/a"
+            last_scanned_short
         ]
 
         for i, (icon_name, val) in enumerate(zip(stats_icons, stats_data)):
@@ -212,16 +215,22 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             lbl = QLabel(val, parent=self)
             lbl.setObjectName(f"stats_val_{i}")
             lbl.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-            # Allow four-digit counts without clipping while keeping the date/time label wider.
+            # Keep counts compact while leaving room for longer timestamps.
             if icon_name == "fa6s.clock":
-                lbl.setFixedWidth(140)
+                lbl.setFixedWidth(110)
+            elif icon_name == "fa6s.file":
+                lbl.setFixedWidth(50)
             else:
-                lbl.setFixedWidth(45)
+                lbl.setFixedWidth(40)
             pair_layout.addWidget(lbl)
 
             icon_lbl = QLabel(parent=self)
+            icon_lbl.setObjectName(f"stats_icon_{i}")
             icon_lbl.setPixmap(APP_THEME.icon(icon_name, color=APP_THEME.text_color).pixmap(16, 16))
             icon_lbl.setToolTip(icon_tooltips.get(icon_name, ""))
+            if icon_name == "fa6s.clock":
+                lbl.setToolTip(icon_tooltips.get(icon_name, ""))
+                icon_lbl.setToolTip(icon_tooltips.get(icon_name, ""))
             pair_layout.addWidget(icon_lbl)
 
             self.stats_layout.addLayout(pair_layout)
@@ -354,13 +363,39 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             f"Please check the media name, folder path, and database permissions.\n\n{details}"
         )
 
-    def _show_scan_error(self, error: BaseException, media_config: dict[str, Any]) -> None:
+    @staticmethod
+    def _format_progress_error_text(message: str, max_len: int = 90) -> str:
+        text = str(message).replace("\n", " ").strip()
+        if len(text) > max_len:
+            text = text[: max_len - 3].rstrip() + "..."
+        return text
+
+    def _show_scan_error(
+        self,
+        error: BaseException,
+        media_config: dict[str, Any],
+        progress_bar: QProgressBar | None = None,
+    ) -> None:
         message = self._format_scan_error(error, media_config)
-        QMessageBox.critical(
-            self,
-            "Scan failed",
-            message,
-        )
+        if progress_bar is not None:
+            self._scan_error = True
+            progress_bar.setRange(0, 100)
+            progress_bar.setValue(100)
+            progress_bar.setTextVisible(True)
+            progress_bar.setFormat(f"Error: {self._format_progress_error_text(message)}")
+            progress_bar.setStyleSheet(
+                "QProgressBar { color: #f5d0d0; background: #2f1f1f; border: 1px solid #8b3b3b; } "
+                "QProgressBar::chunk { background: #b3261e; }"
+            )
+
+    @staticmethod
+    def _format_last_scanned(value: Any) -> tuple[str, str]:
+        if not value:
+            return "n/a", "n/a"
+        try:
+            return value.strftime("%m/%d %I%p").lower(), value.strftime("%Y-%m-%d %I:%M%p").lower()
+        except AttributeError:
+            return "n/a", "n/a"
 
     def _refresh_stats_labels(self, media_config: dict[str, Any]) -> None:
         db_path = self.get_db_path_callback(media_config)
@@ -369,6 +404,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             db_util = DbScanUtil(db_path)
             stats = db_util.get_stats(media_config["path"])
 
+        last_scanned_short, last_scanned_full = self._format_last_scanned(stats[7] if stats else None)
         stats_data = [
             str(stats[1]) if stats else "-",
             str(stats[2]) if stats else "-",
@@ -376,13 +412,19 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             str(stats[4]) if stats else "-",
             str(stats[5]) if stats else "-",
             str(stats[6]) if stats else "-",
-            stats[7].strftime("%y-%m-%d %I%p").lower() if stats and stats[7] else "n/a"
+            last_scanned_short,
         ]
 
         for i, val in enumerate(stats_data):
             lbl = self.findChild(QLabel, f"stats_val_{i}")
             if lbl:
                 lbl.setText(val)
+                if i == 6:
+                    lbl.setToolTip(f"Last Scanned: {last_scanned_full}")
+
+            icon_lbl = self.findChild(QLabel, f"stats_icon_{i}")
+            if icon_lbl and i == 6:
+                icon_lbl.setToolTip(f"Last Scanned: {last_scanned_full}")
 
     def _start_scan(
         self,
@@ -412,6 +454,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             )
             return
 
+        self._scan_error = False
         scan_btn.setEnabled(False)
         scan_btn.setText("Scan")
 
@@ -430,7 +473,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             lambda val: progress_bar.setFormat(f"{stage_state['stage']} {val}%")
         )
         self.worker.error.connect(
-            lambda message: self._show_scan_error(RuntimeError(message), media_config)
+            lambda message: self._show_scan_error(RuntimeError(message), media_config, progress_bar)
         )
         self.worker.finished.connect(
             lambda: self._on_scan_finished(scan_btn, progress_bar, media_config)
@@ -438,6 +481,10 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         self.worker.start()
 
     def _on_scan_finished(self, scan_btn: QPushButton, progress_bar: QProgressBar, media_config: dict[str, Any]) -> None:
+        if getattr(self, "_scan_error", False):
+            self._refresh_scan_button_state()
+            return
+
         progress_bar.setValue(100)
         progress_bar.setRange(0, 100)
         progress_bar.setFormat(f"{self.lang.scan_progress['done']} 100%")

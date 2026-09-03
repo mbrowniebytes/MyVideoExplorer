@@ -24,11 +24,12 @@ class LangEn:
             "Spin spun spin..",
         ]
         self.scan_progress = {
-            "scanning_media_subfolders": "Scanning media subfolders",
-            "saving_media_data": "Saving media rows",
+            "scanning_media_subfolders": "Scanning Media Subfolders",
+            "saving_media_data": "Saving media data",
             "cleaning_old_media_records": "Cleaning old media rows",
             "preparing_media_rows": "Preparing media rows",
             "writing_media_rows": "Writing media rows",
+            "saving_media_rows": "Saving media rows",
             "saved_media_rows": "Saved media rows",
             "saving_stats": "Saving stats",
             "saved_stats": "Saved stats",

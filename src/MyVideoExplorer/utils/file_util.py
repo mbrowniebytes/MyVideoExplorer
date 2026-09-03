@@ -218,7 +218,9 @@ class FileUtil:
                 curr = parent
 
         # 2. Build items for dirs
-        for p in dir_paths:
+        # Sort directories to ensure deterministic order similar to filesystem scans
+        sorted_dirs = sorted(dir_paths, key=lambda p: p.lower())
+        for p in sorted_dirs:
             if p == root_path:
                 continue
 
@@ -229,7 +231,9 @@ class FileUtil:
             items.append(self.build_folder_item(p, depth=depth))
 
         # 3. Build items for files
-        for path in paths:
+        # Sort files by parent directory then filename for consistent ordering
+        sorted_paths = sorted(paths, key=lambda p: (os.path.dirname(p).lower(), os.path.basename(p).lower()))
+        for path in sorted_paths:
             # depth: number of levels below root_path + 1 for file
             relative = os.path.relpath(path, root_path)
             # if relative is "." then file is directly in root_path (depth 0, wait, depth 0 should be folder)

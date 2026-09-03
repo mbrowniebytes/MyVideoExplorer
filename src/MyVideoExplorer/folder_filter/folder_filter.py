@@ -349,6 +349,8 @@ class FolderFilters(QWidget, ThemableMixin):
 
                     # 1. Add files and their parent directories
                     paths = [r[0] for r in res]
+                    # Sort by parent folder then filename to mimic filesystem scan order
+                    paths.sort(key=lambda p: (os.path.dirname(p).lower(), os.path.basename(p).lower()))
                     h = self.file_util.build_hierarchy_from_paths(paths, folder_path)
                     items.extend(h)
 
