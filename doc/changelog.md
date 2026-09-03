@@ -15,6 +15,7 @@
     - add basic validation for saving to db
   - add db migration process
 - add loading screen option
+- fix load app window size settings
 
 - internal:
   - fix launch of code from cli, using proper python module layout
@@ -22,7 +23,7 @@
   - remove excessive hasattr checks
   - refactors into smaller, more focused modules
   - better SignalPayload usage
-  - for qt, addd parent to more widgets
+  - for qt, for performance, add parent to more widgets
   - on app launch, fix flicker of few widgets initialization
   - add basic db data checks
   - remove more packages from build, reducing build size

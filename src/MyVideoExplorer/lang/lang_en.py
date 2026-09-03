@@ -1,13 +1,13 @@
 class LangEn:
     def __init__(self):
-        self.messages = [
+        self.loading_messages = [
             "Scrolling through the bits..",
             "Calculate calculate..",
             "Shuffling through the 1s and 0s..",
             "Rollin', rollin', rollin'..",
             "Nom nom nom..",
             "Wrangling electrons into place..",
-            "Petting the hamsters in the wheel..",
+            "Feeding the hamsters in the wheel..",
             "Convincing the pixels to cooperate..",
             "Brewing a fresh batch of data..",
             "Feeding the gremlins..",
@@ -23,3 +23,14 @@ class LangEn:
             "Spin spin spin..",
             "Spin spun spin..",
         ]
+        self.scan_progress = {
+            "scanning_media_subfolders": "Scanning media subfolders",
+            "saving_media_data": "Saving media rows",
+            "cleaning_old_media_records": "Cleaning old media rows",
+            "preparing_media_rows": "Preparing media rows",
+            "writing_media_rows": "Writing media rows",
+            "saved_media_rows": "Saved media rows",
+            "saving_stats": "Saving stats",
+            "saved_stats": "Saved stats",
+            "done": "Done",
+        }

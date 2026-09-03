@@ -133,6 +133,18 @@ class AppContainer:
             self.media_info_tabs.setParent(self.window)
 
             self._wire_all_signals()
+
+            # Apply saved launch size and position immediately so the app opens
+            # using the user's preferred settings (if present).
+            try:
+                self.resize_window(
+                    self.window,
+                    app_size=self.settings.settings_data_model.launch_app_size,
+                    app_pos=self.settings.settings_data_model.launch_app_pos,
+                    apply_resize=True,
+                )
+            except Exception as e:
+                self.log_util.debug(f"Failed applying initial window size/pos: {e}")
         except Exception as e:
             self.log_util.error(
                 f"Error during component initialization: {e}",
@@ -249,8 +261,17 @@ class AppContainer:
 
     @staticmethod
     def _parse_window_size(value: str) -> tuple[int, int] | None:
+        """Parse sizes like '1600x900' or names like 'app_size_1600x900'.
+
+        Returns (width, height) or None on failure.
+        """
         if not value or "x" not in value:
             return None
+
+        # Allow values that include a prefix such as 'app_size_1600x900'
+        if value.startswith("app_size_"):
+            value = value.split("app_size_", 1)[1]
+
         try:
             width, height = map(int, value.split("x", 1))
         except ValueError:

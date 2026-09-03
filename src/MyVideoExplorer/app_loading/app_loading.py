@@ -49,7 +49,7 @@ class AppLoadingWidget(QWidget):
         layout.addWidget(icon_label)
 
         lang = LangLoader.get_lang("en")
-        msg = random.choice(lang.messages)
+        msg = random.choice(lang.loading_messages)
         loading_label = QLabel(msg, parent=self)
         loading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         loading_label.setStyleSheet(APP_THEME.loading_label_qss())

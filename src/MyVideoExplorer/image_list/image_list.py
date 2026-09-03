@@ -73,7 +73,7 @@ class ImageList(QWidget, ThemableMixin):
             self.image_list_view.show_empty_state(_EMPTY_STATE_NO_MEDIA_FOLDERS)
         else:
             lang = LangLoader.get_lang("en")
-            msg = random.choice(lang.messages)
+            msg = random.choice(lang.loading_messages)
             self.image_list_view.show_loading_state(msg)
         self._connect_internal_sigs()
         self.clear_nfo()

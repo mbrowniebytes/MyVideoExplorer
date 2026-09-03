@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
 
 from MyVideoExplorer.db.db_scan import DbScanUtil
 from MyVideoExplorer.db.db_scan_worker import ScanWorker
+from MyVideoExplorer.lang.lang_loader import LangLoader
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil
@@ -42,6 +43,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         self.get_db_path_callback = get_db_path_callback
         self.file_util = file_util
         self.nfo_util = nfo_util
+        self.lang = LangLoader.get_lang("en")
         self.worker = None
 
         self._build_ui()
@@ -210,11 +212,11 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             lbl = QLabel(val, parent=self)
             lbl.setObjectName(f"stats_val_{i}")
             lbl.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-            # Make the last scanned label a bit wider
+            # Allow four-digit counts without clipping while keeping the date/time label wider.
             if icon_name == "fa6s.clock":
                 lbl.setFixedWidth(140)
             else:
-                lbl.setFixedWidth(35)
+                lbl.setFixedWidth(45)
             pair_layout.addWidget(lbl)
 
             icon_lbl = QLabel(parent=self)
@@ -231,15 +233,12 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
 
         self.progress_bar = QProgressBar(self)
         self.progress_bar.setVisible(True)
-        self.progress_bar.setFixedHeight(5)
+        self.progress_bar.setFixedHeight(18)
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
         self.progress_bar.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.progress_bar.setFormat(" ")
-        # self.progress_bar.setStyleSheet(
-        #     "QProgressBar { border: none; background: transparent; } "
-        #     "QProgressBar::chunk { background: transparent; }"
-        # )
+        self.progress_bar.setFormat("%p%")
+        self.progress_bar.setTextVisible(False)
         self.progress_bar.setStyleSheet(APP_THEME.progress_bar_qss(active=False))
 
         self.scan_btn = QPushButton("Scan", parent=self)
@@ -414,18 +413,21 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             return
 
         scan_btn.setEnabled(False)
-        scan_btn.setText("0%")
+        scan_btn.setText("Scan")
 
-        progress_bar.setFormat(" ")
+        progress_bar.setRange(0, 100)
+        progress_bar.setValue(0)
+        progress_bar.setFormat(f"{self.lang.scan_progress['scanning_media_subfolders']} 0%")
+        progress_bar.setTextVisible(True)
         progress_bar.setStyleSheet(APP_THEME.progress_bar_qss(active=True))
 
         self.worker = ScanWorker(media_config, self.file_util, self.nfo_util)
-        self.worker.progress_init.connect(lambda val: progress_bar.setRange(0, val))
+        self.worker.progress_init.connect(lambda _val: progress_bar.setRange(0, 100))
         self.worker.progress_updated.connect(progress_bar.setValue)
+        stage_state = {"stage": self.lang.scan_progress["scanning_media_subfolders"]}
+        self.worker.progress_stage.connect(lambda stage: stage_state.__setitem__("stage", stage))
         self.worker.progress_updated.connect(
-            lambda val: scan_btn.setText(f"{min(100, int(val / progress_bar.maximum() * 100))}%")
-            if progress_bar.maximum() > 0
-            else None
+            lambda val: progress_bar.setFormat(f"{stage_state['stage']} {val}%")
         )
         self.worker.error.connect(
             lambda message: self._show_scan_error(RuntimeError(message), media_config)
@@ -436,9 +438,10 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         self.worker.start()
 
     def _on_scan_finished(self, scan_btn: QPushButton, progress_bar: QProgressBar, media_config: dict[str, Any]) -> None:
-        progress_bar.setValue(0)
+        progress_bar.setValue(100)
         progress_bar.setRange(0, 100)
-        progress_bar.setFormat(" ")
+        progress_bar.setFormat(f"{self.lang.scan_progress['done']} 100%")
+        progress_bar.setTextVisible(False)
         progress_bar.setStyleSheet(APP_THEME.progress_bar_qss(active=False))
         scan_btn.setText("Scan")
         self._refresh_scan_button_state()

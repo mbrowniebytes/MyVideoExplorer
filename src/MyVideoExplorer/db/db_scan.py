@@ -10,7 +10,9 @@ class DbScanUtil:
     def _init_db(self):
         db_migrations.DbMigrations(self.db_path).run_migrations()
 
-    def save_stats(self, stats: dict[str, Any]):
+    def save_stats(self, stats: dict[str, Any], progress_callback=None):
+        if progress_callback is not None:
+            progress_callback(0, "Saving stats")
         con = duckdb.connect(self.db_path)
         con.execute(db_query.DbQuery.MediaPathStats.INSERT, (
             stats['media_path'], stats['subfolders_count'], stats['files_count'],
@@ -18,6 +20,8 @@ class DbScanUtil:
             stats['other_count'], stats['last_scanned']
         ))
         con.close()
+        if progress_callback is not None:
+            progress_callback(100, "Saved stats")
 
     def get_stats(self, media_path: str):
         con = duckdb.connect(self.db_path)
@@ -30,8 +34,11 @@ class DbScanUtil:
         con.execute(db_query.DbQuery.MediaPathStats.DELETE, (media_path,))
         con.close()
 
-    def save_media(self, media_list: list[dict[str, Any]], media_path: str):
+    def save_media(self, media_list: list[dict[str, Any]], media_path: str, progress_callback=None):
         con = duckdb.connect(self.db_path)
+
+        if progress_callback is not None:
+            progress_callback(10, "Cleaning old media rows")
 
         # 1. Delete records for the scanned folder that are no longer present
         if media_list:
@@ -46,11 +53,16 @@ class DbScanUtil:
 
         if not media_list:
             con.close()
+            if progress_callback is not None:
+                progress_callback(100, "Saved media rows")
             return
+
+        if progress_callback is not None:
+            progress_callback(25, "Preparing media rows")
 
         # Prepare data for insertion
         data = []
-        for item in media_list:
+        for idx, item in enumerate(media_list):
             metadata = item.get('metadata') or {}
 
             # Validation & Conversion
@@ -88,6 +100,12 @@ class DbScanUtil:
                 metadata.get('directors'),
             ))
 
+            if progress_callback is not None and len(media_list) > 1:
+                pct = int((idx + 1) / len(media_list) * 60) + 25
+                progress_callback(pct, "Saving media rows")
+
         # Use UPSERT to update or add media
         con.executemany(db_query.DbQuery.MediaFile.UPSERT_MEDIA, data)
         con.close()
+        if progress_callback is not None:
+            progress_callback(100, "Saved media rows")

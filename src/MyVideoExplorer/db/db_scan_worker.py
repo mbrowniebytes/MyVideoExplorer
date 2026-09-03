@@ -10,6 +10,7 @@ from PySide6.QtCore import QThread, Signal
 
 from MyVideoExplorer.app.app_environment import IS_DEVELOPMENT
 from MyVideoExplorer.db.db_scan import DbScanUtil
+from MyVideoExplorer.lang.lang_loader import LangLoader
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.file_util_type import FileUtilType
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
@@ -20,12 +21,14 @@ class ScanWorker(QThread):
     error = Signal(str)
     progress_init = Signal(int)
     progress_updated = Signal(int)
+    progress_stage = Signal(str)
 
     def __init__(self, media_config: dict[str, Any], file_util: FileUtil, nfo_util: NfoParseUtil):
         super().__init__()
         self.media_config = media_config
         self.file_util = file_util
         self.nfo_util = nfo_util
+        self.lang = LangLoader.get_lang("en")
 
     @staticmethod
     def _format_error(exc: BaseException) -> str:
@@ -88,7 +91,8 @@ class ScanWorker(QThread):
             if os.path.isdir(media_path):
                 for _, dirs, _ in os.walk(media_path):
                     total_folders += 1
-            self.progress_init.emit(total_folders)
+            self.progress_init.emit(100)
+            self.progress_stage.emit(self.lang.scan_progress["scanning_media_subfolders"])
 
             stats = {
                 'media_path': media_path,
@@ -103,13 +107,15 @@ class ScanWorker(QThread):
 
             progress = 0
             if media_path and os.path.isdir(media_path):
+                folder_steps = max(total_folders, 1)
                 for root, dirs, files in os.walk(media_path):
                     stats['subfolders_count'] += len(dirs)
                     stats['files_count'] += len(files)
 
-                    # Update progress for each directory visited
+                    # Update scan progress until 75% then transition to DB save.
                     progress += 1
-                    self.progress_updated.emit(progress)
+                    scan_progress = min(75, int((progress / folder_steps) * 75))
+                    self.progress_updated.emit(scan_progress)
 
                     for file in files:
                         # dev test large qty folders
@@ -145,11 +151,22 @@ class ScanWorker(QThread):
             if not media_path or not os.path.isdir(media_path):
                 raise FileNotFoundError(f"Media folder not found: {media_path}")
 
+            self.progress_stage.emit(self.lang.scan_progress["saving_media_data"])
+            self.progress_updated.emit(75)
             self._backup_db(db_path)
 
+            def on_db_progress(pct: int, label: str):
+                self.progress_stage.emit(label)
+                self.progress_updated.emit(min(100, max(75, int(75 + (pct / 100) * 25))))
+
             db_util = DbScanUtil(db_path)
-            db_util.save_media(new_results, media_path)
-            db_util.save_stats(stats)
+            db_util.save_media(
+                new_results,
+                media_path,
+                progress_callback=lambda pct, label: on_db_progress(pct, label),
+            )
+            db_util.save_stats(stats, progress_callback=on_db_progress)
+            self.progress_updated.emit(100)
         except Exception as exc:  # pragma: no cover - surfaced via UI dialog
             self.error.emit(self._format_error(exc))
         finally:

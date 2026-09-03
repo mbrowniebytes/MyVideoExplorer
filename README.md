@@ -2,7 +2,7 @@
 
 _**app is under development**_
 
-features, settings, configs may change without notice and with breaking changes
+features, settings, configs, db may change without notice and with breaking changes
 
 ---
 
@@ -15,7 +15,7 @@ An alternative to **Windows Explorer**, which focuses on file listings and requi
 metadata like movie.nfo.
 
 **MyVideoExplorer** sits comfortably in the middle. It’s a simple, streamlined video browser that lets you scroll
-through your collection while displaying enough metadata to quickly decide if it’s the video you want to watch today.
+through your media collection while displaying enough metadata to quickly decide if it’s the video you want to watch today.
 
 Screenshot:
 ![MyVideoExplorer Screenshot](doc/MyVideoExplorer-screenshot.png)
@@ -23,17 +23,17 @@ Screenshot:
 ### Features:
 
 - play videos using the default os video player
-- simple play movies by double clicking on poster or play button
-- mouse wheel over poster to scroll through video folders
-- right click over poster to cycle through current folder images
+- simply play movies by double clicking on the media image or click the play button
+- mouse wheel over current media image to scroll through video folders
+- right click over media image to cycle through current folder images
 - basic filtering of folder and files
 - filter media folders shown
-- optional scan media folder and save to local [duckdb]([duckdb](https://duckdb.org/))
+- optionally scan media folder and save to local [duckdb]([duckdb](https://duckdb.org/))
 - basic movie.nfo parsing: plot, mpaa, runtime, genres, imdb id, tmdb id, actors, directors, etc (if nfo files exists
   and xml data is available)
 - basic tooltips for inline help
 - settings
-    - ui font size can be adjusted so text is conformably readable on your tv or projector
+    - ui font size can be adjusted so text is comfortably readable on your tv or projector
     - add multiple media folders if your videos are organized in different drives or folders
     - manage filters
 
@@ -51,7 +51,7 @@ Screenshot:
 
 ### movie.nfo
 
-Use [Kodi](https://github.com/xbmc/xbmc) or better [MediaElch](https://github.com/komet/mediaelch) to create a movie.nfo
+Use [Kodi](https://github.com/xbmc/xbmc), [Jellyfin](https://github.com/jellyfin/jellyfin) or better [MediaElch](https://github.com/komet/mediaelch) to create a movie.nfo
 file per video folder.
 
 ---
