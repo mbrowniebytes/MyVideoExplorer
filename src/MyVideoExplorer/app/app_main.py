@@ -49,7 +49,7 @@ def run() -> int:
         ensure_required_directories()
 
         # Configure early logging and settings (used to decide whether to show splash)
-        log_util = LogUtil().configure("error")
+        log_util = LogUtil.get_default().configure("error")
         settings_state = SettingsState(log_util)
         show_loading = getattr(settings_state, "show_loading_screen", True)
 

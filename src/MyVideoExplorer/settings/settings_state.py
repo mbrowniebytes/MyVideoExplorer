@@ -9,7 +9,10 @@ from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.utils.json_util import JsonUtil
 from MyVideoExplorer.theme.theme import APP_THEME
 
-# Define configuration paths
+# Use a package-local defaults directory so built-in defaults are versioned with
+# the application instead of living only at the repo root. Runtime user settings
+# still live in the working-directory cfg folder for easy local editing.
+PACKAGE_CFG_DIR = Path(__file__).resolve().parent / "cfg"
 CFG_DIR = Path("cfg")
 SETTINGS_STATE_FILE = CFG_DIR / "settings_state.json"
 SETTINGS_APP_FILE = CFG_DIR / "settings_app.json"
@@ -17,11 +20,11 @@ SETTINGS_UI_FILE = CFG_DIR / "settings_ui.json"
 SETTINGS_MEDIA_FILE = CFG_DIR / "settings_media.json"
 SETTINGS_FILTER_FILE = CFG_DIR / "settings_filter.json"
 
-DEFAULTS_STATE_FILE = CFG_DIR / "defaults_state.json"
-DEFAULTS_APP_FILE = CFG_DIR / "defaults_app.json"
-DEFAULTS_UI_FILE = CFG_DIR / "defaults_ui.json"
-DEFAULTS_MEDIA_FILE = CFG_DIR / "defaults_media.json"
-DEFAULTS_FILTER_FILE = CFG_DIR / "defaults_filter.json"
+DEFAULTS_STATE_FILE = PACKAGE_CFG_DIR / "defaults_state.json"
+DEFAULTS_APP_FILE = PACKAGE_CFG_DIR / "defaults_app.json"
+DEFAULTS_UI_FILE = PACKAGE_CFG_DIR / "defaults_ui.json"
+DEFAULTS_MEDIA_FILE = PACKAGE_CFG_DIR / "defaults_media.json"
+DEFAULTS_FILTER_FILE = PACKAGE_CFG_DIR / "defaults_filter.json"
 
 
 class SettingsState(QObject):
@@ -52,9 +55,10 @@ class SettingsState(QObject):
         self.log_util.debug(f"__init__ {self.__class__.__name__}")
 
     def _ensure_defaults(self) -> None:
-        """Create cfg directory and defaults split files if they don't exist."""
+        """Create user settings dir and package defaults if they don't exist."""
         if not CFG_DIR.exists():
             CFG_DIR.mkdir(parents=True)
+        PACKAGE_CFG_DIR.mkdir(parents=True, exist_ok=True)
 
         state_defaults: dict[str, str] = {
             "prior_folder": "",
@@ -80,11 +84,11 @@ class SettingsState(QObject):
             "saved_filters": self.saved_filters,
         }
 
-        self.json_util.ensure_defaults(CFG_DIR, DEFAULTS_STATE_FILE, state_defaults)
-        self.json_util.ensure_defaults(CFG_DIR, DEFAULTS_APP_FILE, app_defaults)
-        self.json_util.ensure_defaults(CFG_DIR, DEFAULTS_UI_FILE, ui_defaults)
-        self.json_util.ensure_defaults(CFG_DIR, DEFAULTS_MEDIA_FILE, media_defaults)
-        self.json_util.ensure_defaults(CFG_DIR, DEFAULTS_FILTER_FILE, filter_defaults)
+        self.json_util.ensure_defaults(PACKAGE_CFG_DIR, DEFAULTS_STATE_FILE, state_defaults)
+        self.json_util.ensure_defaults(PACKAGE_CFG_DIR, DEFAULTS_APP_FILE, app_defaults)
+        self.json_util.ensure_defaults(PACKAGE_CFG_DIR, DEFAULTS_UI_FILE, ui_defaults)
+        self.json_util.ensure_defaults(PACKAGE_CFG_DIR, DEFAULTS_MEDIA_FILE, media_defaults)
+        self.json_util.ensure_defaults(PACKAGE_CFG_DIR, DEFAULTS_FILTER_FILE, filter_defaults)
 
     def _load_settings(self) -> None:
         """Load settings from split json files, falling back to split defaults."""
@@ -410,7 +414,7 @@ class SettingsState(QObject):
 
 
     def save_settings(self) -> None:
-        """Save all tabs' settings (legacy method for backward compatibility)."""
+        """Save all tabs' settings"""
         self.save_app()
         self.save_ui()
         self.save_media()

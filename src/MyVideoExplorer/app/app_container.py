@@ -1,4 +1,3 @@
-from pathlib import Path
 
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QMainWindow
@@ -17,6 +16,7 @@ from MyVideoExplorer.media_info.media_info_view import MediaInfoView
 from MyVideoExplorer.media_info_side.media_info_side_view import MediaInfoSideView
 from MyVideoExplorer.media_info_tabs.media_info_tabs import MediaInfoTabs
 from MyVideoExplorer.settings.settings import Settings
+from MyVideoExplorer.settings.settings_state import DEFAULTS_APP_FILE, SETTINGS_APP_FILE
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.font_util import FontUtil
@@ -39,17 +39,14 @@ class AppContainer:
 
     def __init__(self, window: QMainWindow) -> None:
         self.window = window
-        # Load saved log level
-        log_util = LogUtil().configure("error")
+        # Load saved log level using the shared startup logger instance.
+        log_util = LogUtil.get_default().configure("error")
         self.log_util = log_util  # Set early so available even if initialization fails
 
         try:
             json_util = JsonUtil(log_util)
-            cfg_dir = Path("cfg")
-            defaults_app_file = cfg_dir / "defaults_app.json"
-            settings_app_file = cfg_dir / "settings_app.json"
-            app_data = json_util.load_json(defaults_app_file)
-            app_data.update(json_util.load_json(settings_app_file))
+            app_data = json_util.load_json(DEFAULTS_APP_FILE)
+            app_data.update(json_util.load_json(SETTINGS_APP_FILE))
             log_level = app_data.get("log_level", "error")
 
             self.log_util = log_util.configure(log_level)

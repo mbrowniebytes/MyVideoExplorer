@@ -9,7 +9,7 @@ a = Analysis(
         ( 'doc/', 'doc/' ),
         ( 'asset/app.png', 'asset/' ),
         ( 'asset/fonts/', 'asset/fonts/' ),
-        ( 'cfg/defaults*.json', 'cfg/' ),
+        ( 'src/MyVideoExplorer/settings/cfg/defaults*.json', 'MyVideoExplorer/settings/cfg/' ),
         ( 'src/MyVideoExplorer/db/migrations/*.sql', 'MyVideoExplorer/db/migrations/' ),
     ],
     hiddenimports=['uuid', '_uuid', 'duckdb', 'pandas'],

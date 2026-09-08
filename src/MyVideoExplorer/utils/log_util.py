@@ -38,6 +38,15 @@ LOG_DIR = Path("log")
 class LogUtil:
     """Utility class for configuring and managing application logging."""
 
+    _default_instance: LogUtil | None = None
+
+    @classmethod
+    def get_default(cls) -> LogUtil:
+        """Return the shared startup logger instance."""
+        if cls._default_instance is None:
+            cls._default_instance = cls()
+        return cls._default_instance
+
     # Map string levels to logging constants
     LEVEL_MAP: dict[str, int] = {
         "debug": logging.DEBUG,
@@ -55,17 +64,12 @@ class LogUtil:
 
 
     def __init__(self) -> None:
-        """
-        Initialize the LogUtil instance.
-
-        Args:
-            log_level: Optional initial log level (defaults to DEFAULT_LOG_LEVEL).
-        """        """Create log directory and defaults split files if they don't exist."""
+        """Initialize the LogUtil instance."""
         if not LOG_DIR.exists():
             LOG_DIR.mkdir(parents=True)
         self.log_level = self.DEFAULT_LOG_LEVEL
         self._logger_initialized = False
-        self._file_handler = RotatingFileHandler(self.LOG_FILE)
+        self._file_handler: RotatingFileHandler | None = None
 
         # date_str = datetime.datetime.now().strftime("%Y-%m-%d")
         # self.LOG_FILE = LOG_DIR / f"app-{date_str}.log"
@@ -160,16 +164,33 @@ class LogUtil:
         Returns:
             self for method chaining.
         """
-        if self.logger_initialized:
-            # Clear existing handlers on re-configuration
-            logging.root.handlers.clear()
-
-        # Get or use provided level
         self.log_level = self.ensure_log_level(level_str)
         effective_level = self.get_log_level_value(level_str or self.log_level)
-
-        # Ensure log directory exists
         self._ensure_log_directory()
+
+        root_logger = self._get_root_logger()
+        existing_handler = next(
+            (
+                handler
+                for handler in root_logger.handlers
+                if isinstance(handler, RotatingFileHandler)
+                and Path(getattr(handler, "baseFilename", "")).resolve() == self.LOG_FILE.resolve()
+            ),
+            None,
+        )
+
+        if existing_handler is not None:
+            self._file_handler = existing_handler
+            self._logger_initialized = True
+            formatter = CustomFormatter(self)
+            self._file_handler.setFormatter(formatter)
+            self._file_handler.setLevel(effective_level)
+            self._file_handler.namer = self._custom_namer
+            root_logger.setLevel(effective_level)
+            return self
+
+        if self._file_handler is not None:
+            self._file_handler.close()
 
         # Configure file handler with daily rotation and backup limit
 
@@ -181,7 +202,7 @@ class LogUtil:
         #     backupCount=self.MAX_BACKUPS,
         #     encoding="utf-8",
         #     utc=False,
-        #     delay=True, # required else perms/timing issue
+        #     delay=True,  # required else perms/timing issue
         # )
         # max size + custom cleanup()
         self._file_handler = RotatingFileHandler(
@@ -193,14 +214,12 @@ class LogUtil:
         )
 
         formatter = CustomFormatter(self)
-
         self._file_handler.setFormatter(formatter)
         self._file_handler.setLevel(effective_level)
         self._file_handler.namer = self._custom_namer
 
-        # Add file handler to root logger if not already present
-        logging.root.addHandler(self._file_handler)
-        logging.root.setLevel(effective_level)
+        root_logger.addHandler(self._file_handler)
+        root_logger.setLevel(effective_level)
 
         self._logger_initialized = True
 

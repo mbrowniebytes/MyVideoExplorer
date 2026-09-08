@@ -56,8 +56,6 @@ class AppBuilder:
         return file_container
 
     def _create_right_panel(self) -> QWidget:
-        self.container.image_list.image_list_view.media_info_side_view = (
-            self.container.media_info.media_info_side_view
-        )
-
+        # Shared UI wiring is centralized during container construction so each
+        # feature remains self-contained and the builder only composes panels.
         return self.container.media_info_tabs.build()

@@ -28,6 +28,7 @@
   - add basic db data checks
   - remove more packages from build, reducing build size
   - update pyside6, ruff, ty, pyinstaller, etc
+  - backups in cfg/backups/, db/backups/
   - cleanup docs
 
 release - [MyVideoExplorer-2026####-0.005 ](https://github.com/mbrowniebytes/MyVideoExplorer/releases/tag/2026####-0.005)

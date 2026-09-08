@@ -13,14 +13,9 @@ from MyVideoExplorer.theme.manager import ThemeManager
 class Theme(ThemeManager):
     """
     Main theme entry point.
-    Maintains backward compatibility with original class name.
     """
     def __init__(self, config: ThemeConfig | None = None):
         super().__init__(config or ThemeConfig())
-
-    # --- Backward Compatibility Properties ---
-    # These allow existing code to access APP_THEME.font_size etc.
-    # while mapping them to the new verbose config names.
 
     @property
     def font_size(self) -> int:

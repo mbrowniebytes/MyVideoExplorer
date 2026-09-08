@@ -64,13 +64,6 @@ class AppLoadingWidget(QWidget):
         appIcon = QIcon(pixmap)
         app.setWindowIcon(appIcon)
 
-    def show_temporary_central(self, window: QMainWindow, app: QApplication) -> None:
-        """DEPRECATED: kept for compatibility. Use show_splash instead.
-
-        Make this loading widget the temporary central widget and paint it.
-        """
-        self.show_splash(window, app)
-
     def show_splash(self, main_window: QMainWindow | None, app: QApplication) -> None:
         """Show this loading widget as a top-level splash window centered over the main window.
 

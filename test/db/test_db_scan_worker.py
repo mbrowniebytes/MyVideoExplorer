@@ -1,5 +1,3 @@
-import os
-from pathlib import Path
 
 import pytest
 from unittest.mock import MagicMock, patch
@@ -73,11 +71,9 @@ class TestScanWorker:
         assert not mock_remove.called
 
     def test_backup_db(self, tmp_path, folder_config, mock_file_util, mock_nfo_util):
-        # db_dir = tmp_path / "db"
-        # db_dir.mkdir()
-        db_dir = Path("tmp/db")
-        os.makedirs("tmp/db", exist_ok=True)
-        db_file = Path("tmp/db/Test.db")
+        db_dir = tmp_path / "db"
+        db_dir.mkdir()
+        db_file = db_dir / "Test.db"
         db_file.write_text("dummy db content")
 
         worker = ScanWorker(folder_config, mock_file_util, mock_nfo_util)
@@ -88,37 +84,34 @@ class TestScanWorker:
         # Assert backup created
         import datetime
         today_str = datetime.datetime.now().strftime("%Y-%m-%d")
-        backup_file = db_dir / f"Test_{today_str}.db"
+        backup_file = db_dir / "backups" / f"Test_{today_str}.db"
         assert backup_file.exists()
         assert backup_file.read_text() == "dummy db content"
 
     def test_backup_db_rotation(self, tmp_path, folder_config, mock_file_util, mock_nfo_util):
         import time
-        # db_dir = tmp_path / "db"
-        # db_dir.mkdir()
-        # db_file = db_dir / "Test.db"
-        db_dir = Path("tmp/db")
-        os.makedirs("tmp/db", exist_ok=True)
-        db_file = Path("tmp/db/Test.db")
+        db_dir = tmp_path / "db"
+        db_dir.mkdir()
+        db_file = db_dir / "Test.db"
         db_file.write_text("dummy db content")
 
         worker = ScanWorker(folder_config, mock_file_util, mock_nfo_util)
 
+        backup_dir = db_dir / "backups"
+        backup_dir.mkdir()
+
         # Create 6 old backups manually
         for i in range(6):
-            backup_file = db_dir / f"Test_2020-01-0{i+1}.db"
+            backup_file = backup_dir / f"Test_2020-01-0{i+1}.db"
             backup_file.write_text("old")
-            # Set mtime to be in the past
-            # In Windows, setting mtime on files might be tricky,
-            # but for this test, we can just use time.sleep
             time.sleep(0.1)
 
         # Call _backup_db
         worker._backup_db(str(db_file))
 
         # Assert total backups = 5 (the latest 5, including the one we just created for today)
-        all_backups = list(db_dir.glob("Test_*.db"))
+        all_backups = list(backup_dir.glob("Test_*.db"))
         assert len(all_backups) == 5
 
         # The oldest one (Test_2020-01-01.db) should be gone
-        assert not (db_dir / "Test_2020-01-01.db").exists()
+        assert not (backup_dir / "Test_2020-01-01.db").exists()

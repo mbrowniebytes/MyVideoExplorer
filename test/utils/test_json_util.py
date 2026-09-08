@@ -1,7 +1,9 @@
+import json
+import os
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
-import json
 from datetime import datetime, timedelta
 from MyVideoExplorer.utils.json_util import JsonUtil
 
@@ -57,6 +59,22 @@ class TestJsonUtil:
             data = json.load(f)
         assert data == test_data
 
+    def test_save_json_uses_atomic_replace(self, tmp_path, json_util, monkeypatch):
+        file_path = tmp_path / "settings_ui.json"
+        calls = []
+
+        def fake_replace(src, dst):
+            calls.append((src, dst))
+            Path(dst).write_text(Path(src).read_text(encoding="utf-8"), encoding="utf-8")
+
+        monkeypatch.setattr(os, "replace", fake_replace)
+
+        json_util.save_json(file_path, {"font_size": 21})
+
+        assert len(calls) == 1
+        assert Path(calls[0][1]) == file_path
+        assert json.loads(file_path.read_text(encoding="utf-8")) == {"font_size": 21}
+
 
     def test_backup_file(self, tmp_path, json_util):
         file_path = tmp_path / "settings_ui.json"
@@ -64,7 +82,7 @@ class TestJsonUtil:
 
         json_util.backup_file(file_path, max_backups=2)
 
-        backups = list(tmp_path.glob("settings_ui_*.json"))
+        backups = list((tmp_path / "backups").glob("settings_ui_*.json"))
         assert len(backups) == 1
         assert backups[0].read_text() == "content"
 
@@ -73,14 +91,17 @@ class TestJsonUtil:
         file_path = tmp_path / "settings_ui.json"
         file_path.write_text("content")
 
+        backup_dir = tmp_path / "backups"
+        backup_dir.mkdir()
+
         # Create manual old backups
-        (tmp_path / "settings_ui_2026-04-01.json").write_text("old1")
-        (tmp_path / "settings_ui_2026-04-02.json").write_text("old2")
-        (tmp_path / "settings_ui_2026-04-03.json").write_text("old3")
+        (backup_dir / "settings_ui_2026-04-01.json").write_text("old1")
+        (backup_dir / "settings_ui_2026-04-02.json").write_text("old2")
+        (backup_dir / "settings_ui_2026-04-03.json").write_text("old3")
 
         json_util.backup_file(file_path, max_backups=2)
 
-        backups = sorted(tmp_path.glob("settings_ui_*.json"), reverse=True)
+        backups = sorted(backup_dir.glob("settings_ui_*.json"), reverse=True)
         # Today's backup + 1 old backup (rotation should keep most recent by name)
         assert len(backups) == 2
 
@@ -90,16 +111,19 @@ class TestJsonUtil:
         content = "content"
         file_path.write_text(content)
 
+        backup_dir = tmp_path / "backups"
+        backup_dir.mkdir()
+
         # Create a backup with same content (from "yesterday")
         yesterday = datetime.now() - timedelta(days=1)
         yesterday_str = yesterday.strftime("%Y-%m-%d")
-        backup_path = tmp_path / f"settings_ui_{yesterday_str}.json"
+        backup_path = backup_dir / f"settings_ui_{yesterday_str}.json"
         backup_path.write_text(content)
 
         json_util.backup_file(file_path)
 
         # Should still have only 1 backup (the old one)
-        backups = list(tmp_path.glob("settings_ui_*.json"))
+        backups = list(backup_dir.glob("settings_ui_*.json"))
         assert len(backups) == 1
         assert yesterday_str in backups[0].name
 
@@ -109,16 +133,19 @@ class TestJsonUtil:
         content = "new content"
         file_path.write_text(content)
 
+        backup_dir = tmp_path / "backups"
+        backup_dir.mkdir()
+
         # Create a backup with different content
-        (tmp_path / "settings_ui_2026-04-01.json").write_text("old content")
+        (backup_dir / "settings_ui_2026-04-01.json").write_text("old content")
 
         json_util.backup_file(file_path)
 
         # Should have 2 backups now
-        backups = list(tmp_path.glob("settings_ui_*.json"))
+        backups = list(backup_dir.glob("settings_ui_*.json"))
         assert len(backups) == 2
 
         today_str = datetime.now().strftime("%Y-%m-%d")
-        today_backup = tmp_path / f"settings_ui_{today_str}.json"
+        today_backup = backup_dir / f"settings_ui_{today_str}.json"
         assert today_backup.exists()
         assert today_backup.read_text() == content
