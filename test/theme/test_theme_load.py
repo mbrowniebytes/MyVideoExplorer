@@ -3,6 +3,7 @@ from MyVideoExplorer.app.app import App
 from MyVideoExplorer.app.app_container import AppContainer
 from MyVideoExplorer.theme.theme import APP_THEME
 
+
 class TestThemeOnLoad:
     def test_theme_applied_after_build(self, qtbot):
         # We need to mock or use a real AppContainer
@@ -24,6 +25,7 @@ class TestThemeOnLoad:
 
         # Find Settings widget
         from MyVideoExplorer.settings.settings import Settings
+
         settings = window.findChild(Settings)
         assert settings is not None
 
@@ -37,6 +39,7 @@ class TestThemeOnLoad:
 
         # Check QComboBox in SettingsAppTab
         from MyVideoExplorer.settings.settings_app_tab import SettingsAppTab
+
         app_tab = settings.findChild(SettingsAppTab)
         assert app_tab is not None
         combo = app_tab.findChild(QComboBox)
@@ -46,4 +49,7 @@ class TestThemeOnLoad:
         assert APP_THEME.config.color_surface_primary in combo.styleSheet()
 
         # Check Font
-        assert combo.font().pointSize() == APP_THEME.font_size or combo.font().pixelSize() == APP_THEME.font_size
+        assert (
+            combo.font().pointSize() == APP_THEME.font_size
+            or combo.font().pixelSize() == APP_THEME.font_size
+        )

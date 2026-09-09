@@ -2,6 +2,7 @@ from PySide6.QtWidgets import QComboBox
 from PySide6.QtCore import Signal
 from MyVideoExplorer.app.app_signals_model import SignalPayload, SignalFlow
 
+
 class GenreComboWidget(QComboBox):
     genre_changed = Signal(object)
 

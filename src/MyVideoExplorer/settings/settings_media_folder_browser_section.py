@@ -61,7 +61,9 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         self.label_edit.setPlaceholderText("Media Name")
         self.label_edit.textChanged.connect(self._refresh_scan_button_state)
         self.label_edit.editingFinished.connect(
-            lambda: self.config_changed.emit(self.media_config, "label", self.label_edit.text())
+            lambda: self.config_changed.emit(
+                self.media_config, "label", self.label_edit.text()
+            )
         )
         row1_layout.addWidget(self.label_edit)
 
@@ -73,7 +75,9 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         if index >= 0:
             self.type_combo.setCurrentIndex(index)
         self.type_combo.currentTextChanged.connect(
-            lambda text: self.config_changed.emit(self.media_config, "media_type", self.type_combo.currentData())
+            lambda text: self.config_changed.emit(
+                self.media_config, "media_type", self.type_combo.currentData()
+            )
         )
         row1_layout.addWidget(self.type_combo)
 
@@ -82,7 +86,9 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         self.remove_btn.setIcon(APP_THEME.icon("fa6s.xmark"))
         self.remove_btn.setStyleSheet(APP_THEME.button_qss())
         self.remove_btn.setFixedWidth(30)
-        self.remove_btn.clicked.connect(lambda: self.remove_requested.emit(self.media_config))
+        self.remove_btn.clicked.connect(
+            lambda: self.remove_requested.emit(self.media_config)
+        )
 
         standard_icons = [
             "fa6s.folder",
@@ -132,7 +138,9 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         if index >= 0:
             self.icon_combo.setCurrentIndex(index)
         self.icon_combo.currentIndexChanged.connect(
-            lambda index: self.config_changed.emit(self.media_config, "icon", self.icon_combo.itemData(index))
+            lambda index: self.config_changed.emit(
+                self.media_config, "icon", self.icon_combo.itemData(index)
+            )
         )
         row1_layout.addWidget(self.icon_combo)
 
@@ -149,7 +157,9 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         self.folder_edit.setPlaceholderText("Media Path")
         self.folder_edit.textChanged.connect(self._refresh_scan_button_state)
         self.folder_edit.editingFinished.connect(
-            lambda: self.config_changed.emit(self.media_config, "path", self.folder_edit.text())
+            lambda: self.config_changed.emit(
+                self.media_config, "path", self.folder_edit.text()
+            )
         )
 
         browse_btn = QPushButton("Browse", parent=self)
@@ -174,7 +184,9 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             db_util = DbScanUtil(db_path)
             stats = db_util.get_stats(self.media_config["path"])
 
-        last_scanned_short, last_scanned_full = self._format_last_scanned(stats[7] if stats else None)
+        last_scanned_short, last_scanned_full = self._format_last_scanned(
+            stats[7] if stats else None
+        )
 
         # stats: (folder_path, subfolders, files, images, videos, nfo, other, last_scanned)
         stats_icons = [
@@ -184,7 +196,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             "fa6s.film",
             "fa6s.info-circle",
             "fa6s.file-alt",
-            "fa6s.clock"
+            "fa6s.clock",
         ]
         icon_tooltips = {
             "fa6s.folder": "Subfolders",
@@ -193,7 +205,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             "fa6s.film": "Videos",
             "fa6s.info-circle": "NFO Files",
             "fa6s.file-alt": "Other Files",
-            "fa6s.clock": f"Last Scanned: {last_scanned_full}"
+            "fa6s.clock": f"Last Scanned: {last_scanned_full}",
         }
 
         stats_data = [
@@ -203,7 +215,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             str(stats[4]) if stats else "-",
             str(stats[5]) if stats else "-",
             str(stats[6]) if stats else "-",
-            last_scanned_short
+            last_scanned_short,
         ]
 
         for i, (icon_name, val) in enumerate(zip(stats_icons, stats_data)):
@@ -214,7 +226,9 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
 
             lbl = QLabel(val, parent=self)
             lbl.setObjectName(f"stats_val_{i}")
-            lbl.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            lbl.setAlignment(
+                Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+            )
             # Keep counts compact while leaving room for longer timestamps.
             if icon_name == "fa6s.clock":
                 lbl.setFixedWidth(110)
@@ -226,7 +240,9 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
 
             icon_lbl = QLabel(parent=self)
             icon_lbl.setObjectName(f"stats_icon_{i}")
-            icon_lbl.setPixmap(APP_THEME.icon(icon_name, color=APP_THEME.text_color).pixmap(16, 16))
+            icon_lbl.setPixmap(
+                APP_THEME.icon(icon_name, color=APP_THEME.text_color).pixmap(16, 16)
+            )
             icon_lbl.setToolTip(icon_tooltips.get(icon_name, ""))
             if icon_name == "fa6s.clock":
                 lbl.setToolTip(icon_tooltips.get(icon_name, ""))
@@ -256,7 +272,9 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         self.scan_btn.setEnabled(False)
 
         self.scan_btn.clicked.connect(
-            lambda: self._start_scan(self.media_config, self.scan_btn, self.progress_bar)
+            lambda: self._start_scan(
+                self.media_config, self.scan_btn, self.progress_bar
+            )
         )
         self._refresh_scan_button_state()
         self.stats_layout.addWidget(self.scan_btn)
@@ -269,7 +287,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
 
         custom_qss = APP_THEME.settings_media_folder_browser_section_qss()
         if custom_qss not in self.styleSheet():
-             self.setStyleSheet(self.styleSheet() + custom_qss)
+            self.setStyleSheet(self.styleSheet() + custom_qss)
 
     @staticmethod
     def _safe_db_label(label: str) -> str:
@@ -334,7 +352,9 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         self.media_config["icon"] = self.icon_combo.currentData()
         self.media_config["path"] = self.folder_edit.text()
         self.config_changed.emit(self.media_config, "label", self.media_config["label"])
-        self.config_changed.emit(self.media_config, "media_type", self.media_config["media_type"])
+        self.config_changed.emit(
+            self.media_config, "media_type", self.media_config["media_type"]
+        )
         self.config_changed.emit(self.media_config, "icon", self.media_config["icon"])
         self.config_changed.emit(self.media_config, "path", self.media_config["path"])
         self._refresh_scan_button_state()
@@ -349,7 +369,10 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         if not folder:
             return "Please choose a media folder before scanning."
 
-        if "media name is empty or contains no valid characters for database storage" in str(error).lower():
+        if (
+            "media name is empty or contains no valid characters for database storage"
+            in str(error).lower()
+        ):
             return (
                 f"The media name '{label}' is not valid for database storage. "
                 "Use letters, numbers, spaces, dashes, or underscores and try again."
@@ -382,7 +405,9 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             progress_bar.setRange(0, 100)
             progress_bar.setValue(100)
             progress_bar.setTextVisible(True)
-            progress_bar.setFormat(f"Error: {self._format_progress_error_text(message)}")
+            progress_bar.setFormat(
+                f"Error: {self._format_progress_error_text(message)}"
+            )
             progress_bar.setStyleSheet(
                 "QProgressBar { color: #f5d0d0; background: #2f1f1f; border: 1px solid #8b3b3b; } "
                 "QProgressBar::chunk { background: #b3261e; }"
@@ -393,7 +418,9 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         if not value:
             return "n/a", "n/a"
         try:
-            return value.strftime("%m/%d %I%p").lower(), value.strftime("%Y-%m-%d %I:%M%p").lower()
+            return value.strftime("%m/%d %I%p").lower(), value.strftime(
+                "%Y-%m-%d %I:%M%p"
+            ).lower()
         except AttributeError:
             return "n/a", "n/a"
 
@@ -404,7 +431,9 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             db_util = DbScanUtil(db_path)
             stats = db_util.get_stats(media_config["path"])
 
-        last_scanned_short, last_scanned_full = self._format_last_scanned(stats[7] if stats else None)
+        last_scanned_short, last_scanned_full = self._format_last_scanned(
+            stats[7] if stats else None
+        )
         stats_data = [
             str(stats[1]) if stats else "-",
             str(stats[2]) if stats else "-",
@@ -460,7 +489,9 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
 
         progress_bar.setRange(0, 100)
         progress_bar.setValue(0)
-        progress_bar.setFormat(f"{self.lang.scan_progress['scanning_media_subfolders']} 0%")
+        progress_bar.setFormat(
+            f"{self.lang.scan_progress['scanning_media_subfolders']} 0%"
+        )
         progress_bar.setTextVisible(True)
         progress_bar.setStyleSheet(APP_THEME.progress_bar_qss(active=True))
 
@@ -468,19 +499,28 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         self.worker.progress_init.connect(lambda _val: progress_bar.setRange(0, 100))
         self.worker.progress_updated.connect(progress_bar.setValue)
         stage_state = {"stage": self.lang.scan_progress["scanning_media_subfolders"]}
-        self.worker.progress_stage.connect(lambda stage: stage_state.__setitem__("stage", stage))
+        self.worker.progress_stage.connect(
+            lambda stage: stage_state.__setitem__("stage", stage)
+        )
         self.worker.progress_updated.connect(
             lambda val: progress_bar.setFormat(f"{stage_state['stage']} {val}%")
         )
         self.worker.error.connect(
-            lambda message: self._show_scan_error(RuntimeError(message), media_config, progress_bar)
+            lambda message: self._show_scan_error(
+                RuntimeError(message), media_config, progress_bar
+            )
         )
         self.worker.finished.connect(
             lambda: self._on_scan_finished(scan_btn, progress_bar, media_config)
         )
         self.worker.start()
 
-    def _on_scan_finished(self, scan_btn: QPushButton, progress_bar: QProgressBar, media_config: dict[str, Any]) -> None:
+    def _on_scan_finished(
+        self,
+        scan_btn: QPushButton,
+        progress_bar: QProgressBar,
+        media_config: dict[str, Any],
+    ) -> None:
         if getattr(self, "_scan_error", False):
             self._refresh_scan_button_state()
             return

@@ -20,7 +20,8 @@ class TestSettingsSplit:
         # Patch CFG_DIR and file paths in SettingsState
         monkeypatch.setattr("MyVideoExplorer.settings.settings_state.CFG_DIR", cfg_dir)
         monkeypatch.setattr(
-            "MyVideoExplorer.settings.settings_state.SETTINGS_UI_FILE", cfg_dir / "settings_ui.json"
+            "MyVideoExplorer.settings.settings_state.SETTINGS_UI_FILE",
+            cfg_dir / "settings_ui.json",
         )
         monkeypatch.setattr(
             "MyVideoExplorer.settings.settings_state.SETTINGS_MEDIA_FILE",
@@ -31,7 +32,8 @@ class TestSettingsSplit:
             cfg_dir / "settings_filter.json",
         )
         monkeypatch.setattr(
-            "MyVideoExplorer.settings.settings_state.DEFAULTS_UI_FILE", cfg_dir / "defaults_ui.json"
+            "MyVideoExplorer.settings.settings_state.DEFAULTS_UI_FILE",
+            cfg_dir / "defaults_ui.json",
         )
         monkeypatch.setattr(
             "MyVideoExplorer.settings.settings_state.DEFAULTS_MEDIA_FILE",
@@ -104,7 +106,9 @@ class TestSettingsSplit:
         # Actually backup_file only creates one per day.
         # To test it creates backups for each, we just check if they are called.
 
-        with patch("MyVideoExplorer.utils.json_util.JsonUtil.backup_file") as mock_backup:
+        with patch(
+            "MyVideoExplorer.utils.json_util.JsonUtil.backup_file"
+        ) as mock_backup:
             state.save_settings()
             # Should be called 4 times, once for each settings file (app, ui, media, filter)
             assert mock_backup.call_count == 4

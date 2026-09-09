@@ -1,4 +1,3 @@
-
 from pathlib import Path
 
 import duckdb
@@ -25,7 +24,12 @@ class DbMigrations:
 
         applied = []
         if table_exists:
-            applied = [row[0] for row in con.execute("SELECT version FROM schema_migrations").fetchall()]
+            applied = [
+                row[0]
+                for row in con.execute(
+                    "SELECT version FROM schema_migrations"
+                ).fetchall()
+            ]
 
         # Get available migrations
         migration_files = sorted(

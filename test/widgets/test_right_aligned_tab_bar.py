@@ -2,10 +2,12 @@ import pytest
 from PySide6.QtWidgets import QApplication, QTabWidget, QWidget
 from MyVideoExplorer.widgets.right_aligned_tab_bar import RightAlignedTabBar
 
+
 @pytest.fixture
 def app():
     app = QApplication.instance() or QApplication([])
     return app
+
 
 def test_right_aligned_tab_bar(app):
     tab_widget = QTabWidget()

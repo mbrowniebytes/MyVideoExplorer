@@ -157,8 +157,12 @@ class FolderFilterFilter:
                     db_path = self.settings_state.get_db_path(config)
                     if Path(db_path).exists():
                         # Query DB
-                        con = duckdb.connect(db_path)
-                        res = con.execute(db_query.DbQuery.MediaFile.SELECT_METADATA, (item.full_path,)).fetchone()
+                        db_path_str = Path(db_path).as_posix()
+                        con = duckdb.connect(db_path_str)
+                        res = con.execute(
+                            db_query.DbQuery.MediaFile.SELECT_METADATA,
+                            (item.full_path,),
+                        ).fetchone()
                         con.close()
 
                         if res:
@@ -172,7 +176,7 @@ class FolderFilterFilter:
                                 "tags": res[6],
                                 "genres": res[7],
                                 "actors": res[8],
-                                "director": res[9]
+                                "director": res[9],
                             }
 
         # Fallback

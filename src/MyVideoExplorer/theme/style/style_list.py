@@ -1,5 +1,6 @@
 from MyVideoExplorer.theme.models import ThemeConfig
 
+
 class StyleList:
     @staticmethod
     def get_list_qss(c: ThemeConfig) -> str:

@@ -30,7 +30,9 @@ class AppController(QObject):
         """Normalize path input to a list of unique, non-empty folder paths."""
         if folder_paths is None:
             return []
-        iterable: Iterable[str] = [folder_paths] if isinstance(folder_paths, str) else folder_paths
+        iterable: Iterable[str] = (
+            [folder_paths] if isinstance(folder_paths, str) else folder_paths
+        )
 
         normalized: list[str] = []
         seen: set[str] = set()
@@ -50,7 +52,9 @@ class AppController(QObject):
     def _emit_signal(self, signal_name: str, value: object) -> None:
         self.signals.emit_payload(signal_name, value, self.__class__.__name__)
 
-    def set_root_folders(self, folder_paths: list[str] | tuple[str, ...] | set[str] | str | None) -> None:
+    def set_root_folders(
+        self, folder_paths: list[str] | tuple[str, ...] | set[str] | str | None
+    ) -> None:
         """Accept a single folder path or an iterable of folder paths."""
         valid_paths = self._normalize_folder_paths(folder_paths)
         self.log_util.debug(
@@ -118,6 +122,4 @@ class AppController(QObject):
             )
         if self.state.current_file:
             self._emit_signal("file_changed", self.state.current_file)
-            self.log_util.debug(
-                f"file_changed emitted for: {self.state.current_file}"
-            )
+            self.log_util.debug(f"file_changed emitted for: {self.state.current_file}")

@@ -130,7 +130,8 @@ class MediaInfoView(QWidget, ThemableMixin):
 
     def play_video(self, payload: SignalPayload | None = None) -> None:
         self.info_play_video_btn_clicked.emit(
-            payload or SignalPayload(
+            payload
+            or SignalPayload(
                 data=None,
                 sender=self.__class__.__name__,
                 name="Play Video Requested",

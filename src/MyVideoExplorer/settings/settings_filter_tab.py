@@ -36,7 +36,9 @@ class SettingsFilterTab(SettingsBaseTab):
         ["Action", "Comedy", "Sci-Fi", "Mystery", "Thriller", "Drama", "Adventure"]
     )
 
-    def __init__(self, state: SettingsState, log_util: LogUtil, parent: QWidget | None = None) -> None:
+    def __init__(
+        self, state: SettingsState, log_util: LogUtil, parent: QWidget | None = None
+    ) -> None:
         super().__init__(log_util, parent)
         self.state = state
         self.row_widgets: list[FilterRowContainer] = []
@@ -82,7 +84,9 @@ class SettingsFilterTab(SettingsBaseTab):
         self.save_btn.setFixedWidth(200)
         self.save_btn.clicked.connect(self._save_filter_settings)
 
-        self.reset_btn = self._build_reset_button("Reset Filter Settings", self.reset_settings)
+        self.reset_btn = self._build_reset_button(
+            "Reset Filter Settings", self.reset_settings
+        )
         self.reset_btn.setFixedWidth(180)
 
         spacer = QWidget(self)
@@ -112,7 +116,6 @@ class SettingsFilterTab(SettingsBaseTab):
             )
         )
         print("Filters Settings reset")
-
 
     def _refresh_filters(self) -> None:
         # Clear existing filter rows
@@ -189,7 +192,9 @@ class SettingsFilterTab(SettingsBaseTab):
         add_btn.setIconSize(QSize(APP_THEME.icon_size - 5, APP_THEME.icon_size - 5))
         add_btn.setStyleSheet(APP_THEME.button_qss())
         add_btn.clicked.connect(
-            lambda: self._add_filter_to_table(filter_table, filter_type_combo.currentText().strip())
+            lambda: self._add_filter_to_table(
+                filter_table, filter_type_combo.currentText().strip()
+            )
         )
 
         delete_btn = QPushButton("", parent=name_container)
@@ -203,7 +208,9 @@ class SettingsFilterTab(SettingsBaseTab):
 
         return container
 
-    def _add_filter_to_table(self, filter_table: FolderFilterTable, filter_type: str) -> None:
+    def _add_filter_to_table(
+        self, filter_table: FolderFilterTable, filter_type: str
+    ) -> None:
         if filter_type.upper() in ("", "OS", "NFO"):
             return
         filter_table.add_filter(filter_type)
@@ -215,7 +222,7 @@ class SettingsFilterTab(SettingsBaseTab):
             if row.name_edit and row.filter_table:
                 new_filter_cfg = {
                     "name": row.name_edit.text(),
-                    "filters": row.filter_table.collect_filters()
+                    "filters": row.filter_table.collect_filters(),
                 }
                 new_saved_filters.append(new_filter_cfg)
         self.state.saved_filters = new_saved_filters

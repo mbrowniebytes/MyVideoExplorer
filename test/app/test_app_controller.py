@@ -18,7 +18,10 @@ class TestAppController:
         assert controller.state.root_folder == ""
 
     def test_set_root_folders(self, controller, qtbot):
-        with patch('MyVideoExplorer.app.app_controller.FileUtil.normalize_path', side_effect=lambda x: x):
+        with patch(
+            "MyVideoExplorer.app.app_controller.FileUtil.normalize_path",
+            side_effect=lambda x: x,
+        ):
             with qtbot.waitSignal(controller.signals.root_folders_changed) as blocker:
                 controller.set_root_folders(["/root"])
 

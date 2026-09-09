@@ -38,4 +38,3 @@ class DbQuery:
         SELECT = "SELECT * FROM media_path_stats WHERE media_path = ?"
 
         DELETE = "DELETE FROM media_path_stats WHERE media_path = ?"
-

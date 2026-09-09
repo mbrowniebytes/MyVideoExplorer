@@ -60,7 +60,9 @@ class TestMediaInfo:
                 description="Test",
                 flow=SignalFlow.USER_INPUT,
             )
-            media_info.media_info_side_view.info_side_play_video_btn_clicked.emit(payload)
+            media_info.media_info_side_view.info_side_play_video_btn_clicked.emit(
+                payload
+            )
         assert blocker.signal_triggered
 
     def test_apply_theme(self, media_info):

@@ -10,10 +10,12 @@ from MyVideoExplorer.theme.style.style_tab import StyleTab
 from MyVideoExplorer.theme.style.style_table import StyleTable
 from MyVideoExplorer.theme.manager import ThemeManager
 
+
 class Theme(ThemeManager):
     """
     Main theme entry point.
     """
+
     def __init__(self, config: ThemeConfig | None = None):
         super().__init__(config or ThemeConfig())
 
@@ -117,5 +119,6 @@ class Theme(ThemeManager):
 
     def icon(self, name: str, **kwargs):
         return self.get_icon(name, **kwargs)
+
 
 APP_THEME = Theme()

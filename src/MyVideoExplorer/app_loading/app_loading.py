@@ -116,7 +116,9 @@ class AppLoadingWidget(QWidget):
         self.show()
         app.processEvents()
 
-    def create_overlay_with_main(self, window: QMainWindow, main_widget: QWidget, app: QApplication) -> QWidget:
+    def create_overlay_with_main(
+        self, window: QMainWindow, main_widget: QWidget, app: QApplication
+    ) -> QWidget:
         """Create an overlay container containing the main widget with this loading widget on top.
 
         Returns the container widget which owns both child widgets.
@@ -165,11 +167,13 @@ class AppLoadingWidget(QWidget):
             if _orig_resize:
                 _orig_resize(event)
 
-        container_widget.resizeEvent = _on_container_resize # type: ignore
+        container_widget.resizeEvent = _on_container_resize  # type: ignore
 
         return container_widget
 
-    def fade_and_remove(self, container_widget: QWidget | None, app: QApplication, duration: int = 750) -> None:
+    def fade_and_remove(
+        self, container_widget: QWidget | None, app: QApplication, duration: int = 750
+    ) -> None:
         """Fade out this loading overlay and remove it, revealing the main UI."""
         try:
             effect = QGraphicsOpacityEffect(self)

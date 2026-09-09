@@ -15,15 +15,23 @@ class TestSettings:
     def settings(self, qtbot):
         # Mock class-level check before instantiation to avoid using MagicMock as class attribute
         # which might be causing issues with PySide's metaclass
-        with patch("MyVideoExplorer.settings.settings_state.SettingsState._load_settings"):
-            with patch("MyVideoExplorer.settings.settings_state.SettingsState._ensure_defaults"):
+        with patch(
+            "MyVideoExplorer.settings.settings_state.SettingsState._load_settings"
+        ):
+            with patch(
+                "MyVideoExplorer.settings.settings_state.SettingsState._ensure_defaults"
+            ):
                 with patch("MyVideoExplorer.theme.theme.Theme.refresh_theme"):
                     mock_log_util = MagicMock()
                     mock_file_util = MagicMock()
                     s = Settings(mock_log_util, mock_file_util)
-                    s.settings_data_model.media_configs = [{"label": "Test", "path": "/test"}]
+                    s.settings_data_model.media_configs = [
+                        {"label": "Test", "path": "/test"}
+                    ]
                     # Mock get_db_path to avoid using the real db/ folder
-                    s.settings_data_model.get_db_path = MagicMock(return_value="test_temp.db")
+                    s.settings_data_model.get_db_path = MagicMock(
+                        return_value="test_temp.db"
+                    )
 
                     # Mock only the problematic UI components that cause Segfaults
                     # Bypassing build to avoid Segfaults
@@ -47,14 +55,18 @@ class TestSettings:
 
     def test_add_folder_does_not_emit_signal(self, settings, qtbot):
         with qtbot.assertNotEmitted(settings.media_settings_tab.root_folders_changed):
-            with patch.object(settings.media_settings_tab, "_refresh_folder_nav_settings"):
+            with patch.object(
+                settings.media_settings_tab, "_refresh_folder_nav_settings"
+            ):
                 settings.media_settings_tab._add_folder()
 
     def test_remove_folder(self, settings):
         config = settings.settings_data_model.media_configs[0]
         # Mock refresh_folder_nav_settings and QMessageBox
         with patch.object(settings.media_settings_tab, "_refresh_folder_nav_settings"):
-            with patch("PySide6.QtWidgets.QMessageBox.question", return_value=0x00004000): # Yes
+            with patch(
+                "PySide6.QtWidgets.QMessageBox.question", return_value=0x00004000
+            ):  # Yes
                 settings.media_settings_tab._remove_folder(config)
         assert len(settings.settings_data_model.media_configs) == 0
 
@@ -79,15 +91,21 @@ class TestSettings:
         pass
 
     def test_sub_tabs_alignment(self, qtbot):
-        with patch("MyVideoExplorer.settings.settings_state.SettingsState._load_settings"):
-            with patch("MyVideoExplorer.settings.settings_state.SettingsState._ensure_defaults"):
+        with patch(
+            "MyVideoExplorer.settings.settings_state.SettingsState._load_settings"
+        ):
+            with patch(
+                "MyVideoExplorer.settings.settings_state.SettingsState._ensure_defaults"
+            ):
                 with patch("MyVideoExplorer.theme.theme.Theme.refresh_theme"):
                     mock_log_util = MagicMock()
                     mock_file_util = MagicMock()
                     s = Settings(mock_log_util, mock_file_util)
                     # Fully mock build to avoid UI-related access violations in test environment
                     s.tab_widget = QTabWidget()  # type: ignore
-                    from MyVideoExplorer.widgets.right_aligned_tab_bar import RightAlignedTabBar
+                    from MyVideoExplorer.widgets.right_aligned_tab_bar import (
+                        RightAlignedTabBar,
+                    )
 
                     tab_bar = RightAlignedTabBar(s.tab_widget, spacer_index=0)  # type: ignore
                     s.tab_widget.setTabBar(tab_bar)  # type: ignore

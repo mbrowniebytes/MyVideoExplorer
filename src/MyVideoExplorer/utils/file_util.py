@@ -232,7 +232,10 @@ class FileUtil:
 
         # 3. Build items for files
         # Sort files by parent directory then filename for consistent ordering
-        sorted_paths = sorted(paths, key=lambda p: (Path(p).parent.as_posix().lower(), Path(p).name.lower()))
+        sorted_paths = sorted(
+            paths,
+            key=lambda p: (Path(p).parent.as_posix().lower(), Path(p).name.lower()),
+        )
         for path in sorted_paths:
             # depth: number of levels below root_path + 1 for file
             relative = Path(path).relative_to(root)
@@ -287,7 +290,14 @@ class FileUtil:
         if not target.is_dir():
             return None
 
-        return self.find_nfo_in_list(path, [entry.name for entry in self._scan_directory(target) if entry.is_file(follow_symlinks=False)])
+        return self.find_nfo_in_list(
+            path,
+            [
+                entry.name
+                for entry in self._scan_directory(target)
+                if entry.is_file(follow_symlinks=False)
+            ],
+        )
 
     def find_nfo_in_list(self, path: str, files: Sequence[str]) -> str | None:
         """Locate an NFO file in a given list of files, prioritizing standard media naming conventions."""

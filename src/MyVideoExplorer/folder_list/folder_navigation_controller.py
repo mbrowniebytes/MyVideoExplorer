@@ -1,5 +1,6 @@
 import random
 
+
 class FolderNavigationController:
     HISTORY_FOLDER_LENGTH = 100
 
@@ -8,12 +9,17 @@ class FolderNavigationController:
         self._current_history_index = -1
 
     def add_to_history(self, folder_path: str):
-        if self._folder_history and self._folder_history[self._current_history_index] == folder_path:
+        if (
+            self._folder_history
+            and self._folder_history[self._current_history_index] == folder_path
+        ):
             return
 
         # Truncate forward history if we are in the middle
         if self._current_history_index < len(self._folder_history) - 1:
-            self._folder_history = self._folder_history[: self._current_history_index + 1]
+            self._folder_history = self._folder_history[
+                : self._current_history_index + 1
+            ]
 
         self._folder_history.append(folder_path)
         self._current_history_index = len(self._folder_history) - 1

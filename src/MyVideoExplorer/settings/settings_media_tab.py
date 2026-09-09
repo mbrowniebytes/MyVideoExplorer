@@ -27,7 +27,9 @@ from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
-from MyVideoExplorer.settings.settings_media_folder_browser_section import SettingsMediaFolderBrowserSection
+from MyVideoExplorer.settings.settings_media_folder_browser_section import (
+    SettingsMediaFolderBrowserSection,
+)
 
 
 class SettingsMediaTab(SettingsBaseTab):
@@ -79,9 +81,13 @@ class SettingsMediaTab(SettingsBaseTab):
         lbl_db = QLabel("Use Local DB:", parent=self)
         db_dropdown_layout.addWidget(lbl_db)
         self.db_enabled_dropdown = QComboBox(self)
-        self.db_enabled_dropdown.addItems(['Yes', 'No'])
-        self.db_enabled_dropdown.setCurrentText('Yes' if self.state.db_enabled() else 'No')
-        self.db_enabled_dropdown.currentIndexChanged.connect(self._on_db_enabled_changed)
+        self.db_enabled_dropdown.addItems(["Yes", "No"])
+        self.db_enabled_dropdown.setCurrentText(
+            "Yes" if self.state.db_enabled() else "No"
+        )
+        self.db_enabled_dropdown.currentIndexChanged.connect(
+            self._on_db_enabled_changed
+        )
         self.db_enabled_dropdown.currentIndexChanged.connect(self._on_setting_changed)
         db_dropdown_layout.addWidget(self.db_enabled_dropdown)
         db_dropdown_layout.addStretch()
@@ -113,7 +119,9 @@ class SettingsMediaTab(SettingsBaseTab):
                 header.addWidget(label)
             else:
                 spacer = QWidget(self.folder_nav_content)
-                spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+                spacer.setSizePolicy(
+                    QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+                )
                 header.addWidget(spacer)
         folder_layout.addLayout(header)
 
@@ -121,7 +129,6 @@ class SettingsMediaTab(SettingsBaseTab):
         line.setFrameShape(QFrame.Shape.HLine)
         line.setStyleSheet(APP_THEME.separator_line_qss())
         folder_layout.addWidget(line)
-
 
         self.folder_scroll_area = QScrollArea(self)
         self.folder_scroll_area.setWidgetResizable(True)
@@ -190,9 +197,8 @@ class SettingsMediaTab(SettingsBaseTab):
             )
         )
 
-
     def _on_db_enabled_changed(self, index: int) -> None:
-        value = self.db_enabled_dropdown.currentText() == 'Yes'
+        value = self.db_enabled_dropdown.currentText() == "Yes"
         self.state._db_enabled = value
 
         self.state.settings_changed.emit(
@@ -213,7 +219,9 @@ class SettingsMediaTab(SettingsBaseTab):
                 db_path = self.state.get_db_path(media_config)
                 if Path(db_path).exists():
                     mtime = Path(db_path).stat().st_mtime
-                    date = datetime.datetime.fromtimestamp(mtime, tz=datetime.UTC).strftime('%Y-%m-%d')
+                    date = datetime.datetime.fromtimestamp(
+                        mtime, tz=datetime.UTC
+                    ).strftime("%Y-%m-%d")
                     if latest_date is None or date > latest_date:
                         latest_date = date
 
@@ -354,11 +362,12 @@ class SettingsMediaTab(SettingsBaseTab):
 
         self.highlight_save_button()
 
-
     def _save_media_settings(self) -> None:
         """Save only Media tab settings."""
         # Force apply changes from all browser sections
-        for widget in self.folder_nav_content.findChildren(SettingsMediaFolderBrowserSection):
+        for widget in self.folder_nav_content.findChildren(
+            SettingsMediaFolderBrowserSection
+        ):
             widget.apply_changes()
 
         errors = self.state.validate_media_configs(self.state.media_configs)
@@ -380,7 +389,7 @@ class SettingsMediaTab(SettingsBaseTab):
             )
             return
 
-        self.state._db_enabled = self.db_enabled_dropdown.currentText() == 'Yes'
+        self.state._db_enabled = self.db_enabled_dropdown.currentText() == "Yes"
         self.state.save_media()
         self.reset_save_button()
 

@@ -1,8 +1,8 @@
-
 import pytest
 from unittest.mock import MagicMock, patch
 from MyVideoExplorer.db.db_scan_worker import ScanWorker
 from MyVideoExplorer.utils.file_util import FileUtil
+
 
 class TestScanWorker:
     @pytest.fixture
@@ -20,7 +20,15 @@ class TestScanWorker:
     @patch("MyVideoExplorer.db.db_scan_worker.DbScanUtil")
     @patch("os.walk")
     @patch("os.path.isdir", return_value=True)
-    def test_run(self, mock_isdir, mock_walk, mock_db_util_class, folder_config, mock_file_util, mock_nfo_util):
+    def test_run(
+        self,
+        mock_isdir,
+        mock_walk,
+        mock_db_util_class,
+        folder_config,
+        mock_file_util,
+        mock_nfo_util,
+    ):
         # Mock file system
         mock_walk.return_value = [
             ("D:/TestVideos", ["subdir"], ["video1.mp4", "movie.nfo"]),
@@ -62,7 +70,17 @@ class TestScanWorker:
     @patch("os.remove")
     @patch("os.walk")
     @patch("os.path.isdir", return_value=True)
-    def test_run_does_not_replace_db(self, mock_isdir, mock_walk, mock_remove, mock_exists, mock_db_util_class, folder_config, mock_file_util, mock_nfo_util):
+    def test_run_does_not_replace_db(
+        self,
+        mock_isdir,
+        mock_walk,
+        mock_remove,
+        mock_exists,
+        mock_db_util_class,
+        folder_config,
+        mock_file_util,
+        mock_nfo_util,
+    ):
         mock_exists.return_value = True
 
         worker = ScanWorker(folder_config, mock_file_util, mock_nfo_util)
@@ -83,13 +101,17 @@ class TestScanWorker:
 
         # Assert backup created
         import datetime
+
         today_str = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d")
         backup_file = db_dir / "backups" / f"Test_{today_str}.db"
         assert backup_file.exists()
         assert backup_file.read_text() == "dummy db content"
 
-    def test_backup_db_rotation(self, tmp_path, folder_config, mock_file_util, mock_nfo_util):
+    def test_backup_db_rotation(
+        self, tmp_path, folder_config, mock_file_util, mock_nfo_util
+    ):
         import time
+
         db_dir = tmp_path / "db"
         db_dir.mkdir()
         db_file = db_dir / "Test.db"
@@ -102,7 +124,7 @@ class TestScanWorker:
 
         # Create 6 old backups manually
         for i in range(6):
-            backup_file = backup_dir / f"Test_2020-01-0{i+1}.db"
+            backup_file = backup_dir / f"Test_2020-01-0{i + 1}.db"
             backup_file.write_text("old")
             time.sleep(0.1)
 

@@ -15,7 +15,7 @@ class VideoPlayer:
     Controller for video playback UI and orchestration.
     """
 
-    def __init__(self, file_util: FileUtil, log_util:LogUtil) -> None:
+    def __init__(self, file_util: FileUtil, log_util: LogUtil) -> None:
         self.log_util = log_util
         self.file_util = file_util
         self.video_finder = VideoFinder(log_util)
@@ -43,9 +43,7 @@ class VideoPlayer:
         """
 
         search_path = folder_path or self.active_folder_path
-        target_video_path = self.video_finder.find_associated_video(
-            search_path
-        )
+        target_video_path = self.video_finder.find_associated_video(search_path)
 
         if not target_video_path:
             self.log_util.warning("No video file found to play.")
@@ -53,7 +51,9 @@ class VideoPlayer:
 
         self.log_util.info(f"Launching video playback for: {target_video_path}")
 
-        asyncio.create_task(self.video_launcher.play_via_external_app(target_video_path))
+        asyncio.create_task(
+            self.video_launcher.play_via_external_app(target_video_path)
+        )
 
         return True
 

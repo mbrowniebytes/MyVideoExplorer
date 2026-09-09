@@ -1,5 +1,6 @@
 from MyVideoExplorer.theme.models import ThemeConfig
 
+
 class StyleProgressBar:
     @staticmethod
     def get_progress_bar_qss(c: ThemeConfig, active: bool = True) -> str:

@@ -83,11 +83,17 @@ class SettingsState(QObject):
             "saved_filters": self.saved_filters,
         }
 
-        self.json_util.ensure_defaults(PACKAGE_CFG_DIR, DEFAULTS_STATE_FILE, state_defaults)
+        self.json_util.ensure_defaults(
+            PACKAGE_CFG_DIR, DEFAULTS_STATE_FILE, state_defaults
+        )
         self.json_util.ensure_defaults(PACKAGE_CFG_DIR, DEFAULTS_APP_FILE, app_defaults)
         self.json_util.ensure_defaults(PACKAGE_CFG_DIR, DEFAULTS_UI_FILE, ui_defaults)
-        self.json_util.ensure_defaults(PACKAGE_CFG_DIR, DEFAULTS_MEDIA_FILE, media_defaults)
-        self.json_util.ensure_defaults(PACKAGE_CFG_DIR, DEFAULTS_FILTER_FILE, filter_defaults)
+        self.json_util.ensure_defaults(
+            PACKAGE_CFG_DIR, DEFAULTS_MEDIA_FILE, media_defaults
+        )
+        self.json_util.ensure_defaults(
+            PACKAGE_CFG_DIR, DEFAULTS_FILTER_FILE, filter_defaults
+        )
 
     def _load_settings(self) -> None:
         """Load settings from split json files, falling back to split defaults."""
@@ -148,7 +154,7 @@ class SettingsState(QObject):
                 new_filters.append({"name": name, "filters": filters})
             self.saved_filters = new_filters
 
-    def save_state(self, settings:dict[str, str]) -> None:
+    def save_state(self, settings: dict[str, str]) -> None:
         """Save only App tab settings."""
         self._ensure_defaults()
 
@@ -275,7 +281,6 @@ class SettingsState(QObject):
                 new_filters.append({"name": name, "filters": filters})
             self.saved_filters = new_filters
 
-
     def save_filter(self, name: str, filter_cfg: list[dict[str, Any]]) -> None:
         """Saves a named filter configuration."""
         # Check if filter with this name already exists
@@ -325,9 +330,13 @@ class SettingsState(QObject):
         text = text.strip(" ._-")
         return text
 
-    def get_db_path(self, folder_config: dict[str, Any], label_override: str | None = None) -> str:
+    def get_db_path(
+        self, folder_config: dict[str, Any], label_override: str | None = None
+    ) -> str:
         label = self.sanitize_media_label(
-            label_override if label_override is not None else folder_config.get("label", "media")
+            label_override
+            if label_override is not None
+            else folder_config.get("label", "media")
         )
         if not label:
             label = "media"
@@ -351,14 +360,20 @@ class SettingsState(QObject):
                 errors.append(f"Media config #{idx} has an invalid name: '{label}'")
 
             if not path:
-                errors.append(f"Media config '{label or f'#{idx}'}' is missing a folder path.")
+                errors.append(
+                    f"Media config '{label or f'#{idx}'}' is missing a folder path."
+                )
             elif not Path(path).is_dir():
-                errors.append(f"Media config '{label or f'#{idx}'}' path does not exist: {path}")
+                errors.append(
+                    f"Media config '{label or f'#{idx}'}' path does not exist: {path}"
+                )
 
             if safe_label:
                 normalized_name = safe_label.casefold()
                 if normalized_name in seen_names:
-                    errors.append(f"Media names must be unique. '{safe_label}' is used more than once.")
+                    errors.append(
+                        f"Media names must be unique. '{safe_label}' is used more than once."
+                    )
                 seen_names.add(normalized_name)
 
         return errors
@@ -410,7 +425,6 @@ class SettingsState(QObject):
             if Path(db_path).exists():
                 return True
         return False
-
 
     def save_settings(self) -> None:
         """Save all tabs' settings"""

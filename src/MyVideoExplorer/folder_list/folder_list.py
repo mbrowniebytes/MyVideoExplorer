@@ -14,7 +14,9 @@ from PySide6.QtWidgets import (
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.folder_list.folder_list_view import FolderListView
 from MyVideoExplorer.folder_list.folder_list_header import FolderListHeader
-from MyVideoExplorer.folder_list.folder_navigation_controller import FolderNavigationController
+from MyVideoExplorer.folder_list.folder_navigation_controller import (
+    FolderNavigationController,
+)
 from MyVideoExplorer.settings.settings import Settings
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
@@ -243,12 +245,16 @@ class FolderList(QWidget, ThemableMixin):
         # self.folder_list_view.setStyleSheet(APP_THEME.get_list_qss())
 
     def populate_view(
-        self, items: list[FileUtilModel], on_complete: Callable[[list[FileUtilModel]], None] | None = None
+        self,
+        items: list[FileUtilModel],
+        on_complete: Callable[[list[FileUtilModel]], None] | None = None,
     ):
         """Sorts and populates the FolderListView."""
 
         if not items and not self._has_valid_media_folders():
-            self.folder_list_view.show_empty_state(message=_EMPTY_STATE_NO_MEDIA_FOLDERS)
+            self.folder_list_view.show_empty_state(
+                message=_EMPTY_STATE_NO_MEDIA_FOLDERS
+            )
             self.stack.setCurrentWidget(self.folder_list_view)
             self._update_button_states()
             if on_complete:
@@ -262,7 +268,9 @@ class FolderList(QWidget, ThemableMixin):
                 on_complete(items_result)
 
         self.folder_list_view.populate_view(
-            items, get_icon_func=self._get_icon_for_path, on_complete=_on_populate_complete
+            items,
+            get_icon_func=self._get_icon_for_path,
+            on_complete=_on_populate_complete,
         )
 
     def _get_icon_for_path(self, path: str) -> str:
@@ -280,7 +288,6 @@ class FolderList(QWidget, ThemableMixin):
                 return config.get("icon", "fa6s.folder")
 
         return "fa6s.folder"
-
 
     def _emit_folder_navigation_requested(self, folder_path: str) -> None:
         payload = SignalPayload(
@@ -331,8 +338,12 @@ class FolderList(QWidget, ThemableMixin):
             self.log_util.error(f"Error navigating to random folder: {e}")
 
     def _update_button_states(self) -> None:
-        self.header.backward_folder_button.setEnabled(self.navigation_controller.can_go_backward())
-        self.header.forward_folder_button.setEnabled(self.navigation_controller.can_go_forward())
+        self.header.backward_folder_button.setEnabled(
+            self.navigation_controller.can_go_backward()
+        )
+        self.header.forward_folder_button.setEnabled(
+            self.navigation_controller.can_go_forward()
+        )
 
         has_folders = self.folder_list_view.has_folders()
         if self.header.random_folder_button.isEnabled() != has_folders:

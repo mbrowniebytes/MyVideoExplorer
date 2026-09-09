@@ -106,6 +106,7 @@ class TestFolderNavFilters:
 
         # Capture the callback
         captured_callback = None
+
         def side_effect(path, depth=0, on_complete=None):
             nonlocal captured_callback
             captured_callback = on_complete
@@ -120,9 +121,13 @@ class TestFolderNavFilters:
         # Mock the final callback
         on_complete_mock = MagicMock()
         with qtbot.waitSignal(nav_filters.loading_started):
-            nav_filters.apply_filters(selected_folders=["/root/sub"], on_complete=on_complete_mock)
+            nav_filters.apply_filters(
+                selected_folders=["/root/sub"], on_complete=on_complete_mock
+            )
 
-        nav_filters.file_util.get_files_from_path_async.assert_called_with("/root/sub", on_complete=captured_callback)
+        nav_filters.file_util.get_files_from_path_async.assert_called_with(
+            "/root/sub", on_complete=captured_callback
+        )
         nav_filters.folder_nav_filters_filter.apply_filters.assert_called()
 
         # Check if callback was called

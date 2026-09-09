@@ -17,6 +17,7 @@ from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.widgets.right_aligned_tab_bar import RightAlignedTabBar
 from MyVideoExplorer.settings.settings_ui_tab import SettingsUITab
 
+
 class Settings(QWidget, ThemableMixin):
     """Container widget for application settings, managing tabs and state persistence."""
 
@@ -76,8 +77,12 @@ class Settings(QWidget, ThemableMixin):
 
         # Initialize tabs if not already done
         if not self.managed_tabs:
-            self._app_settings_tab = SettingsAppTab(self.settings_data_model, self.log_util, parent=self)
-            self._ui_settings_tab = SettingsUITab(self.settings_data_model, self.log_util, self.file_util, parent=self)
+            self._app_settings_tab = SettingsAppTab(
+                self.settings_data_model, self.log_util, parent=self
+            )
+            self._ui_settings_tab = SettingsUITab(
+                self.settings_data_model, self.log_util, self.file_util, parent=self
+            )
             self._media_settings_tab = SettingsMediaTab(
                 self.settings_data_model, self.log_util, self.file_util, parent=self
             )
@@ -103,7 +108,7 @@ class Settings(QWidget, ThemableMixin):
         self.settings_tabs_container.setTabPosition(QTabWidget.TabPosition.North)
 
         # Add invisible spacer tab to push functional tabs right
-        self._add_spacer_tab( self.settings_tabs_container, tab_bar)
+        self._add_spacer_tab(self.settings_tabs_container, tab_bar)
 
         # Register settings tabs with consistent labels
         tab_labels = ["App", "UI", "Media", "Filters"]
@@ -129,9 +134,7 @@ class Settings(QWidget, ThemableMixin):
 
     def _connect_signals(self) -> None:
         """Wires up signals between tabs, state, and the container."""
-        self.settings_data_model.settings_changed.connect(
-            lambda p: self.apply_theme()
-        )
+        self.settings_data_model.settings_changed.connect(lambda p: self.apply_theme())
 
         for tab in self.managed_tabs:
             # Use default argument to capture current loop variable correctly
@@ -191,7 +194,6 @@ class Settings(QWidget, ThemableMixin):
         font = QFont(APP_THEME.font_family, APP_THEME.font_size)
         self.setFont(font)
 
-
         for tab in self.managed_tabs:
             tab.apply_theme()
 
@@ -201,7 +203,6 @@ class Settings(QWidget, ThemableMixin):
         # remove border around tab pane
         # qss pane border did not affect
         self.settings_tabs_container.setDocumentMode(True)
-
 
     def build(self) -> QWidget:
         """Ensures UI is constructed and returns the widget"""

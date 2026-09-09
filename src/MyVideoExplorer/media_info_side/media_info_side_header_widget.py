@@ -14,7 +14,9 @@ class MediaInfoSideHeaderWidget(QWidget, ThemableMixin):
 
     play_video_requested = Signal(object)
 
-    def __init__(self, log_util: LogUtil | None = None, parent: QWidget | None = None) -> None:
+    def __init__(
+        self, log_util: LogUtil | None = None, parent: QWidget | None = None
+    ) -> None:
         super().__init__(parent)
         self.log_util = log_util or LogUtil()
 

@@ -1,5 +1,6 @@
 from MyVideoExplorer.theme.models import ThemeConfig
 
+
 class StyleButton:
     @staticmethod
     def get_button_qss(c: ThemeConfig) -> str:

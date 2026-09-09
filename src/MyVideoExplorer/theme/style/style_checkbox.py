@@ -1,5 +1,6 @@
 from MyVideoExplorer.theme.models import ThemeConfig
 
+
 class StyleCheckbox:
     @staticmethod
     def get_checkbox_style(c: ThemeConfig) -> str:

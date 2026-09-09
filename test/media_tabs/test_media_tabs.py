@@ -47,13 +47,13 @@ class TestMediaTabs:
         assert media_tabs.tab_container.tabText(2) == ""
 
     def test_apply_theme(self, media_tabs):
-        with patch("MyVideoExplorer.media_info_tabs.media_info_tabs.APP_THEME") as mock_theme:
+        with patch(
+            "MyVideoExplorer.media_info_tabs.media_info_tabs.APP_THEME"
+        ) as mock_theme:
             mock_theme.font_family = "Arial"
             mock_theme.font_size = 12
             mock_theme.tabs_qss.return_value = "QTabWidget { color: red; }"
 
             media_tabs.apply_theme()
-            assert (
-                media_tabs.tab_container.styleSheet() == "QTabWidget { color: red; }"
-            )
+            assert media_tabs.tab_container.styleSheet() == "QTabWidget { color: red; }"
             media_tabs.media_info.apply_theme.assert_called()

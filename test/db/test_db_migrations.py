@@ -40,12 +40,18 @@ def test_run_migrations_on_upgrade(tmp_path):
     con.execute(
         "CREATE TABLE schema_migrations (version TEXT PRIMARY KEY, applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
     )
-    con.execute("INSERT INTO schema_migrations (version) VALUES (?)", ("20260801_create_media.sql",))
+    con.execute(
+        "INSERT INTO schema_migrations (version) VALUES (?)",
+        ("20260801_create_media.sql",),
+    )
     con.close()
 
     migration_dir = tmp_path / "migrations"
     migration_dir.mkdir()
-    shutil.copy2(MIGRATIONS_DIR / "20260801_create_media.sql", migration_dir / "20260801_create_media.sql")
+    shutil.copy2(
+        MIGRATIONS_DIR / "20260801_create_media.sql",
+        migration_dir / "20260801_create_media.sql",
+    )
     (migration_dir / "20260802_add_upgrade_marker.sql").write_text(
         "CREATE TABLE IF NOT EXISTS media_upgrade_marker (id INTEGER PRIMARY KEY);\n",
         encoding="utf-8",
@@ -57,7 +63,9 @@ def test_run_migrations_on_upgrade(tmp_path):
     migration.run_migrations()
 
     con = duckdb.connect(str(db_path))
-    applied_versions = con.execute("SELECT version FROM schema_migrations ORDER BY version").fetchall()
+    applied_versions = con.execute(
+        "SELECT version FROM schema_migrations ORDER BY version"
+    ).fetchall()
     assert applied_versions == [
         ("20260801_create_media.sql",),
         ("20260802_add_upgrade_marker.sql",),

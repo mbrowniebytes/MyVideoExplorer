@@ -26,7 +26,7 @@ class ImagePreviewWidget(QWidget, ThemableMixin):
     context_menu_requested = Signal(object)
     double_click_requested = Signal(object)
 
-    def __init__(self, log_util:LogUtil, parent: QWidget | None = None) -> None:
+    def __init__(self, log_util: LogUtil, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.log_util = log_util
         self._ui_utils = UIUtils()
@@ -38,8 +38,12 @@ class ImagePreviewWidget(QWidget, ThemableMixin):
 
         self.image_label = ImageLabel(log_util, _NO_IMAGE_FOUND)
         self.image_label.wheel_step.connect(self.wheel_step.emit)
-        self.image_label.context_menu_requested.connect(self.context_menu_requested.emit)
-        self.image_label.double_click_requested.connect(self.double_click_requested.emit)
+        self.image_label.context_menu_requested.connect(
+            self.context_menu_requested.emit
+        )
+        self.image_label.double_click_requested.connect(
+            self.double_click_requested.emit
+        )
 
         layout = self._ui_utils.apply_compact_layout(self, QVBoxLayout)
         layout.addWidget(self.image_label)
@@ -101,7 +105,9 @@ class ImagePreviewWidget(QWidget, ThemableMixin):
                 return
 
             scaled = self._pixmap.scaled(
-                target_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
+                target_size,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
             )
             self.image_label.setPixmap(scaled)
         except Exception as e:

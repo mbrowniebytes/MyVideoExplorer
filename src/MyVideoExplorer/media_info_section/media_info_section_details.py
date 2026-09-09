@@ -93,9 +93,7 @@ class MediaInfoDetailsSection(QWidget, ThemableMixin):
 
         self._clear_details_section_layout()
         self.details_section_layout.addWidget(
-            LabelValueWidget(
-                "IDs:", identifiers_html, parent=self
-            )
+            LabelValueWidget("IDs:", identifiers_html, parent=self)
         )
 
     def build_videos(self, video_items: list[dict]) -> None:

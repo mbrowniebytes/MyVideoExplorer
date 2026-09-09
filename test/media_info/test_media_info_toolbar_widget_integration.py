@@ -1,5 +1,7 @@
 from MyVideoExplorer.media_info.media_info_toolbar_widget import MediaInfoToolbarWidget
-from MyVideoExplorer.media_info_section.media_info_section_definitions import MEDIA_INFO_VIEW_MODE_DEFAULT
+from MyVideoExplorer.media_info_section.media_info_section_definitions import (
+    MEDIA_INFO_VIEW_MODE_DEFAULT,
+)
 
 
 def test_toolbar_builds_default_buttons(qtbot):

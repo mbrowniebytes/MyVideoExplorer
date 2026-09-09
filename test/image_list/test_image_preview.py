@@ -4,6 +4,7 @@ from PySide6.QtWidgets import QApplication
 from MyVideoExplorer.image_list.image_preview_widget import ImagePreviewWidget
 from MyVideoExplorer.utils.log_util import LogUtil
 
+
 class TestImagePreviewWidget:
     @pytest.fixture
     def app(self):

@@ -3,6 +3,7 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QToolButton, QWidget
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 
+
 class FolderListHeader(QWidget, ThemableMixin):
     backward_clicked = Signal()
     forward_clicked = Signal()
@@ -42,11 +43,11 @@ class FolderListHeader(QWidget, ThemableMixin):
         button.setEnabled(False)
 
         if direction == "backward":
-            button.setIcon(APP_THEME.icon("fa6s.reply")) # fa6s.arrow-left
+            button.setIcon(APP_THEME.icon("fa6s.reply"))  # fa6s.arrow-left
             button.setToolTip("Backward")
             button.clicked.connect(self.backward_clicked)
         elif direction == "forward":
-            button.setIcon(APP_THEME.icon("fa6s.share")) # fa6s.arrow-right
+            button.setIcon(APP_THEME.icon("fa6s.share"))  # fa6s.arrow-right
             button.setToolTip("Forward")
             button.clicked.connect(self.forward_clicked)
         elif direction == "random":

@@ -8,16 +8,15 @@ import pytest
 
 from MyVideoExplorer.utils.json_util import JsonUtil
 
+
 class TestJsonUtil:
     @pytest.fixture
     def mock_log_util(self):
         return MagicMock()
 
-
     @pytest.fixture
     def json_util(self, mock_log_util):
         return JsonUtil(log_util=mock_log_util)
-
 
     def test_ensure_defaults(self, tmp_path, json_util):
         cfg_dir = tmp_path / "cfg"
@@ -32,7 +31,6 @@ class TestJsonUtil:
             data = json.load(f)
         assert data == default_data
 
-
     def test_load_json(self, tmp_path, json_util):
         file_path = tmp_path / "test.json"
         test_data = {"a": 1}
@@ -42,12 +40,10 @@ class TestJsonUtil:
         loaded_data = json_util.load_json(file_path)
         assert loaded_data == test_data
 
-
     def test_load_json_non_existent(self, tmp_path, json_util):
         file_path = tmp_path / "non_existent.json"
         loaded_data = json_util.load_json(file_path)
         assert loaded_data == {}
-
 
     def test_save_json(self, tmp_path, json_util):
         file_path = tmp_path / "subdir" / "test.json"
@@ -66,7 +62,9 @@ class TestJsonUtil:
 
         def fake_replace(src, dst):
             calls.append((src, dst))
-            Path(dst).write_text(Path(src).read_text(encoding="utf-8"), encoding="utf-8")
+            Path(dst).write_text(
+                Path(src).read_text(encoding="utf-8"), encoding="utf-8"
+            )
 
         monkeypatch.setattr(os, "replace", fake_replace)
 
@@ -75,7 +73,6 @@ class TestJsonUtil:
         assert len(calls) == 1
         assert Path(calls[0][1]) == file_path
         assert json.loads(file_path.read_text(encoding="utf-8")) == {"font_size": 21}
-
 
     def test_backup_file(self, tmp_path, json_util):
         file_path = tmp_path / "settings_ui.json"
@@ -86,7 +83,6 @@ class TestJsonUtil:
         backups = list((tmp_path / "backups").glob("settings_ui_*.json"))
         assert len(backups) == 1
         assert backups[0].read_text() == "content"
-
 
     def test_backup_file_rotation(self, tmp_path, json_util):
         file_path = tmp_path / "settings_ui.json"

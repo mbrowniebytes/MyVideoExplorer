@@ -1,5 +1,6 @@
 from MyVideoExplorer.theme.models import ThemeConfig
 
+
 class StyleCombo:
     @staticmethod
     def get_combo_qss(c: ThemeConfig) -> str:

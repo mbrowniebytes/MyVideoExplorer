@@ -150,7 +150,9 @@ class FolderListView(QListWidget):
                 children_map = {id(None): []}
 
                 for item in folder_items:
-                    parent = last_at_depth.get(item.depth - 1) if item.depth > 0 else None
+                    parent = (
+                        last_at_depth.get(item.depth - 1) if item.depth > 0 else None
+                    )
                     parent_id = id(parent)
                     if parent_id not in children_map:
                         children_map[parent_id] = []
@@ -180,7 +182,9 @@ class FolderListView(QListWidget):
             else:
                 for item in folder_items:
                     icon_name = (
-                        get_icon_func(item.full_path) if get_icon_func else "fa6s.folder"
+                        get_icon_func(item.full_path)
+                        if get_icon_func
+                        else "fa6s.folder"
                     )
                     self.add_folder_item(item, icon_name)
 

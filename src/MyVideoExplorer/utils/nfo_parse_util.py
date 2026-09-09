@@ -94,6 +94,7 @@ class NfoParseUtil:
         # We'll run the blocking code in a thread and return the result (synchronously)
         result_container = []
         result_container.append(None)
+
         def thread_worker():
             try:
                 tree = ET.parse(nfo_file)
@@ -277,9 +278,7 @@ class NfoParseUtil:
 
     # --- Stream details parsing ---
 
-    def _parse_stream_details(
-        self, root: ET.Element, movie_info: dict
-    ) -> None:
+    def _parse_stream_details(self, root: ET.Element, movie_info: dict) -> None:
         """Parse video/audio/subtitle stream details from NFO root."""
         stream_root = root.find("fileinfo/streamdetails")
 
@@ -450,9 +449,7 @@ class NfoParseUtil:
         """Check if a value is considered meaningful (non-empty string or non-zero number)."""
         if isinstance(value, str) and value.strip():
             return True
-        return (
-            isinstance(value, str) and bool(value.strip())
-        ) or (
+        return (isinstance(value, str) and bool(value.strip())) or (
             isinstance(value, (int, float)) and value != 0
         )
 

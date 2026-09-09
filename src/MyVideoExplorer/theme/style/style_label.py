@@ -1,5 +1,6 @@
 from MyVideoExplorer.theme.models import ThemeConfig
 
+
 class StyleLabel:
     @staticmethod
     def get_label_qss(c: ThemeConfig, variant: str = "default") -> str:

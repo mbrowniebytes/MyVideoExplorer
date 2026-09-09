@@ -1,4 +1,3 @@
-
 from PySide6.QtCore import Signal, Qt, QSize
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -29,13 +28,16 @@ class FolderPickerWidget(QWidget):
         self.pick_button.setCheckable(True)
         self.pick_button.setCursor(Qt.CursorShape.PointingHandCursor)
 
-        self.pick_button.setIcon(APP_THEME.icon("fa6s.folder-open", color=APP_THEME.text_color))
+        self.pick_button.setIcon(
+            APP_THEME.icon("fa6s.folder-open", color=APP_THEME.text_color)
+        )
         self.pick_button.setIconSize(QSize(APP_THEME.icon_size, APP_THEME.icon_size))
-        self.pick_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.pick_button.setSizePolicy(
+            QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
+        )
         self.pick_button.setFixedSize(70, 40)
 
         self.pick_button.setText("")
-
 
         self.pick_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
         self.pick_button.clicked.connect(self.pick_folder)
@@ -71,4 +73,3 @@ class FolderPickerWidget(QWidget):
 
         # The property setter handles duplicate checks and signal emission automatically
         self.selected_folder = selected_folder
-

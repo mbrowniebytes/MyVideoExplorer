@@ -50,9 +50,7 @@ class MediaInfoScrollContentWidget(QWidget, ThemableMixin):
         self.outer_layout.setContentsMargins(0, 0, 0, 0)
         self.outer_layout.addWidget(self.scroll_area)
 
-    def add_section_if_missing(
-        self, section_id: str, section_widget: QWidget
-    ) -> None:
+    def add_section_if_missing(self, section_id: str, section_widget: QWidget) -> None:
         if section_id in self.section_widgets_by_id:
             return
 
@@ -81,7 +79,9 @@ class MediaInfoScrollContentWidget(QWidget, ThemableMixin):
         self._clear_layout_without_deleting_persistent_widgets(self.section_layout)
         self.section_widgets_by_id.clear()
 
-        empty_nfo_placeholder_label = QLabel("No NFO data found", parent=self.content_container_widget)
+        empty_nfo_placeholder_label = QLabel(
+            "No NFO data found", parent=self.content_container_widget
+        )
         empty_nfo_placeholder_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         empty_nfo_placeholder_label.setSizePolicy(
             QSizePolicy.Policy.Expanding,

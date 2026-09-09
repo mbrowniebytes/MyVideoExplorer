@@ -100,6 +100,7 @@ class ThemeManager:
         # Handle Custom Application Widgets
         if self._is_custom_widget(widget):
             from MyVideoExplorer.theme.themable_mixin import ThemableMixin
+
             if isinstance(widget, ThemableMixin):
                 # We expect custom apply_theme to NOT call refresh_theme again
                 # OR if it does, it should check is_refreshing

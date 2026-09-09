@@ -4,6 +4,7 @@ from PySide6.QtGui import QWheelEvent
 from MyVideoExplorer.image_list.image_label import ImageLabel
 from MyVideoExplorer.utils.log_util import LogUtil
 
+
 class TestImageLabel:
     @pytest.fixture
     def image_label(self, qtbot):

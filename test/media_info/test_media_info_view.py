@@ -66,6 +66,7 @@ class TestMediaInfoView:
                 media_info_view.plot_section.get_plot_text().toPlainText()
                 == mock_nfo_data["plot"]
             )
+
         qtbot.waitUntil(check_plot_text, timeout=250)
 
         # Check if title label was updated
@@ -101,9 +102,7 @@ class TestMediaInfoView:
     def test_play_video_signal(self, media_info_view, mock_nfo_data, qtbot):
         media_info_view.build_from_movie_info(mock_nfo_data)
 
-        with qtbot.waitSignal(
-            media_info_view.info_play_video_btn_clicked
-        ) as blocker:
+        with qtbot.waitSignal(media_info_view.info_play_video_btn_clicked) as blocker:
             media_info_view.play_video()
 
         assert blocker.args[0].data is None
@@ -117,7 +116,9 @@ class TestMediaInfoView:
         # Actually, if we mock it, the original refresh_theme (which now sets the font)
         # won't run.
 
-        with patch.object(APP_THEME, "refresh_theme", wraps=APP_THEME.refresh_theme) as mock_refresh:
+        with patch.object(
+            APP_THEME, "refresh_theme", wraps=APP_THEME.refresh_theme
+        ) as mock_refresh:
             APP_THEME.config.font_family_default = "Arial"
             APP_THEME.config.font_size_base = 14
 

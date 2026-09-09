@@ -1,8 +1,11 @@
 from __future__ import annotations
 from PySide6.QtWidgets import QLayout, QVBoxLayout, QWidget
 
+
 class UIUtils:
-    def apply_compact_layout(self, widget: QWidget, layout_type: type[QLayout] = QVBoxLayout) -> QLayout:
+    def apply_compact_layout(
+        self, widget: QWidget, layout_type: type[QLayout] = QVBoxLayout
+    ) -> QLayout:
         """Creates and sets a layout with 0 margins and 0 spacing."""
         if widget.layout() is not None:
             raise RuntimeError(

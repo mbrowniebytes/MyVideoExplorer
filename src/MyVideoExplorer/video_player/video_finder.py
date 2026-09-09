@@ -8,7 +8,7 @@ class VideoFinder:
 
     VIDEO_EXTS = frozenset({".mkv", ".mp4", ".avi", ".ts", ".mpg", ".mpeg", ".m4v"})
 
-    def __init__(self, log_util:LogUtil) -> None:
+    def __init__(self, log_util: LogUtil) -> None:
         self.log_util = log_util
 
     def find_associated_video(self, folder_path: str | None) -> str | None:
@@ -34,7 +34,9 @@ class VideoFinder:
             # directory_items = sorted(folder_path_obj.glob(pattern))
 
             # grab all
-            directory_items = sorted(folder_path_obj.iterdir(), key=lambda item: item.name)
+            directory_items = sorted(
+                folder_path_obj.iterdir(), key=lambda item: item.name
+            )
         except OSError as e:
             self.log_util.error(f"Error listdir {folder_path} {e}")
             return None

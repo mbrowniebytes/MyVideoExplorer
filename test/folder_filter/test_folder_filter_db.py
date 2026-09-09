@@ -9,6 +9,7 @@ from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 
+
 class TestFolderNavFiltersDB:
     @pytest.fixture
     def settings_mock(self):
@@ -54,7 +55,7 @@ class TestFolderNavFiltersDB:
 
         mock_log = MagicMock()
         widget = FolderFilters(engine, file_util, settings_mock, mock_log)
-        widget.root_folders = ["movies"] # Matches config path
+        widget.root_folders = ["movies"]  # Matches config path
         widget.build()
         qtbot.addWidget(widget)
         return widget
@@ -65,14 +66,18 @@ class TestFolderNavFiltersDB:
             mock_con = MagicMock()
             mock_connect.return_value = mock_con
             # Mock the query result
-            mock_con.execute.return_value.fetchall.return_value = [("movies/movie1.mp4",)]
+            mock_con.execute.return_value.fetchall.return_value = [
+                ("movies/movie1.mp4",)
+            ]
 
             # Add a filter to ensure we get results back
             nav_filters.filter_table.add_filter("File", "movie1")
 
             on_complete_mock = MagicMock()
 
-            nav_filters.apply_filters(selected_folders=["movies"], on_complete=on_complete_mock)
+            nav_filters.apply_filters(
+                selected_folders=["movies"], on_complete=on_complete_mock
+            )
 
             # Verify that duckdb was called
             mock_connect.assert_called_with("tmp/db/Test.db")

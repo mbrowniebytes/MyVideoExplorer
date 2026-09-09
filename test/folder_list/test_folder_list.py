@@ -117,9 +117,7 @@ class TestFolderList:
             folder_list.update_folder_list_by_items(mock_folder_items)
         folder_list.folder_list_view.setCurrentRow(0)
 
-        with qtbot.waitSignal(
-            folder_list.folder_list_view.folder_selected
-        ) as blocker:
+        with qtbot.waitSignal(folder_list.folder_list_view.folder_selected) as blocker:
             folder_list.select_next_folder(1)
 
         assert folder_list.folder_list_view.currentRow() == 1
@@ -134,9 +132,7 @@ class TestFolderList:
             folder_list.update_folder_list_by_items(mock_folder_items)
         item = folder_list.folder_list_view.item(0)
 
-        with qtbot.waitSignal(
-            folder_list.folder_list_view.folder_selected
-        ) as blocker:
+        with qtbot.waitSignal(folder_list.folder_list_view.folder_selected) as blocker:
             folder_list.folder_list_view.itemClicked.emit(item)
 
         assert blocker.args[0].data == "/path/to/Folder A"
@@ -266,7 +262,7 @@ class TestFolderList:
         # Need to patch settings in the fixture or the test
         folder_list.settings.settings_data_model.media_configs = [
             {"label": "M1", "path": "/p1"},
-            {"label": "M2", "path": "/p2"}
+            {"label": "M2", "path": "/p2"},
         ]
         folder_list.settings.settings_data_model.db_enabled.return_value = True
 
@@ -298,6 +294,6 @@ class TestFolderList:
 
         # 4. Change state and trigger callback
         folder_list.settings.settings_data_model.db_enabled.return_value = False
-        callback(None) # Trigger signal
+        callback(None)  # Trigger signal
 
         assert "Loading from: File System" in folder_list.help_icon.toolTip()

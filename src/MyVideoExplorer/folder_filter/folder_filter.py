@@ -196,7 +196,9 @@ class FolderFilters(QWidget, ThemableMixin):
             self.saved_filters_combo.addItem(name)
 
     def _build_save_filter_button(self) -> None:
-        self.save_filter_button = self._make_tool_button("Save Filter", "fa6s.floppy-disk")
+        self.save_filter_button = self._make_tool_button(
+            "Save Filter", "fa6s.floppy-disk"
+        )
         self.save_filter_button.setFixedWidth(50)
 
     def _build_delete_filter_button(self) -> None:
@@ -330,7 +332,11 @@ class FolderFilters(QWidget, ThemableMixin):
         if selected_folders:
             folder_paths = selected_folders
         else:
-            folder_paths = [config["path"] for config in self.settings.settings_data_model.media_configs if config.get("path")]
+            folder_paths = [
+                config["path"]
+                for config in self.settings.settings_data_model.media_configs
+                if config.get("path")
+            ]
 
         if self.settings.settings_data_model.db_enabled():
             # Use database
@@ -344,14 +350,22 @@ class FolderFilters(QWidget, ThemableMixin):
                         break
 
                 if db_path and Path(db_path).exists():
-                    con = duckdb.connect(db_path)
-                    res = con.execute(db_query.DbQuery.MediaFile.SELECT_ALL_PATHS).fetchall()
+                    db_path_str = Path(db_path).as_posix()
+                    con = duckdb.connect(db_path_str)
+                    res = con.execute(
+                        db_query.DbQuery.MediaFile.SELECT_ALL_PATHS
+                    ).fetchall()
                     con.close()
 
                     # 1. Add files and their parent directories
                     paths = [r[0] for r in res]
                     # Sort by parent folder then filename to mimic filesystem scan order
-                    paths.sort(key=lambda p: (str(Path(p).parent).lower(), Path(p).name.lower()))
+                    paths.sort(
+                        key=lambda p: (
+                            str(Path(p).parent).lower(),
+                            Path(p).name.lower(),
+                        )
+                    )
                     h = self.file_util.build_hierarchy_from_paths(paths, folder_path)
                     items.extend(h)
 

@@ -113,9 +113,7 @@ class MediaInfoCommonSection(QWidget, ThemableMixin):
             row_layout.setContentsMargins(0, 0, 0, 0)
             row_layout.setSpacing(4)
             for label, value in row:
-                lvw = LabelValueWidget(
-                    name=label, value=value, parent=self
-                )
+                lvw = LabelValueWidget(name=label, value=value, parent=self)
                 row_layout.addWidget(lvw)
             col_layout.addLayout(row_layout)
         self.layout.addLayout(col_layout)

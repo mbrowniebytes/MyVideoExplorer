@@ -9,18 +9,24 @@ from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex, QPersistentMode
 class SimpleTableModel(QAbstractTableModel):
     """A flexible table model for displaying data tables"""
 
-    def __init__(self, rows: list[dict[str, Any]], headers: list[str], cols: list[str]) -> None:
+    def __init__(
+        self, rows: list[dict[str, Any]], headers: list[str], cols: list[str]
+    ) -> None:
         super().__init__()
         self._rows: list[dict[str, Any]] = rows
         self._headers = headers  # human-readable column labels
         self._cols = cols  # keys to access dict values
 
-    def rowCount(self, parent: QModelIndex | QPersistentModelIndex | None = None) -> int:
+    def rowCount(
+        self, parent: QModelIndex | QPersistentModelIndex | None = None
+    ) -> int:
         if parent is not None and parent.isValid():
             return 0
         return len(self._rows)
 
-    def columnCount(self, parent: QModelIndex | QPersistentModelIndex | None = None) -> int:
+    def columnCount(
+        self, parent: QModelIndex | QPersistentModelIndex | None = None
+    ) -> int:
         if parent is not None and parent.isValid():
             return 0
         return len(self._headers)
@@ -60,7 +66,9 @@ class SimpleTableModel(QAbstractTableModel):
             self._cols = cols
         self.endResetModel()
 
-    def sort(self, column: int, order: Qt.SortOrder = Qt.SortOrder.AscendingOrder) -> None:
+    def sort(
+        self, column: int, order: Qt.SortOrder = Qt.SortOrder.AscendingOrder
+    ) -> None:
         # Sort using the dict key (not header label)
         key_field = self._cols[column]
 
@@ -79,7 +87,9 @@ class SimpleTableModel(QAbstractTableModel):
                 reverse=(order == Qt.SortOrder.DescendingOrder),
             )
         except Exception as e:
-            print(f"SimpleTableModel: sort failed for column {column}, key_field={key_field}: {e}")
+            print(
+                f"SimpleTableModel: sort failed for column {column}, key_field={key_field}: {e}"
+            )
         self.layoutChanged.emit()
 
     def headerData(
@@ -88,6 +98,9 @@ class SimpleTableModel(QAbstractTableModel):
         orientation: Qt.Orientation,
         role: int = 0,
     ) -> object | None:
-        if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
+        if (
+            role == Qt.ItemDataRole.DisplayRole
+            and orientation == Qt.Orientation.Horizontal
+        ):
             return self._headers[section]
         return None

@@ -65,7 +65,10 @@ class TestFileUtil:
                 type="file", name="image1.jpg", full_path="/test/image1.jpg", depth=0
             ),
             MockDirEntry(
-                type="file", name="folder-poster.png", full_path="/test/folder-poster.png", depth=0
+                type="file",
+                name="folder-poster.png",
+                full_path="/test/folder-poster.png",
+                depth=0,
             ),
             MockDirEntry(
                 type="file", name="video.mp4", full_path="/test/video.mp4", depth=0
@@ -85,7 +88,10 @@ class TestFileUtil:
                 type="file", name="other.jpg", full_path="/test/other.jpg", depth=0
             ),
             MockDirEntry(
-                type="file", name="folder-poster.jpg", full_path="/test/poster.jpg", depth=0
+                type="file",
+                name="folder-poster.jpg",
+                full_path="/test/poster.jpg",
+                depth=0,
             ),
             MockDirEntry(
                 type="file", name="fanart.jpg", full_path="/test/fanart.jpg", depth=0
@@ -102,7 +108,10 @@ class TestFileUtil:
     def test_get_images_from_folder_poster_priority(self, _scan_directory, file_util):
         _scan_directory.return_value = [
             MockDirEntry(
-                type="file", name="movie-poster.jpg", full_path="/test/movie-poster.jpg", depth=0
+                type="file",
+                name="movie-poster.jpg",
+                full_path="/test/movie-poster.jpg",
+                depth=0,
             ),
             MockDirEntry(
                 type="file", name="poster.jpg", full_path="/test/poster.jpg", depth=0

@@ -14,7 +14,11 @@ def test_year_validation(tmp_path):
 
     # Test empty year
     media_list = [
-        {'path': file1, 'dir': folder_path, 'metadata': {'title': 'Movie 1', 'year': ''}}
+        {
+            "path": file1,
+            "dir": folder_path,
+            "metadata": {"title": "Movie 1", "year": ""},
+        }
     ]
 
     db_util.save_media(media_list, folder_path)

@@ -25,10 +25,10 @@ from MyVideoExplorer.utils.log_util import LogUtil
 class SettingsUITab(SettingsBaseTab):
     def __init__(
         self,
-            state: SettingsState,
-            log_util: LogUtil,
-            file_util: FileUtil,
-            parent: QWidget | None = None
+        state: SettingsState,
+        log_util: LogUtil,
+        file_util: FileUtil,
+        parent: QWidget | None = None,
     ) -> None:
         super().__init__(log_util, parent)
         self.file_util = file_util

@@ -58,7 +58,9 @@ class JsonUtil:
                 except OSError:
                     pass
 
-    def backup_file(self, file_path: Path, max_backups: int = MAX_BACKUPS_DEFAULT) -> None:
+    def backup_file(
+        self, file_path: Path, max_backups: int = MAX_BACKUPS_DEFAULT
+    ) -> None:
         """Manage daily backups of a file, keeping up to max_backups."""
         if not file_path.exists():
             return
@@ -76,12 +78,17 @@ class JsonUtil:
 
         # Only backup if the content has changed since the latest backup.
         backups = sorted(
-            backup_dir.glob(backup_pattern), reverse=True, key=lambda p: p.stat().st_mtime
+            backup_dir.glob(backup_pattern),
+            reverse=True,
+            key=lambda p: p.stat().st_mtime,
         )
         if backups:
             latest_backup = backups[0]
             try:
-                if latest_backup.read_text(encoding=self.DEFAULT_ENCODING) == current_contents:
+                if (
+                    latest_backup.read_text(encoding=self.DEFAULT_ENCODING)
+                    == current_contents
+                ):
                     return
             except OSError:
                 pass
@@ -99,7 +106,9 @@ class JsonUtil:
 
         # Keep only the max_backups most recent backups
         backups = sorted(
-            backup_dir.glob(backup_pattern), reverse=True, key=lambda p: p.stat().st_mtime
+            backup_dir.glob(backup_pattern),
+            reverse=True,
+            key=lambda p: p.stat().st_mtime,
         )
 
         for old_backup in backups[max_backups:]:

@@ -106,7 +106,9 @@ class ImageListView(QWidget, ThemableMixin):
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
 
-        main_layout = self._ui_utils.apply_compact_layout(self.content_container, QVBoxLayout)
+        main_layout = self._ui_utils.apply_compact_layout(
+            self.content_container, QVBoxLayout
+        )
 
         title_and_preview_widget = QWidget(self)
         title_and_preview_layout = self._ui_utils.apply_compact_layout(
@@ -116,7 +118,10 @@ class ImageListView(QWidget, ThemableMixin):
         title_and_preview_layout.addWidget(self.preview_widget)
 
         top_content_widget = QWidget(self)
-        top_content_layout = cast(QHBoxLayout, self._ui_utils.apply_compact_layout(top_content_widget, QHBoxLayout))
+        top_content_layout = cast(
+            QHBoxLayout,
+            self._ui_utils.apply_compact_layout(top_content_widget, QHBoxLayout),
+        )
         top_content_layout.addWidget(title_and_preview_widget, 2)
         top_content_layout.addWidget(self.media_info_side_view)
 
@@ -124,7 +129,9 @@ class ImageListView(QWidget, ThemableMixin):
         main_layout.addWidget(self.file_list.build())
         main_layout.addWidget(self.plot_text)
 
-        root_layout = cast(QVBoxLayout, self._ui_utils.apply_compact_layout(self, QVBoxLayout))
+        root_layout = cast(
+            QVBoxLayout, self._ui_utils.apply_compact_layout(self, QVBoxLayout)
+        )
         root_layout.addWidget(self.content_container)
         root_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 

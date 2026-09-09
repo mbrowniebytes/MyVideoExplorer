@@ -3,7 +3,9 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
-from MyVideoExplorer.media_info.media_info_id_link_formatter import MediaInfoIdLinkFormatter
+from MyVideoExplorer.media_info.media_info_id_link_formatter import (
+    MediaInfoIdLinkFormatter,
+)
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.utils.log_util import LogUtil
@@ -71,9 +73,13 @@ class MediaInfoSideFactsWidget(QWidget, ThemableMixin):
             self.facts_layout.addWidget(field_value_widget)
 
     def _update_fixed_field_values(self, movie_info: dict) -> None:
-        self.fixed_field_widgets_by_key["rating"].set_value(movie_info.get("rating", ""))
+        self.fixed_field_widgets_by_key["rating"].set_value(
+            movie_info.get("rating", "")
+        )
         self.fixed_field_widgets_by_key["mpaa"].set_value(movie_info.get("mpaa", ""))
-        self.fixed_field_widgets_by_key["runtime"].set_value(movie_info.get("runtime", ""))
+        self.fixed_field_widgets_by_key["runtime"].set_value(
+            movie_info.get("runtime", "")
+        )
 
         genre_values = movie_info.get("genres", [])
         self.fixed_field_widgets_by_key["genres"].set_value(
@@ -81,7 +87,9 @@ class MediaInfoSideFactsWidget(QWidget, ThemableMixin):
         )
 
     def _update_id_widgets(self, media_id_items: list[dict]) -> None:
-        formatted_id_html_values = self.id_link_formatter.build_id_html_values(media_id_items)
+        formatted_id_html_values = self.id_link_formatter.build_id_html_values(
+            media_id_items
+        )
 
         self._remove_excess_id_widgets(len(formatted_id_html_values))
 

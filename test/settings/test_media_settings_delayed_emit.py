@@ -3,11 +3,19 @@ from unittest.mock import MagicMock, patch
 from MyVideoExplorer.settings.settings_media_tab import SettingsMediaTab
 from MyVideoExplorer.settings.settings_state import SettingsState
 
+
 class TestMediaSettingsDelayedEmit:
     @pytest.fixture
     def settings_media_tab(self, qtbot):
         mock_state = MagicMock(spec=SettingsState)
-        mock_state.media_configs = [{"label": "test", "path": "D:/test", "icon": "fa6s.folder", "media_type": "movie"}]
+        mock_state.media_configs = [
+            {
+                "label": "test",
+                "path": "D:/test",
+                "icon": "fa6s.folder",
+                "media_type": "movie",
+            }
+        ]
         mock_state.db_enabled.return_value = True
 
         mock_log_util = MagicMock()

@@ -65,9 +65,7 @@ class MediaInfoActorsSection(ThemableMixin, QWidget):
         self.actors_section_layout.setSpacing(0)
 
     def _build_actors_table_section(self, actor_table_rows: list[dict]) -> None:
-        self.actors_title_widget = LabelValueWidget(
-            "Actors", parent=self
-        )
+        self.actors_title_widget = LabelValueWidget("Actors", parent=self)
         self.actors_table_widget = SimpleTableWidget(
             rows=actor_table_rows,
             cols=ACTOR_TABLE_COLUMN_KEYS,

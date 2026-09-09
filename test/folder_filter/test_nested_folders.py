@@ -9,6 +9,7 @@ from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 
+
 class TestNestedFolderStructure:
     @pytest.fixture
     def settings_mock(self):
@@ -30,16 +31,23 @@ class TestNestedFolderStructure:
     @pytest.fixture
     def nav_filters(self, qtbot, settings_mock):
         file_util = MagicMock(spec=FileUtil)
+
         # Mock build_hierarchy_from_paths
         def build_hierarchy_mock(paths, folder_path):
             models = []
-            for p in ["movies", "movies/subdir1", "movies/subdir1/movie1.mp4", "movies/subdir1/movie2.mp4"]:
+            for p in [
+                "movies",
+                "movies/subdir1",
+                "movies/subdir1/movie1.mp4",
+                "movies/subdir1/movie2.mp4",
+            ]:
                 m = MagicMock(spec=FileUtilModel)
                 m.full_path = p
                 m.is_dir = p in ["movies", "movies/subdir1"]
                 m.is_file = not m.is_dir
                 models.append(m)
             return models
+
         file_util.build_hierarchy_from_paths = build_hierarchy_mock
 
         nfo_util = MagicMock(spec=NfoParseUtil)
@@ -59,7 +67,7 @@ class TestNestedFolderStructure:
             # Mock the query result with nested subfolders
             mock_con.execute.return_value.fetchall.return_value = [
                 ("movies/subdir1/movie1.mp4",),
-                ("movies/subdir1/movie2.mp4",)
+                ("movies/subdir1/movie2.mp4",),
             ]
 
             # Add a filter
@@ -68,8 +76,12 @@ class TestNestedFolderStructure:
             on_complete_mock = MagicMock()
 
             # Bypass filtering for verification
-            with patch.object(nav_filters, "_apply_filters_internal", side_effect=lambda x: x):
-                nav_filters.apply_filters(selected_folders=["movies"], on_complete=on_complete_mock)
+            with patch.object(
+                nav_filters, "_apply_filters_internal", side_effect=lambda x: x
+            ):
+                nav_filters.apply_filters(
+                    selected_folders=["movies"], on_complete=on_complete_mock
+                )
 
             # Verify that items were added.
             # We expect 'movies', 'movies/subdir1', 'movie1.mp4', 'movie2.mp4' (or similar)

@@ -15,7 +15,10 @@ from PySide6.QtWidgets import QApplication, QMainWindow
 
 from MyVideoExplorer.app.app import App
 from MyVideoExplorer.app.app_container import AppContainer
-from MyVideoExplorer.app.app_environment import IS_DEVELOPMENT, ensure_required_directories
+from MyVideoExplorer.app.app_environment import (
+    IS_DEVELOPMENT,
+    ensure_required_directories,
+)
 from MyVideoExplorer.app_loading.app_loading_controller import AppLoadingController
 from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.utils.log_util import LogUtil
@@ -98,11 +101,16 @@ def run() -> int:
             _emergency_log(f"Unhandled exception: {exc}", exc_info=True)
         else:
             try:
-                container.log_util.error("Unhandled exception in main", extra_info={
-                    "exc_type": type(exc).__name__,
-                    "exc_value": str(exc),
-                })
-                tb = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+                container.log_util.error(
+                    "Unhandled exception in main",
+                    extra_info={
+                        "exc_type": type(exc).__name__,
+                        "exc_value": str(exc),
+                    },
+                )
+                tb = "".join(
+                    traceback.format_exception(type(exc), exc, exc.__traceback__)
+                )
                 container.log_util.error(tb)
             except Exception:
                 _emergency_log(f"Logging during exception failed: {exc}", exc_info=True)

@@ -9,7 +9,7 @@ from MyVideoExplorer.utils.log_util import LogUtil
 class VideoLauncher:
     """Handles the execution of video playback via system processes."""
 
-    def __init__(self, log_util:LogUtil) -> None:
+    def __init__(self, log_util: LogUtil) -> None:
         self.log_util = log_util
 
     async def play_via_external_app(self, video_path: str) -> None:

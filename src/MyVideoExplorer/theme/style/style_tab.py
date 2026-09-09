@@ -1,5 +1,6 @@
 from MyVideoExplorer.theme.models import ThemeConfig
 
+
 class StyleTab:
     @staticmethod
     def get_tabs_qss(c: ThemeConfig) -> str:

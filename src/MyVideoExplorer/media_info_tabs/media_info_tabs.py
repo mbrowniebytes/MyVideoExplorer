@@ -85,10 +85,14 @@ class MediaInfoTabs(QWidget, ThemableMixin):
         bar.setTabText(self.settings_tab_index, "")
         bar.setTabEnabled(self.settings_tab_index, False)
         bar.setTabButton(self.settings_tab_index, QTabBar.ButtonPosition.LeftSide, None)
-        bar.setTabButton(self.settings_tab_index, QTabBar.ButtonPosition.RightSide, None)
+        bar.setTabButton(
+            self.settings_tab_index, QTabBar.ButtonPosition.RightSide, None
+        )
 
         # Place the settings button at the top-right corner of the tab widget
-        self.tab_container.setCornerWidget(self.settings_button, Qt.Corner.TopRightCorner)
+        self.tab_container.setCornerWidget(
+            self.settings_button, Qt.Corner.TopRightCorner
+        )
 
     def _add_content_tab(self, widget: QWidget, label: str) -> int:
         """Wraps a widget in a layout-managed container and adds it as a tab."""

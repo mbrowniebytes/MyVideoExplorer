@@ -23,7 +23,9 @@ class ScanWorker(QThread):
     progress_updated = Signal(int)
     progress_stage = Signal(str)
 
-    def __init__(self, media_config: dict[str, Any], file_util: FileUtil, nfo_util: NfoParseUtil):
+    def __init__(
+        self, media_config: dict[str, Any], file_util: FileUtil, nfo_util: NfoParseUtil
+    ):
         super().__init__()
         self.media_config = media_config
         self.file_util = file_util
@@ -73,7 +75,11 @@ class ScanWorker(QThread):
 
         # Keep 5 most recent backups
         backup_pattern = f"{db_path_obj.stem}_*{db_path_obj.suffix}"
-        backups = sorted(backup_dir.glob(backup_pattern), reverse=True, key=lambda p: p.stat().st_mtime)
+        backups = sorted(
+            backup_dir.glob(backup_pattern),
+            reverse=True,
+            key=lambda p: p.stat().st_mtime,
+        )
 
         max_backups = 5
         for old_backup in backups[max_backups:]:
@@ -96,25 +102,27 @@ class ScanWorker(QThread):
                     if _.is_dir():
                         total_folders += 1
             self.progress_init.emit(100)
-            self.progress_stage.emit(self.lang.scan_progress["scanning_media_subfolders"])
+            self.progress_stage.emit(
+                self.lang.scan_progress["scanning_media_subfolders"]
+            )
 
             stats = {
-                'media_path': media_path,
-                'subfolders_count': 0,
-                'files_count': 0,
-                'images_count': 0,
-                'videos_count': 0,
-                'nfo_count': 0,
-                'other_count': 0,
-                'last_scanned': datetime.datetime.now(datetime.UTC)
+                "media_path": media_path,
+                "subfolders_count": 0,
+                "files_count": 0,
+                "images_count": 0,
+                "videos_count": 0,
+                "nfo_count": 0,
+                "other_count": 0,
+                "last_scanned": datetime.datetime.now(datetime.UTC),
             }
 
             progress = 0
             if media_path and Path(media_path).is_dir():
                 folder_steps = max(total_folders, 1)
                 for root, dirs, files in os.walk(media_path):
-                    stats['subfolders_count'] += len(dirs)
-                    stats['files_count'] += len(files)
+                    stats["subfolders_count"] += len(dirs)
+                    stats["files_count"] += len(files)
 
                     # Update scan progress until 75% then transition to DB save.
                     progress += 1
@@ -129,7 +137,7 @@ class ScanWorker(QThread):
                         file_path_obj = Path(root) / file
                         ext = file_path_obj.suffix.lower()
                         if ext in FileUtilType.VIDEO_EXTS:
-                            stats['videos_count'] += 1
+                            stats["videos_count"] += 1
                             file_path = file_path_obj.as_posix()
 
                             # Find NFO in the same directory as the video
@@ -141,11 +149,11 @@ class ScanWorker(QThread):
                                 {"file_path": file_path, "metadata": metadata}
                             )
                         elif ext in FileUtilType.NFO_EXTS:
-                            stats['nfo_count'] += 1
+                            stats["nfo_count"] += 1
                         elif ext in FileUtilType.IMAGE_EXTS:
-                            stats['images_count'] += 1
+                            stats["images_count"] += 1
                         else:
-                            stats['other_count'] += 1
+                            stats["other_count"] += 1
 
             # Save to DB
             db_path = self._get_db_path()
@@ -162,7 +170,9 @@ class ScanWorker(QThread):
 
             def on_db_progress(pct: int, label: str):
                 self.progress_stage.emit(label)
-                self.progress_updated.emit(min(100, max(75, int(75 + (pct / 100) * 25))))
+                self.progress_updated.emit(
+                    min(100, max(75, int(75 + (pct / 100) * 25)))
+                )
 
             db_util = DbScanUtil(db_path)
             db_util.save_media(
@@ -181,7 +191,7 @@ class ScanWorker(QThread):
         label = str(self.media_config.get("label", "")).strip()
         if label == "":
             return ""
-        safe_label = re.sub(r'[^a-zA-Z0-9_\-]', '_', label)
+        safe_label = re.sub(r"[^a-zA-Z0-9_\-]", "_", label)
         if safe_label.strip("._-") == "":
             return ""
         # Return path using POSIX separator so DB filenames use '/' even on Windows

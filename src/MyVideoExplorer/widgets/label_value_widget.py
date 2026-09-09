@@ -1,9 +1,17 @@
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QLayout, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QHBoxLayout,
+    QLabel,
+    QLayout,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
+
 
 class LabelValueWidget(QWidget, ThemableMixin):
     """

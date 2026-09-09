@@ -1,5 +1,6 @@
 from MyVideoExplorer.theme.models import ThemeConfig
 
+
 class StyleLayout:
     @staticmethod
     def get_splitter_qss(c: ThemeConfig) -> str:

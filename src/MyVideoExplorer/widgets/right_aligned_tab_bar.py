@@ -1,4 +1,3 @@
-
 from PySide6.QtCore import QSize
 from PySide6.QtWidgets import QTabBar
 
@@ -34,7 +33,7 @@ class RightAlignedTabBar(QTabBar):
 
          Returns:
              QSize: The recommended size for the tab.
-         """
+        """
 
         size = super().tabSizeHint(index)
 

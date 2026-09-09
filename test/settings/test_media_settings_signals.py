@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 from MyVideoExplorer.app.app_signals_model import SignalPayload
 from MyVideoExplorer.settings.settings_media_tab import SettingsMediaTab
 
+
 class TestMediaSettingsSignals:
     @pytest.fixture
     def settings_media_tab(self, qtbot):
@@ -11,7 +12,6 @@ class TestMediaSettingsSignals:
         mock_file_util = MagicMock()
 
         with patch.object(SettingsMediaTab, "_build_ui", return_value=None):
-
             tab = SettingsMediaTab(mock_state, mock_log_util, mock_file_util)
             tab.reset_save_button = MagicMock()
             tab.folder_nav_layout = MagicMock()
@@ -19,7 +19,7 @@ class TestMediaSettingsSignals:
 
             # Setup mock dropdown
             tab.db_enabled_dropdown = MagicMock()
-            tab.db_enabled_dropdown.currentText.return_value = 'Yes'
+            tab.db_enabled_dropdown.currentText.return_value = "Yes"
 
             qtbot.addWidget(tab)
             return tab

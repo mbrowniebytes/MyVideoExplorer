@@ -5,12 +5,13 @@ from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.settings.settings_state import SettingsState
 
+
 def test_db_toggle_refreshes_filters(qtbot):
     # Setup
     log_util = MagicMock()
     # We need to NOT mock settings_changed, but it's defined as a Signal object
     settings_state = SettingsState(log_util)
-    settings_state._db_enabled = False # Initial state
+    settings_state._db_enabled = False  # Initial state
     settings_state.media_configs = [{"path": "D:/Test", "label": "Test"}]
 
     settings_mock = MagicMock()
@@ -30,7 +31,7 @@ def test_db_toggle_refreshes_filters(qtbot):
     qtbot.addWidget(widget)
 
     # Simulate settings change
-    widget._connect_sigs() # ensure connections are active
+    widget._connect_sigs()  # ensure connections are active
     with qtbot.waitSignal(widget.filters_requested):
         settings_state.settings_changed.emit(None)
 

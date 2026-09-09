@@ -4,7 +4,6 @@ from MyVideoExplorer.utils.log_util import LogUtil
 
 
 class StrUtil:
-
     def __init__(self, log_util: LogUtil) -> None:
         super().__init__()
         self.log_util = log_util
@@ -70,5 +69,3 @@ class StrUtil:
             Formatted string in title case
         """
         return key.replace("_", " ").strip().title()
-
-

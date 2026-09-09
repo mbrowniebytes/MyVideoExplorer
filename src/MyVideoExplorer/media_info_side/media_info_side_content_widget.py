@@ -3,8 +3,12 @@ from __future__ import annotations
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
-from MyVideoExplorer.media_info_side.media_info_side_facts_widget import MediaInfoSideFactsWidget
-from MyVideoExplorer.media_info_side.media_info_side_header_widget import MediaInfoSideHeaderWidget
+from MyVideoExplorer.media_info_side.media_info_side_facts_widget import (
+    MediaInfoSideFactsWidget,
+)
+from MyVideoExplorer.media_info_side.media_info_side_header_widget import (
+    MediaInfoSideHeaderWidget,
+)
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
