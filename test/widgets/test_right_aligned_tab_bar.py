@@ -1,5 +1,6 @@
 import pytest
 from PySide6.QtWidgets import QApplication, QTabWidget, QWidget
+
 from MyVideoExplorer.widgets.right_aligned_tab_bar import RightAlignedTabBar
 
 

@@ -1,12 +1,14 @@
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QWidget
-from MyVideoExplorer.image_list.image_list_view import ImageListView
+
 from MyVideoExplorer.file_list.file_list import FileList
+from MyVideoExplorer.image_list.image_list_view import ImageListView
 from MyVideoExplorer.media_info_side.media_info_side_view import MediaInfoSideView
-from MyVideoExplorer.utils.str_util import StrUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
+from MyVideoExplorer.utils.str_util import StrUtil
 
 _NO_IMAGE_FOUND = """
     No image found.\n

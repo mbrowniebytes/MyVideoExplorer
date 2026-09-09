@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, cast
 from collections.abc import Callable
+from typing import Any, cast
 
-from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex, QPersistentModelIndex
+from PySide6.QtCore import QAbstractTableModel, QModelIndex, QPersistentModelIndex, Qt
 
 
 class SimpleTableModel(QAbstractTableModel):

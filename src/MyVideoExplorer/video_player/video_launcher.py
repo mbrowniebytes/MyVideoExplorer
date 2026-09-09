@@ -1,6 +1,6 @@
+import asyncio
 import os
 import sys
-import asyncio
 from pathlib import Path
 
 from MyVideoExplorer.utils.log_util import LogUtil

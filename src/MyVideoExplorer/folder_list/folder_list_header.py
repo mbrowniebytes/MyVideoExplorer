@@ -1,7 +1,8 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QToolButton, QWidget
-from MyVideoExplorer.theme.theme import APP_THEME
+
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
+from MyVideoExplorer.theme.theme import APP_THEME
 
 
 class FolderListHeader(QWidget, ThemableMixin):

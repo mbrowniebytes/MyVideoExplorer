@@ -1,4 +1,4 @@
-from typing import Any, cast, ClassVar
+from typing import Any, ClassVar, cast
 
 from PySide6.QtCore import QObject, Signal
 

@@ -14,8 +14,8 @@ from PySide6.QtWidgets import (
 from MyVideoExplorer.media_info_section.media_info_section_definitions import (
     MEDIA_INFO_SECTION_ACTORS,
 )
-from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
+from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.ui_utils import UIUtils
 

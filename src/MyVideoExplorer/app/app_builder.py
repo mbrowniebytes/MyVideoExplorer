@@ -7,8 +7,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.app.app_container import AppContainer
+from MyVideoExplorer.theme.theme import APP_THEME
 
 DEFAULT_SPLITTER_SIZES = (600, 900)
 

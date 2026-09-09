@@ -1,5 +1,7 @@
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
+
 from MyVideoExplorer.db.db_scan_worker import ScanWorker
 from MyVideoExplorer.utils.file_util import FileUtil
 

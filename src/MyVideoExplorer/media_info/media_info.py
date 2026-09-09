@@ -6,8 +6,8 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.media_info.media_info_view import MediaInfoView
 from MyVideoExplorer.media_info_side.media_info_side_view import MediaInfoSideView
-from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
+from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.ui_utils import UIUtils
 

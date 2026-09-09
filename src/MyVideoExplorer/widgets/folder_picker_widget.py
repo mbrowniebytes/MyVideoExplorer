@@ -1,12 +1,13 @@
-from PySide6.QtCore import Signal, Qt, QSize
+from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtWidgets import (
     QFileDialog,
-    QWidget,
     QHBoxLayout,
-    QToolButton,
     QSizePolicy,
+    QToolButton,
+    QWidget,
 )
-from MyVideoExplorer.app.app_signals_model import SignalPayload, SignalFlow
+
+from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.ui_utils import UIUtils
 

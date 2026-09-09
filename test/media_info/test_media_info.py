@@ -1,9 +1,11 @@
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
+
+from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.media_info.media_info import MediaInfo
 from MyVideoExplorer.media_info.media_info_view import MediaInfoView
 from MyVideoExplorer.media_info_side.media_info_side_view import MediaInfoSideView
-from MyVideoExplorer.app.app_signals_model import SignalPayload, SignalFlow
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.utils.str_util import StrUtil
 

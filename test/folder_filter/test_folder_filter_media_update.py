@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
-from MyVideoExplorer.settings.settings_state import SettingsState
+
 from MyVideoExplorer.folder_filter.folder_filter_media import FolderFilterMedia
+from MyVideoExplorer.settings.settings_state import SettingsState
 
 
 def test_refresh_on_signal(qtbot):
@@ -25,7 +26,7 @@ def test_refresh_on_signal(qtbot):
             # Update label
             state.media_configs[0]["label"] = "NewMedia"
 
-            from MyVideoExplorer.app.app_signals_model import SignalPayload, SignalFlow
+            from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 
             # Emit signal - this is what SHOULD happen when saving settings
             state.settings_changed.emit(

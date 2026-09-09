@@ -1,4 +1,5 @@
 from typing import Any
+
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
@@ -14,11 +15,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.folder_filter.folder_filter_table import FolderFilterTable
-
 from MyVideoExplorer.settings.settings import SettingsBaseTab
 from MyVideoExplorer.settings.settings_state import SettingsState
-from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
 

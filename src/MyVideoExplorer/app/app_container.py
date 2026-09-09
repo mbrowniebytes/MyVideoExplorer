@@ -25,7 +25,6 @@ from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.utils.str_util import StrUtil
 from MyVideoExplorer.video_player.video_player import VideoPlayer
 
-
 DEFAULT_WINDOW_SIZE = (1200, 700)
 MIN_WINDOW_SIZE = (1000, 500)
 

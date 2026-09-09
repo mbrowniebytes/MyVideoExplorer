@@ -5,8 +5,8 @@ from typing import Any
 from PySide6.QtCore import QObject, Signal
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
-from MyVideoExplorer.utils.json_util import JsonUtil
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.utils.json_util import JsonUtil
 
 # Use a package-local defaults directory so built-in defaults are versioned with
 # the application instead of living only at the repo root. Runtime user settings

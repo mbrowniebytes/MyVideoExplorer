@@ -5,7 +5,6 @@ import duckdb
 
 from MyVideoExplorer.db.db_migrations import DbMigrations
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 MIGRATIONS_DIR = PROJECT_ROOT / "src" / "MyVideoExplorer" / "db" / "migrations"
 

@@ -1,9 +1,11 @@
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 from PySide6.QtWidgets import QWidget
-from MyVideoExplorer.media_info_tabs.media_info_tabs import MediaInfoTabs
-from MyVideoExplorer.media_info.media_info import MediaInfo
+
 from MyVideoExplorer.image_list.image_list import ImageList
+from MyVideoExplorer.media_info.media_info import MediaInfo
+from MyVideoExplorer.media_info_tabs.media_info_tabs import MediaInfoTabs
 from MyVideoExplorer.settings.settings import Settings
 
 

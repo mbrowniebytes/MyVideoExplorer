@@ -1,6 +1,6 @@
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QFont, Qt
-from PySide6.QtWidgets import QTabBar, QTabWidget, QVBoxLayout, QWidget, QToolButton
+from PySide6.QtWidgets import QTabBar, QTabWidget, QToolButton, QVBoxLayout, QWidget
 
 from MyVideoExplorer.image_list.image_list import ImageList
 from MyVideoExplorer.media_info.media_info import MediaInfo

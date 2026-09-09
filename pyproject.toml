@@ -64,7 +64,6 @@ extend-select = [
 ignore = [
     "BLE001",   # Do not catch blind exception: `Exception`
     "E501",     # line-too-long
-    "I001",     # Import block is un-sorted or un-formatted
     "PIE790",   # Unnecessary `pass` statement
     "RET504",   # Unnecessary assignment to `text` before `return` statement
     "RUF059",   # Unpacked variable is never used

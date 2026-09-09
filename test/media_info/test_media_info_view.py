@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from MyVideoExplorer.media_info.media_info_view import MediaInfoView
 from MyVideoExplorer.utils.log_util import LogUtil

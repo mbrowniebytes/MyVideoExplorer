@@ -1,5 +1,7 @@
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
+
 from MyVideoExplorer.folder_filter.folder_filter import FolderFilters
 from MyVideoExplorer.folder_filter.folder_filter_filter import FolderFilterFilter
 from MyVideoExplorer.utils.file_util import FileUtil

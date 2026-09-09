@@ -12,8 +12,8 @@ from PySide6.QtWidgets import (
 
 from MyVideoExplorer.app.app_signals_model import SignalPayload
 from MyVideoExplorer.file_list.file_list_view import FileListView
-from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
+from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.log_util import LogUtil
 

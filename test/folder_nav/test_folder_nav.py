@@ -1,10 +1,12 @@
-import pytest
 from unittest.mock import MagicMock, patch
-from MyVideoExplorer.app.app_signals_model import SignalPayload, SignalFlow
-from MyVideoExplorer.folder_nav.folder_nav import FolderNav
+
+import pytest
+
+from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.folder_filter.folder_filter import FolderFilters
-from MyVideoExplorer.settings.settings import Settings
 from MyVideoExplorer.folder_filter.folder_filter_filter import FolderFilterFilter
+from MyVideoExplorer.folder_nav.folder_nav import FolderNav
+from MyVideoExplorer.settings.settings import Settings
 from MyVideoExplorer.utils.file_util import FileUtil
 
 

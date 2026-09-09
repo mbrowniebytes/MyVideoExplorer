@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import duckdb
+from collections.abc import Callable
 from pathlib import Path
 
-from collections.abc import Callable
-
+import duckdb
 from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtWidgets import (
     QComboBox,
@@ -24,8 +23,8 @@ from MyVideoExplorer.folder_filter.folder_filter_genre_combo_widget import (
 from MyVideoExplorer.folder_filter.folder_filter_media import FolderFilterMedia
 from MyVideoExplorer.folder_filter.folder_filter_table import FolderFilterTable
 from MyVideoExplorer.settings.settings import Settings
-from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
+from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.ui_utils import UIUtils

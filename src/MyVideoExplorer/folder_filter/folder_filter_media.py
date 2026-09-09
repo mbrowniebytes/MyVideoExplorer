@@ -5,8 +5,8 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QHBoxLayout, QPushButton, QWidget
 
 from MyVideoExplorer.settings.settings import Settings
-from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
+from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.ui_utils import UIUtils
 

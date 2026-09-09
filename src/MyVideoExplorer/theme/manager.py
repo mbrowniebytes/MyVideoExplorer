@@ -22,13 +22,13 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from MyVideoExplorer.theme.models import ThemeConfig
 from MyVideoExplorer.theme.style.style_app import StyleApp
 from MyVideoExplorer.theme.style.style_button import StyleButton
 from MyVideoExplorer.theme.style.style_checkbox import StyleCheckbox
 from MyVideoExplorer.theme.style.style_combo import StyleCombo
 from MyVideoExplorer.theme.style.style_list import StyleList
 from MyVideoExplorer.theme.style.style_tab import StyleTab
-from MyVideoExplorer.theme.models import ThemeConfig
 
 
 class ThemeManager:

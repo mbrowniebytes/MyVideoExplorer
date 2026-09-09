@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+from MyVideoExplorer.theme.manager import ThemeManager
 from MyVideoExplorer.theme.models import ThemeConfig
 from MyVideoExplorer.theme.style.style_app import StyleApp
 from MyVideoExplorer.theme.style.style_button import StyleButton
@@ -8,7 +10,6 @@ from MyVideoExplorer.theme.style.style_list import StyleList
 from MyVideoExplorer.theme.style.style_progress_bar import StyleProgressBar
 from MyVideoExplorer.theme.style.style_tab import StyleTab
 from MyVideoExplorer.theme.style.style_table import StyleTable
-from MyVideoExplorer.theme.manager import ThemeManager
 
 
 class Theme(ThemeManager):

@@ -1,5 +1,6 @@
 import asyncio
 from typing import Any
+
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QMainWindow
 

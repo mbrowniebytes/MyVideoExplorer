@@ -1,25 +1,25 @@
-from pathlib import Path
 from collections.abc import Callable
+from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QLabel,
     QSizePolicy,
+    QStackedWidget,
     QVBoxLayout,
     QWidget,
-    QStackedWidget,
 )
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
-from MyVideoExplorer.folder_list.folder_list_view import FolderListView
 from MyVideoExplorer.folder_list.folder_list_header import FolderListHeader
+from MyVideoExplorer.folder_list.folder_list_view import FolderListView
 from MyVideoExplorer.folder_list.folder_navigation_controller import (
     FolderNavigationController,
 )
 from MyVideoExplorer.settings.settings import Settings
-from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
+from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.log_util import LogUtil

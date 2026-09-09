@@ -1,5 +1,5 @@
 from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QVBoxLayout, QWidget, QPushButton
+from PySide6.QtWidgets import QPushButton, QVBoxLayout, QWidget
 
 from MyVideoExplorer.theme.theme import APP_THEME
 

@@ -7,6 +7,7 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QComboBox,
     QFormLayout,
+    QFrame,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -17,19 +18,18 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QVBoxLayout,
     QWidget,
-    QFrame,
 )
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
+from MyVideoExplorer.settings.settings_media_folder_browser_section import (
+    SettingsMediaFolderBrowserSection,
+)
 from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
-from MyVideoExplorer.settings.settings_media_folder_browser_section import (
-    SettingsMediaFolderBrowserSection,
-)
 
 
 class SettingsMediaTab(SettingsBaseTab):

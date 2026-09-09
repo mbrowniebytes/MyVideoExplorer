@@ -1,5 +1,7 @@
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
+
 from MyVideoExplorer.app.app_signals_model import SignalPayload
 from MyVideoExplorer.settings.settings_media_tab import SettingsMediaTab
 

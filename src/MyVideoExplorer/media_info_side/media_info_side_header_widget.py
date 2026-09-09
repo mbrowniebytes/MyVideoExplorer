@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
-from MyVideoExplorer.app.app_signals_model import SignalPayload, SignalFlow
 from PySide6.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget
 
+from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil

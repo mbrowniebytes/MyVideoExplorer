@@ -1,6 +1,8 @@
-import pytest
 from unittest.mock import MagicMock, patch
-from PySide6.QtWidgets import QWidget, QTabWidget
+
+import pytest
+from PySide6.QtWidgets import QTabWidget, QWidget
+
 from MyVideoExplorer.settings.settings import Settings
 
 

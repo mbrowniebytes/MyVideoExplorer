@@ -1,4 +1,5 @@
-from PySide6.QtWidgets import QApplication, QTabWidget, QComboBox, QMainWindow
+from PySide6.QtWidgets import QApplication, QComboBox, QMainWindow, QTabWidget
+
 from MyVideoExplorer.app.app import App
 from MyVideoExplorer.app.app_container import AppContainer
 from MyVideoExplorer.theme.theme import APP_THEME

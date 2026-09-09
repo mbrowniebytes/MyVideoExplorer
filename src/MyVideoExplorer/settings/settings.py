@@ -10,12 +10,12 @@ from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
 from MyVideoExplorer.settings.settings_filter_tab import SettingsFilterTab
 from MyVideoExplorer.settings.settings_media_tab import SettingsMediaTab
 from MyVideoExplorer.settings.settings_state import SettingsState
-from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.settings.settings_ui_tab import SettingsUITab
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
+from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.widgets.right_aligned_tab_bar import RightAlignedTabBar
-from MyVideoExplorer.settings.settings_ui_tab import SettingsUITab
 
 
 class Settings(QWidget, ThemableMixin):

@@ -10,15 +10,14 @@ from PySide6.QtWidgets import QWidget
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.file_list.file_list import FileList
 from MyVideoExplorer.image_list.image_list_view import ImageListView
+from MyVideoExplorer.lang.lang_loader import LangLoader
 from MyVideoExplorer.settings.settings import Settings
-from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
+from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.utils.str_util import StrUtil
-from MyVideoExplorer.lang.lang_loader import LangLoader
-
 
 _EMPTY_STATE_NO_MEDIA_FOLDERS = (
     "No media folders configured.\nOpen Settings (Gear) → Media and add a media folder."

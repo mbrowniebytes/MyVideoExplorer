@@ -6,8 +6,8 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget
 from MyVideoExplorer.media_info.media_info_id_link_formatter import (
     MediaInfoIdLinkFormatter,
 )
-from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
+from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.str_util import StrUtil
 from MyVideoExplorer.utils.ui_utils import UIUtils

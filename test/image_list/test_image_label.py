@@ -1,6 +1,7 @@
 import pytest
-from PySide6.QtCore import Qt, QPoint
+from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QWheelEvent
+
 from MyVideoExplorer.image_list.image_label import ImageLabel
 from MyVideoExplorer.utils.log_util import LogUtil
 

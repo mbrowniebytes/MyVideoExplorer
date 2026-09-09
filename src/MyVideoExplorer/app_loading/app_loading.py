@@ -1,22 +1,24 @@
 from __future__ import annotations
+
 import random
 from pathlib import Path
-
 from typing import cast
-from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve
-from PySide6.QtGui import QPixmap, QIcon, QResizeEvent
+
+from PySide6.QtCore import QEasingCurve, QPropertyAnimation, Qt, QTimer
+from PySide6.QtGui import QIcon, QPixmap, QResizeEvent
 from PySide6.QtWidgets import (
+    QApplication,
+    QGraphicsEffect,
+    QGraphicsOpacityEffect,
     QLabel,
+    QMainWindow,
     QVBoxLayout,
     QWidget,
-    QMainWindow,
-    QApplication,
-    QGraphicsOpacityEffect,
-    QGraphicsEffect,
 )
+
+from MyVideoExplorer.lang.lang_loader import LangLoader
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil
-from MyVideoExplorer.lang.lang_loader import LangLoader
 
 
 class AppLoadingWidget(QWidget):

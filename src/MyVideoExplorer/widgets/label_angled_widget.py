@@ -1,6 +1,6 @@
 import math
 
-from PySide6 import QtWidgets, QtGui, QtCore
+from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCore import Qt
 
 from MyVideoExplorer.theme.theme import APP_THEME

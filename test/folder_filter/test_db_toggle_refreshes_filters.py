@@ -1,9 +1,10 @@
 from unittest.mock import MagicMock
+
 from MyVideoExplorer.folder_filter.folder_filter import FolderFilters
 from MyVideoExplorer.folder_filter.folder_filter_filter import FolderFilterFilter
+from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
-from MyVideoExplorer.settings.settings_state import SettingsState
 
 
 def test_db_toggle_refreshes_filters(qtbot):

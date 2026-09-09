@@ -5,6 +5,7 @@ This separates lifecycle operations from the widget implementation.
 """
 
 from __future__ import annotations
+
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget
 
 from MyVideoExplorer.app_loading.app_loading import AppLoadingWidget

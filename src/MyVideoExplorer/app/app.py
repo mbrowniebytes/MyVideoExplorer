@@ -4,8 +4,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from MyVideoExplorer.app.app_container import AppContainer
 from MyVideoExplorer.app.app_builder import AppBuilder
+from MyVideoExplorer.app.app_container import AppContainer
 from MyVideoExplorer.app.app_state_handler import AppStateHandler
 
 

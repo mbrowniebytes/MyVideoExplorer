@@ -1,6 +1,8 @@
-import pytest
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.video_player.video_player import VideoPlayer
 

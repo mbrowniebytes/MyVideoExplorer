@@ -1,6 +1,6 @@
+import datetime
 import os
 import re
-import datetime
 import shutil
 from pathlib import Path
 from time import sleep
@@ -192,9 +192,13 @@ class ScanWorker(QThread):
     def _get_db_path(self):
         label = str(self.media_config.get("label", "")).strip()
         if label == "":
-            return ""
-        safe_label = re.sub(r"[^a-zA-Z0-9_\-]", "_", label)
-        if safe_label.strip("._-") == "":
-            return ""
+            label = "media"
+
+        safe_label = re.sub(r"[^a-zA-Z0-9_.\-\s]", "_", label)
+        safe_label = re.sub(r"\s+", " ", safe_label).strip()
+        safe_label = safe_label.strip(" ._-")
+        if safe_label in {"", ".", ".."}:
+            safe_label = "media"
+
         # Return path using POSIX separator so DB filenames use '/' even on Windows
         return f"db/{safe_label}.db"

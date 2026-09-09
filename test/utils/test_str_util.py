@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock
 
 import pytest
+
 from MyVideoExplorer.utils.str_util import StrUtil
 
 

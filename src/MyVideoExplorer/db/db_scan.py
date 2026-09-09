@@ -3,7 +3,7 @@ from typing import Any
 
 import duckdb
 
-from MyVideoExplorer.db import db_query, db_migrations
+from MyVideoExplorer.db import db_migrations, db_query
 from MyVideoExplorer.lang.lang_loader import LangLoader
 
 logger = logging.getLogger(__name__)
@@ -113,7 +113,7 @@ class DbScanUtil:
                 else:
                     try:
                         year = int(year)
-                    except ValueError, TypeError:
+                    except (ValueError, TypeError):
                         year = None
 
                 runtime = metadata.get("runtime")
@@ -122,7 +122,7 @@ class DbScanUtil:
                 else:
                     try:
                         runtime = int(runtime) * 60
-                    except ValueError, TypeError:
+                    except (ValueError, TypeError):
                         runtime = 0
 
                 data.append(
