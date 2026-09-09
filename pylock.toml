@@ -75,6 +75,17 @@ url = "https://files.pythonhosted.org/packages/dc/09/d2662684aee4d3f027ff9b1e965
 sha256 = "c8a29def77032773a30879f7f24415b5395ad08592d147c170824ef4c735dfc1"
 
 [[packages]]
+name = "pytz"
+version = "2026.3.post1"
+
+[[packages.wheels]]
+name = "pytz-2026.3.post1-py2.py3-none-any.whl"
+url = "https://files.pythonhosted.org/packages/0f/7b/39c34ca613b0b198cb866466651b26b045e2009864c5183c979a3b83f383/pytz-2026.3.post1-py2.py3-none-any.whl"
+
+[packages.wheels.hashes]
+sha256 = "dd95840dd199baea12d9cc096a1d452caa6596a1c1e4b5f3dbd1541855d5e815"
+
+[[packages]]
 name = "qtawesome"
 version = "1.4.2"
 

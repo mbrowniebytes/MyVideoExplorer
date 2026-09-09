@@ -37,7 +37,7 @@ def test_run_migrations_on_upgrade(tmp_path):
     db_path = tmp_path / "upgrade.db"
     con = duckdb.connect(str(db_path))
     con.execute(
-        "CREATE TABLE schema_migrations (version TEXT PRIMARY KEY, applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
+        "CREATE TABLE schema_migrations (version TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP)"
     )
     con.execute(
         "INSERT INTO schema_migrations (version) VALUES (?)",

@@ -492,7 +492,7 @@ class NfoParseUtil:
                 return default
             stripped = value.strip()
             return int(stripped)
-        except TypeError, ValueError:
+        except (TypeError, ValueError):
             return default
 
     def _to_float(self, value: str | None, default: float = 0.0) -> float:
@@ -502,5 +502,5 @@ class NfoParseUtil:
                 return default
             stripped = value.strip()
             return float(stripped)
-        except TypeError, ValueError:
+        except (TypeError, ValueError):
             return default

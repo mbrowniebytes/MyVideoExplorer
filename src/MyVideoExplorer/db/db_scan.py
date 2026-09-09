@@ -1,4 +1,6 @@
+import json
 import logging
+import re
 from typing import Any
 
 import duckdb
@@ -14,6 +16,50 @@ class DbScanUtil:
         self.db_path = db_path
         self.lang = LangLoader.get_lang("en")
         self._init_db()
+
+    @staticmethod
+    def _normalize_array_value(value: Any) -> list[str] | None:
+        if value is None:
+            return None
+
+        if isinstance(value, (list, tuple, set)):
+            items: list[str] = []
+            for item in value:
+                if isinstance(item, dict):
+                    extracted = (
+                        item.get("name")
+                        or item.get("title")
+                        or item.get("value")
+                        or item.get("role")
+                    )
+                    if extracted is not None:
+                        text = str(extracted).strip()
+                        if text:
+                            items.append(text)
+                else:
+                    text = str(item).strip()
+                    if text:
+                        items.append(text)
+            return items or None
+
+        if not isinstance(value, str):
+            value = str(value)
+
+        text = value.strip()
+        if not text:
+            return None
+
+        if text.startswith("[") and text.endswith("]"):
+            try:
+                parsed = json.loads(text)
+                if isinstance(parsed, list):
+                    return DbScanUtil._normalize_array_value(parsed)
+            except json.JSONDecodeError:
+                pass
+
+        parts = re.split(r"[,;|\n]+", text)
+        cleaned = [part.strip() for part in parts if part and part.strip()]
+        return cleaned or None
 
     def _init_db(self):
         db_migrations.DbMigrations(self.db_path).run_migrations()
@@ -136,10 +182,10 @@ class DbScanUtil:
                         metadata.get("score"),
                         metadata.get("rated"),
                         runtime,
-                        metadata.get("tags"),
-                        metadata.get("genres"),
-                        metadata.get("actors"),
-                        metadata.get("directors"),
+                        self._normalize_array_value(metadata.get("tags")),
+                        self._normalize_array_value(metadata.get("genres")),
+                        self._normalize_array_value(metadata.get("actors")),
+                        self._normalize_array_value(metadata.get("directors")),
                     )
                 )
 
