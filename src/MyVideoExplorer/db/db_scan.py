@@ -159,7 +159,7 @@ class DbScanUtil:
                 else:
                     try:
                         year = int(year)
-                    except (ValueError, TypeError):
+                    except ValueError, TypeError:
                         year = None
 
                 runtime = metadata.get("runtime")
@@ -168,7 +168,7 @@ class DbScanUtil:
                 else:
                     try:
                         runtime = int(runtime) * 60
-                    except (ValueError, TypeError):
+                    except ValueError, TypeError:
                         runtime = 0
 
                 data.append(

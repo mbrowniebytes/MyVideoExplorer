@@ -13,7 +13,7 @@ class DbMigrations:
             raise ValueError("Database path is empty. A valid media name is required.")
 
         db_dir = Path(self.db_path).parent
-        if db_dir != Path(""):
+        if db_dir != Path():
             db_dir.mkdir(parents=True, exist_ok=True)
 
         con = duckdb.connect(self.db_path)
@@ -40,7 +40,9 @@ class DbMigrations:
 
             # Get available migrations
             migration_files = sorted(
-                path.name for path in self.migrations_dir.iterdir() if path.suffix == ".sql"
+                path.name
+                for path in self.migrations_dir.iterdir()
+                if path.suffix == ".sql"
             )
 
             for migration_file in migration_files:
