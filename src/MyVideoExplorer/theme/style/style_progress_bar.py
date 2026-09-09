@@ -16,8 +16,7 @@ class StyleProgressBar:
                     border-radius: 3px;
                 }}
             """
-        else:
-            return """
+        return """
                 QProgressBar {
                     border: none;
                     background: transparent;

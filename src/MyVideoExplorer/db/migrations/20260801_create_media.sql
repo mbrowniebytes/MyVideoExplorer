@@ -1,7 +1,7 @@
 CREATE SEQUENCE IF NOT EXISTS media_id_seq;
 CREATE TABLE IF NOT EXISTS schema_migrations (
     version TEXT PRIMARY KEY,
-    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    applied_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS media_file (
@@ -19,8 +19,8 @@ CREATE TABLE IF NOT EXISTS media_file (
     genres VARCHAR[],
     actors VARCHAR[],
     directors VARCHAR[],
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    modified_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_file_path ON media_file(file_path);
 
@@ -32,5 +32,5 @@ CREATE TABLE IF NOT EXISTS media_path_stats (
     videos_count INTEGER,
     nfo_count INTEGER,
     other_count INTEGER,
-    last_scanned TIMESTAMP
+    last_scanned TIMESTAMPTZ
 );

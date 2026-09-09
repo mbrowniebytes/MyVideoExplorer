@@ -219,13 +219,15 @@ class SettingsMediaTab(SettingsBaseTab):
                 db_path = self.state.get_db_path(media_config)
                 if Path(db_path).exists():
                     mtime = Path(db_path).stat().st_mtime
-                    date = datetime.datetime.fromtimestamp(
-                        mtime, tz=datetime.UTC
-                    ).strftime("%Y-%m-%d")
+                    date = (
+                        datetime.datetime.fromtimestamp(mtime, tz=datetime.UTC)
+                        .astimezone()
+                        .strftime("%Y-%m-%d")
+                    )
                     if latest_date is None or date > latest_date:
                         latest_date = date
 
-            latest_date_str = latest_date if latest_date else "Unknown"
+            latest_date_str = latest_date or "Unknown"
             self.db_enabled_dropdown.setToolTip(
                 f"Database filtering enabled (Latest update: {latest_date_str})."
             )

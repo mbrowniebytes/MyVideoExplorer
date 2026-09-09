@@ -16,7 +16,7 @@ class DbQuery:
                 genres = EXCLUDED.genres,
                 actors = EXCLUDED.actors,
                 directors = EXCLUDED.directors,
-                modified_at = now()
+                modified_at = CURRENT_TIMESTAMP
         """
 
         SELECT_ALL_PATHS = "SELECT file_path FROM media_file"

@@ -95,6 +95,7 @@ code type checker
 #### ci
 Local:  
 `git bash> ci.sh`  
+`powrshell> powershell ci.ps1`  
 
 GitHub:  
 `.github/workflows/ci.yaml`

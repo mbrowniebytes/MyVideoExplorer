@@ -142,7 +142,7 @@ class TestJsonUtil:
         backups = list(backup_dir.glob("settings_ui_*.json"))
         assert len(backups) == 2
 
-        today_str = datetime.now(UTC).strftime("%Y-%m-%d")
+        today_str = datetime.now(UTC).astimezone().strftime("%Y-%m-%d")
         today_backup = backup_dir / f"settings_ui_{today_str}.json"
         assert today_backup.exists()
         assert today_backup.read_text() == content

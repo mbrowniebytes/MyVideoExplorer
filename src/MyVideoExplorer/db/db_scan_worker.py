@@ -62,7 +62,9 @@ class ScanWorker(QThread):
         backup_dir.mkdir(parents=True, exist_ok=True)
 
         # backup path: db/backups/[media]_[YYYY-MM-DD].db
-        today_str = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d")
+        today_str = (
+            datetime.datetime.now(datetime.UTC).astimezone().strftime("%Y-%m-%d")
+        )
         backup_name = f"{db_path_obj.stem}_{today_str}{db_path_obj.suffix}"
         backup_path = backup_dir / backup_name
 

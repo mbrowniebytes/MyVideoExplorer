@@ -70,9 +70,6 @@ class LogUtil:
         self._logger_initialized = False
         self._file_handler: RotatingFileHandler | None = None
 
-        # date_str = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d")
-        # self.LOG_FILE = LOG_DIR / f"app-{date_str}.log"
-
     def get_log_level_value(self, level_str: str) -> int:
         """Convert a string log level name to its corresponding logging constant."""
         return self.LEVEL_MAP.get(level_str.lower(), logging.INFO)
@@ -81,8 +78,7 @@ class LogUtil:
         """Convert a string log level name to its corresponding logging constant."""
         if self.LEVEL_MAP.get(level_str.lower()) is None:
             return "info"
-        else:
-            return level_str.lower()
+        return level_str.lower()
 
     @property
     def logger_initialized(self) -> bool:
@@ -381,8 +377,8 @@ class LogUtil:
             self._file_handler.close()
         self.remove_file_handler()
 
-        # date_str = datetime.datetime.now(datetime.UTC).strftime("%Y%m%d-%H%M%S")
-        date_str = datetime.datetime.now(datetime.UTC).strftime("%Y%m%d")
+        # date_str = datetime.datetime.now(datetime.UTC).astimezone().strftime("%Y%m%d-%H%M%S")
+        date_str = datetime.datetime.now(datetime.UTC).astimezone().strftime("%Y%m%d")
         backup_log = LOG_DIR / f"app-{date_str}.log"
         # shutil.move(self.LOG_FILE, LOG_DIR / f"app-{date_str}.log")
         self.concat_files([self.LOG_FILE.as_posix()], backup_log.as_posix())

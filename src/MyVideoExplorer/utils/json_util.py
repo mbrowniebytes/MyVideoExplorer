@@ -93,7 +93,9 @@ class JsonUtil:
             except OSError:
                 pass
 
-        today_str = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d")
+        today_str = (
+            datetime.datetime.now(datetime.UTC).astimezone().strftime("%Y-%m-%d")
+        )
         backup_name = backup_dir / f"{file_path.stem}_{today_str}{file_path.suffix}"
 
         # Only create one backup per day
