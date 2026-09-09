@@ -1,9 +1,11 @@
-import os
-from MyVideoExplorer.db.db_scan import DbScanUtil
+from pathlib import Path
+
 import duckdb
 
+from MyVideoExplorer.db.db_scan import DbScanUtil
+
 # Re-init db
-os.makedirs("tmp/db", exist_ok=True)
+Path("tmp/db").mkdir(parents=True, exist_ok=True)
 db_util = DbScanUtil('tmp/db/test_upsert.db')
 
 # Initial data

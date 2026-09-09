@@ -23,7 +23,7 @@ class FolderFilterTable(QTableWidget):
         "OS",
         "Folder",
         "File",
-        # TODO re-enable once have a db
+        # TODO: re-enable once have a db
         # "NFO",
         # "Genre",
         # "Actor",

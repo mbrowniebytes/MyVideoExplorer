@@ -132,8 +132,7 @@ class ImageList(QWidget, ThemableMixin):
             return
 
         current_index = self.selected_image_index
-        if current_index < 0:
-            current_index = 0
+        current_index = max(current_index, 0)
 
         nbr_images = len(self.images)
         new_index = 0 if current_index + step >= nbr_images else current_index + step
@@ -235,11 +234,10 @@ class ImageList(QWidget, ThemableMixin):
         """Return True if settings contains at least one existing media folder path."""
         if not self.settings:
             return False
-        import os
 
         for config in self.settings.settings_data_model.media_configs:
             p = config.get("path", "")
-            if p and os.path.isdir(p):
+            if p and pathlib.Path(p).is_dir():
                 return True
         return False
 

@@ -83,7 +83,7 @@ class TestScanWorker:
 
         # Assert backup created
         import datetime
-        today_str = datetime.datetime.now().strftime("%Y-%m-%d")
+        today_str = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d")
         backup_file = db_dir / "backups" / f"Test_{today_str}.db"
         assert backup_file.exists()
         assert backup_file.read_text() == "dummy db content"

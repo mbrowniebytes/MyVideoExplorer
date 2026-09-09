@@ -1,4 +1,3 @@
-import os
 import re
 from pathlib import Path
 from typing import Any
@@ -353,7 +352,7 @@ class SettingsState(QObject):
 
             if not path:
                 errors.append(f"Media config '{label or f'#{idx}'}' is missing a folder path.")
-            elif not os.path.isdir(path):
+            elif not Path(path).is_dir():
                 errors.append(f"Media config '{label or f'#{idx}'}' path does not exist: {path}")
 
             if safe_label:
@@ -370,25 +369,25 @@ class SettingsState(QObject):
         if not previous_label or previous_label == current_label:
             return
 
-        old_db = self.get_db_path({"label": previous_label}, previous_label)
-        new_db = self.get_db_path({"label": current_label}, current_label)
+        old_db = Path(self.get_db_path({"label": previous_label}, previous_label))
+        new_db = Path(self.get_db_path({"label": current_label}, current_label))
 
-        if os.path.abspath(old_db) == os.path.abspath(new_db):
+        if old_db.resolve() == new_db.resolve():
             media_config["_previous_label"] = current_label
             return
 
-        if os.path.exists(new_db) and not os.path.exists(old_db):
+        if new_db.exists() and not old_db.exists():
             raise ValueError(
-                f"The database file '{os.path.basename(new_db)}' already exists. "
+                f"The database file '{new_db.name}' already exists. "
                 "Please choose a unique media name."
             )
 
-        if os.path.exists(old_db):
+        if old_db.exists():
             try:
-                os.replace(old_db, new_db)
+                old_db.replace(new_db)
             except OSError as exc:
                 raise OSError(
-                    f"Unable to rename database file from '{os.path.basename(old_db)}' to '{os.path.basename(new_db)}'. "
+                    f"Unable to rename database file from '{old_db.name}' to '{new_db.name}'. "
                     f"Original media name kept. Details: {exc}"
                 ) from exc
 
@@ -408,7 +407,7 @@ class SettingsState(QObject):
         # Check if at least one DB exists
         for media_config in self.media_configs:
             db_path = self.get_db_path(media_config)
-            if os.path.exists(db_path):
+            if Path(db_path).exists():
                 return True
         return False
 

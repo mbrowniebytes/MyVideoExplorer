@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 from PySide6.QtCore import QObject, Signal
 
-if TYPE_CHECKING:
-    from MyVideoExplorer.utils.file_util import FileUtil
+from MyVideoExplorer.utils.file_util import FileUtil
 
 
 class FileUtilWorker(QObject):

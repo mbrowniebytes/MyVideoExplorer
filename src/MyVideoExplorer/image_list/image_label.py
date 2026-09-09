@@ -115,5 +115,5 @@ class ImageLabel(QLabel):
                 painter.setOpacity(0.5)
         except Exception as e:
             if self.log_util:
-                self.log_util.error(f"Error in paintEvent: {str(e)}")
+                self.log_util.error(f"Error in paintEvent: {e!s}")
             raise

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import os
 import duckdb
+from pathlib import Path
+
 from collections.abc import Callable
 
 from PySide6.QtCore import QSize, Qt, Signal
@@ -52,7 +53,7 @@ class FolderFilters(QWidget, ThemableMixin):
         self._ui_utils = UIUtils()
         self.settings = settings
         # Create child widgets with explicit parent to avoid becoming top-level windows
-        # TODO these are rebuilt using _make_tool_button, declare instead of init
+        # TODO: these are rebuilt using _make_tool_button, declare instead of init
         self.apply_button = QToolButton(self)
         self.add_filter_button = QToolButton(self)
         self.filter_type_combo = QComboBox(self)
@@ -342,7 +343,7 @@ class FolderFilters(QWidget, ThemableMixin):
                         db_path = self.settings.settings_data_model.get_db_path(config)
                         break
 
-                if db_path and os.path.exists(db_path):
+                if db_path and Path(db_path).exists():
                     con = duckdb.connect(db_path)
                     res = con.execute(db_query.DbQuery.MediaFile.SELECT_ALL_PATHS).fetchall()
                     con.close()
@@ -350,7 +351,7 @@ class FolderFilters(QWidget, ThemableMixin):
                     # 1. Add files and their parent directories
                     paths = [r[0] for r in res]
                     # Sort by parent folder then filename to mimic filesystem scan order
-                    paths.sort(key=lambda p: (os.path.dirname(p).lower(), os.path.basename(p).lower()))
+                    paths.sort(key=lambda p: (str(Path(p).parent).lower(), Path(p).name.lower()))
                     h = self.file_util.build_hierarchy_from_paths(paths, folder_path)
                     items.extend(h)
 

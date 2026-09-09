@@ -1,4 +1,4 @@
-from typing import Any, cast
+from typing import Any, cast, ClassVar
 
 from PySide6.QtCore import QObject, Signal
 
@@ -14,7 +14,7 @@ class SignalRegistry(QObject):
     components together.
     """
 
-    METADATA = {
+    METADATA: ClassVar[dict[str, Any]] = {
         "root_folder_changed": {
             "name": "Root Folder Changed",
             "description": "Emitted when the root folder is changed.",

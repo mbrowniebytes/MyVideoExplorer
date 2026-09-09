@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pathlib
-from typing import TYPE_CHECKING, cast
+from typing import cast
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
@@ -16,8 +16,7 @@ from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.image_list.image_title_widget import ImageTitleWidget
 from MyVideoExplorer.utils.log_util import LogUtil
 
-if TYPE_CHECKING:
-    from MyVideoExplorer.file_list.file_list import FileList
+from MyVideoExplorer.file_list.file_list import FileList
 
 from MyVideoExplorer.image_list.image_preview_widget import ImagePreviewWidget
 from MyVideoExplorer.media_info_side.media_info_side_view import MediaInfoSideView

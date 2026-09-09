@@ -120,7 +120,7 @@ class SettingsAppTab(SettingsBaseTab):
 
         # Logging level combo box - populated from LogUtil.LEVEL_MAP
         self.logging_level_combo = QComboBox(self)
-        for label, value in LogUtil.LEVEL_MAP.items():
+        for label in LogUtil.LEVEL_MAP:
             # Use capitalized display label matching the original format
             display_label = label.capitalize()
             self.logging_level_combo.addItem(display_label, label)

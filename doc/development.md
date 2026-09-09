@@ -43,7 +43,11 @@ using [venv](https://pythonguides.com/virtual-environments-python/)
 
 using [pip](https://pip.pypa.io/en/stable/getting-started/)
 > pip install -e .  
-> pip install -e .[dev]
+> pip install --group dev
+
+if do src/ refactors
+delete `build/` or  
+> pip install -e . --force-reinstall
 
 ### run app
 
@@ -80,10 +84,20 @@ code quality, formatting
 
 > ruff check --fix
 
+> ruff format --check
+
 #### ty https://docs.ty.com/
 code type checker
 
 > ty check
+
+
+#### ci
+Local:  
+`git bash> ci.sh`  
+
+GitHub:  
+`.github/workflows/ci.yaml`
 
 #### Code
 

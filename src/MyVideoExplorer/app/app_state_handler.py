@@ -1,4 +1,5 @@
-import os
+from pathlib import Path
+
 from PySide6.QtWidgets import QMainWindow
 
 from MyVideoExplorer.app.app_container import AppContainer
@@ -31,7 +32,8 @@ class AppStateHandler:
                 real_path = cls._normalize_root_path(path_string)
             except Exception:
                 continue
-            if os.path.isdir(real_path) and real_path not in seen:
+            path_obj = Path(real_path)
+            if path_obj.is_dir() and real_path not in seen:
                 seen.add(real_path)
                 valid_paths.append(real_path)
 

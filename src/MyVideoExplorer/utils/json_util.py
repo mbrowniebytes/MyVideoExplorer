@@ -1,7 +1,7 @@
 import json
 import os
 import shutil
-from datetime import datetime
+import datetime
 from pathlib import Path
 from typing import Any
 
@@ -31,7 +31,7 @@ class JsonUtil:
     def load_json(self, file_path: Path) -> dict[str, Any]:
         """Load JSON data from a file. Returns empty dict on error or missing file."""
         try:
-            with open(file_path, encoding=self.DEFAULT_ENCODING) as f:
+            with file_path.open(encoding=self.DEFAULT_ENCODING) as f:
                 data: Any = json.load(f)
                 return data
         except (OSError, json.JSONDecodeError) as e:
@@ -43,11 +43,11 @@ class JsonUtil:
         try:
             file_path.parent.mkdir(parents=True, exist_ok=True)
             temp_path = file_path.parent / f".{file_path.name}.{os.getpid()}.tmp"
-            with open(temp_path, "w", encoding=self.DEFAULT_ENCODING) as f:
+            with temp_path.open("w", encoding=self.DEFAULT_ENCODING) as f:
                 json.dump(data, f, indent=self.DEFAULT_INDENT)
                 f.flush()
                 os.fsync(f.fileno())
-            os.replace(temp_path, file_path)
+            temp_path.replace(file_path)
         except OSError as e:
             self.log_util.error(f"Failed to save {file_path}: {e}")
         finally:
@@ -75,7 +75,9 @@ class JsonUtil:
             return
 
         # Only backup if the content has changed since the latest backup.
-        backups = sorted(backup_dir.glob(backup_pattern), reverse=True, key=os.path.getmtime)
+        backups = sorted(
+            backup_dir.glob(backup_pattern), reverse=True, key=lambda p: p.stat().st_mtime
+        )
         if backups:
             latest_backup = backups[0]
             try:
@@ -84,7 +86,7 @@ class JsonUtil:
             except OSError:
                 pass
 
-        today_str = datetime.now().strftime("%Y-%m-%d")
+        today_str = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d")
         backup_name = backup_dir / f"{file_path.stem}_{today_str}{file_path.suffix}"
 
         # Only create one backup per day
@@ -96,10 +98,12 @@ class JsonUtil:
                 return
 
         # Keep only the max_backups most recent backups
-        backups = sorted(backup_dir.glob(backup_pattern), reverse=True, key=os.path.getmtime)
+        backups = sorted(
+            backup_dir.glob(backup_pattern), reverse=True, key=lambda p: p.stat().st_mtime
+        )
 
         for old_backup in backups[max_backups:]:
             try:
                 old_backup.unlink()
             except OSError as e:
-                self.log_util.warn(f"Failed to delete old backup {old_backup}: {e}")
+                self.log_util.warning(f"Failed to delete old backup {old_backup}: {e}")

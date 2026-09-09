@@ -48,7 +48,7 @@ class VideoPlayer:
         )
 
         if not target_video_path:
-            self.log_util.warn("No video file found to play.")
+            self.log_util.warning("No video file found to play.")
             return False
 
         self.log_util.info(f"Launching video playback for: {target_video_path}")

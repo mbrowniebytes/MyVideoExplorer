@@ -1,13 +1,15 @@
-import os
+from pathlib import Path
+
 import duckdb
+
 from MyVideoExplorer.db.db_scan import DbScanUtil
 
 def test_runtime_conversion_issue(tmp_path):
     db_path = str(tmp_path / "test.db")
     db_util = DbScanUtil(db_path)
-    folder_path = str(tmp_path / "test_folder").replace(os.path.sep, '/')
+    folder_path = str(tmp_path / "test_folder")
 
-    file1 = os.path.join(folder_path, "video1.mp4").replace(os.path.sep, '/')
+    file1 = str(Path(folder_path) / "video1.mp4")
 
     media_list = [
         {'path': file1, 'dir': folder_path, 'metadata': {'title': 'Movie 1', 'runtime': ''}}
@@ -26,9 +28,9 @@ def test_runtime_conversion_issue(tmp_path):
 def test_runtime_conversion_seconds(tmp_path):
     db_path = str(tmp_path / "test.db")
     db_util = DbScanUtil(db_path)
-    folder_path = str(tmp_path / "test_folder").replace(os.path.sep, '/')
+    folder_path = str(tmp_path / "test_folder")
 
-    file1 = os.path.join(folder_path, "video1.mp4").replace(os.path.sep, '/')
+    file1 = str(Path(folder_path) / "video1.mp4")
 
     media_list = [
         {'path': file1, 'dir': folder_path, 'metadata': {'title': 'Movie 1', 'runtime': '10'}}

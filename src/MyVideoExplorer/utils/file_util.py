@@ -38,11 +38,11 @@ class FileUtil:
         """Get absolute path to resource, works for dev and for PyInstaller."""
         try:
             # PyInstaller creates a temp folder and stores path in _MEIPASS
-            base_path = sys._MEIPASS  # type: ignore
+            base_path = Path(sys._MEIPASS)  # type: ignore
         except AttributeError:
-            base_path = os.path.abspath("")
+            base_path = Path.cwd()
 
-        return os.path.join(base_path, relative_path)
+        return (base_path / relative_path).as_posix()
 
     def _scan_directory(self, path: Path) -> list[os.DirEntry[str]]:
         """Safely scan a directory and return entries sorted by name."""
@@ -204,41 +204,39 @@ class FileUtil:
         dir_paths = set()
 
         # 1. Collect all parent directories
+        root = Path(root_path)
         for path in paths:
-            # Get parent directories up to root_path
-            curr = os.path.dirname(path)
-            while curr.startswith(root_path):
-                if curr not in dir_paths:
-                    dir_paths.add(curr)
-                if curr == root_path:
+            current = Path(path).parent
+            while current.as_posix().startswith(root.as_posix()):
+                if current.as_posix() not in dir_paths:
+                    dir_paths.add(current.as_posix())
+                if current == root:
                     break
-                parent = os.path.dirname(curr)
-                if parent == curr:
+                parent = current.parent
+                if parent == current:
                     break
-                curr = parent
+                current = parent
 
         # 2. Build items for dirs
         # Sort directories to ensure deterministic order similar to filesystem scans
         sorted_dirs = sorted(dir_paths, key=lambda p: p.lower())
         for p in sorted_dirs:
-            if p == root_path:
+            if p == root.as_posix():
                 continue
 
             # depth: number of levels below root_path
-            relative = os.path.relpath(p, root_path)
-            depth = relative.count(os.sep) + 1 if relative != "." else 0
+            relative = Path(p).relative_to(root)
+            depth = len(relative.parts) if relative != Path() else 0
 
             items.append(self.build_folder_item(p, depth=depth))
 
         # 3. Build items for files
         # Sort files by parent directory then filename for consistent ordering
-        sorted_paths = sorted(paths, key=lambda p: (os.path.dirname(p).lower(), os.path.basename(p).lower()))
+        sorted_paths = sorted(paths, key=lambda p: (Path(p).parent.as_posix().lower(), Path(p).name.lower()))
         for path in sorted_paths:
             # depth: number of levels below root_path + 1 for file
-            relative = os.path.relpath(path, root_path)
-            # if relative is "." then file is directly in root_path (depth 0, wait, depth 0 should be folder)
-            # if depth 0 is root, then files inside root should be depth 1
-            depth = relative.count(os.sep) + 1
+            relative = Path(path).relative_to(root)
+            depth = len(relative.parts)
             items.append(self.build_file_item(path, depth=depth))
 
         return items

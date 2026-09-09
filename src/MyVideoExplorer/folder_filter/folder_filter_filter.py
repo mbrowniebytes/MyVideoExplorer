@@ -1,17 +1,18 @@
 from __future__ import annotations
 
+from pathlib import Path
+from typing import Any
+
+import duckdb
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QWidget
 
-from typing import Any
+from MyVideoExplorer.db import db_query
+from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
-from MyVideoExplorer.settings.settings_state import SettingsState
-from MyVideoExplorer.db import db_query
-import os
-import duckdb
 
 
 class FolderFilterFilter:
@@ -154,7 +155,7 @@ class FolderFilterFilter:
             for config in self.settings_state.media_configs:
                 if item.full_path.startswith(config["path"]):
                     db_path = self.settings_state.get_db_path(config)
-                    if os.path.exists(db_path):
+                    if Path(db_path).exists():
                         # Query DB
                         con = duckdb.connect(db_path)
                         res = con.execute(db_query.DbQuery.MediaFile.SELECT_METADATA, (item.full_path,)).fetchone()
@@ -248,10 +249,7 @@ class FolderFilterFilter:
 
     @staticmethod
     def _contains_any(values: list[str], needle: str) -> bool:
-        for value in values:
-            if needle in value.casefold():
-                return True
-        return False
+        return any(needle in value.casefold() for value in values)
 
     @staticmethod
     def _contains_text(value: str, needle: str) -> bool:

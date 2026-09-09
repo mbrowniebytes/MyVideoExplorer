@@ -62,7 +62,7 @@ class ImagePreviewWidget(QWidget, ThemableMixin):
             self.apply_scaled_pixmap()
         except Exception as e:
             if self.log_util:
-                self.log_util.error(f"Error in load_pixmap: {str(e)}")
+                self.log_util.error(f"Error in load_pixmap: {e!s}")
             raise
 
     def _reset_preview(self) -> None:
@@ -106,7 +106,7 @@ class ImagePreviewWidget(QWidget, ThemableMixin):
             self.image_label.setPixmap(scaled)
         except Exception as e:
             if self.log_util:
-                self.log_util.error(f"Error in apply_scaled_pixmap: {str(e)}")
+                self.log_util.error(f"Error in apply_scaled_pixmap: {e!s}")
             raise
 
     def apply_theme(self) -> None:

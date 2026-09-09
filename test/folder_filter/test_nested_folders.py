@@ -1,11 +1,13 @@
-import pytest
+from pathlib import Path
 from unittest.mock import MagicMock, patch
+
+import pytest
+
 from MyVideoExplorer.folder_filter.folder_filter import FolderFilters
 from MyVideoExplorer.folder_filter.folder_filter_filter import FolderFilterFilter
 from MyVideoExplorer.utils.file_util import FileUtil
-from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
-import os
+from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 
 class TestNestedFolderStructure:
     @pytest.fixture
@@ -16,10 +18,9 @@ class TestNestedFolderStructure:
         ]
         settings.settings_data_model.db_enabled.return_value = True
 
-        os.makedirs("tmp/db", exist_ok=True)
-        db_path = "tmp/db/Test.db"
-        with open(db_path, "w") as f:
-            f.write("dummy")
+        db_path = Path("tmp/db/Test.db")
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        db_path.write_text("dummy", encoding="utf-8")
 
         settings.settings_data_model.get_db_path.return_value = db_path
 

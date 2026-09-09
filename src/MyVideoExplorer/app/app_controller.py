@@ -30,11 +30,7 @@ class AppController(QObject):
         """Normalize path input to a list of unique, non-empty folder paths."""
         if folder_paths is None:
             return []
-        iterable: Iterable[str]
-        if isinstance(folder_paths, str):
-            iterable = [folder_paths]
-        else:
-            iterable = folder_paths
+        iterable: Iterable[str] = [folder_paths] if isinstance(folder_paths, str) else folder_paths
 
         normalized: list[str] = []
         seen: set[str] = set()
@@ -88,7 +84,7 @@ class AppController(QObject):
             self._emit_signal("selected_folder_changed", folder_path)
             self.log_util.debug(f"selected_folder_changed emitted for: {folder_path}")
         except Exception as e:
-            self.log_util.error(f"Error setting current folder: {str(e)}")
+            self.log_util.error(f"Error setting current folder: {e!s}")
 
     def set_current_file(self, file_path: str) -> None:
         self.log_util.debug(f"Attempting to set file: {file_path}")
@@ -99,7 +95,7 @@ class AppController(QObject):
             self._emit_signal("file_changed", file_path)
             self.log_util.debug(f"file_changed emitted for: {file_path}")
         except Exception as e:
-            self.log_util.error(f"Error setting current file: {str(e)}")
+            self.log_util.error(f"Error setting current file: {e!s}")
 
     def set_current_image(self, image_path: str) -> None:
         if self.state.current_image == image_path:

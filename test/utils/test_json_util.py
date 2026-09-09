@@ -1,10 +1,11 @@
 import json
 import os
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
-from datetime import datetime, timedelta
+
 from MyVideoExplorer.utils.json_util import JsonUtil
 
 class TestJsonUtil:
@@ -27,7 +28,7 @@ class TestJsonUtil:
 
         assert cfg_dir.exists()
         assert defaults_file.exists()
-        with open(defaults_file) as f:
+        with defaults_file.open(encoding="utf-8") as f:
             data = json.load(f)
         assert data == default_data
 
@@ -35,7 +36,7 @@ class TestJsonUtil:
     def test_load_json(self, tmp_path, json_util):
         file_path = tmp_path / "test.json"
         test_data = {"a": 1}
-        with open(file_path, "w") as f:
+        with file_path.open("w", encoding="utf-8") as f:
             json.dump(test_data, f)
 
         loaded_data = json_util.load_json(file_path)
@@ -55,7 +56,7 @@ class TestJsonUtil:
         json_util.save_json(file_path, test_data)
 
         assert file_path.exists()
-        with open(file_path) as f:
+        with file_path.open(encoding="utf-8") as f:
             data = json.load(f)
         assert data == test_data
 
@@ -115,7 +116,7 @@ class TestJsonUtil:
         backup_dir.mkdir()
 
         # Create a backup with same content (from "yesterday")
-        yesterday = datetime.now() - timedelta(days=1)
+        yesterday = datetime.now(UTC) - timedelta(days=1)
         yesterday_str = yesterday.strftime("%Y-%m-%d")
         backup_path = backup_dir / f"settings_ui_{yesterday_str}.json"
         backup_path.write_text(content)
@@ -145,7 +146,7 @@ class TestJsonUtil:
         backups = list(backup_dir.glob("settings_ui_*.json"))
         assert len(backups) == 2
 
-        today_str = datetime.now().strftime("%Y-%m-%d")
+        today_str = datetime.now(UTC).strftime("%Y-%m-%d")
         today_backup = backup_dir / f"settings_ui_{today_str}.json"
         assert today_backup.exists()
         assert today_backup.read_text() == content

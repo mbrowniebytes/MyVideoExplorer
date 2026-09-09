@@ -1,4 +1,5 @@
 # Project AI Context: MyVideoExplorer
+- Never run git add or git commit
 
 ## Overview
 

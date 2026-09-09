@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QListWidget, QListWidgetItem
@@ -68,7 +68,7 @@ class FolderListView(QListWidget):
             if message:
                 text = message
             elif root_path:
-                root_label = os.path.normpath(root_path)
+                root_label = Path(root_path).as_posix()
                 text = f"No folders found under\n{root_label}"
             else:
                 text = "No folders found."
@@ -158,8 +158,8 @@ class FolderListView(QListWidget):
                     last_at_depth[item.depth] = item
 
                 # Sort children
-                for parent_id in children_map:
-                    children_map[parent_id].sort(key=lambda x: x.name.lower())
+                for parent_id, children in children_map.items():
+                    children.sort(key=lambda x: x.name.lower())
 
                 # Reconstruct
                 sorted_items = []
@@ -194,8 +194,7 @@ class FolderListView(QListWidget):
             return
 
         current_row = self.currentRow()
-        if current_row < 0:
-            current_row = 0
+        current_row = max(current_row, 0)
 
         new_row = max(0, min(self.count() - 1, current_row + step))
         item = self.item(new_row)

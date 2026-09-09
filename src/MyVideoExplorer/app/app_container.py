@@ -335,7 +335,7 @@ class AppContainer:
         apply_resize: bool = True,
     ) -> None:
         if not window:
-            self.log_util.warn("resize_window called without a window object")
+            self.log_util.warning("resize_window called without a window object")
             return
 
         self.window = window

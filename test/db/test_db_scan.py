@@ -1,8 +1,10 @@
-import pytest
-import os
-import duckdb
-from MyVideoExplorer.db.db_scan import DbScanUtil
 import datetime
+from pathlib import Path
+
+import duckdb
+import pytest
+
+from MyVideoExplorer.db.db_scan import DbScanUtil
 
 class TestDbScanUtil:
     @pytest.fixture
@@ -15,7 +17,7 @@ class TestDbScanUtil:
 
     def test_init_db(self, db_path):
         DbScanUtil(db_path)
-        assert os.path.exists(db_path)
+        assert Path(db_path).exists()
         con = duckdb.connect(db_path)
         tables = con.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
         table_names = [table[0] for table in tables]
@@ -32,7 +34,7 @@ class TestDbScanUtil:
             'videos_count': 1,
             'nfo_count': 0,
             'other_count': 0,
-            'last_scanned': datetime.datetime.now()
+            'last_scanned': datetime.datetime.now(datetime.UTC)
         }
         db_util.save_stats(stats)
         retrieved = db_util.get_stats('/test/path')

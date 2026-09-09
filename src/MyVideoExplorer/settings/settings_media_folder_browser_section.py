@@ -1,5 +1,5 @@
-import os
 import re
+from pathlib import Path
 from typing import Any
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
@@ -170,7 +170,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
 
         db_path = self.get_db_path_callback(self.media_config)
         stats = None
-        if db_path and os.path.exists(db_path):
+        if db_path and Path(db_path).exists():
             db_util = DbScanUtil(db_path)
             stats = db_util.get_stats(self.media_config["path"])
 
@@ -296,18 +296,18 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             media_config["_previous_label"] = current_label
             return
 
-        if os.path.exists(current_db) and not os.path.exists(previous_db):
+        if Path(current_db).exists() and not Path(previous_db).exists():
             raise ValueError(
-                f"The database file '{os.path.basename(current_db)}' already exists. "
+                f"The database file '{Path(current_db).name}' already exists. "
                 "Choose a unique media name."
             )
 
-        if os.path.exists(previous_db):
+        if Path(previous_db).exists():
             try:
-                os.replace(previous_db, current_db)
+                Path(previous_db).replace(current_db)
             except OSError as exc:
                 raise OSError(
-                    f"Unable to rename database file from '{os.path.basename(previous_db)}' to '{os.path.basename(current_db)}'. "
+                    f"Unable to rename database file from '{Path(previous_db).name}' to '{Path(current_db).name}'. "
                     f"Original media name kept. Details: {exc}"
                 ) from exc
 
@@ -400,7 +400,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
     def _refresh_stats_labels(self, media_config: dict[str, Any]) -> None:
         db_path = self.get_db_path_callback(media_config)
         stats = None
-        if os.path.exists(db_path):
+        if Path(db_path).exists():
             db_util = DbScanUtil(db_path)
             stats = db_util.get_stats(media_config["path"])
 

@@ -1,8 +1,10 @@
-import pytest
 from unittest.mock import MagicMock
-from xml.etree import ElementTree
-from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
+from xml.etree import ElementTree as ET
+
+import pytest
+
 from MyVideoExplorer.utils.file_util import FileUtil
+from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 
 
 class TestNfoParseUtil:
@@ -25,7 +27,7 @@ class TestNfoParseUtil:
             <plot>Test plot.</plot>
         </movie>
         """
-        root = ElementTree.fromstring(xml_data)
+        root = ET.fromstring(xml_data)
         info = nfo_util.create_empty_movie_info()
         nfo_util._parse_basic_fields(root, info)
         assert info["title"] == "Test Movie"
@@ -39,7 +41,7 @@ class TestNfoParseUtil:
             <genre>Sci-Fi</genre>
         </movie>
         """
-        root = ElementTree.fromstring(xml_data)
+        root = ET.fromstring(xml_data)
         info = nfo_util.create_empty_movie_info()
         nfo_util._parse_genres(root, info)
         assert "Action" in info["genres"]

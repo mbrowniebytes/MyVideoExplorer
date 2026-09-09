@@ -1,13 +1,16 @@
-import os
+from pathlib import Path
+
 import duckdb
+
 from MyVideoExplorer.db.db_scan import DbScanUtil
+
 
 def test_year_validation(tmp_path):
     db_path = str(tmp_path / "test.db")
     db_util = DbScanUtil(db_path)
-    folder_path = str(tmp_path / "test_folder").replace(os.path.sep, '/')
+    folder_path = str(tmp_path / "test_folder")
 
-    file1 = os.path.join(folder_path, "video1.mp4").replace(os.path.sep, '/')
+    file1 = str(Path(folder_path) / "video1.mp4")
 
     # Test empty year
     media_list = [

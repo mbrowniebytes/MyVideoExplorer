@@ -1,5 +1,5 @@
-import os
 import datetime
+from pathlib import Path
 from typing import Any
 
 from PySide6.QtCore import Qt, QTimer, Signal
@@ -211,9 +211,9 @@ class SettingsMediaTab(SettingsBaseTab):
             latest_date = None
             for media_config in self.state.media_configs:
                 db_path = self.state.get_db_path(media_config)
-                if os.path.exists(db_path):
-                    mtime = os.path.getmtime(db_path)
-                    date = datetime.datetime.fromtimestamp(mtime).strftime('%Y-%m-%d')
+                if Path(db_path).exists():
+                    mtime = Path(db_path).stat().st_mtime
+                    date = datetime.datetime.fromtimestamp(mtime, tz=datetime.UTC).strftime('%Y-%m-%d')
                     if latest_date is None or date > latest_date:
                         latest_date = date
 
@@ -259,7 +259,7 @@ class SettingsMediaTab(SettingsBaseTab):
     def _has_valid_media_folders(self) -> bool:
         for cfg in self.state.media_configs:
             p = cfg.get("path", "")
-            if p and os.path.isdir(p):
+            if p and Path(p).is_dir():
                 return True
         return False
 
@@ -269,11 +269,11 @@ class SettingsMediaTab(SettingsBaseTab):
             p = cfg.get("path", "")
             if p:
                 try:
-                    real = os.path.realpath(p)
+                    real = Path(p).expanduser().resolve(strict=False)
                 except Exception:
                     continue
-                if os.path.isdir(real):
-                    valid_paths.append(real)
+                if real.is_dir():
+                    valid_paths.append(real.as_posix())
         return valid_paths
 
     def _on_config_changed(

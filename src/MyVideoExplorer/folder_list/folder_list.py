@@ -199,11 +199,10 @@ class FolderList(QWidget, ThemableMixin):
         """Return True if settings contains at least one existing media folder path."""
         if not self.settings:
             return False
-        import os
 
         for config in self.settings.settings_data_model.media_configs:
             p = config.get("path", "")
-            if p and os.path.isdir(p):
+            if p and Path(p).is_dir():
                 return True
         return False
 

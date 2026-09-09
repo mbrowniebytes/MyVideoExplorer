@@ -52,7 +52,7 @@ class ScanWorker(QThread):
         )
 
     def _backup_db(self, db_path: str):
-        if not os.path.exists(db_path):
+        if not Path(db_path).exists():
             return
 
         db_path_obj = Path(db_path)
@@ -60,7 +60,7 @@ class ScanWorker(QThread):
         backup_dir.mkdir(parents=True, exist_ok=True)
 
         # backup path: db/backups/[media]_[YYYY-MM-DD].db
-        today_str = datetime.datetime.now().strftime("%Y-%m-%d")
+        today_str = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d")
         backup_name = f"{db_path_obj.stem}_{today_str}{db_path_obj.suffix}"
         backup_path = backup_dir / backup_name
 
@@ -73,7 +73,7 @@ class ScanWorker(QThread):
 
         # Keep 5 most recent backups
         backup_pattern = f"{db_path_obj.stem}_*{db_path_obj.suffix}"
-        backups = sorted(backup_dir.glob(backup_pattern), reverse=True, key=os.path.getmtime)
+        backups = sorted(backup_dir.glob(backup_pattern), reverse=True, key=lambda p: p.stat().st_mtime)
 
         max_backups = 5
         for old_backup in backups[max_backups:]:
@@ -90,9 +90,11 @@ class ScanWorker(QThread):
 
             # Count all folders for progress bar
             total_folders = 0
-            if os.path.isdir(media_path):
-                for _, dirs, _ in os.walk(media_path):
-                    total_folders += 1
+            media_path_obj = Path(media_path)
+            if media_path_obj.is_dir():
+                for _ in media_path_obj.rglob("*"):
+                    if _.is_dir():
+                        total_folders += 1
             self.progress_init.emit(100)
             self.progress_stage.emit(self.lang.scan_progress["scanning_media_subfolders"])
 
@@ -104,11 +106,11 @@ class ScanWorker(QThread):
                 'videos_count': 0,
                 'nfo_count': 0,
                 'other_count': 0,
-                'last_scanned': datetime.datetime.now()
+                'last_scanned': datetime.datetime.now(datetime.UTC)
             }
 
             progress = 0
-            if media_path and os.path.isdir(media_path):
+            if media_path and Path(media_path).is_dir():
                 folder_steps = max(total_folders, 1)
                 for root, dirs, files in os.walk(media_path):
                     stats['subfolders_count'] += len(dirs)
@@ -124,10 +126,11 @@ class ScanWorker(QThread):
                         if IS_DEVELOPMENT:
                             sleep(0.011)
 
-                        ext = os.path.splitext(file)[1].lower()
+                        file_path_obj = Path(root) / file
+                        ext = file_path_obj.suffix.lower()
                         if ext in FileUtilType.VIDEO_EXTS:
                             stats['videos_count'] += 1
-                            file_path = os.path.join(root, file).replace(os.path.sep, '/')
+                            file_path = file_path_obj.as_posix()
 
                             # Find NFO in the same directory as the video
                             nfo_path = self.file_util.find_nfo_in_list(root, files)
@@ -150,7 +153,7 @@ class ScanWorker(QThread):
                 raise ValueError(
                     "The media name is empty or contains no valid characters for database storage."
                 )
-            if not media_path or not os.path.isdir(media_path):
+            if not media_path or not Path(media_path).is_dir():
                 raise FileNotFoundError(f"Media folder not found: {media_path}")
 
             self.progress_stage.emit(self.lang.scan_progress["saving_media_data"])

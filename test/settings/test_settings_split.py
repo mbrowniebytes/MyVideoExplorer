@@ -1,8 +1,9 @@
-import pytest
-from unittest.mock import patch
-from unittest.mock import MagicMock
-from MyVideoExplorer.settings.settings_state import SettingsState
 import json
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from MyVideoExplorer.settings.settings_state import SettingsState
 
 
 class TestSettingsSplit:
@@ -53,7 +54,7 @@ class TestSettingsSplit:
         assert (cfg_dir / "defaults_filter.json").exists()
 
         # Verify content
-        with open(cfg_dir / "defaults_ui.json") as f:
+        with (cfg_dir / "defaults_ui.json").open(encoding="utf-8") as f:
             ui_data = json.load(f)
             assert "font_size" in ui_data
 
@@ -67,7 +68,7 @@ class TestSettingsSplit:
         assert (cfg_dir / "settings_media.json").exists()
         assert (cfg_dir / "settings_filter.json").exists()
 
-        with open(cfg_dir / "settings_media.json") as f:
+        with (cfg_dir / "settings_media.json").open(encoding="utf-8") as f:
             media_data = json.load(f)
             assert media_data["media_configs"][0]["label"] == "Test"
 
@@ -127,6 +128,6 @@ class TestSettingsSplit:
         assert state.saved_filters[0]["name"] == "Filter2"
 
         # Verify it was saved
-        with open(setup_cfg / "settings_filter.json") as f:
+        with (setup_cfg / "settings_filter.json").open(encoding="utf-8") as f:
             data = json.load(f)
             assert len(data["saved_filters"]) == 1

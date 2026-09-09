@@ -1,7 +1,6 @@
 
 import datetime
 import logging
-import os
 import sys
 import traceback
 from logging.handlers import RotatingFileHandler
@@ -71,7 +70,7 @@ class LogUtil:
         self._logger_initialized = False
         self._file_handler: RotatingFileHandler | None = None
 
-        # date_str = datetime.datetime.now().strftime("%Y-%m-%d")
+        # date_str = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d")
         # self.LOG_FILE = LOG_DIR / f"app-{date_str}.log"
 
     def get_log_level_value(self, level_str: str) -> int:
@@ -287,7 +286,7 @@ class LogUtil:
         """Convenience method to log an INFO level message."""
         self.log_message(level="info", message=message, extra_info=extra_info)
 
-    def warn(
+    def warning(
         self, message: str, *, extra_info: dict[str, Any] | None = None
     ) -> None:
         """Convenience method to log a WARNING level message."""
@@ -343,7 +342,7 @@ class LogUtil:
             try:
                 log_file = self.LOG_FILE
                 log_file.parent.mkdir(parents=True, exist_ok=True)
-                with open(log_file, "a", encoding="utf-8") as f:
+                with log_file.open("a", encoding="utf-8") as f:
                     f.write(f"CRITICAL: Exception in exception handler: {handler_exception}\n")
                     f.write(f"Original exception: {exc_type.__name__}: {exc_value}\n")
                     f.write(traceback.format_exc())
@@ -366,33 +365,35 @@ class LogUtil:
         # Keep only the max_backups most recent backups
         # explicit set, since deleting files
         pattern = "app*log"
-        backups = sorted(log_dir.glob(pattern), reverse=True, key=os.path.getmtime)
+        backups = sorted(log_dir.glob(pattern), reverse=True, key=lambda p: p.stat().st_mtime)
 
         for old_backup in backups[self.MAX_BACKUPS:]:
             try:
                 # print(f"cleanup: old_backup.unlink {old_backup}")
                 old_backup.unlink()
             except OSError as e:
-                self.warn(f"Failed to delete old backup {old_backup}: {e}")
+                self.warning(f"Failed to delete old backup {old_backup}: {e}")
 
         """Close all handlers associated with this LogUtil instance."""
         if self._file_handler:
             self._file_handler.close()
         self.remove_file_handler()
 
-        # date_str = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-        date_str = datetime.datetime.now().strftime("%Y%m%d")
+        # date_str = datetime.datetime.now(datetime.UTC).strftime("%Y%m%d-%H%M%S")
+        date_str = datetime.datetime.now(datetime.UTC).strftime("%Y%m%d")
         backup_log = LOG_DIR / f"app-{date_str}.log"
         # shutil.move(self.LOG_FILE, LOG_DIR / f"app-{date_str}.log")
         self.concat_files([self.LOG_FILE.as_posix()], backup_log.as_posix())
 
         # self.LOG_FILE.unlink()
-        open(self.LOG_FILE, "w").close()
+        self.LOG_FILE.open("w", encoding="utf-8").close()
 
     def concat_files(self, source_files: list[str], destination_file: str) -> None:
-        with open(destination_file, 'a') as dest:
+        destination_path = Path(destination_file)
+        with destination_path.open("a", encoding="utf-8") as dest:
             for filename in source_files:
-                with open(filename) as src:
+                source_path = Path(filename)
+                with source_path.open(encoding="utf-8") as src:
                     content = src.read()
                     dest.write(content)
                     if not content.endswith('\n'):

@@ -31,7 +31,7 @@ class FilterRowContainer(QWidget):
 
 
 class SettingsFilterTab(SettingsBaseTab):
-    # TODO centralize w/ folder_filter
+    # TODO: centralize w/ folder_filter
     GENRES = sorted(
         ["Action", "Comedy", "Sci-Fi", "Mystery", "Thriller", "Drama", "Adventure"]
     )

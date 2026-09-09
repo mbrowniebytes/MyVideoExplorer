@@ -15,13 +15,13 @@ class SimpleTableModel(QAbstractTableModel):
         self._headers = headers  # human-readable column labels
         self._cols = cols  # keys to access dict values
 
-    def rowCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:
-        if parent.isValid():
+    def rowCount(self, parent: QModelIndex | QPersistentModelIndex | None = None) -> int:
+        if parent is not None and parent.isValid():
             return 0
         return len(self._rows)
 
-    def columnCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:
-        if parent.isValid():
+    def columnCount(self, parent: QModelIndex | QPersistentModelIndex | None = None) -> int:
+        if parent is not None and parent.isValid():
             return 0
         return len(self._headers)
 

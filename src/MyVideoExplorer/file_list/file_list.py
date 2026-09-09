@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 from PySide6.QtCore import QSize, Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QFont
@@ -88,7 +88,7 @@ class FileList(QWidget, ThemableMixin):
 
     def _on_open_folder_clicked(self) -> None:
         folder_path = self.file_list_view.property("current_folder")
-        if folder_path and os.path.exists(folder_path):
+        if folder_path and Path(folder_path).exists():
             QDesktopServices.openUrl(QUrl.fromLocalFile(folder_path))
 
     def _handle_file_selected_intent(self, payload: SignalPayload) -> None:
