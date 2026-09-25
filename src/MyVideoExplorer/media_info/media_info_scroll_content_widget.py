@@ -71,7 +71,7 @@ class MediaInfoScrollContentWidget(QWidget, ThemableMixin):
         if section_widget is None:
             return None
 
-        next_visibility = not section_widget.isVisible()
+        next_visibility = section_widget.isHidden()
         section_widget.setVisible(next_visibility)
         return next_visibility
 

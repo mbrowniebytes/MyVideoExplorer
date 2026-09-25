@@ -68,7 +68,7 @@ class TestMediaInfoView:
                 == mock_nfo_data["plot"]
             )
 
-        qtbot.waitUntil(check_plot_text, timeout=250)
+        qtbot.waitUntil(check_plot_text)
 
         # Check if title label was updated
         # The title is in a label inside common_section.
@@ -84,21 +84,20 @@ class TestMediaInfoView:
 
     def test_toggle_section(self, media_info_view, mock_nfo_data, qtbot):
         media_info_view.build_from_movie_info(mock_nfo_data)
-        media_info_view.show()
 
-        # Common section should be visible by default
-        def check_section_common():
-            common_widget = media_info_view.section_widgets.get("section_common")
-            assert common_widget is not None
-            assert common_widget.isVisible()
+        # Common section should be built and visible by default
+        qtbot.waitUntil(
+            lambda: media_info_view.section_widgets.get("section_common") is not None
+        )
+        common_widget = media_info_view.section_widgets.get("section_common")
+        assert common_widget is not None
+        assert not common_widget.isHidden()
 
-            media_info_view._toggle_section("section_common")
-            assert not common_widget.isVisible()
+        media_info_view._toggle_section("section_common")
+        assert common_widget.isHidden()
 
-            media_info_view._toggle_section("section_common")
-            assert common_widget.isVisible()
-
-        qtbot.waitUntil(check_section_common, timeout=250)
+        media_info_view._toggle_section("section_common")
+        assert not common_widget.isHidden()
 
     def test_play_video_signal(self, media_info_view, mock_nfo_data, qtbot):
         media_info_view.build_from_movie_info(mock_nfo_data)

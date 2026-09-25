@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Thin launcher that delegates startup to MyVideoExplorer.app.app_main.run()."""
 
 import sys
