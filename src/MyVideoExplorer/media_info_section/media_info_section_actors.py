@@ -4,8 +4,8 @@ import pathlib
 
 from PySide6.QtWidgets import QHeaderView, QSizePolicy, QVBoxLayout, QWidget
 
-from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
+from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.widgets.label_value_widget import LabelValueWidget
 from MyVideoExplorer.widgets.simple_table_widget import SimpleTableWidget
@@ -65,9 +65,7 @@ class MediaInfoActorsSection(ThemableMixin, QWidget):
         self.actors_section_layout.setSpacing(0)
 
     def _build_actors_table_section(self, actor_table_rows: list[dict]) -> None:
-        self.actors_title_widget = LabelValueWidget(
-            "Actors", parent=self
-        )
+        self.actors_title_widget = LabelValueWidget("Actors", parent=self)
         self.actors_table_widget = SimpleTableWidget(
             rows=actor_table_rows,
             cols=ACTOR_TABLE_COLUMN_KEYS,

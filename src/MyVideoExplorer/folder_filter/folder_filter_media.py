@@ -5,14 +5,14 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QHBoxLayout, QPushButton, QWidget
 
 from MyVideoExplorer.settings.settings import Settings
-from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
+from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.ui_utils import UIUtils
 
 
 class FolderFilterMedia(QWidget, ThemableMixin):
-    sig_apply_filters = Signal()
+    apply_filters = Signal()
 
     def __init__(self, settings: Settings, log_util: LogUtil, parent=None):
         super().__init__(parent)
@@ -23,7 +23,7 @@ class FolderFilterMedia(QWidget, ThemableMixin):
         self.media_layout = QHBoxLayout(self)
         self.media_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.all_none_button = QPushButton("O")
+        self.all_none_button = QPushButton("O", parent=self)
         self.all_none_button.setObjectName("folder_filter_media_nav_button")
         self.all_none_button.setCheckable(True)
         self.all_none_button.setChecked(False)
@@ -36,8 +36,8 @@ class FolderFilterMedia(QWidget, ThemableMixin):
         self.media_layout.addWidget(self.all_none_button)
 
         self._build_buttons()
-        self.settings.settings_data_model.sig_settings_changed.connect(
-            self.refresh_buttons
+        self.settings.settings_data_model.settings_changed.connect(
+            lambda p: self.refresh_buttons()
         )
 
     def _build_buttons(self) -> None:
@@ -48,13 +48,13 @@ class FolderFilterMedia(QWidget, ThemableMixin):
             str, list[tuple[str, str]]
         ] = {}  # label -> [(path, icon_name), ...]
 
-        for config in self.settings.settings_data_model.folder_configs:
+        for config in self.settings.settings_data_model.media_configs:
             label = config.get("label", "")
             path = config.get("path", "")
             if not path:
                 continue
 
-            icon_name = config.get("icon", "fa5s.folder")
+            icon_name = config.get("icon", "fa6s.folder")
 
             if not label:
                 continue
@@ -83,15 +83,15 @@ class FolderFilterMedia(QWidget, ThemableMixin):
 
             if not display_icon_name and info_list:
                 # Default to folder icon if no valid icon found
-                display_icon_name = "fa5s.folder"
+                display_icon_name = "fa6s.folder"
 
-            btn = QPushButton(abbrev)
+            btn = QPushButton(abbrev, parent=self)
             btn.setObjectName("folder_filter_media_nav_button")
             btn.setToolTip(label)
             btn.setCheckable(True)
             # No longer manually applying small_button_qss; ThemeManager will apply it based on objectName
 
-            qicon = APP_THEME.icon(display_icon_name or "fa5s.folder")
+            qicon = APP_THEME.icon(display_icon_name or "fa6s.folder")
             if qicon:
                 icon_pixmap = qicon.pixmap(18, 18)
                 btn.setIcon(icon_pixmap)
@@ -115,7 +115,7 @@ class FolderFilterMedia(QWidget, ThemableMixin):
     def _on_button_clicked(self) -> None:
         # Update "All/None" text if needed and notify
         # self._update_all_none_text()
-        self.sig_apply_filters.emit()
+        self.apply_filters.emit()
 
     def _toggle_all_media_clicked(self) -> None:
         self._update_all_none_text()
@@ -126,7 +126,7 @@ class FolderFilterMedia(QWidget, ThemableMixin):
             btn.setChecked(new_state)
 
         # self._update_all_none_text()
-        self.sig_apply_filters.emit()
+        self.apply_filters.emit()
 
     def _update_all_none_text(self) -> None:
         any_unchecked = any(not btn.isChecked() for btn in self.media_button_group)

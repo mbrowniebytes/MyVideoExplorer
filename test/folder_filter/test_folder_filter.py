@@ -1,5 +1,7 @@
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
+
 from MyVideoExplorer.folder_filter.folder_filter import FolderFilters
 from MyVideoExplorer.folder_filter.folder_filter_filter import FolderFilterFilter
 from MyVideoExplorer.utils.file_util import FileUtil
@@ -10,7 +12,7 @@ class TestFolderNavFilters:
     @pytest.fixture
     def settings_mock(self):
         settings = MagicMock()
-        settings.settings_data_model.folder_configs = [
+        settings.settings_data_model.media_configs = [
             {"label": "Movies", "path": "movies"},
             {"label": "TV Shows", "path": "tv"},
         ]
@@ -21,7 +23,7 @@ class TestFolderNavFilters:
     def nav_filters(self, qtbot, settings_mock):
         file_util = MagicMock(spec=FileUtil)
         nfo_util = MagicMock(spec=NfoParseUtil)
-        engine = FolderFilterFilter(nfo_util)
+        engine = FolderFilterFilter(nfo_util, settings_mock.settings_data_model)
         engine.apply_filters = MagicMock(side_effect=engine.apply_filters)
         mock_log = MagicMock()
         widget = FolderFilters(engine, file_util, settings_mock, mock_log)
@@ -90,17 +92,23 @@ class TestFolderNavFilters:
 
     def test_apply_filters_trigger(self, nav_filters, qtbot):
         """Verify that clicking apply button emits signal."""
-        with qtbot.waitSignal(nav_filters.sig_apply_filters) as blocker:
+        # Ensure db_enabled is False for this test
+        nav_filters.settings.settings_data_model.db_enabled.return_value = False
+        with qtbot.waitSignal(nav_filters.filters_requested) as blocker:
             nav_filters.apply_button.click()
         assert blocker.args is not None
 
     def test_apply_filters_logic(self, nav_filters, qtbot):
-        """Verify apply_filters calls the filter engine with correct data."""
+        """Verify apply_filters_requested calls the filter engine with correct data."""
+        # Ensure db_enabled is False for this test
+        nav_filters.settings.settings_data_model.db_enabled.return_value = False
+
         nav_filters.root_folder = ["/root"]
         mock_items = [MagicMock()]
 
         # Capture the callback
         captured_callback = None
+
         def side_effect(path, depth=0, on_complete=None):
             nonlocal captured_callback
             captured_callback = on_complete
@@ -114,10 +122,14 @@ class TestFolderNavFilters:
 
         # Mock the final callback
         on_complete_mock = MagicMock()
-        with qtbot.waitSignal(nav_filters.sig_loading_started):
-            nav_filters.apply_filters(selected_folders=["/root/sub"], on_complete=on_complete_mock)
+        with qtbot.waitSignal(nav_filters.loading_started):
+            nav_filters.apply_filters(
+                selected_folders=["/root/sub"], on_complete=on_complete_mock
+            )
 
-        nav_filters.file_util.get_files_from_path_async.assert_called_with("/root/sub", on_complete=captured_callback)
+        nav_filters.file_util.get_files_from_path_async.assert_called_with(
+            "/root/sub", on_complete=captured_callback
+        )
         nav_filters.folder_nav_filters_filter.apply_filters.assert_called()
 
         # Check if callback was called
@@ -127,7 +139,7 @@ class TestFolderNavFilters:
         """Verify genre combo change emits signal."""
         nav_filters.filter_table.add_filter("Genre")
         combo = nav_filters.filter_table.cellWidget(0, 1)
-        with qtbot.waitSignal(nav_filters.sig_genre_changed) as blocker:
+        with qtbot.waitSignal(nav_filters.genre_changed) as blocker:
             combo.setCurrentText("Sci-Fi")
         assert blocker.args[0].data == "Sci-Fi"
 
@@ -135,7 +147,7 @@ class TestFolderNavFilters:
         """Verify media combo change emits root folder signal."""
         nav_filters.filter_table.add_filter("Media")
         combo = nav_filters.filter_table.cellWidget(0, 1)
-        with qtbot.waitSignal(nav_filters.sig_root_folder) as blocker:
+        with qtbot.waitSignal(nav_filters.root_folder) as blocker:
             # Index 0 is "- Select Folder -", 1 is "Movies"
             combo.setCurrentIndex(1)
         assert blocker.args[0].data == "movies"

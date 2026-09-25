@@ -16,6 +16,7 @@ class ThemeConfig:
 
     # Color Palette - Backgrounds
     color_background_main: str = "#111111"
+    color_background_section: str = "#161616"
     color_background_gradient: str = "#131613"
     color_surface_primary: str = "rgba(59, 89, 99, 99)"
     color_surface_alternate: str = "#151B21"
@@ -50,6 +51,7 @@ class ThemeConfig:
     # Structure & Layout
     color_section_divider: str = "#4B4246"
     size_border_radius_standard: int = 8
+    settings_media_folder_browser_section_divider: str = "#6B8286"
 
     # List Item Padding
     padding_list_item_vertical: int = 4

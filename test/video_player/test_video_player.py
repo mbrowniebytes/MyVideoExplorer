@@ -1,7 +1,8 @@
-
-import pytest
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.video_player.video_player import VideoPlayer
 
@@ -36,7 +37,9 @@ class TestVideoPlayer:
         video_player.set_folder_path("/test/folder")
 
         # Mock the launcher's async method directly
-        with patch.object(video_player.video_launcher, 'play_via_external_app', new_callable=AsyncMock) as mock_play:
+        with patch.object(
+            video_player.video_launcher, "play_via_external_app", new_callable=AsyncMock
+        ) as mock_play:
             # image_path matches movie.mp4 stem
             await video_player.video_launcher.play_via_external_app("/test/folder")
 
@@ -68,4 +71,6 @@ class TestVideoPlayer:
             mock_theme.app_qss.return_value = "QMainWindow { color: red; }"
 
             video_player.apply_theme()
-            assert video_player.main_window.styleSheet() == "QMainWindow { color: red; }"
+            assert (
+                video_player.main_window.styleSheet() == "QMainWindow { color: red; }"
+            )

@@ -6,16 +6,20 @@ from MyVideoExplorer.folder_list.folder_list import FolderList
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 
+
 class TestFolderListRandom:
     @pytest.fixture
     def folder_list(self, qtbot):
         file_util = MagicMock(spec=FileUtil)
         settings = MagicMock()
-        settings.settings_data_model.folder_configs = []
+        settings.settings_data_model.media_configs = []
 
         mock_log = MagicMock()
 
-        with patch("MyVideoExplorer.folder_list.folder_list.FolderList._has_valid_media_folders", return_value=True):
+        with patch(
+            "MyVideoExplorer.folder_list.folder_list.FolderList._has_valid_media_folders",
+            return_value=True,
+        ):
             widget = FolderList(file_util, settings=settings, log_util=mock_log)
             widget.build()
         qtbot.addWidget(widget)
@@ -53,7 +57,7 @@ class TestFolderListRandom:
         ]
         folder_list.update_folder_list_by_items(items)
 
-        with qtbot.waitSignal(folder_list.sig_navigate_to_folder) as blocker:
+        with qtbot.waitSignal(folder_list.folder_navigation_requested) as blocker:
             folder_list.random_folder_button.click()
 
-        assert blocker.args[0] in ["/path/A", "/path/B"]
+        assert blocker.args[0].data in ["/path/A", "/path/B"]

@@ -1,7 +1,9 @@
-import pytest
 from unittest.mock import MagicMock
-from MyVideoExplorer.image_list.image_list import ImageList
+
+import pytest
+
 from MyVideoExplorer.file_list.file_list import FileList
+from MyVideoExplorer.image_list.image_list import ImageList
 from MyVideoExplorer.image_list.image_list_view import ImageListView
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
@@ -13,7 +15,7 @@ class TestImageList:
     def image_list(self, qtbot):
         file_util = MagicMock(spec=FileUtil)
         settings = MagicMock()
-        settings.settings_data_model.folder_configs = []
+        settings.settings_data_model.media_configs = []
         nfo_parse_util = MagicMock(spec=NfoParseUtil)
         nfo_parse_util.parse_nfo_folder.return_value = {}
 
@@ -49,7 +51,7 @@ class TestImageList:
         image_list.images = ["img1.jpg", "img2.jpg"]
         image_list.selected_image_index = 0
 
-        with qtbot.waitSignal(image_list.sig_image_selected_intent) as blocker:
+        with qtbot.waitSignal(image_list.image_selected_intent) as blocker:
             image_list.request_next_image(1)
 
         assert blocker.args[0].data == "img2.jpg"

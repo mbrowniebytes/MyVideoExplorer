@@ -1,12 +1,14 @@
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QWidget
-from MyVideoExplorer.image_list.image_list_view import ImageListView
+
 from MyVideoExplorer.file_list.file_list import FileList
+from MyVideoExplorer.image_list.image_list_view import ImageListView
 from MyVideoExplorer.media_info_side.media_info_side_view import MediaInfoSideView
-from MyVideoExplorer.utils.str_util import StrUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
+from MyVideoExplorer.utils.str_util import StrUtil
 
 _NO_IMAGE_FOUND = """
     No image found.\n
@@ -14,10 +16,11 @@ _NO_IMAGE_FOUND = """
     or by Selecting a folder in the Folder list to the left.
 """
 
+
 class TestImageListView:
     @pytest.fixture
     def image_list_view(self, qtbot):
-        str_util =  MagicMock(spec=StrUtil)
+        str_util = MagicMock(spec=StrUtil)
         nfo_parse_util = MagicMock(spec=NfoParseUtil)
         mock_log = MagicMock()
         side_view = MediaInfoSideView(nfo_parse_util, str_util, mock_log)
@@ -40,7 +43,9 @@ class TestImageListView:
     def test_load_pixmap_valid(self, image_list_view):
         # We need a small real image or a mock that QPixmap can handle.
         # Let's try to mock QPixmap to return not null.
-        with patch("MyVideoExplorer.image_list.image_preview_widget.QPixmap") as mock_pixmap:
+        with patch(
+            "MyVideoExplorer.image_list.image_preview_widget.QPixmap"
+        ) as mock_pixmap:
             real_pixmap = QPixmap(1, 1)
             mock_pixmap.return_value = real_pixmap
             image_list_view.load_pixmap("/path/to/image.jpg")
@@ -69,7 +74,9 @@ class TestImageListView:
             mock_build.assert_called_with(nfo)
 
     def test_apply_theme(self, image_list_view):
-        with patch("MyVideoExplorer.image_list.image_list_view.APP_THEME") as mock_theme:
+        with patch(
+            "MyVideoExplorer.image_list.image_list_view.APP_THEME"
+        ) as mock_theme:
             mock_theme.font_family = "Arial"
             mock_theme.font_size = 12
             mock_theme.container_qss.return_value = "background: black;"
@@ -85,4 +92,6 @@ class TestImageListView:
     def test_show_loading_state(self, image_list_view):
         image_list_view.show_loading_state("Test Loading Message")
         assert "Loading..." in image_list_view.preview_widget.image_label.text()
-        assert "Test Loading Message" in image_list_view.preview_widget.image_label.text()
+        assert (
+            "Test Loading Message" in image_list_view.preview_widget.image_label.text()
+        )

@@ -10,8 +10,9 @@ from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
 from MyVideoExplorer.settings.settings_filter_tab import SettingsFilterTab
 from MyVideoExplorer.settings.settings_media_tab import SettingsMediaTab
 from MyVideoExplorer.settings.settings_state import SettingsState
-from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.settings.settings_ui_tab import SettingsUITab
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
+from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.widgets.right_aligned_tab_bar import RightAlignedTabBar
@@ -20,7 +21,7 @@ from MyVideoExplorer.widgets.right_aligned_tab_bar import RightAlignedTabBar
 class Settings(QWidget, ThemableMixin):
     """Container widget for application settings, managing tabs and state persistence."""
 
-    sig_dirty_changed = Signal(object)
+    dirty_changed = Signal(object)
 
     def __init__(self, log_util: LogUtil, file_util: FileUtil) -> None:
         super().__init__()
@@ -30,39 +31,78 @@ class Settings(QWidget, ThemableMixin):
         # Data Model (State Management)
         self.settings_data_model = SettingsState(self.log_util)
 
-        # View Components (Settings Tabs)
-        from MyVideoExplorer.settings.settings_ui_tab import SettingsUITab
+        # View Components (Settings Tabs) - Initialized in _build_ui
+        self.managed_tabs: list[SettingsBaseTab] = []
+        self._app_settings_tab: SettingsAppTab | None = None
+        self._ui_settings_tab: SettingsUITab | None = None
+        self._media_settings_tab: SettingsMediaTab | None = None
+        self._filter_settings_tab: SettingsFilterTab | None = None
 
-        self.app_settings_tab = SettingsAppTab(self.settings_data_model, self.log_util)
-        self.ui_settings_tab = SettingsUITab(self.settings_data_model, self.log_util, self.file_util)
-        self.media_settings_tab = SettingsMediaTab(
-            self.settings_data_model, self.log_util
-        )
-        self.filter_settings_tab = SettingsFilterTab(
-            self.settings_data_model, self.log_util
-        )
+    @property
+    def app_settings_tab(self) -> SettingsAppTab:
+        if self._app_settings_tab is None:
+            self._build_ui()
+            self._connect_signals()
+        assert self._app_settings_tab is not None
+        return self._app_settings_tab
 
-        # Group tabs for centralized management (DRY principle)
-        self.managed_tabs: list[SettingsBaseTab] = [
-            self.app_settings_tab,
-            self.ui_settings_tab,
-            self.media_settings_tab,
-            self.filter_settings_tab,
-        ]
+    @property
+    def ui_settings_tab(self) -> SettingsUITab:
+        if self._ui_settings_tab is None:
+            self._build_ui()
+            self._connect_signals()
+        assert self._ui_settings_tab is not None
+        return self._ui_settings_tab
 
-        self._build_ui()
-        self._connect_signals()
+    @property
+    def media_settings_tab(self) -> SettingsMediaTab:
+        if self._media_settings_tab is None:
+            self._build_ui()
+            self._connect_signals()
+        assert self._media_settings_tab is not None
+        return self._media_settings_tab
+
+    @property
+    def filter_settings_tab(self) -> SettingsFilterTab:
+        if self._filter_settings_tab is None:
+            self._build_ui()
+            self._connect_signals()
+        assert self._filter_settings_tab is not None
+        return self._filter_settings_tab
 
     def _build_ui(self) -> None:
         """Constructs the settings UI layout and registers tabs."""
         if self.layout() is not None:
             return
 
+        # Initialize tabs if not already done
+        if not self.managed_tabs:
+            self._app_settings_tab = SettingsAppTab(
+                self.settings_data_model, self.log_util, parent=self
+            )
+            self._ui_settings_tab = SettingsUITab(
+                self.settings_data_model, self.log_util, self.file_util, parent=self
+            )
+            self._media_settings_tab = SettingsMediaTab(
+                self.settings_data_model, self.log_util, self.file_util, parent=self
+            )
+            self._filter_settings_tab = SettingsFilterTab(
+                self.settings_data_model, self.log_util, parent=self
+            )
+
+            # Group tabs for centralized management (DRY principle)
+            self.managed_tabs = [
+                self._app_settings_tab,
+                self._ui_settings_tab,
+                self._media_settings_tab,
+                self._filter_settings_tab,
+            ]
+
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
-        self.settings_tabs_container = QTabWidget()
+        self.settings_tabs_container = QTabWidget(self)
         tab_bar = RightAlignedTabBar(self.settings_tabs_container, spacer_index=0)
         self.settings_tabs_container.setTabBar(tab_bar)
         self.settings_tabs_container.setTabPosition(QTabWidget.TabPosition.North)
@@ -83,10 +123,9 @@ class Settings(QWidget, ThemableMixin):
 
         self.apply_theme()
 
-    @staticmethod
-    def _add_spacer_tab(tab_widget: QTabWidget, tab_bar: QTabBar) -> None:
+    def _add_spacer_tab(self, tab_widget: QTabWidget, tab_bar: QTabBar) -> None:
         """Adds a disabled spacer tab to align other tabs to the right."""
-        spacer = QWidget()
+        spacer = QWidget(self)
         spacer.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         tab_widget.addTab(spacer, "")
         tab_widget.setTabEnabled(0, False)
@@ -95,19 +134,17 @@ class Settings(QWidget, ThemableMixin):
 
     def _connect_signals(self) -> None:
         """Wires up signals between tabs, state, and the container."""
-        self.settings_data_model.sig_settings_changed.connect(
-            lambda p: self.apply_theme()
-        )
+        self.settings_data_model.settings_changed.connect(lambda p: self.apply_theme())
 
         for tab in self.managed_tabs:
             # Use default argument to capture current loop variable correctly
-            tab.sig_changed.connect(lambda _, t=tab: self._mark_tab_dirty(t))
-            tab.sig_saved.connect(self._check_all_tabs_saved)
+            tab.changed.connect(lambda _, t=tab: self._mark_tab_dirty(t))
+            tab.saved.connect(self._check_all_tabs_saved)
 
     def _mark_tab_dirty(self, tab: SettingsBaseTab) -> None:
         """Marks a specific tab as dirty and notifies the container."""
         tab.highlight_save_button()
-        self.sig_dirty_changed.emit(
+        self.dirty_changed.emit(
             SignalPayload(
                 data=True,
                 sender=self.__class__.__name__,
@@ -126,7 +163,7 @@ class Settings(QWidget, ThemableMixin):
                 break
 
         if not is_dirty:
-            self.sig_dirty_changed.emit(
+            self.dirty_changed.emit(
                 SignalPayload(
                     data=False,
                     sender=self.__class__.__name__,
@@ -150,9 +187,12 @@ class Settings(QWidget, ThemableMixin):
     def apply_theme(self) -> None:
         """Applies current theme to the settings container and all managed tabs."""
         super().apply_theme()
+
+        if self.layout() is None:
+            return
+
         font = QFont(APP_THEME.font_family, APP_THEME.font_size)
         self.setFont(font)
-
 
         for tab in self.managed_tabs:
             tab.apply_theme()
@@ -164,18 +204,17 @@ class Settings(QWidget, ThemableMixin):
         # qss pane border did not affect
         self.settings_tabs_container.setDocumentMode(True)
 
-
     def build(self) -> QWidget:
         """Ensures UI is constructed and returns the widget"""
         self._build_ui()
         return self
 
     # --- Data Model Delegation ---
-    def get_folder_configs(self):
-        return self.settings_data_model.folder_configs
+    def get_media_configs(self):
+        return self.settings_data_model.media_configs
 
-    def set_folder_configs(self, value):
-        self.settings_data_model.folder_configs = value
+    def set_media_configs(self, value):
+        self.settings_data_model.media_configs = value
 
     def save_filter(self, name: str, filters: list[dict]) -> None:
         self.settings_data_model.save_filter(name, filters)

@@ -25,10 +25,10 @@ from MyVideoExplorer.utils.log_util import LogUtil
 class SettingsUITab(SettingsBaseTab):
     def __init__(
         self,
-            state: SettingsState,
-            log_util: LogUtil,
-            file_util: FileUtil,
-            parent: QWidget | None = None
+        state: SettingsState,
+        log_util: LogUtil,
+        file_util: FileUtil,
+        parent: QWidget | None = None,
     ) -> None:
         super().__init__(log_util, parent)
         self.file_util = file_util
@@ -38,11 +38,11 @@ class SettingsUITab(SettingsBaseTab):
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(0)
 
-        scroll = QScrollArea()
+        scroll = QScrollArea(self)
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QScrollArea.Shape.NoFrame)
 
-        self.main_widget = QWidget()
+        self.main_widget = QWidget(self)
         self.content_layout = QVBoxLayout(self.main_widget)
         self.content_layout.setContentsMargins(10, 10, 10, 10)
         self.content_layout.setSpacing(15)
@@ -62,7 +62,7 @@ class SettingsUITab(SettingsBaseTab):
         display_layout = QFormLayout(display_group)
 
         # Font size
-        self.font_size_combo = QComboBox()
+        self.font_size_combo = QComboBox(self)
         current_index = 0
         for index, font_size in enumerate(range(15, 26)):
             if font_size == APP_THEME.font_size:
@@ -76,7 +76,7 @@ class SettingsUITab(SettingsBaseTab):
         display_layout.addRow("Font Size:", self.font_size_combo)
 
         # App Font
-        self.font_family_combo = QComboBox()
+        self.font_family_combo = QComboBox(self)
 
         path_to_fonts = self.file_util.get_resource_path("asset/fonts")
         fonts_dir = Path(path_to_fonts)
@@ -120,18 +120,18 @@ class SettingsUITab(SettingsBaseTab):
         self.content_layout.addStretch(2)
 
         # Move Save UI Settings button to bottom-right, centered
-        save_btn_container = QWidget()
+        save_btn_container = QWidget(self)
         save_btn_layout = QHBoxLayout(save_btn_container)
         save_btn_layout.setContentsMargins(20, 15, 20, 15)
 
-        self.save_btn = QPushButton("Save UI Settings")
+        self.save_btn = QPushButton("Save UI Settings", parent=self)
         self.save_btn.clicked.connect(self._save_ui_settings)
 
         self.reset_btn = self._build_reset_button(
             "Reset UI Settings", self.reset_settings
         )
 
-        spacer = QWidget()
+        spacer = QWidget(self)
         spacer.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
@@ -163,7 +163,7 @@ class SettingsUITab(SettingsBaseTab):
 
         APP_THEME.refresh_theme()
         self.reset_save_button()
-        self.sig_saved.emit(
+        self.saved.emit(
             SignalPayload(
                 data=None,
                 sender=self.__class__.__name__,
@@ -192,7 +192,7 @@ class SettingsUITab(SettingsBaseTab):
         finally:
             self.font_size_combo.blockSignals(False)
 
-        self.state.sig_settings_changed.emit(
+        self.state.settings_changed.emit(
             SignalPayload(
                 data=value,
                 sender=self.__class__.__name__,
@@ -219,7 +219,7 @@ class SettingsUITab(SettingsBaseTab):
         finally:
             self.font_family_combo.blockSignals(False)
 
-        # self.state.sig_settings_changed.emit(
+        # self.state.settings_changed.emit(
         #     SignalPayload(
         #         data=family,
         #         sender=self.__class__.__name__,
@@ -234,7 +234,7 @@ class SettingsUITab(SettingsBaseTab):
         """Save only UI tab settings."""
         self.state.save_ui()
         self.reset_save_button()
-        self.sig_saved.emit(
+        self.saved.emit(
             SignalPayload(
                 data=None,
                 sender=self.__class__.__name__,

@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QMainWindow
 
@@ -17,6 +15,7 @@ from MyVideoExplorer.media_info.media_info_view import MediaInfoView
 from MyVideoExplorer.media_info_side.media_info_side_view import MediaInfoSideView
 from MyVideoExplorer.media_info_tabs.media_info_tabs import MediaInfoTabs
 from MyVideoExplorer.settings.settings import Settings
+from MyVideoExplorer.settings.settings_state import DEFAULTS_APP_FILE, SETTINGS_APP_FILE
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.font_util import FontUtil
@@ -26,6 +25,9 @@ from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.utils.str_util import StrUtil
 from MyVideoExplorer.video_player.video_player import VideoPlayer
 
+DEFAULT_WINDOW_SIZE = (1200, 700)
+MIN_WINDOW_SIZE = (1000, 500)
+
 
 class AppContainer:
     """
@@ -33,18 +35,16 @@ class AppContainer:
     Separates CONSTRUCTION from LAYOUT (which stays in App.build()).
     """
 
-    def __init__(self) -> None:
-        # Load saved log level
-        log_util = LogUtil().configure("error")
+    def __init__(self, window: QMainWindow) -> None:
+        self.window = window
+        # Load saved log level using the shared startup logger instance.
+        log_util = LogUtil.get_default().configure("error")
         self.log_util = log_util  # Set early so available even if initialization fails
 
         try:
             json_util = JsonUtil(log_util)
-            cfg_dir = Path("cfg")
-            defaults_app_file = cfg_dir / "defaults_app.json"
-            settings_app_file = cfg_dir / "settings_app.json"
-            app_data = json_util.load_json(defaults_app_file)
-            app_data.update(json_util.load_json(settings_app_file))
+            app_data = json_util.load_json(DEFAULTS_APP_FILE)
+            app_data.update(json_util.load_json(SETTINGS_APP_FILE))
             log_level = app_data.get("log_level", "error")
 
             self.log_util = log_util.configure(log_level)
@@ -71,10 +71,11 @@ class AppContainer:
 
             self.folder_nav_filters_filter = FolderFilterFilter(
                 self.nfo_parse_util,
-                self.settings.settings_data_model.folder_configs,
+                self.settings.settings_data_model,
                 self.log_util,
             )
             self.folder_list = FolderList(self.file_util, self.settings, self.log_util)
+            self.folder_list.setParent(self.window)
 
             self.folder_nav_filters = FolderFilters(
                 self.folder_nav_filters_filter,
@@ -82,22 +83,29 @@ class AppContainer:
                 self.settings,
                 self.log_util,
             )
+            self.folder_nav_filters.setParent(self.window)
             self.folder_nav = FolderNav(self.folder_nav_filters, self.log_util)
+            self.folder_nav.setParent(self.window)
             self.file_list = FileList(self.file_util, self.log_util)
+            self.file_list.setParent(self.window)
 
             self.media_info_view = MediaInfoView(
                 self.nfo_parse_util, self.str_util, self.log_util
             )
+            self.media_info_view.setParent(self.window)
             self.media_info_side_view = MediaInfoSideView(
                 self.nfo_parse_util, self.str_util, self.log_util
             )
+            self.media_info_side_view.setParent(self.window)
             self.media_info = MediaInfo(
                 self.media_info_view, self.media_info_side_view, self.log_util
             )
+            self.media_info.setParent(self.window)
 
             self.image_list_view = ImageListView(
                 self.str_util, self.media_info_side_view, self.file_list, self.log_util
             )
+            self.image_list_view.setParent(self.window)
             self.image_list = ImageList(
                 self.file_util,
                 self.settings,
@@ -107,6 +115,7 @@ class AppContainer:
                 self.file_list,
                 self.log_util,
             )
+            self.image_list.setParent(self.window)
 
             self.video_player = VideoPlayer(self.file_util, self.log_util)
 
@@ -116,10 +125,21 @@ class AppContainer:
                 image_list=self.image_list,
                 settings=self.settings,
             )
-
-            self.window: QMainWindow | None = None
+            self.media_info_tabs.setParent(self.window)
 
             self._wire_all_signals()
+
+            # Apply saved launch size and position immediately so the app opens
+            # using the user's preferred settings (if present).
+            try:
+                self.resize_window(
+                    self.window,
+                    app_size=self.settings.settings_data_model.launch_app_size,
+                    app_pos=self.settings.settings_data_model.launch_app_pos,
+                    apply_resize=True,
+                )
+            except Exception as e:
+                self.log_util.debug(f"Failed applying initial window size/pos: {e}")
         except Exception as e:
             self.log_util.error(
                 f"Error during component initialization: {e}",
@@ -136,105 +156,115 @@ class AppContainer:
         self._wire_controller_outputs()
         self._wire_component_interactions()
 
+    @staticmethod
+    def _connect(signal, slot) -> None:
+        signal.connect(slot)
+
     def _wire_user_inputs(self) -> None:
         """User interactions → Controller state."""
-        self.folder_nav.sig_root_folder.connect(
-            lambda p: self.controller.set_root_folders(p.data)
+        self._connect(
+            self.folder_nav.root_folder_changed,
+            lambda p: self.controller.set_root_folders(p.data),
         )
-        self.folder_nav.sig_selected_folder.connect(
-            lambda p: self.controller.set_current_folder(p.data)
+        self._connect(
+            self.folder_nav.selected_folder_changed,
+            lambda p: self.controller.set_current_folder(p.data),
         )
-
-        self.folder_list.sig_folder_selected_intent.connect(
-            lambda p: self.controller.set_current_folder(p.data)
+        self._connect(
+            self.folder_list.folder_selected_intent,
+            lambda p: self.controller.set_current_folder(p.data),
         )
-
-        self.folder_list.sig_navigate_to_folder.connect(
-            lambda p: self.controller.set_current_folder(p)
+        self._connect(
+            self.folder_list.folder_navigation_requested,
+            lambda p: self.controller.set_current_folder(p.data),
         )
-
-        self.file_list.sig_file_selected_intent.connect(
-            lambda payload: self.controller.set_current_file(payload.data)
+        self._connect(
+            self.file_list.file_selected_intent,
+            lambda payload: self.controller.set_current_file(payload.data),
         )
-
-        self.image_list.sig_image_selected_intent.connect(
-            lambda p: self.controller.set_current_file(p.data)
+        self._connect(
+            self.image_list.image_selected_intent,
+            lambda p: self.controller.set_current_file(p.data),
         )
-
-        self.media_info_tabs.sig_tab_selection_changed.connect(
-            self.controller.set_current_tab
+        self._connect(
+            self.media_info_tabs.tab_selection_changed, self.controller.set_current_tab
         )
-
-        self.settings.media_settings_tab.sig_changed.connect(
-            lambda p: self.folder_list.refresh_icons()
+        self._connect(
+            self.settings.media_settings_tab.changed,
+            lambda p: self.folder_list.refresh_icons(),
         )
-        self.settings.media_settings_tab.sig_root_folders_changed.connect(
-            lambda p: self.controller.set_root_folders(p.data)
+        self._connect(
+            self.settings.media_settings_tab.root_folders_changed,
+            lambda p: self.controller.set_root_folders(p.data),
         )
-        self.folder_nav_filters.sig_loading_started.connect(
-            self.folder_list.show_loading_state
+        self._connect(
+            self.folder_nav_filters.loading_started, self.folder_list.show_loading_state
         )
 
     def _wire_controller_outputs(self) -> None:
         """Controller state changes → Component refreshes."""
-        # self.signals.sig_root_folder.connect(lambda p: self._on_set_root_folder(p.data))
-        # New: handle list of root folders so FolderNav can display all roots
-        self.signals.sig_root_folders.connect(
-            lambda p: self.folder_nav.set_root_folders(p.data)
+        self._connect(
+            self.signals.root_folders_changed,
+            lambda p: self.folder_nav.set_root_folders(p.data),
         )
-
-        self.signals.sig_selected_folder.connect(
-            lambda p: self._on_folder_selected(p.data)
+        self._connect(
+            self.signals.selected_folder_changed,
+            lambda p: self._on_folder_selected(p.data),
         )
-
-        self.signals.sig_file_changed.connect(
-            lambda p: self.file_list.set_selected_file(p.data)
+        self._connect(
+            self.signals.file_changed,
+            lambda p: self.file_list.set_selected_file(p.data),
         )
-        self.signals.sig_file_changed.connect(
-            lambda p: self.media_info.set_image_path(p.data)
+        self._connect(
+            self.signals.file_changed, lambda p: self.media_info.set_image_path(p.data)
         )
-        self.signals.sig_file_changed.connect(
-            lambda p: self.image_list.update_image_from_item(p.data)
+        self._connect(
+            self.signals.file_changed,
+            lambda p: self.image_list.update_image_from_item(p.data),
         )
-
-        self.signals.sig_image_changed.connect(
-            lambda p: self.image_list.set_selected_image(p.data)
+        self._connect(
+            self.signals.image_changed,
+            lambda p: self.image_list.set_selected_image(p.data),
         )
-
-        self.signals.sig_tab_changed.connect(lambda p: self._on_tab_changed(p.data))
-
-        self.settings.settings_data_model.sig_settings_changed.connect(
-            lambda p: self.folder_list.refresh_icons()
+        self._connect(self.signals.tab_changed, lambda p: self._on_tab_changed(p.data))
+        self._connect(
+            self.settings.settings_data_model.settings_changed,
+            lambda p: self.folder_list.refresh_icons(),
         )
-        self.settings.settings_data_model.sig_window_size_changed.connect(
-            lambda p: self.resize_window(self.window, p.data)
+        self._connect(
+            self.settings.settings_data_model.window_size_changed,
+            lambda p: self.resize_window(self.window, p.data),
         )
-        self.settings.settings_data_model.sig_window_pos_changed.connect(
-            lambda p: self.resize_window(self.window, app_pos=p.data)
+        self._connect(
+            self.settings.settings_data_model.window_pos_changed,
+            lambda p: self.resize_window(self.window, app_pos=p.data),
         )
-        # When media folders are deleted in settings, update controller root_folders
-        self.settings.media_settings_tab.sig_root_folders_changed.connect(
-            lambda p: self.controller.set_root_folders(p.data)
+        self._connect(
+            self.settings.media_settings_tab.root_folders_changed,
+            lambda p: self.controller.set_root_folders(p.data),
         )
 
     def _wire_component_interactions(self) -> None:
         """Component-to-component interactions (local, not via controller)."""
-        self.image_list.sig_wheel_step.connect(
-            lambda p: self.folder_list.select_next_folder(p.data)
+        self._connect(
+            self.image_list.wheel_step,
+            lambda p: self.folder_list.select_next_folder(p.data),
         )
-        self.image_list.sig_right_click.connect(
-            lambda p: self.image_list.request_next_image()
+        self._connect(
+            self.image_list.context_menu_requested,
+            lambda p: self.image_list.request_next_image(),
         )
-
-        self.image_list.sig_double_click.connect(
-            lambda p: self._play_video_from_current_folder()
+        self._connect(
+            self.image_list.double_click_requested,
+            lambda p: self._play_video_from_current_folder(),
         )
-        self.media_info.sig_play_video.connect(
-            lambda p: self._play_video_from_current_folder()
+        self._connect(
+            self.media_info.play_video_requested,
+            lambda p: self._play_video_from_current_folder(),
         )
-
-        self.folder_nav.sig_selected_items.connect(
-            lambda p: self._on_filtered_items(p.data)
+        self._connect(
+            self.folder_nav.filtered_items_updated,
+            lambda p: self._on_filtered_items(p.data),
         )
 
     def _on_tab_changed(self, tab_index: int) -> None:
@@ -249,25 +279,26 @@ class AppContainer:
         self.folder_list.populate_view(items)
 
         if items:
-            # Auto-select folder after roots are set
             first_item = items[0]
-
-            # Auto-select prior folder if enabled and available
             auto_select_folder = self.settings.settings_data_model.auto_select_folder
-
             prior_folder = self.settings.settings_data_model.prior_folder
-            print(f"_on_filtered_items: auto_select_folder:{auto_select_folder} prior_folder:{prior_folder} first_item:{first_item}")
+            self.log_util.debug(
+                "Auto-selecting folder after filters change",
+                extra_info={
+                    "auto_select_folder": auto_select_folder,
+                    "prior_folder": prior_folder,
+                    "first_item": first_item,
+                },
+            )
 
             if auto_select_folder == "auto_select_prior_folder" and prior_folder:
                 self.controller.set_current_folder(prior_folder, force=True)
-            elif first_item:
+            else:
                 self.controller.set_current_folder(first_item.full_path, force=True)
         else:
-            # No folders found matching filters or no media folders configured
             self.image_list.update_image_from_folder("")
 
     def _on_folder_selected(self, folder_path: str) -> None:
-        # We still want to avoid circular updates if everything is already in sync
         if (
             self.folder_list.folder_list_view.property("last_selected_folder")
             == folder_path
@@ -279,10 +310,12 @@ class AppContainer:
         self.folder_list.folder_list_view.setProperty(
             "last_selected_folder", folder_path
         )
-        print(f"_on_folder_selected:{folder_path}")
+        self.log_util.debug(
+            "Folder selected",
+            extra_info={"folder_path": folder_path},
+        )
 
         self.folder_list.set_selected_folder(folder_path)
-
         self.file_list.refresh(folder_path)
         self.image_list.refresh(folder_path)
 
@@ -292,87 +325,100 @@ class AppContainer:
         self.video_player.set_folder_path(folder_path)
         self.media_info.refresh(folder_path, self.controller.state.current_tab)
 
-    def resize_window(self, window:QMainWindow|None, app_size:str="", app_pos:str="") -> None:
+    @staticmethod
+    def _parse_window_size(value: str) -> tuple[int, int] | None:
+        """Parse sizes like '1600x900' or names like 'app_size_1600x900'.
+
+        Returns (width, height) or None on failure.
+        """
+        if not value or "x" not in value:
+            return None
+
+        # Allow values that include a prefix such as 'app_size_1600x900'
+        if value.startswith("app_size_"):
+            value = value.split("app_size_", 1)[1]
+
+        try:
+            width, height = map(int, value.split("x", 1))
+        except ValueError:
+            return None
+        return width, height
+
+    def _apply_window_size(self, window: QMainWindow, launch_size: str) -> None:
+        if launch_size == "app_size_maximized":
+            window.showMaximized()
+            return
+
+        if (
+            launch_size == "app_size_last"
+            and self.settings.settings_data_model.app_size
+        ):
+            launch_size = self.settings.settings_data_model.app_size
+
+        parsed_size = self._parse_window_size(launch_size)
+        if parsed_size is not None:
+            width, height = parsed_size
+            width = max(width, MIN_WINDOW_SIZE[0])
+            height = max(height, MIN_WINDOW_SIZE[1])
+            self.log_util.info(
+                "Applying window size",
+                extra_info={"width": width, "height": height},
+            )
+            window.resize(width, height)
+            return
+
+        window.resize(*DEFAULT_WINDOW_SIZE)
+
+    def _apply_window_position(self, window: QMainWindow, launch_pos: str) -> None:
+        if launch_pos == "app_pos_last" and self.settings.settings_data_model.app_pos:
+            app_pos_coords = self.settings.settings_data_model.app_pos
+            if app_pos_coords and "," in app_pos_coords:
+                try:
+                    x, y = map(int, app_pos_coords.split(",", 1))
+                    window.move(x, y)
+                except ValueError:
+                    pass
+                return
+
+        if not launch_pos.startswith("app_pos_center"):
+            return
+
+        screen = QGuiApplication.primaryScreen().availableGeometry()
+        window_geo = window.frameGeometry()
+
+        if launch_pos == "app_pos_center_center":
+            x = screen.left() + (screen.width() - window_geo.width()) // 2
+            y = screen.top() + (screen.height() - window_geo.height()) // 2
+            window.move(x, y)
+        elif launch_pos == "app_pos_center_bottom":
+            x = screen.left() + (screen.width() - window_geo.width()) // 2
+            y = screen.top() + screen.height() - window_geo.height()
+            window.move(x, y)
+        elif launch_pos == "app_pos_center_top":
+            x = screen.left() + (screen.width() - window_geo.width()) // 2
+            y = screen.top()
+            window.move(x, y)
+
+    def resize_window(
+        self,
+        window: QMainWindow | None,
+        app_size: str = "",
+        app_pos: str = "",
+        apply_resize: bool = True,
+    ) -> None:
         if not window:
-            print("resize_window no window obj")
+            self.log_util.warning("resize_window called without a window object")
             return
 
         self.window = window
 
-        # Apply launch window size based on settings
-        launch_size = getattr(
-            self.settings.settings_data_model,
-            "launch_app_size",
-            "app_size_min",
-        )
-        if app_size:
-            launch_size = app_size
+        if apply_resize:
+            launch_size = self.settings.settings_data_model.launch_app_size
+            if app_size:
+                launch_size = app_size
+            self._apply_window_size(window, launch_size)
 
-        # self.log_util.info(f"resize_window: launch_size:{launch_size}")
-        if launch_size == "app_size_maximized":
-            window.showMaximized()
-        elif launch_size == "app_size_last" and hasattr(
-            self.settings.settings_data_model, "app_size"
-        ):
-            # Restore saved window app_size if available
-            app_size = getattr(
-                self.settings.settings_data_model, "app_size", ""
-            )
-            self.log_util.info(f"resize_window: app_size:{app_size}")
-            launch_size = app_size
-
-        if launch_size and "x" in launch_size:
-            # Parse resolution like "1920x1080"
-            try:
-                width, height = map(int, launch_size.split("x"))
-                self.log_util.info(f"resize_window: width:{width} height:{height}")
-                if width < 1000:
-                    width = 1000
-                if height < 500:
-                    height = 500
-                window.resize(width, height)
-            except ValueError, IndexError:
-                window.resize(1400, 900)
-                self.log_util.error(f"resize_window: launch_size:{launch_size}: {ValueError, IndexError}")
-        else:
-            # app_size_min
-            window.resize(1400, 900)
-
-        # Apply launch window position based on settings
-        launch_pos = getattr(
-            self.settings.settings_data_model,
-            "launch_app_pos",
-            "app_pos_last",
-        )
+        launch_pos = self.settings.settings_data_model.launch_app_pos
         if app_pos:
             launch_pos = app_pos
-
-        if launch_pos == "app_pos_last" and hasattr(
-            self.settings.settings_data_model, "app_pos"
-        ):
-            app_pos_coords = getattr(
-                self.settings.settings_data_model, "app_pos", ""
-            )
-            if app_pos_coords and "," in app_pos_coords:
-                try:
-                    x, y = map(int, app_pos_coords.split(","))
-                    window.move(x, y)
-                except ValueError:
-                    pass
-        elif launch_pos.startswith("app_pos_center"):
-            screen = QGuiApplication.primaryScreen().availableGeometry()
-            window_geo = window.frameGeometry()
-
-            if launch_pos == "app_pos_center_center":
-                x = screen.left() + (screen.width() - window_geo.width()) // 2
-                y = screen.top() + (screen.height() - window_geo.height()) // 2
-                window.move(x, y)
-            elif launch_pos == "app_pos_center_bottom":
-                x = screen.left() + (screen.width() - window_geo.width()) // 2
-                y = screen.top() + screen.height() - window_geo.height()
-                window.move(x, y)
-            elif launch_pos == "app_pos_center_top":
-                x = screen.left() + (screen.width() - window_geo.width()) // 2
-                y = screen.top()
-                window.move(x, y)
-
+        self._apply_window_position(window, launch_pos)

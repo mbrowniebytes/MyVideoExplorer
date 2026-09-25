@@ -6,11 +6,14 @@ a = Analysis(
     binaries=[],
     datas=[
         ( 'README.md', './' ),
-        ( 'cfg/defaults*.json', 'cfg/' ),
+        ( 'doc/', 'doc/' ),
         ( 'asset/app.png', 'asset/' ),
         ( 'asset/fonts/', 'asset/fonts/' ),
+        ( 'src/MyVideoExplorer/settings/cfg/defaults*.json', 'MyVideoExplorer/settings/cfg/' ),
+        ( 'src/MyVideoExplorer/db/migrations/*.sql', 'MyVideoExplorer/db/migrations/' ),
     ],
-    hiddenimports=[],
+    hiddenimports=['uuid', '_uuid', 'duckdb', 'pandas'],
+    collect_all=['duckdb'],
     hookspath=[],
     runtime_hooks=[],
     excludes=[
@@ -29,7 +32,6 @@ a = Analysis(
         'PySide6.QtLocation',
         'PySide6.QtMultimedia',
         'PySide6.QtMultimediaWidgets',
-        'PySide6.QtNetwork',
         'PySide6.QtNfc',
         'PySide6.QtOpenGL',
         'PySide6.QtOpenGLWidgets',
@@ -44,7 +46,6 @@ a = Analysis(
         'PySide6.QtScxml',
         'PySide6.QtSensors',
         'PySide6.QtSerialPort',
-        'PySide6.QtSql',
         'PySide6.QtStateMachine',
         'PySide6.QtSvg',
         'PySide6.QtSvgWidgets',
@@ -63,13 +64,11 @@ a = Analysis(
         'dbm',
         'distutils',
         'doctest',
-        'email',
         'ftplib',
         'html',
         'http',
         'lib2to3',
         'msilib',
-        'multiprocessing',
         'nntplib',
         'pydoc',
         'pydoc_data',
@@ -84,6 +83,76 @@ a = Analysis(
         'xmlrpc',
     ],
 )
+
+# -- start additional removals from build
+
+# --- Strip unused Qt binaries & data that excludes can't touch ---
+EXCLUDED_BINARIES = (
+    'Qt6AxContainer',
+    'Qt6Bluetooth',
+    'Qt6Charts',
+    'Qt6DataVisualization',
+    'Qt6Designers',
+    'Qt6Help',
+    'Qt6Location',
+    'Qt6Multimedia',
+    'Qt6Nfc',
+    'Qt6OpenGL',
+    'Qt6Pdf',
+    'Qt6Positioning',
+    'Qt6PrintSupport',
+    'Qt6Qml',
+    'Qt6Quick',
+    'Qt6RemoteObjects',
+    'Qt6Scxml',
+    'Qt6Sensors',
+    'Qt6SerialPort',
+    'Qt6ShaderTools',
+    'Qt6StateMachine',
+    'Qt6Test',
+    'Qt6TextToSpeech',
+    'Qt6VirtualKeyboard',
+    'Qt6WebChannel',
+    'Qt6WebEngine',
+    'Qt6WebSockets',
+    'Qt6Xml',
+    'Qt63D',
+)
+EXCLUDED_BINARIES = tuple(b.lower() for b in EXCLUDED_BINARIES)
+
+# Languages to KEEP in Qt translations (None = remove all)
+# KEEP_LANGS = ('en', 'de', 'es')
+KEEP_LANGS = ('en')
+
+# Folder prefixes to drop entirely (QML + leftover Qt data)
+EXCLUDED_DATA_PREFIXES = (
+    'PySide6/qml',
+    'PySide6/Qt/qml',
+)
+
+def _keep(item):
+    """Filter predicate for a.binaries and a.datas tuples."""
+    path = item[0].replace('\\', '/')
+    path_lower = path.lower()
+
+    name = path_lower.rsplit('/', 1)[-1]
+    if name.startswith(EXCLUDED_BINARIES):
+        return False
+
+    if any(path_lower.startswith(p) for p in EXCLUDED_DATA_PREFIXES):
+        return False
+
+    if 'translations' in path_lower and path_lower.endswith('.qm'):
+        if KEEP_LANGS is None:
+            return False
+        return any(f'_{lang}.' in path_lower for lang in KEEP_LANGS)
+
+    return True
+
+a.binaries = [x for x in a.binaries if _keep(x)]
+a.datas = [x for x in a.datas if _keep(x)]
+
+# -- end additional removals from build
 
 pyz = PYZ(
     a.pure,
@@ -102,7 +171,7 @@ exe = EXE(
     name='MyVideoExplorer',
     debug=False,
     bootloader_ignore_signals=False,
-    strip=True,
+    strip=False,
     upx=True,
     upx_exclude=[
         'qwindows.dll',
@@ -117,7 +186,7 @@ coll = COLLECT(
     a.binaries,
     a.zipfiles,
     a.datas,
-    strip=True,
+    strip=False,
     upx=True,
     upx_exclude=[
         'qwindows.dll',

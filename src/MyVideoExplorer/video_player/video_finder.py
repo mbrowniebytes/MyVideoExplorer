@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 from MyVideoExplorer.utils.log_util import LogUtil
@@ -9,7 +8,7 @@ class VideoFinder:
 
     VIDEO_EXTS = frozenset({".mkv", ".mp4", ".avi", ".ts", ".mpg", ".mpeg", ".m4v"})
 
-    def __init__(self, log_util:LogUtil) -> None:
+    def __init__(self, log_util: LogUtil) -> None:
         self.log_util = log_util
 
     def find_associated_video(self, folder_path: str | None) -> str | None:
@@ -21,31 +20,29 @@ class VideoFinder:
         2. If no exact name match is found, returns the first video found in the directory.
         """
 
-        if not folder_path or not os.path.isdir(folder_path):
-            self.log_util.warn(f"{folder_path} not a dir")
+        folder_path_obj = Path(folder_path) if folder_path else None
+        if folder_path_obj is None or not folder_path_obj.is_dir():
+            self.log_util.warning(f"{folder_path} not a dir")
             return None
 
         try:
             # largest fle prob video
-            # directory_items = sorted(os.listdir(folder_path), reverse=True, key=os.path.getsize)
+            # directory_items = sorted(folder_path_obj.iterdir(), key=lambda p: p.stat().st_size, reverse=True)
 
             # video name prob same as folder name
-            # path_obj = Path(folder_path)
-            # pattern = path_obj.stem + "*"
-            # directory_items = sorted(path_obj.glob(pattern))
+            # pattern = folder_path_obj.name + "*"
+            # directory_items = sorted(folder_path_obj.glob(pattern))
 
             # grab all
-            directory_items = sorted(os.listdir(folder_path))
+            directory_items = sorted(
+                folder_path_obj.iterdir(), key=lambda item: item.name
+            )
         except OSError as e:
             self.log_util.error(f"Error listdir {folder_path} {e}")
             return None
 
-        folder_path_obj = Path(folder_path)
         for item in directory_items:
-            # full_item_path = os.path.join(folder_path, item)
-            full_item_path = folder_path_obj.joinpath(item)
-            # print(f"find_associated_video: full_item_path{full_item_path} {full_item_path.suffix.lower()}")
-            # if not os.path.isfile(full_item_path):
+            full_item_path = item
             if not full_item_path.is_file():
                 continue
 

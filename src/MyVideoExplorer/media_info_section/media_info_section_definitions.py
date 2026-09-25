@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-
 MEDIA_INFO_SECTION_COMMON = "section_common"
 MEDIA_INFO_SECTION_PLOT = "section_plot"
 MEDIA_INFO_SECTION_IDS = "section_ids"

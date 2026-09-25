@@ -1,5 +1,5 @@
 from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QVBoxLayout, QWidget, QPushButton
+from PySide6.QtWidgets import QPushButton, QVBoxLayout, QWidget
 
 from MyVideoExplorer.theme.theme import APP_THEME
 
@@ -17,7 +17,7 @@ class CollapsibleBoxWidget(QWidget):
 
         # Eager initialization removes the need for redundant None checks later
         self.label = label
-        self.toggle_button = QPushButton(self.label)
+        self.toggle_button = QPushButton(self.label, parent=self)
         self.content_area = QWidget(self)
         self._layout = QVBoxLayout(self)
         self.content_layout = QVBoxLayout()

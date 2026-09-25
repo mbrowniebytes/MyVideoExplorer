@@ -1,8 +1,14 @@
 from __future__ import annotations
 
+from pathlib import Path
+from typing import Any
+
+import duckdb
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QWidget
 
+from MyVideoExplorer.db import db_query
+from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.log_util import LogUtil
@@ -13,12 +19,12 @@ class FolderFilterFilter:
     def __init__(
         self,
         nfo_parse_util: NfoParseUtil,
-        folder_configs: list[dict] | None = None,
+        settings_state: SettingsState,
         log_util: LogUtil | None = None,
     ):
         self.log_util = log_util
         self.nfo_parse_util = nfo_parse_util
-        self.folder_configs = folder_configs or []
+        self.settings_state = settings_state
         if self.log_util:
             self.log_util.debug(f"__init__ {self.__class__.__name__}")
 
@@ -39,10 +45,13 @@ class FolderFilterFilter:
             if item.is_dir:
                 current_dir = item
 
+            # print(f"DEBUG: item={item.full_path}, is_dir={item.is_dir}, current_dir={current_dir.full_path if current_dir else None}")
+
             if current_dir is None:
                 continue
 
             if self._item_matches(item=item, filters=filters):
+                # print(f"DEBUG: match! item={item.full_path}")
                 if current_dir.full_path and current_dir.full_path not in seen_paths:
                     filtered_items.append(current_dir)
                     seen_paths.add(current_dir.full_path)
@@ -82,6 +91,15 @@ class FolderFilterFilter:
 
         # AND across types, OR within types
         for filter_type, values in grouped_filters.items():
+            if not self.settings_state.db_enabled() and filter_type in {
+                "genre",
+                "actor",
+                "director",
+                "title",
+                "plot",
+            }:
+                continue
+
             type_match = False
             for filter_value in values:
                 # print(f"filter_type:{filter_type} filter_value:{filter_value}")
@@ -118,7 +136,7 @@ class FolderFilterFilter:
                 }:
                     continue
 
-                movie_info = self.nfo_parse_util.parse_nfo(nfo_file=item.full_path)
+                movie_info = self._get_movie_info(item)
                 if movie_info is None:
                     continue
 
@@ -130,6 +148,39 @@ class FolderFilterFilter:
                 return False
 
         return True
+
+    def _get_movie_info(self, item: FileUtilModel) -> dict[str, Any] | None:
+        if self.settings_state.db_enabled():
+            # Find folder config
+            for config in self.settings_state.media_configs:
+                if item.full_path.startswith(config["path"]):
+                    db_path = self.settings_state.get_db_path(config)
+                    if Path(db_path).exists():
+                        # Query DB
+                        db_path_str = Path(db_path).as_posix()
+                        con = duckdb.connect(db_path_str)
+                        res = con.execute(
+                            db_query.DbQuery.MediaFile.SELECT_METADATA,
+                            (item.full_path,),
+                        ).fetchone()
+                        con.close()
+
+                        if res:
+                            return {
+                                "title": res[0],
+                                "year": res[1],
+                                "plot": res[2],
+                                "score": res[3],
+                                "rated": res[4],
+                                "runtime": res[5],
+                                "tags": res[6],
+                                "genres": res[7],
+                                "actors": res[8],
+                                "director": res[9],
+                            }
+
+        # Fallback
+        return self.nfo_parse_util.parse_nfo(nfo_file=item.full_path)
 
     @staticmethod
     def _matches_folder_filter(
@@ -202,10 +253,7 @@ class FolderFilterFilter:
 
     @staticmethod
     def _contains_any(values: list[str], needle: str) -> bool:
-        for value in values:
-            if needle in value.casefold():
-                return True
-        return False
+        return any(needle in value.casefold() for value in values)
 
     @staticmethod
     def _contains_text(value: str, needle: str) -> bool:

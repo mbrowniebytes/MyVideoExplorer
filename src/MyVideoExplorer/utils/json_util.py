@@ -1,7 +1,7 @@
+import datetime
 import json
 import os
 import shutil
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -31,7 +31,7 @@ class JsonUtil:
     def load_json(self, file_path: Path) -> dict[str, Any]:
         """Load JSON data from a file. Returns empty dict on error or missing file."""
         try:
-            with open(file_path, encoding=self.DEFAULT_ENCODING) as f:
+            with file_path.open(encoding=self.DEFAULT_ENCODING) as f:
                 data: Any = json.load(f)
                 return data
         except (OSError, json.JSONDecodeError) as e:
@@ -39,42 +39,64 @@ class JsonUtil:
             return {}
 
     def save_json(self, file_path: Path, data: dict[str, Any]) -> None:
-        """Save data to a JSON file with proper error handling."""
+        """Atomically write JSON to avoid partially-written settings files."""
         try:
             file_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(file_path, "w", encoding=self.DEFAULT_ENCODING) as f:
+            temp_path = file_path.parent / f".{file_path.name}.{os.getpid()}.tmp"
+            with temp_path.open("w", encoding=self.DEFAULT_ENCODING) as f:
                 json.dump(data, f, indent=self.DEFAULT_INDENT)
+                f.flush()
+                os.fsync(f.fileno())
+            temp_path.replace(file_path)
         except OSError as e:
             self.log_util.error(f"Failed to save {file_path}: {e}")
+        finally:
+            temp_path = file_path.parent / f".{file_path.name}.{os.getpid()}.tmp"
+            if temp_path.exists():
+                try:
+                    temp_path.unlink()
+                except OSError:
+                    pass
 
-    def backup_file(self, file_path: Path, max_backups: int = MAX_BACKUPS_DEFAULT) -> None:
+    def backup_file(
+        self, file_path: Path, max_backups: int = MAX_BACKUPS_DEFAULT
+    ) -> None:
         """Manage daily backups of a file, keeping up to max_backups."""
         if not file_path.exists():
             return
 
-        if "PYTEST_CURRENT_TEST" in os.environ:
-            cfg_dir = file_path.parent
-        else:
-            # explicit set
-            cfg_dir = self.CFG_DIR
+        backup_dir = file_path.parent / "backups"
+        backup_dir.mkdir(parents=True, exist_ok=True)
 
         backup_pattern = f"{file_path.stem}_*{file_path.suffix}"
 
-        # Only backup if the content has changed since the latest backup
-        backups = sorted(cfg_dir.glob(backup_pattern), reverse=True, key=os.path.getmtime)
+        try:
+            current_contents = file_path.read_text(encoding=self.DEFAULT_ENCODING)
+        except OSError as e:
+            self.log_util.error(f"Failed to read {file_path}: {e}")
+            return
+
+        # Only backup if the content has changed since the latest backup.
+        backups = sorted(
+            backup_dir.glob(backup_pattern),
+            reverse=True,
+            key=lambda p: p.stat().st_mtime,
+        )
         if backups:
             latest_backup = backups[0]
             try:
                 if (
                     latest_backup.read_text(encoding=self.DEFAULT_ENCODING)
-                    == file_path.read_text(encoding=self.DEFAULT_ENCODING)
+                    == current_contents
                 ):
                     return
             except OSError:
                 pass
 
-        today_str = datetime.now().strftime("%Y-%m-%d")
-        backup_name = cfg_dir / f"{file_path.stem}_{today_str}{file_path.suffix}"
+        today_str = (
+            datetime.datetime.now(datetime.UTC).astimezone().strftime("%Y-%m-%d")
+        )
+        backup_name = backup_dir / f"{file_path.stem}_{today_str}{file_path.suffix}"
 
         # Only create one backup per day
         if not backup_name.exists():
@@ -85,16 +107,14 @@ class JsonUtil:
                 return
 
         # Keep only the max_backups most recent backups
-
-        # explicit check, since deleting files
-        if backup_pattern.find("settings_") == -1:
-            self.log_util.warn(f"Failed to delete old backups with unexpected pattern {backup_pattern}")
-            return
-
-        backups = sorted(cfg_dir.glob(backup_pattern), reverse=True, key=os.path.getmtime)
+        backups = sorted(
+            backup_dir.glob(backup_pattern),
+            reverse=True,
+            key=lambda p: p.stat().st_mtime,
+        )
 
         for old_backup in backups[max_backups:]:
             try:
                 old_backup.unlink()
             except OSError as e:
-                self.log_util.warn(f"Failed to delete old backup {old_backup}: {e}")
+                self.log_util.warning(f"Failed to delete old backup {old_backup}: {e}")

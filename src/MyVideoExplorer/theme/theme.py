@@ -1,19 +1,24 @@
 from __future__ import annotations
-from MyVideoExplorer.theme.models import ThemeConfig
-from MyVideoExplorer.theme.styles import StyleFactory
+
 from MyVideoExplorer.theme.manager import ThemeManager
+from MyVideoExplorer.theme.models import ThemeConfig
+from MyVideoExplorer.theme.style.style_app import StyleApp
+from MyVideoExplorer.theme.style.style_button import StyleButton
+from MyVideoExplorer.theme.style.style_label import StyleLabel
+from MyVideoExplorer.theme.style.style_layout import StyleLayout
+from MyVideoExplorer.theme.style.style_list import StyleList
+from MyVideoExplorer.theme.style.style_progress_bar import StyleProgressBar
+from MyVideoExplorer.theme.style.style_tab import StyleTab
+from MyVideoExplorer.theme.style.style_table import StyleTable
+
 
 class Theme(ThemeManager):
     """
     Main theme entry point.
-    Maintains backward compatibility with original class name.
     """
+
     def __init__(self, config: ThemeConfig | None = None):
         super().__init__(config or ThemeConfig())
-
-    # --- Backward Compatibility Properties ---
-    # These allow existing code to access APP_THEME.font_size etc.
-    # while mapping them to the new verbose config names.
 
     @property
     def font_size(self) -> int:
@@ -54,51 +59,67 @@ class Theme(ThemeManager):
     # --- Backward Compatibility Methods ---
 
     def button_qss(self) -> str:
-        return StyleFactory.get_button_qss(self.config)
+        return StyleButton.get_button_qss(self.config)
 
     def button_highlight_qss(self) -> str:
-        return StyleFactory.get_button_highlight_qss(self.config)
+        return StyleButton.get_button_highlight_qss(self.config)
 
     def label_qss(self, variant: str | None = None) -> str:
-        return StyleFactory.get_label_qss(self.config, variant=variant or "default")
+        return StyleLabel.get_label_qss(self.config, variant=variant or "default")
 
     def help_icon_label_qss(self) -> str:
-        return StyleFactory.get_label_qss(self.config, variant="help_icon")
+        return StyleLabel.get_label_qss(self.config, variant="help_icon")
 
     def secondary_label_qss(self) -> str:
-        return StyleFactory.get_label_qss(self.config, variant="secondary")
+        return StyleLabel.get_label_qss(self.config, variant="secondary")
 
     def title_label_qss(self) -> str:
-        return StyleFactory.get_label_qss(self.config, variant="title")
+        return StyleLabel.get_label_qss(self.config, variant="title")
+
+    def loading_label_qss(self) -> str:
+        return StyleLabel.get_label_qss(self.config, variant="app_loading")
 
     def field_value_qss(self) -> str:
-        return StyleFactory.get_label_qss(self.config, variant="field_value")
+        return StyleLabel.get_label_qss(self.config, variant="field_value")
 
     def list_qss(self) -> str:
-        return StyleFactory.get_list_qss(self.config)
+        return StyleList.get_list_qss(self.config)
 
     def table_qss(self) -> str:
-        return StyleFactory.get_table_qss(self.config)
+        return StyleTable.get_table_qss(self.config)
 
     def bottom_border_qss(self) -> str:
-        return StyleFactory.get_bottom_border_qss(self.config)
+        return StyleLayout.get_bottom_border_qss(self.config)
+
+    def separator_line_qss(self) -> str:
+        return StyleLayout.get_separator_line_qss(self.config)
+
+    def settings_media_folder_browser_section_qss(self) -> str:
+        return StyleLayout.get_settings_media_folder_browser_section_qss(self.config)
 
     def splitter_qss(self) -> str:
-        return StyleFactory.get_splitter_qss(self.config)
+        return StyleLayout.get_splitter_qss(self.config)
 
     def tabs_qss(self) -> str:
-        return StyleFactory.get_tabs_qss(self.config)
+        return StyleTab.get_tabs_qss(self.config)
+
+    def media_section_container_qss(self) -> str:
+        return StyleLayout.get_media_section_container_qss(self.config)
+
+    def progress_bar_qss(self, active: bool = True) -> str:
+        return StyleProgressBar.get_progress_bar_qss(self.config, active=active)
 
     def small_button_qss(self) -> str:
-        return StyleFactory.get_small_button_qss(self.config)
+        return StyleButton.get_small_button_qss(self.config)
 
     def container_qss(self) -> str:
-        return StyleFactory.get_app_qss(self.config)
+        return StyleApp.get_app_qss(self.config)
 
     def app_qss(self) -> str:
-        return StyleFactory.get_app_qss(self.config)
+        return StyleApp.get_app_qss(self.config)
 
     def icon(self, name: str, **kwargs):
         return self.get_icon(name, **kwargs)
+
 
 APP_THEME = Theme()

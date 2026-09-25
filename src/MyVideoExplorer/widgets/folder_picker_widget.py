@@ -1,13 +1,13 @@
-
-from PySide6.QtCore import Signal, Qt, QSize
+from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtWidgets import (
     QFileDialog,
-    QWidget,
     QHBoxLayout,
-    QToolButton,
     QSizePolicy,
+    QToolButton,
+    QWidget,
 )
-from MyVideoExplorer.app.app_signals_model import SignalPayload, SignalFlow
+
+from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.ui_utils import UIUtils
 
@@ -24,18 +24,21 @@ class FolderPickerWidget(QWidget):
     def _setup_ui(self) -> None:
         layout = self._ui_utils.apply_compact_layout(self, QHBoxLayout)
 
-        self.pick_button = QToolButton()
+        self.pick_button = QToolButton(self)
         self.pick_button.setToolTip("Select Folder")
         self.pick_button.setCheckable(True)
         self.pick_button.setCursor(Qt.CursorShape.PointingHandCursor)
 
-        self.pick_button.setIcon(APP_THEME.icon("fa5s.folder-open", color=APP_THEME.text_color))
+        self.pick_button.setIcon(
+            APP_THEME.icon("fa6s.folder-open", color=APP_THEME.text_color)
+        )
         self.pick_button.setIconSize(QSize(APP_THEME.icon_size, APP_THEME.icon_size))
-        self.pick_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.pick_button.setSizePolicy(
+            QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
+        )
         self.pick_button.setFixedSize(70, 40)
 
         self.pick_button.setText("")
-
 
         self.pick_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
         self.pick_button.clicked.connect(self.pick_folder)
@@ -71,4 +74,3 @@ class FolderPickerWidget(QWidget):
 
         # The property setter handles duplicate checks and signal emission automatically
         self.selected_folder = selected_folder
-

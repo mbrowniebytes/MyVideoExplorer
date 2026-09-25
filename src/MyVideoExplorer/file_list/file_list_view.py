@@ -10,7 +10,7 @@ from MyVideoExplorer.utils.file_util_model import FileUtilModel
 
 
 class FileListView(QListWidget):
-    sig_file_selected = Signal(object)
+    file_selected = Signal(object)
 
     def __init__(self) -> None:
         super().__init__()
@@ -24,8 +24,6 @@ class FileListView(QListWidget):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setSpacing(8)
-
-        self.apply_theme()
 
     def resizeEvent(self, event: QResizeEvent) -> None:
         super().resizeEvent(event)
@@ -61,7 +59,7 @@ class FileListView(QListWidget):
                 description="Emitted when a file is selected in FileListView.",
                 flow=SignalFlow.USER_INPUT,
             )
-            self.sig_file_selected.emit(payload)
+            self.file_selected.emit(payload)
 
     def add_file_item(self, item: FileUtilModel) -> None:
         icon = self._get_icon(item.file_type)
@@ -74,16 +72,16 @@ class FileListView(QListWidget):
         self.addItem(list_item)
 
     def _get_icon(self, file_type: str | None) -> QIcon:
-        icon_name = "fa5s.file"
+        icon_name = "fa6s.file"
 
         if file_type == "video":
-            icon_name = "fa5s.file-video"
+            icon_name = "fa6s.file-video"
         elif file_type in ("image", "poster"):
-            icon_name = "fa5s.file-image"
+            icon_name = "fa6s.file-image"
         elif file_type == "nfo":
-            icon_name = "fa5s.file-alt"
+            icon_name = "fa6s.file-alt"
         else:
-            icon_name = "fa5s.file"
+            icon_name = "fa6s.file"
 
         return APP_THEME.icon(icon_name, color=APP_THEME.text_color)
 

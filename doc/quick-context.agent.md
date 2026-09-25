@@ -1,4 +1,5 @@
 # Project AI Context: MyVideoExplorer
+- Never run git add or git commit
 
 ## Overview
 
@@ -25,7 +26,7 @@ source .venv/Scripts/activate
     - `src/MyVideoExplorer/utils/`: Utility functions.
 
 ## Development Guidelines
-
+- Never run git add or git commit
 - Follow existing file structure and naming conventions.
 - Keep UI components self-contained where possible.
 - Use the `doc/python-best-practices.md` doc for Python-specific development rules.

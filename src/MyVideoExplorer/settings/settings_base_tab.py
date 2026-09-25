@@ -5,8 +5,8 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QPushButton, QWidget
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
-from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
+from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.ui_utils import UIUtils
 
@@ -14,8 +14,8 @@ from MyVideoExplorer.utils.ui_utils import UIUtils
 class SettingsBaseTab(QWidget, ThemableMixin):
     """Base class for settings tabs to provide standard signaling and save button behavior."""
 
-    sig_changed = Signal(object)
-    sig_saved = Signal(object)
+    changed = Signal(object)
+    saved = Signal(object)
 
     def __init__(
         self, log_util: LogUtil | None = None, parent: QWidget | None = None
@@ -36,13 +36,13 @@ class SettingsBaseTab(QWidget, ThemableMixin):
             description="Emitted when a setting is changed in the tab.",
             flow=SignalFlow.USER_INPUT,
         )
-        self.sig_changed.emit(payload)
+        self.changed.emit(payload)
         self.highlight_save_button()
 
     def _build_reset_button(
         self, label: str, callback: Callable[[], None]
     ) -> QPushButton:
-        self.reset_btn = QPushButton(label)
+        self.reset_btn = QPushButton(label, parent=self)
         self.reset_btn.setStyleSheet(APP_THEME.button_qss())
         self.reset_btn.clicked.connect(callback)
         self.reset_btn.setEnabled(False)

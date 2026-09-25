@@ -1,9 +1,17 @@
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QLayout, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QHBoxLayout,
+    QLabel,
+    QLayout,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
+
 
 class LabelValueWidget(QWidget, ThemableMixin):
     """
@@ -14,7 +22,7 @@ class LabelValueWidget(QWidget, ThemableMixin):
     def __init__(
         self,
         name: str,
-        value: str | int | float | None = None,
+        value: str | float | None = None,
         orientation: Qt.Orientation = Qt.Orientation.Horizontal,
         is_link: bool = False,
         parent: QWidget | None = None,
@@ -88,12 +96,12 @@ class LabelValueWidget(QWidget, ThemableMixin):
         self.label_name.setFont(font)
         self.label_value.setFont(font)
 
-    def set_value(self, value: str | int | float | None) -> None:
+    def set_value(self, value: str | float | None) -> None:
         """Updates the value displayed by the widget."""
         self.value = value
         self._update_display_value(value)
 
-    def _update_display_value(self, value: str | int | float | None) -> None:
+    def _update_display_value(self, value: str | float | None) -> None:
         """Internal method to handle label text formatting."""
         text = str(value) if value is not None else ""
         self.label_value.setText(text)

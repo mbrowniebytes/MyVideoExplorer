@@ -1,8 +1,9 @@
-import os
 import threading
 from math import floor
+from pathlib import Path
 from typing import Any
-from xml.etree import ElementTree
+from xml.etree import ElementTree as ET
+
 from MyVideoExplorer.utils.file_util import FileUtil
 
 
@@ -86,22 +87,23 @@ class NfoParseUtil:
         if not nfo_file:
             return None
 
-        if not os.path.isfile(nfo_file):
+        if not Path(nfo_file).is_file():
             print(f"NfoUtil: NFO file does not exist: {nfo_file}")
             return None
 
         # We'll run the blocking code in a thread and return the result (synchronously)
         result_container = []
         result_container.append(None)
+
         def thread_worker():
             try:
-                tree = ElementTree.parse(nfo_file)
+                tree = ET.parse(nfo_file)
                 root = tree.getroot()
 
                 movie_info = self.create_empty_movie_info()
                 self.extract_media_metadata(root, movie_info)
                 result_container[0] = self.normalize_movie_info(movie_info)
-            except ElementTree.ParseError as e:
+            except ET.ParseError as e:
                 result_container[0] = None
                 err = f"Error parsing NFO file '{nfo_file}': {e}"
                 result_container.append(err)
@@ -133,7 +135,7 @@ class NfoParseUtil:
         return copy.deepcopy(self.MOVIE_INFO_SCHEMA)
 
     def extract_media_metadata(
-        self, root: ElementTree.Element, movie_info: dict[str, Any] | None = None
+        self, root: ET.Element, movie_info: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """Extract all media metadata from XML root into movie info."""
         if movie_info is None:
@@ -162,7 +164,7 @@ class NfoParseUtil:
 
     # --- Basic fields parsing ---
 
-    def _parse_basic_fields(self, root: ElementTree.Element, movie_info: dict[str, Any]) -> None:
+    def _parse_basic_fields(self, root: ET.Element, movie_info: dict[str, Any]) -> None:
         """Parse basic text fields and year from NFO root."""
         for field_name in ["title", "plot", "mpaa", "outline", "runtime", "tagline"]:
             value = root.findtext(field_name)
@@ -174,7 +176,7 @@ class NfoParseUtil:
 
     # --- ID parsing ---
 
-    def _parse_ids(self, root: ElementTree.Element, movie_info: dict) -> None:
+    def _parse_ids(self, root: ET.Element, movie_info: dict) -> None:
         """Parse unique IDs from NFO root."""
         # Try to parse uniqueid elements first
         uniqueid_nodes = root.findall("uniqueid")
@@ -219,7 +221,7 @@ class NfoParseUtil:
 
     # --- Set parsing ---
 
-    def _parse_set(self, root: ElementTree.Element, movie_info: dict) -> None:
+    def _parse_set(self, root: ET.Element, movie_info: dict) -> None:
         """Parse movie set information."""
         set_elem = root.find("set")
         if set_elem is None:
@@ -234,7 +236,7 @@ class NfoParseUtil:
 
     # --- Genre parsing ---
 
-    def _parse_genres(self, root: ElementTree.Element, movie_info: dict) -> None:
+    def _parse_genres(self, root: ET.Element, movie_info: dict) -> None:
         """Parse genres from NFO root."""
         for genre in root.findall("genre"):
             value = self._clean_text(genre.text)
@@ -243,7 +245,7 @@ class NfoParseUtil:
 
     # --- Source parsing ---
 
-    def _parse_source(self, root: ElementTree.Element, movie_info: dict) -> None:
+    def _parse_source(self, root: ET.Element, movie_info: dict) -> None:
         """Parse source application information."""
         source_elem = root.find("generator")
         if source_elem is None:
@@ -259,7 +261,7 @@ class NfoParseUtil:
 
     # --- Rating parsing ---
 
-    def _parse_rating(self, root: ElementTree.Element, movie_info: dict) -> None:
+    def _parse_rating(self, root: ET.Element, movie_info: dict) -> None:
         """Parse rating information from NFO root."""
         ratings_elem = root.find("ratings")
         if ratings_elem is not None:
@@ -276,9 +278,7 @@ class NfoParseUtil:
 
     # --- Stream details parsing ---
 
-    def _parse_stream_details(
-        self, root: ElementTree.Element, movie_info: dict
-    ) -> None:
+    def _parse_stream_details(self, root: ET.Element, movie_info: dict) -> None:
         """Parse video/audio/subtitle stream details from NFO root."""
         stream_root = root.find("fileinfo/streamdetails")
 
@@ -303,7 +303,7 @@ class NfoParseUtil:
 
     def _parse_stream_children(
         self,
-        root: ElementTree.Element,
+        root: ET.Element,
         tag_name: str,
         target_list: list,
         is_fallback: bool = False,
@@ -323,7 +323,7 @@ class NfoParseUtil:
             if stream_info not in target_list:
                 target_list.append(stream_info)
 
-    def _parse_video(self, video_elem: ElementTree.Element) -> dict:
+    def _parse_video(self, video_elem: ET.Element) -> dict:
         """Parse video stream information."""
         width = self._to_int(video_elem.findtext("width"), default=0)
         height = self._to_int(video_elem.findtext("height"), default=0)
@@ -344,7 +344,7 @@ class NfoParseUtil:
             "format": format_label,
         }
 
-    def _parse_audio(self, audio_elem: ElementTree.Element) -> dict:
+    def _parse_audio(self, audio_elem: ET.Element) -> dict:
         """Parse audio stream information."""
         return {
             "codec": self._clean_text(audio_elem.findtext("codec")),
@@ -353,20 +353,20 @@ class NfoParseUtil:
             "channels": self._to_int(audio_elem.findtext("channels"), default=0),
         }
 
-    def _parse_subtitle(self, subtitle_elem: ElementTree.Element) -> dict:
+    def _parse_subtitle(self, subtitle_elem: ET.Element) -> dict:
         """Parse subtitle information."""
         return {"language": self._clean_text(subtitle_elem.findtext("language"))}
 
     # --- People parsing ---
 
-    def _parse_directors(self, root: ElementTree.Element, movie_info: dict) -> None:
+    def _parse_directors(self, root: ET.Element, movie_info: dict) -> None:
         """Parse director information from NFO root."""
         for director in root.findall("director"):
             value = self._clean_text(director.text)
             if value and value not in movie_info["directors"]:
                 movie_info["directors"].append(value)
 
-    def _parse_actors(self, root: ElementTree.Element, movie_info: dict) -> None:
+    def _parse_actors(self, root: ET.Element, movie_info: dict) -> None:
         """Parse actor information from NFO root."""
         for actor in root.findall("actor"):
             name = self._clean_text(actor.findtext("name"))
@@ -449,9 +449,9 @@ class NfoParseUtil:
         """Check if a value is considered meaningful (non-empty string or non-zero number)."""
         if isinstance(value, str) and value.strip():
             return True
-        if isinstance(value, (int, float)) and value != 0:
-            return True
-        return False
+        return (isinstance(value, str) and bool(value.strip())) or (
+            isinstance(value, (int, float)) and value != 0
+        )
 
     def _has_meaningful_dict_value(self, row: dict) -> bool:
         """Check if a dictionary has at least one meaningful value."""

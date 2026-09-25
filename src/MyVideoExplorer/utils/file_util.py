@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import sys
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from time import sleep
 
@@ -28,15 +28,21 @@ class FileUtil:
         self.log_util.debug(f"__init__ {self.__class__.__name__}")
 
     @staticmethod
+    def normalize_path(path: str | os.PathLike[str]) -> str:
+        """Return a normalized filesystem path using forward-slash separators."""
+        candidate = Path(path).expanduser().resolve(strict=False)
+        return candidate.as_posix()
+
+    @staticmethod
     def get_resource_path(relative_path: str) -> str:
         """Get absolute path to resource, works for dev and for PyInstaller."""
         try:
             # PyInstaller creates a temp folder and stores path in _MEIPASS
-            base_path = sys._MEIPASS  # type: ignore
-        except Exception:
-            base_path = os.path.abspath("")
+            base_path = Path(sys._MEIPASS)  # type: ignore
+        except AttributeError:
+            base_path = Path.cwd()
 
-        return os.path.join(base_path, relative_path)
+        return (base_path / relative_path).as_posix()
 
     def _scan_directory(self, path: Path) -> list[os.DirEntry[str]]:
         """Safely scan a directory and return entries sorted by name."""
@@ -162,12 +168,13 @@ class FileUtil:
                     continue
                 if self.is_image_file(entry.path):
                     stem = Path(entry.name).stem.casefold()
+                    normalized_path = Path(entry.path).as_posix()
                     if stem.endswith("poster"):
-                        posters.append(entry.path)
+                        posters.append(normalized_path)
                     elif stem.endswith("fanart"):
-                        fanarts.append(entry.path)
+                        fanarts.append(normalized_path)
                     else:
-                        others.append(entry.path)
+                        others.append(normalized_path)
             except OSError:
                 continue
 
@@ -189,13 +196,61 @@ class FileUtil:
             depth=depth,
         )
 
+    def build_hierarchy_from_paths(
+        self, paths: list[str], root_path: str
+    ) -> list[FileUtilModel]:
+        """Builds a hierarchy of FileUtilModel from a list of paths."""
+        items: list[FileUtilModel] = []
+        dir_paths = set()
+
+        # 1. Collect all parent directories
+        root = Path(root_path)
+        for path in paths:
+            current = Path(path).parent
+            while current.as_posix().startswith(root.as_posix()):
+                if current.as_posix() not in dir_paths:
+                    dir_paths.add(current.as_posix())
+                if current == root:
+                    break
+                parent = current.parent
+                if parent == current:
+                    break
+                current = parent
+
+        # 2. Build items for dirs
+        # Sort directories to ensure deterministic order similar to filesystem scans
+        sorted_dirs = sorted(dir_paths, key=lambda p: p.lower())
+        for p in sorted_dirs:
+            if p == root.as_posix():
+                continue
+
+            # depth: number of levels below root_path
+            relative = Path(p).relative_to(root)
+            depth = len(relative.parts) if relative != Path() else 0
+
+            items.append(self.build_folder_item(p, depth=depth))
+
+        # 3. Build items for files
+        # Sort files by parent directory then filename for consistent ordering
+        sorted_paths = sorted(
+            paths,
+            key=lambda p: (Path(p).parent.as_posix().lower(), Path(p).name.lower()),
+        )
+        for path in sorted_paths:
+            # depth: number of levels below root_path + 1 for file
+            relative = Path(path).relative_to(root)
+            depth = len(relative.parts)
+            items.append(self.build_file_item(path, depth=depth))
+
+        return items
+
     def build_file_item(self, path: str, depth: int = 0) -> FileUtilModel:
         """Construct a FileUtilModel representing a file."""
         target = Path(path)
         return FileUtilModel(
             type="file",
             name=target.name,
-            full_path=str(target),
+            full_path=target.as_posix(),
             depth=depth,
             file_type=self.classify_file(target.name),
         )
@@ -224,7 +279,7 @@ class FileUtil:
                     entry.is_file(follow_symlinks=False)
                     and Path(entry.name).suffix.casefold() in exts
                 ):
-                    return entry.path
+                    return Path(entry.path).as_posix()
             except OSError:
                 continue
         return None
@@ -235,27 +290,26 @@ class FileUtil:
         if not target.is_dir():
             return None
 
+        return self.find_nfo_in_list(
+            path,
+            [
+                entry.name
+                for entry in self._scan_directory(target)
+                if entry.is_file(follow_symlinks=False)
+            ],
+        )
+
+    def find_nfo_in_list(self, path: str, files: Sequence[str]) -> str | None:
+        """Locate an NFO file in a given list of files, prioritizing standard media naming conventions."""
         preferred_names = {"movie.nfo", "tvshow.nfo"}
-        entries = self._scan_directory(target)
 
         # First pass: prioritize standard media NFO names
-        for entry in entries:
-            try:
-                if (
-                    entry.is_file(follow_symlinks=False)
-                    and entry.name.casefold() in preferred_names
-                ):
-                    return entry.path
-            except OSError:
-                continue
+        for f in files:
+            if f.casefold() in preferred_names:
+                return str(Path(path, f).as_posix())
 
         # Second pass: fallback to any file with NFO extension
-        for entry in entries:
-            try:
-                if entry.is_file(follow_symlinks=False) and self.file_type.is_nfo_file(
-                    entry.name
-                ):
-                    return entry.path
-            except OSError:
-                continue
+        for f in files:
+            if self.file_type.is_nfo_file(f):
+                return str(Path(path, f).as_posix())
         return None

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from pathlib import Path
 
+import duckdb
 from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtWidgets import (
     QComboBox,
@@ -13,6 +15,7 @@ from PySide6.QtWidgets import (
 )
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
+from MyVideoExplorer.db import db_query
 from MyVideoExplorer.folder_filter.folder_filter_filter import FolderFilterFilter
 from MyVideoExplorer.folder_filter.folder_filter_genre_combo_widget import (
     GenreComboWidget,
@@ -20,18 +23,18 @@ from MyVideoExplorer.folder_filter.folder_filter_genre_combo_widget import (
 from MyVideoExplorer.folder_filter.folder_filter_media import FolderFilterMedia
 from MyVideoExplorer.folder_filter.folder_filter_table import FolderFilterTable
 from MyVideoExplorer.settings.settings import Settings
-from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
+from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.ui_utils import UIUtils
 
 
 class FolderFilters(QWidget, ThemableMixin):
-    sig_apply_filters = Signal()
-    sig_genre_changed = Signal(object)
-    sig_root_folder = Signal(object)
-    sig_loading_started = Signal(object)
+    filters_requested = Signal()
+    genre_changed = Signal(object)
+    root_folder = Signal(object)
+    loading_started = Signal(object)
 
     GENRES = sorted(
         ["Action", "Comedy", "Sci-Fi", "Mystery", "Thriller", "Drama", "Adventure"]
@@ -48,17 +51,29 @@ class FolderFilters(QWidget, ThemableMixin):
         self.log_util = log_util
         self._ui_utils = UIUtils()
         self.settings = settings
-        self.apply_button = QToolButton()
-        self.add_filter_button = QToolButton()
-        self.filter_type_combo = QComboBox()
-        self.genre_combo = GenreComboWidget(self.GENRES)
-        self.nav_combo = QComboBox()
-        self.saved_filters_combo = QComboBox()
-        self.save_filter_button = QToolButton()
-        # self.delete_filter_button = QToolButton()
+        # Create child widgets with explicit parent to avoid becoming top-level windows
+        # TODO: these are rebuilt using _make_tool_button, declare instead of init
+        self.apply_button = QToolButton(self)
+        self.add_filter_button = QToolButton(self)
+        self.filter_type_combo = QComboBox(self)
+        self.genre_combo = GenreComboWidget(self.GENRES, parent=self)
+        self.nav_combo = QComboBox(self)
+        self.saved_filters_combo = QComboBox(self)
+        self.save_filter_button = QToolButton(self)
+        # These are helper controls kept for signal plumbing / future reuse. They
+        # are intentionally hidden because the actual filter editors live inside the
+        # table rows and should not duplicate at the top-left of the app.
+        self.genre_combo.setVisible(False)
+        self.nav_combo.setVisible(False)
+        # self.saved_filters_combo.setVisible(False)
+        self.save_filter_button.setVisible(False)
+        # self.filter_type_combo.setVisible(False)
+        self.add_filter_button.setVisible(False)
+        self.apply_button.setVisible(False)
+        # self.delete_filter_button = QToolButton(self)
         self.media_filter_widget = FolderFilterMedia(self.settings, log_util, self)
         self.filter_table = FolderFilterTable(
-            self.GENRES, self.settings.settings_data_model.folder_configs
+            self.GENRES, self.settings.settings_data_model.media_configs
         )
         # support multiple roots
         self.root_folders: list[str] = []
@@ -66,7 +81,7 @@ class FolderFilters(QWidget, ThemableMixin):
         self.file_util = file_util
 
     def build(self) -> QWidget:
-        filter_container = QWidget()
+        filter_container = QWidget(self)
 
         self.build_nav_combo()
         self._build_filter_type_combo()
@@ -77,7 +92,7 @@ class FolderFilters(QWidget, ThemableMixin):
         # self._build_delete_filter_button()
 
         self.filter_table = FolderFilterTable(
-            self.GENRES, self.settings.settings_data_model.folder_configs
+            self.GENRES, self.settings.settings_data_model.media_configs
         )
 
         # Add filter controls row
@@ -94,7 +109,7 @@ class FolderFilters(QWidget, ThemableMixin):
 
         filter_layout = QVBoxLayout(filter_container)
         filter_layout.setSpacing(0)
-        filter_layout.setContentsMargins(2, 0, 4, 0)
+        filter_layout.setContentsMargins(2, 0, 2, 0)
         filter_layout.addWidget(self.media_filter_widget)
         filter_layout.addLayout(saved_filters_layout)
         filter_layout.addLayout(add_filter_layout)
@@ -102,19 +117,17 @@ class FolderFilters(QWidget, ThemableMixin):
 
         left_layout = QVBoxLayout(self)
         left_layout.addWidget(filter_container)
+        # for debug, move filters down 2, 30, 2, 0
+        left_layout.setContentsMargins(2, 0, 2, 0)
 
         self._connect_sigs()
         return self
 
     def build_nav_combo(self) -> None:
-        if not hasattr(self, "nav_combo"):
-            self.nav_combo = QComboBox()
-            self.nav_combo.currentIndexChanged.connect(self._handle_media_selection)
-
         self.nav_combo.blockSignals(True)
         self.nav_combo.clear()
         self.nav_combo.addItem("- Select Folder -", userData="")
-        for config in self.settings.settings_data_model.folder_configs:
+        for config in self.settings.settings_data_model.media_configs:
             label = config.get("label", "")
             if not label:
                 label = config.get("path", "")
@@ -127,7 +140,7 @@ class FolderFilters(QWidget, ThemableMixin):
         self.nav_combo.blockSignals(False)
 
     def _build_filter_type_combo(self) -> None:
-        self.filter_type_combo = QComboBox()
+        # self.filter_type_combo = QComboBox(self)
         self.filter_type_combo.setEditable(True)
         index = 0
         for filter_type in FolderFilterTable.FILTER_TYPES:
@@ -150,18 +163,18 @@ class FolderFilters(QWidget, ThemableMixin):
         )
 
     def _build_apply_button(self) -> None:
-        self.apply_button = self._make_tool_button("Apply Filters", "fa5s.sync-alt")
+        self.apply_button = self._make_tool_button("Apply Filters", "fa6s.rotate")
         self.apply_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
-        self.apply_button.setFixedWidth(60)
+        self.apply_button.setFixedWidth(50)
 
     def _build_add_filter_button(self) -> None:
         self.add_filter_button = self._make_tool_button(
-            "Add Filter", "fa5s.plus-circle"
+            "Add Filter", "fa6s.circle-plus"
         )
-        self.add_filter_button.setFixedWidth(60)
+        self.add_filter_button.setFixedWidth(50)
 
     def _build_saved_filters_combo(self) -> None:
-        self.saved_filters_combo = QComboBox()
+        # self.saved_filters_combo = QComboBox(self)
         self.saved_filters_combo.setEditable(True)
         line_edit = self.saved_filters_combo.lineEdit()
         if line_edit is not None:
@@ -176,14 +189,16 @@ class FolderFilters(QWidget, ThemableMixin):
         self.saved_filters_combo.clear()
         self.saved_filters_combo.addItem("")
         filter_names = [
-            f.get("name") for f in self.settings.settings_data_model.saved_filters
+            f.get("name", "") for f in self.settings.settings_data_model.saved_filters
         ]
         for name in sorted(filter_names):
             self.saved_filters_combo.addItem(name)
 
     def _build_save_filter_button(self) -> None:
-        self.save_filter_button = self._make_tool_button("Save Filter", "fa5s.save")
-        self.save_filter_button.setFixedWidth(60)
+        self.save_filter_button = self._make_tool_button(
+            "Save Filter", "fa6s.floppy-disk"
+        )
+        self.save_filter_button.setFixedWidth(50)
 
     def _build_delete_filter_button(self) -> None:
         pass
@@ -193,12 +208,13 @@ class FolderFilters(QWidget, ThemableMixin):
         # self.delete_filter_button.setFixedWidth(60)
 
     def _make_tool_button(
-        self, label: str, icon_name: str = "fa5s.folder"
+        self, label: str, icon_name: str = "fa6s.folder"
     ) -> QToolButton:
-        btn = QToolButton()
+        btn = QToolButton(self)
         btn.setToolTip(label)
         # btn.setText(label)
-        btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        # btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
         btn.setIcon(APP_THEME.icon(icon_name, color=APP_THEME.text_color))
         btn.setIconSize(QSize(APP_THEME.icon_size, APP_THEME.icon_size))
         # btn.setText(f"  {label}")
@@ -207,28 +223,31 @@ class FolderFilters(QWidget, ThemableMixin):
         return btn
 
     def _connect_sigs(self) -> None:
-        self.apply_button.clicked.connect(self.sig_apply_filters.emit)
-        self.media_filter_widget.sig_apply_filters.connect(self.sig_apply_filters.emit)
+        self.nav_combo.currentIndexChanged.connect(self._handle_media_selection)
+        self.apply_button.clicked.connect(self.filters_requested.emit)
+        self.media_filter_widget.apply_filters.connect(self.filters_requested.emit)
         self.add_filter_button.clicked.connect(self._add_filter_clicked)
         self.save_filter_button.clicked.connect(self._save_filter_clicked)
         # self.delete_filter_button.clicked.connect(self._delete_filter_clicked)
         self.saved_filters_combo.currentIndexChanged.connect(self._load_saved_filter)
-        self.genre_combo.sig_genre_changed.connect(
-            lambda payload: self.sig_genre_changed.emit(payload)
+        self.genre_combo.genre_changed.connect(
+            lambda payload: self.genre_changed.emit(payload)
         )
-        self.filter_table.sig_genre_changed.connect(
-            lambda payload: self.sig_genre_changed.emit(payload)
+        self.filter_table.genre_changed.connect(
+            lambda payload: self.genre_changed.emit(payload)
         )
-        self.filter_table.sig_root_folder.connect(
-            lambda payload: self.sig_root_folder.emit(payload)
+        self.filter_table.root_folder.connect(
+            lambda payload: self.root_folder.emit(payload)
         )
 
         def refresh_all():
             self.build_nav_combo()
             self._refresh_saved_filters_combo()
             self._load_saved_filter(self.saved_filters_combo.currentIndex())
+            self.apply_filters()
+            self.filters_requested.emit()
 
-        self.settings.settings_data_model.sig_settings_changed.connect(refresh_all)
+        self.settings.settings_data_model.settings_changed.connect(refresh_all)
 
     def _handle_media_selection(self, index: int) -> None:
         if index < 0:
@@ -245,7 +264,7 @@ class FolderFilters(QWidget, ThemableMixin):
             description="Emitted when a root folder is selected in FolderFilter.",
             flow=SignalFlow.USER_INPUT,
         )
-        self.sig_root_folder.emit(payload)
+        self.root_folder.emit(payload)
 
     def _add_filter_clicked(self) -> None:
         filter_type = self.filter_type_combo.currentText().strip()
@@ -312,7 +331,46 @@ class FolderFilters(QWidget, ThemableMixin):
         if selected_folders:
             folder_paths = selected_folders
         else:
-            folder_paths = self.root_folders
+            folder_paths = [
+                config["path"]
+                for config in self.settings.settings_data_model.media_configs
+                if config.get("path")
+            ]
+
+        if self.settings.settings_data_model.db_enabled():
+            # Use database
+            for folder_path in folder_paths:
+                self.loading_started.emit([folder_path])
+                # Find folder config
+                db_path = None
+                for config in self.settings.settings_data_model.media_configs:
+                    if config["path"] == folder_path:
+                        db_path = self.settings.settings_data_model.get_db_path(config)
+                        break
+
+                if db_path and Path(db_path).exists():
+                    db_path_str = Path(db_path).as_posix()
+                    con = duckdb.connect(db_path_str)
+                    res = con.execute(
+                        db_query.DbQuery.MediaFile.SELECT_ALL_PATHS
+                    ).fetchall()
+                    con.close()
+
+                    # 1. Add files and their parent directories
+                    paths = [r[0] for r in res]
+                    # Sort by parent folder then filename to mimic filesystem scan order
+                    paths.sort(
+                        key=lambda p: (
+                            str(Path(p).parent).lower(),
+                            Path(p).name.lower(),
+                        )
+                    )
+                    h = self.file_util.build_hierarchy_from_paths(paths, folder_path)
+                    items.extend(h)
+
+            if on_complete:
+                on_complete(self._apply_filters_internal(items))
+            return
 
         # Sequential processing helper
         def run_scan(index: int):
@@ -326,7 +384,7 @@ class FolderFilters(QWidget, ThemableMixin):
                 run_scan(index + 1)
                 return
 
-            self.sig_loading_started.emit([folder_path])
+            self.loading_started.emit([folder_path])
 
             def folder_scanned(path_items: list[FileUtilModel]):
                 items.extend(path_items)

@@ -1,6 +1,6 @@
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QFont, Qt
-from PySide6.QtWidgets import QTabBar, QTabWidget, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QTabBar, QTabWidget, QToolButton, QVBoxLayout, QWidget
 
 from MyVideoExplorer.image_list.image_list import ImageList
 from MyVideoExplorer.media_info.media_info import MediaInfo
@@ -14,7 +14,7 @@ from MyVideoExplorer.widgets.right_aligned_tab_bar import RightAlignedTabBar
 class MediaInfoTabs(QWidget, ThemableMixin):
     """Widget container managing the tabbed interface for media, metadata, and settings."""
 
-    sig_tab_selection_changed = Signal(int)
+    tab_selection_changed = Signal(int)
 
     LABEL_MEDIA = "media"
     LABEL_INFO = "info"
@@ -37,9 +37,16 @@ class MediaInfoTabs(QWidget, ThemableMixin):
         self._signals_connected: bool = False
 
         # Components
-        self.tab_container = QTabWidget()
+        self.tab_container = QTabWidget(self)
         self.tab_container.setTabBar(RightAlignedTabBar(self.tab_container))
         # self.tab_container.setContentsMargins(4, 4, 4, 2)
+
+        # Corner button for settings (will be placed at top-right)
+        # Parent to the tab widget so the corner placement remains correct when maximized
+        self.settings_button = QToolButton(self.tab_container)
+        self.settings_button.setText(self.LABEL_SETTINGS)
+        self.settings_button.setAutoRaise(True)
+        self.settings_button.clicked.connect(self.show_settings_tab)
 
         self.media_info = media_info
         self.image_list = image_list
@@ -67,19 +74,37 @@ class MediaInfoTabs(QWidget, ThemableMixin):
         # Add content tabs
         self._add_content_tab(self.image_list.build(), self.LABEL_MEDIA)
         self._add_content_tab(self.media_info.build(), self.LABEL_INFO)
+        # Add spacer so the content tabs keep their tab-like sizing
         self._add_spacer_tab()
+        # Add settings tab (content) and expose a corner widget for the gear
         self._add_settings_tab(settings)
+
+        # Hide the settings tab's own tab label/buttons and place the corner button
+        bar = self.tab_container.tabBar()
+        # Remove text and buttons from the settings tab so only the corner widget is visible
+        bar.setTabText(self.settings_tab_index, "")
+        bar.setTabEnabled(self.settings_tab_index, False)
+        bar.setTabButton(self.settings_tab_index, QTabBar.ButtonPosition.LeftSide, None)
+        bar.setTabButton(
+            self.settings_tab_index, QTabBar.ButtonPosition.RightSide, None
+        )
+
+        # Place the settings button at the top-right corner of the tab widget
+        self.tab_container.setCornerWidget(
+            self.settings_button, Qt.Corner.TopRightCorner
+        )
 
     def _add_content_tab(self, widget: QWidget, label: str) -> int:
         """Wraps a widget in a layout-managed container and adds it as a tab."""
-        tab_page = QWidget()
+        tab_page = QWidget(self)
         layout = QVBoxLayout(tab_page)
         layout.addWidget(widget)
         return self.tab_container.addTab(tab_page, label)
 
     def _add_spacer_tab(self) -> None:
         """Adds a non-functional spacer tab to push following tabs to the right."""
-        spacer = QWidget()
+        spacer = QWidget(self)
+        # Spacer is a placeholder tab; keep default size policy so it doesn't force the window to expand
         spacer.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self.spacer_tab_index = self.tab_container.addTab(spacer, "")
         self.tab_container.setTabEnabled(self.spacer_tab_index, False)
@@ -89,17 +114,25 @@ class MediaInfoTabs(QWidget, ThemableMixin):
         bar.setTabButton(self.spacer_tab_index, QTabBar.ButtonPosition.LeftSide, None)
         bar.setTabButton(self.spacer_tab_index, QTabBar.ButtonPosition.RightSide, None)
 
+        if isinstance(bar, RightAlignedTabBar):
+            bar.setSpacerIndex(self.spacer_tab_index)
+
     def _add_settings_tab(self, settings: Settings) -> None:
+        # Add the settings page as a tab, but the visible access will be via corner widget
         self.settings_tab_index = self._add_content_tab(
             settings.build(), self.LABEL_SETTINGS
         )
-        settings.sig_dirty_changed.connect(
+        settings.dirty_changed.connect(
             lambda p: self._on_settings_dirty_changed(p.data)
         )
 
     def _on_settings_dirty_changed(self, is_dirty: bool) -> None:
         label = self.LABEL_SETTINGS_DIRTY if is_dirty else self.LABEL_SETTINGS
-        self.tab_container.setTabText(self.settings_tab_index, label)
+        # Update the corner button label if present, otherwise fallback to tab text
+        if hasattr(self, "settings_button") and self.settings_button:
+            self.settings_button.setText(label)
+        else:
+            self.tab_container.setTabText(self.settings_tab_index, label)
 
     def show_settings_tab(self) -> None:
         if self.settings_tab_index != -1:
@@ -116,8 +149,12 @@ class MediaInfoTabs(QWidget, ThemableMixin):
             return
 
         self.active_tab_index = index
-        self.sig_tab_selection_changed.emit(index)
+        self.tab_selection_changed.emit(index)
         # self.log_util.debug(f"Tab selection changed to index: {index}")
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self.tab_container.tabBar().update()
 
     def set_folder_path(self, folder_path: str) -> None:
         self.folder_path = folder_path

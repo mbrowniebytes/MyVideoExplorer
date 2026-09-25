@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools~=83.0.0", "wheel"]
+requires = ["setuptools~=84.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,34 +8,87 @@ version = "0.0.1"
 description = "MyVideoExplorer"
 readme = "README.md"
 requires-python = "~=3.14"
+license = "MIT"
+authors = [
+    { name = "mbrowniebytes" },
+]
 dependencies = [
-    "PySide6~=6.11.1",
+    "PySide6~=6.11.2",
     "qtawesome~=1.4.2",
     "psutil~=7.2.2",
+    "duckdb~=1.5.5",
+    "pytz~=2026.3.post1",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     # Linting and formatting
-    "ruff~=0.15.20",
-    "ty~=0.0.61",
+    "ruff~=0.16.5",
+    "ty~=0.0.75",
     # Testing
     "pytest~=9.1.1",
     "pytest-qt~=4.5.0",
-    "pytest-cov~=7.1.0",
     "pytest-asyncio~=1.4.0",
-    # Additional quality tools
-    "isort~=8.0.1",
-    "platformdirs~=4.10.0",
 ]
+
+[project.scripts]
+myvideoexplorer = "MyVideoExplorer.main:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
 
 [tool.ruff]
 line-length = 88
 target-version = "py314"
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "C4", "UP"]
-ignore = ["E501"]
+# https://pydevtools.com/handbook/how-to/how-to-configure-recommended-ruff-defaults/
+extend-select = [
+    "C4",       # Catch incorrect use of comprehensions, dict, list, etc
+    "E",        # PyCodeStyle errors
+    "F",        # Pyflakes rules
+    "FA",       # Enforce from __future__ import annotations
+    "FURB",     # Suggest more idiomatic Python patterns
+    "I",        # Sort imports properly
+    "ICN",      # Use common import conventions
+    "ISC",      # Good use of string concatenation
+    "NPY",      # Some numpy-specific things
+    "PTH",      # Use pathlib instead of os.path
+    "RET",      # Good return practices
+    "SIM",      # Common simplification rules
+    "TID",      # Some good import practices
+    "UP",       # Warn if certain things can changed due to newer Python versions
+    "W",        # PyCodeStyle warnings
+    # "TC",       # Enforce importing certain types in a TYPE_CHECKING block
+    # "TD",       # Be diligent with TODO comments
+]
+ignore = [
+    "BLE001",   # Do not catch blind exception: `Exception`
+    "E501",     # line-too-long
+    "PIE790",   # Unnecessary `pass` statement
+    "RET504",   # Unnecessary assignment to `text` before `return` statement
+    "RUF059",   # Unpacked variable is never used
+    "RUF012",   # Mutable default value for class attribute
+    "S110",     # `try`-`except`-`pass` detected, consider logging the exception
+    "S112",     # `try`-`except`-`continue` detected, consider logging the exception
+    "SIM102",   # Use a single `if` statement instead of nested `if` statements
+    "SIM105",   # Use `contextlib.suppress(AttributeError)` instead of `try`-`except`-`pass`
+    "SIM117",   # Use a single `with` statement with multiple contexts instead of nested `with` statements
+    "SIM300",   # Yoda condition detected
+    "TC001",    # Move application import into a type-checking block"
+    "TC006"     # Add quotes to type expression in `typing.cast()`
+]
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 88
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "lf"
+docstring-code-format = true
+docstring-code-line-length = "dynamic"
 
 [tool.ty.src]
 include = ["src", "test"]
@@ -54,12 +107,24 @@ allowed-unresolved-imports = ["test.**"]
 [tool.pytest.ini_options]
 minversion = "9.1"
 addopts = "-ra -q --strict-markers"
+asyncio_mode = "auto"
 pythonpath = ["src"]
 testpaths = ["test"]
 norecursedirs = [
     ".git",
     ".venv",
-    "__pycache__"
+    "__pycache__",
+    ".github",
+    ".junie",
+    ".vscode",
+    "asset",
+    "build",
+    "cfg",
+    "db",
+    "dist",
+    "doc",
+    "log",
+    "tmp"
 ]
 markers = [
     "unit: unit tests",
@@ -68,4 +133,4 @@ markers = [
 qt_api = "pyside6"
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src"]

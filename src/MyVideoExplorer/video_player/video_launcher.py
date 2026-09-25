@@ -1,6 +1,6 @@
+import asyncio
 import os
 import sys
-import asyncio
 from pathlib import Path
 
 from MyVideoExplorer.utils.log_util import LogUtil
@@ -9,7 +9,7 @@ from MyVideoExplorer.utils.log_util import LogUtil
 class VideoLauncher:
     """Handles the execution of video playback via system processes."""
 
-    def __init__(self, log_util:LogUtil) -> None:
+    def __init__(self, log_util: LogUtil) -> None:
         self.log_util = log_util
 
     async def play_via_external_app(self, video_path: str) -> None:
@@ -18,7 +18,7 @@ class VideoLauncher:
         # test async
         # await asyncio.sleep(5)
 
-        normalized_path = str(Path(video_path))
+        normalized_path = Path(video_path).as_posix()
 
         try:
             if os.name == "nt":  # Windows

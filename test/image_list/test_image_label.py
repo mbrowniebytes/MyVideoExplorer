@@ -1,8 +1,10 @@
 import pytest
-from PySide6.QtCore import Qt, QPoint
+from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QWheelEvent
+
 from MyVideoExplorer.image_list.image_label import ImageLabel
 from MyVideoExplorer.utils.log_util import LogUtil
+
 
 class TestImageLabel:
     @pytest.fixture
@@ -21,7 +23,7 @@ class TestImageLabel:
 
     def test_wheel_event_emits_signal(self, image_label, qtbot):
         # Mocking wheel event
-        with qtbot.waitSignal(image_label.sig_wheel_step) as blocker:
+        with qtbot.waitSignal(image_label.wheel_step) as blocker:
             # Positive delta (scroll up) -> step -1
             event = QWheelEvent(
                 QPoint(0, 0),
@@ -36,7 +38,7 @@ class TestImageLabel:
             image_label.wheelEvent(event)
         assert blocker.args[0].data == -1
 
-        with qtbot.waitSignal(image_label.sig_wheel_step) as blocker:
+        with qtbot.waitSignal(image_label.wheel_step) as blocker:
             # Negative delta (scroll down) -> step 1
             event = QWheelEvent(
                 QPoint(0, 0),
@@ -52,11 +54,11 @@ class TestImageLabel:
         assert blocker.args[0].data == 1
 
     def test_mouse_press_right_button_emits_signal(self, image_label, qtbot):
-        with qtbot.waitSignal(image_label.sig_right_click) as blocker:
+        with qtbot.waitSignal(image_label.context_menu_requested) as blocker:
             qtbot.mousePress(image_label, Qt.MouseButton.RightButton)
         assert blocker.signal_triggered
 
     def test_mouse_double_click_emits_signal(self, image_label, qtbot):
-        with qtbot.waitSignal(image_label.sig_double_click) as blocker:
+        with qtbot.waitSignal(image_label.double_click_requested) as blocker:
             qtbot.mouseDClick(image_label, Qt.MouseButton.LeftButton)
         assert blocker.signal_triggered

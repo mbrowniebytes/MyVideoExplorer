@@ -1,7 +1,5 @@
-
 import datetime
 import logging
-import os
 import sys
 import traceback
 from logging.handlers import RotatingFileHandler
@@ -10,8 +8,10 @@ from typing import Any
 
 from MyVideoExplorer.app.app_environment import IS_DEVELOPMENT
 
+
 class CustomFormatter(logging.Formatter):
     """Custom formatter to match the previous structlog-based format."""
+
     def __init__(self, log_util: LogUtil) -> None:
         super().__init__(datefmt="%Y-%m-%d %H:%M:%S")
         self.log_util = log_util
@@ -28,15 +28,24 @@ class CustomFormatter(logging.Formatter):
 
         return f"{record.asctime} - {level:<7} - {message} [{caller}]{extra}"
 
+
 # Define log directory and file paths
 BASE_PATH = Path().cwd().as_posix()
 SRC_PATH = Path(BASE_PATH + "/MyVideoExplorer/")
 LOG_DIR = Path("log")
 
 
-
 class LogUtil:
     """Utility class for configuring and managing application logging."""
+
+    _default_instance: LogUtil | None = None
+
+    @classmethod
+    def get_default(cls) -> LogUtil:
+        """Return the shared startup logger instance."""
+        if cls._default_instance is None:
+            cls._default_instance = cls()
+        return cls._default_instance
 
     # Map string levels to logging constants
     LEVEL_MAP: dict[str, int] = {
@@ -49,26 +58,17 @@ class LogUtil:
 
     DEFAULT_LOG_LEVEL = "info"
     MAX_BACKUPS = 5
-    ROTATION_PERIOD = "M" # "D"  # Daily rotation
+    ROTATION_PERIOD = "M"  # "D"  # Daily rotation
     MAX_BYTES = 10 * 1024 * 1024  # 10 MB
     LOG_FILE = LOG_DIR / "app.log"
 
-
     def __init__(self) -> None:
-        """
-        Initialize the LogUtil instance.
-
-        Args:
-            log_level: Optional initial log level (defaults to DEFAULT_LOG_LEVEL).
-        """        """Create log directory and defaults split files if they don't exist."""
+        """Initialize the LogUtil instance."""
         if not LOG_DIR.exists():
             LOG_DIR.mkdir(parents=True)
         self.log_level = self.DEFAULT_LOG_LEVEL
         self._logger_initialized = False
-        self._file_handler = RotatingFileHandler(self.LOG_FILE)
-
-        # date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-        # self.LOG_FILE = LOG_DIR / f"app-{date_str}.log"
+        self._file_handler: RotatingFileHandler | None = None
 
     def get_log_level_value(self, level_str: str) -> int:
         """Convert a string log level name to its corresponding logging constant."""
@@ -78,9 +78,7 @@ class LogUtil:
         """Convert a string log level name to its corresponding logging constant."""
         if self.LEVEL_MAP.get(level_str.lower()) is None:
             return "info"
-        else:
-            return level_str.lower()
-
+        return level_str.lower()
 
     @property
     def logger_initialized(self) -> bool:
@@ -160,16 +158,34 @@ class LogUtil:
         Returns:
             self for method chaining.
         """
-        if self.logger_initialized:
-            # Clear existing handlers on re-configuration
-            logging.root.handlers.clear()
-
-        # Get or use provided level
         self.log_level = self.ensure_log_level(level_str)
         effective_level = self.get_log_level_value(level_str or self.log_level)
-
-        # Ensure log directory exists
         self._ensure_log_directory()
+
+        root_logger = self._get_root_logger()
+        existing_handler = next(
+            (
+                handler
+                for handler in root_logger.handlers
+                if isinstance(handler, RotatingFileHandler)
+                and Path(getattr(handler, "baseFilename", "")).resolve()
+                == self.LOG_FILE.resolve()
+            ),
+            None,
+        )
+
+        if existing_handler is not None:
+            self._file_handler = existing_handler
+            self._logger_initialized = True
+            formatter = CustomFormatter(self)
+            self._file_handler.setFormatter(formatter)
+            self._file_handler.setLevel(effective_level)
+            self._file_handler.namer = self._custom_namer
+            root_logger.setLevel(effective_level)
+            return self
+
+        if self._file_handler is not None:
+            self._file_handler.close()
 
         # Configure file handler with daily rotation and backup limit
 
@@ -181,7 +197,7 @@ class LogUtil:
         #     backupCount=self.MAX_BACKUPS,
         #     encoding="utf-8",
         #     utc=False,
-        #     delay=True, # required else perms/timing issue
+        #     delay=True,  # required else perms/timing issue
         # )
         # max size + custom cleanup()
         self._file_handler = RotatingFileHandler(
@@ -193,14 +209,12 @@ class LogUtil:
         )
 
         formatter = CustomFormatter(self)
-
         self._file_handler.setFormatter(formatter)
         self._file_handler.setLevel(effective_level)
         self._file_handler.namer = self._custom_namer
 
-        # Add file handler to root logger if not already present
-        logging.root.addHandler(self._file_handler)
-        logging.root.setLevel(effective_level)
+        root_logger.addHandler(self._file_handler)
+        root_logger.setLevel(effective_level)
 
         self._logger_initialized = True
 
@@ -256,27 +270,21 @@ class LogUtil:
         log_method(message, extra=extra)
 
     # Helper convenience methods for common use cases
-    def debug(
-        self, message: str, *, extra_info: dict[str, Any] | None = None
-    ) -> None:
+    def debug(self, message: str, *, extra_info: dict[str, Any] | None = None) -> None:
         """Convenience method to log a DEBUG level message."""
         self.log_message(level="debug", message=message, extra_info=extra_info)
 
-    def info(
-        self, message: str, *, extra_info: dict[str, Any] | None = None
-    ) -> None:
+    def info(self, message: str, *, extra_info: dict[str, Any] | None = None) -> None:
         """Convenience method to log an INFO level message."""
         self.log_message(level="info", message=message, extra_info=extra_info)
 
-    def warn(
+    def warning(
         self, message: str, *, extra_info: dict[str, Any] | None = None
     ) -> None:
         """Convenience method to log a WARNING level message."""
         self.log_message(level="warning", message=message, extra_info=extra_info)
 
-    def error(
-        self, message: str, *, extra_info: dict[str, Any] | None = None
-    ) -> None:
+    def error(self, message: str, *, extra_info: dict[str, Any] | None = None) -> None:
         """Convenience method to log an ERROR level message."""
         self.log_message(level="error", message=message, extra_info=extra_info)
         # Flush on error to ensure it's written to disk before a potential crash
@@ -297,11 +305,13 @@ class LogUtil:
         self.cleanup()
 
     def handle_exception(
-        self, exc_type: type[BaseException], exc_value: BaseException, exc_traceback: Any
+        self,
+        exc_type: type[BaseException],
+        exc_value: BaseException,
+        exc_traceback: Any,
     ) -> None:
         """Global exception handler to be used with sys.excepthook."""
-        if (issubclass(exc_type, KeyboardInterrupt) or
-                not IS_DEVELOPMENT):
+        if issubclass(exc_type, KeyboardInterrupt) or not IS_DEVELOPMENT:
             sys.__excepthook__(exc_type, exc_value, exc_traceback)
             return
 
@@ -314,7 +324,9 @@ class LogUtil:
                 },
             )
             # Also log traceback
-            tb_str = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+            tb_str = "".join(
+                traceback.format_exception(exc_type, exc_value, exc_traceback)
+            )
             # could be debug
             # log as error so have context with errors
             # traceback already prepends: Traceback (most recent call last):
@@ -324,8 +336,10 @@ class LogUtil:
             try:
                 log_file = self.LOG_FILE
                 log_file.parent.mkdir(parents=True, exist_ok=True)
-                with open(log_file, "a", encoding="utf-8") as f:
-                    f.write(f"CRITICAL: Exception in exception handler: {handler_exception}\n")
+                with log_file.open("a", encoding="utf-8") as f:
+                    f.write(
+                        f"CRITICAL: Exception in exception handler: {handler_exception}\n"
+                    )
                     f.write(f"Original exception: {exc_type.__name__}: {exc_value}\n")
                     f.write(traceback.format_exc())
                     f.write("\n")
@@ -347,36 +361,38 @@ class LogUtil:
         # Keep only the max_backups most recent backups
         # explicit set, since deleting files
         pattern = "app*log"
-        backups = sorted(log_dir.glob(pattern), reverse=True, key=os.path.getmtime)
+        backups = sorted(
+            log_dir.glob(pattern), reverse=True, key=lambda p: p.stat().st_mtime
+        )
 
-        for old_backup in backups[self.MAX_BACKUPS:]:
+        for old_backup in backups[self.MAX_BACKUPS :]:
             try:
                 # print(f"cleanup: old_backup.unlink {old_backup}")
                 old_backup.unlink()
             except OSError as e:
-                self.warn(f"Failed to delete old backup {old_backup}: {e}")
+                self.warning(f"Failed to delete old backup {old_backup}: {e}")
 
         """Close all handlers associated with this LogUtil instance."""
         if self._file_handler:
             self._file_handler.close()
         self.remove_file_handler()
 
-        # date_str = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-        date_str = datetime.datetime.now().strftime("%Y%m%d")
+        # date_str = datetime.datetime.now(datetime.UTC).astimezone().strftime("%Y%m%d-%H%M%S")
+        date_str = datetime.datetime.now(datetime.UTC).astimezone().strftime("%Y%m%d")
         backup_log = LOG_DIR / f"app-{date_str}.log"
         # shutil.move(self.LOG_FILE, LOG_DIR / f"app-{date_str}.log")
         self.concat_files([self.LOG_FILE.as_posix()], backup_log.as_posix())
 
         # self.LOG_FILE.unlink()
-        open(self.LOG_FILE, "w").close()
+        self.LOG_FILE.open("w", encoding="utf-8").close()
 
     def concat_files(self, source_files: list[str], destination_file: str) -> None:
-        with open(destination_file, 'a') as dest:
+        destination_path = Path(destination_file)
+        with destination_path.open("a", encoding="utf-8") as dest:
             for filename in source_files:
-                with open(filename) as src:
+                source_path = Path(filename)
+                with source_path.open(encoding="utf-8") as src:
                     content = src.read()
                     dest.write(content)
-                    if not content.endswith('\n'):
-                        dest.write('\n')
-
-
+                    if not content.endswith("\n"):
+                        dest.write("\n")

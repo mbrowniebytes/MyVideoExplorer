@@ -22,7 +22,13 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from MyVideoExplorer.theme.theme import StyleFactory, ThemeConfig
+from MyVideoExplorer.theme.models import ThemeConfig
+from MyVideoExplorer.theme.style.style_app import StyleApp
+from MyVideoExplorer.theme.style.style_button import StyleButton
+from MyVideoExplorer.theme.style.style_checkbox import StyleCheckbox
+from MyVideoExplorer.theme.style.style_combo import StyleCombo
+from MyVideoExplorer.theme.style.style_list import StyleList
+from MyVideoExplorer.theme.style.style_tab import StyleTab
 
 
 class ThemeManager:
@@ -66,7 +72,7 @@ class ThemeManager:
             if root_widget is None:
                 if self.app:
                     self.app.setFont(font)
-                    app_qss = StyleFactory.get_app_qss(self.config)
+                    app_qss = StyleApp.get_app_qss(self.config)
                     self.app.setStyleSheet(app_qss)
                     for widget in self.app.topLevelWidgets():
                         widget.setStyleSheet(app_qss)
@@ -74,9 +80,9 @@ class ThemeManager:
             else:
                 # If we're refreshing a specific widget, we don't necessarily want to
                 # apply the FULL app QSS to it if it's already inherited,
-                # StyleFactory.get_app_qss might be too heavy for small widgets.
+                # StyleApp.get_app_qss might be too heavy for small widgets.
                 # However, for now we keep existing behavior but optimized.
-                root_widget.setStyleSheet(StyleFactory.get_app_qss(self.config))
+                root_widget.setStyleSheet(StyleApp.get_app_qss(self.config))
                 self._refresh_recursive(root_widget, font)
         except Exception as e:
             raise RuntimeError(f"Error in refresh_theme: {e}")
@@ -94,6 +100,7 @@ class ThemeManager:
         # Handle Custom Application Widgets
         if self._is_custom_widget(widget):
             from MyVideoExplorer.theme.themable_mixin import ThemableMixin
+
             if isinstance(widget, ThemableMixin):
                 # We expect custom apply_theme to NOT call refresh_theme again
                 # OR if it does, it should check is_refreshing
@@ -141,13 +148,13 @@ class ThemeManager:
             return qta.icon(name, **kwargs)
         except Exception:
             try:
-                return qta.icon("fa5s.folder", **kwargs)
+                return qta.icon("fa6s.folder", **kwargs)
             except Exception:
                 return QIcon()
 
     # Focused Widget Setup Helpers
     def setup_list_widget(self, widget: QListWidget) -> None:
-        widget.setStyleSheet(StyleFactory.get_list_qss(self.config))
+        widget.setStyleSheet(StyleList.get_list_qss(self.config))
         widget.setAlternatingRowColors(True)
 
         widget.setIconSize(
@@ -155,16 +162,16 @@ class ThemeManager:
         )
 
     def setup_combo_box(self, widget: QComboBox) -> None:
-        widget.setStyleSheet(StyleFactory.get_combo_qss(self.config))
+        widget.setStyleSheet(StyleCombo.get_combo_qss(self.config))
 
     def setup_checkbox(self, widget: QCheckBox) -> None:
-        widget.setStyleSheet(StyleFactory.get_checkbox_style(self.config))
+        widget.setStyleSheet(StyleCheckbox.get_checkbox_style(self.config))
 
     def setup_tabs(self, widget: QTabBar) -> None:
-        widget.setStyleSheet(StyleFactory.get_tabs_qss(self.config))
+        widget.setStyleSheet(StyleTab.get_tabs_qss(self.config))
 
     def setup_tab_widget(self, widget: QTabWidget) -> None:
-        widget.setStyleSheet(StyleFactory.get_tabs_qss(self.config))
+        widget.setStyleSheet(StyleTab.get_tabs_qss(self.config))
 
     def setup_button(self, widget: QAbstractButton | QSpinBox) -> None:
         if isinstance(widget, (QPushButton, QToolButton)):
@@ -174,9 +181,9 @@ class ThemeManager:
                 "media_info_toolbar_toggle_button",
                 "media_info_toolbar_play_button",
             ):
-                widget.setStyleSheet(StyleFactory.get_small_button_qss(self.config))
+                widget.setStyleSheet(StyleButton.get_small_button_qss(self.config))
             else:
-                widget.setStyleSheet(StyleFactory.get_button_qss(self.config))
+                widget.setStyleSheet(StyleButton.get_button_qss(self.config))
 
     def setup_input_widget(self, widget: QPlainTextEdit | QLineEdit) -> None:
         if isinstance(widget, QPlainTextEdit):

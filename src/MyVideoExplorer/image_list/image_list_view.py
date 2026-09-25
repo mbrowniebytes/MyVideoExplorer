@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pathlib
-from typing import TYPE_CHECKING, cast
+from typing import cast
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
@@ -13,16 +13,13 @@ from PySide6.QtWidgets import (
 )
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
-from MyVideoExplorer.image_list.image_title_widget import ImageTitleWidget
-from MyVideoExplorer.utils.log_util import LogUtil
-
-if TYPE_CHECKING:
-    from MyVideoExplorer.file_list.file_list import FileList
-
+from MyVideoExplorer.file_list.file_list import FileList
 from MyVideoExplorer.image_list.image_preview_widget import ImagePreviewWidget
+from MyVideoExplorer.image_list.image_title_widget import ImageTitleWidget
 from MyVideoExplorer.media_info_side.media_info_side_view import MediaInfoSideView
-from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
+from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.str_util import StrUtil
 from MyVideoExplorer.utils.ui_utils import UIUtils
 
@@ -32,9 +29,9 @@ class ImageListView(QWidget, ThemableMixin):
     View for displaying an image and its related metadata.
     """
 
-    sig_wheel_step = Signal(object)
-    sig_right_click = Signal(object)
-    sig_double_click = Signal(object)
+    wheel_step = Signal(object)
+    context_menu_requested = Signal(object)
+    double_click_requested = Signal(object)
 
     def __init__(
         self,
@@ -50,8 +47,8 @@ class ImageListView(QWidget, ThemableMixin):
         self.file_list = file_list
         self._ui_utils = UIUtils()
 
-        self.title_widget = ImageTitleWidget(log_util)
-        self.preview_widget = ImagePreviewWidget(log_util)
+        self.title_widget = ImageTitleWidget(log_util, parent=self)
+        self.preview_widget = ImagePreviewWidget(log_util, parent=self)
         self.plot_text = self.media_info_side_view.get_plot_section().get_plot_text()
         self._loading_state_text = "Loading..."
 
@@ -71,53 +68,58 @@ class ImageListView(QWidget, ThemableMixin):
             description="Emitted when mouse wheel moves in ImageListView.",
             flow=SignalFlow.USER_INPUT,
         )
-        self.sig_wheel_step.emit(new_payload)
-        self.log_util.debug(f"sig_wheel_step emitted with: {step}")
+        self.wheel_step.emit(new_payload)
+        self.log_util.debug(f"wheel_step emitted with: {step}")
 
     def _handle_right_click(self, payload: SignalPayload) -> None:
         new_payload = SignalPayload(
             data=None,
             sender=self.__class__.__name__,
-            name="Right Click",
+            name="Context Menu Requested",
             description="Emitted when right click in ImageListView.",
             flow=SignalFlow.USER_INPUT,
         )
-        self.sig_right_click.emit(new_payload)
-        self.log_util.debug("sig_right_click emitted")
+        self.context_menu_requested.emit(new_payload)
+        self.log_util.debug("context_menu_requested emitted")
 
     def _handle_double_click(self, payload: SignalPayload) -> None:
         new_payload = SignalPayload(
             data=None,
             sender=self.__class__.__name__,
-            name="Double Click",
+            name="Double Click Requested",
             description="Emitted when double click in ImageListView.",
             flow=SignalFlow.USER_INPUT,
         )
-        self.sig_double_click.emit(new_payload)
-        self.log_util.debug("sig_double_click emitted")
+        self.double_click_requested.emit(new_payload)
+        self.log_util.debug("double_click_requested emitted")
 
     def _build_ui(self) -> None:
-        self.preview_widget.sig_wheel_step.connect(self._handle_wheel_step)
-        self.preview_widget.sig_right_click.connect(self._handle_right_click)
-        self.preview_widget.sig_double_click.connect(self._handle_double_click)
+        self.preview_widget.wheel_step.connect(self._handle_wheel_step)
+        self.preview_widget.context_menu_requested.connect(self._handle_right_click)
+        self.preview_widget.double_click_requested.connect(self._handle_double_click)
 
-        self.content_container = QWidget()
+        self.content_container = QWidget(self)
         self.content_container.setStyleSheet(APP_THEME.container_qss())
         self.content_container.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
 
-        main_layout = self._ui_utils.apply_compact_layout(self.content_container, QVBoxLayout)
+        main_layout = self._ui_utils.apply_compact_layout(
+            self.content_container, QVBoxLayout
+        )
 
-        title_and_preview_widget = QWidget()
+        title_and_preview_widget = QWidget(self)
         title_and_preview_layout = self._ui_utils.apply_compact_layout(
             title_and_preview_widget, QVBoxLayout
         )
         title_and_preview_layout.addWidget(self.title_widget)
         title_and_preview_layout.addWidget(self.preview_widget)
 
-        top_content_widget = QWidget()
-        top_content_layout = cast(QHBoxLayout, self._ui_utils.apply_compact_layout(top_content_widget, QHBoxLayout))
+        top_content_widget = QWidget(self)
+        top_content_layout = cast(
+            QHBoxLayout,
+            self._ui_utils.apply_compact_layout(top_content_widget, QHBoxLayout),
+        )
         top_content_layout.addWidget(title_and_preview_widget, 2)
         top_content_layout.addWidget(self.media_info_side_view)
 
@@ -125,7 +127,9 @@ class ImageListView(QWidget, ThemableMixin):
         main_layout.addWidget(self.file_list.build())
         main_layout.addWidget(self.plot_text)
 
-        root_layout = cast(QVBoxLayout, self._ui_utils.apply_compact_layout(self, QVBoxLayout))
+        root_layout = cast(
+            QVBoxLayout, self._ui_utils.apply_compact_layout(self, QVBoxLayout)
+        )
         root_layout.addWidget(self.content_container)
         root_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 

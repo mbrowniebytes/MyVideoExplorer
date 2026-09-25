@@ -1,6 +1,6 @@
 import math
 
-from PySide6 import QtWidgets, QtGui, QtCore
+from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCore import Qt
 
 from MyVideoExplorer.theme.theme import APP_THEME
@@ -61,7 +61,7 @@ class LabelAngledWidget(QtWidgets.QLabel):
         new_w = w * cos_a + h * sin_a
         new_h = w * sin_a + h * cos_a
 
-        return QtCore.QSize(int(math.ceil(new_w)), int(math.ceil(new_h)))
+        return QtCore.QSize(math.ceil(new_w), math.ceil(new_h))
 
     def minimumSizeHint(self) -> QtCore.QSize:
         return self._get_rotated_size(super().minimumSizeHint())

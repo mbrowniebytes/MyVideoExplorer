@@ -16,11 +16,11 @@ from MyVideoExplorer.utils.log_util import LogUtil
 PLOT_SECTION_OBJECT_NAME = "section_plot"
 PLOT_SECTION_TITLE_TEXT = "P\nl\no\nt"
 
-PLOT_SECTION_MINIMUM_EMPTY_HEIGHT = 50
-PLOT_SECTION_MINIMUM_CONTENT_HEIGHT = 60
+PLOT_SECTION_MINIMUM_EMPTY_HEIGHT = 40
+PLOT_SECTION_MINIMUM_CONTENT_HEIGHT = 40
 PLOT_SECTION_MAXIMUM_CONTENT_HEIGHT = 150
 PLOT_SECTION_APPROXIMATE_CHARACTERS_PER_LINE = 60
-PLOT_SECTION_LINE_HEIGHT_MULTIPLIER = 1.2
+PLOT_SECTION_LINE_HEIGHT_MULTIPLIER = 1.0
 
 
 class MediaInfoPlotSection(QWidget, ThemableMixin):
@@ -33,7 +33,7 @@ class MediaInfoPlotSection(QWidget, ThemableMixin):
         self.plot_section_layout = QVBoxLayout(self)
         self.plot_content_layout = QHBoxLayout()
 
-        self.plot_title_label = QLabel(PLOT_SECTION_TITLE_TEXT)
+        self.plot_title_label = QLabel(PLOT_SECTION_TITLE_TEXT, parent=self)
         self.plot_text_edit = QPlainTextEdit()
 
         self._configure_section_frame()

@@ -1,4 +1,5 @@
 from typing import Any
+
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
@@ -14,11 +15,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.folder_filter.folder_filter_table import FolderFilterTable
-
 from MyVideoExplorer.settings.settings import SettingsBaseTab
 from MyVideoExplorer.settings.settings_state import SettingsState
-from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
 
@@ -31,12 +31,14 @@ class FilterRowContainer(QWidget):
 
 
 class SettingsFilterTab(SettingsBaseTab):
-    # TODO centralize w/ folder_filter
+    # TODO: centralize w/ folder_filter
     GENRES = sorted(
         ["Action", "Comedy", "Sci-Fi", "Mystery", "Thriller", "Drama", "Adventure"]
     )
 
-    def __init__(self, state: SettingsState, log_util: LogUtil, parent: QWidget | None = None) -> None:
+    def __init__(
+        self, state: SettingsState, log_util: LogUtil, parent: QWidget | None = None
+    ) -> None:
         super().__init__(log_util, parent)
         self.state = state
         self.row_widgets: list[FilterRowContainer] = []
@@ -45,11 +47,11 @@ class SettingsFilterTab(SettingsBaseTab):
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(0)
 
-        scroll = QScrollArea()
+        scroll = QScrollArea(self)
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QScrollArea.Shape.NoFrame)
 
-        self.main_widget = QWidget()
+        self.main_widget = QWidget(self)
         self.content_layout = QVBoxLayout(self.main_widget)
         self.content_layout.setContentsMargins(10, 10, 10, 10)
         self.content_layout.setSpacing(15)
@@ -74,18 +76,20 @@ class SettingsFilterTab(SettingsBaseTab):
         self.content_layout.addStretch(2)
 
         # Move Save Filters Settings button to bottom-right, centered
-        save_btn_container = QWidget()
+        save_btn_container = QWidget(self)
         save_btn_layout = QHBoxLayout(save_btn_container)
         save_btn_layout.setContentsMargins(20, 15, 20, 15)
 
-        self.save_btn = QPushButton("Save Filter Settings")
+        self.save_btn = QPushButton("Save Filter Settings", parent=self)
         self.save_btn.setFixedWidth(200)
         self.save_btn.clicked.connect(self._save_filter_settings)
 
-        self.reset_btn = self._build_reset_button("Reset Filter Settings", self.reset_settings)
+        self.reset_btn = self._build_reset_button(
+            "Reset Filter Settings", self.reset_settings
+        )
         self.reset_btn.setFixedWidth(180)
 
-        spacer = QWidget()
+        spacer = QWidget(self)
         spacer.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
@@ -102,7 +106,7 @@ class SettingsFilterTab(SettingsBaseTab):
         self.state.load_filters()
         self._refresh_filters()
         self.reset_save_button()
-        self.sig_saved.emit(
+        self.saved.emit(
             SignalPayload(
                 data=None,
                 sender=self.__class__.__name__,
@@ -112,7 +116,6 @@ class SettingsFilterTab(SettingsBaseTab):
             )
         )
         print("Filters Settings reset")
-
 
     def _refresh_filters(self) -> None:
         # Clear existing filter rows
@@ -124,7 +127,7 @@ class SettingsFilterTab(SettingsBaseTab):
                 widget.deleteLater()
 
         if not self.state.saved_filters:
-            self.filter_layout.addWidget(QLabel("No saved filters found."))
+            self.filter_layout.addWidget(QLabel("No saved filters found.", parent=self))
             return
 
         for filter_cfg in self.state.saved_filters:
@@ -138,19 +141,19 @@ class SettingsFilterTab(SettingsBaseTab):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(5)
 
-        name_container = QWidget()
+        name_container = QWidget(self)
         name_layout = QHBoxLayout(name_container)
         name_layout.setContentsMargins(0, 0, 0, 0)
         name_layout.setSpacing(5)
         layout.addWidget(name_container)
 
-        name_edit = QLineEdit(filter_cfg.get("name", ""))
+        name_edit = QLineEdit(filter_cfg.get("name", ""), parent=name_container)
         name_edit.setPlaceholderText("Filter Name")
         name_edit.textChanged.connect(self._on_setting_changed)
         name_layout.addWidget(name_edit)
 
         # Filter type combo
-        filter_type_combo = QComboBox()
+        filter_type_combo = QComboBox(name_container)
         filter_type_combo.setEditable(True)
         index = 0
         for filter_type in FolderFilterTable.FILTER_TYPES:
@@ -174,7 +177,7 @@ class SettingsFilterTab(SettingsBaseTab):
         name_layout.addWidget(filter_type_combo)
 
         # Create filter table for this specific row
-        filter_table = FolderFilterTable(self.GENRES, self.state.folder_configs)
+        filter_table = FolderFilterTable(self.GENRES, self.state.media_configs)
         filters_data = filter_cfg.get("filters") or []
         for f in filters_data:
             filter_table.add_filter(f.get("filter", ""), f.get("value", ""))
@@ -184,16 +187,18 @@ class SettingsFilterTab(SettingsBaseTab):
         container.name_edit = name_edit
         container.filter_table = filter_table
 
-        add_btn = QPushButton("Add")
-        add_btn.setIcon(APP_THEME.icon("fa5s.plus-circle", color=APP_THEME.text_color))
+        add_btn = QPushButton("Add", parent=name_container)
+        add_btn.setIcon(APP_THEME.icon("fa6s.plus-circle", color=APP_THEME.text_color))
         add_btn.setIconSize(QSize(APP_THEME.icon_size - 5, APP_THEME.icon_size - 5))
         add_btn.setStyleSheet(APP_THEME.button_qss())
         add_btn.clicked.connect(
-            lambda: self._add_filter_to_table(filter_table, filter_type_combo.currentText().strip())
+            lambda: self._add_filter_to_table(
+                filter_table, filter_type_combo.currentText().strip()
+            )
         )
 
-        delete_btn = QPushButton("")
-        delete_btn.setIcon(APP_THEME.icon("fa5s.trash-alt", color=APP_THEME.text_color))
+        delete_btn = QPushButton("", parent=name_container)
+        delete_btn.setIcon(APP_THEME.icon("fa6s.trash-alt", color=APP_THEME.text_color))
         delete_btn.setIconSize(QSize(APP_THEME.icon_size - 5, APP_THEME.icon_size - 5))
         delete_btn.setStyleSheet(APP_THEME.button_qss())
         delete_btn.clicked.connect(lambda: self._delete_filter(filter_cfg))
@@ -203,7 +208,9 @@ class SettingsFilterTab(SettingsBaseTab):
 
         return container
 
-    def _add_filter_to_table(self, filter_table: FolderFilterTable, filter_type: str) -> None:
+    def _add_filter_to_table(
+        self, filter_table: FolderFilterTable, filter_type: str
+    ) -> None:
         if filter_type.upper() in ("", "OS", "NFO"):
             return
         filter_table.add_filter(filter_type)
@@ -215,7 +222,7 @@ class SettingsFilterTab(SettingsBaseTab):
             if row.name_edit and row.filter_table:
                 new_filter_cfg = {
                     "name": row.name_edit.text(),
-                    "filters": row.filter_table.collect_filters()
+                    "filters": row.filter_table.collect_filters(),
                 }
                 new_saved_filters.append(new_filter_cfg)
         self.state.saved_filters = new_saved_filters
@@ -238,7 +245,7 @@ class SettingsFilterTab(SettingsBaseTab):
         self._update_state_from_ui()
         self.state.save_filters()
         self.reset_save_button()
-        self.sig_saved.emit(
+        self.saved.emit(
             SignalPayload(
                 data=None,
                 sender=self.__class__.__name__,

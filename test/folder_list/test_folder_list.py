@@ -14,7 +14,7 @@ class TestFolderList:
     def folder_list(self, qtbot):
         file_util = MagicMock(spec=FileUtil)
         settings = MagicMock()
-        settings.folder_configs = [{"label": "Test", "path": "/path/to"}]
+        settings.media_configs = [{"label": "Test", "path": "/path/to"}]
         with patch(
             "MyVideoExplorer.folder_list.folder_list.FolderList._has_valid_media_folders",
             return_value=True,
@@ -117,9 +117,7 @@ class TestFolderList:
             folder_list.update_folder_list_by_items(mock_folder_items)
         folder_list.folder_list_view.setCurrentRow(0)
 
-        with qtbot.waitSignal(
-            folder_list.folder_list_view.sig_folder_selected
-        ) as blocker:
+        with qtbot.waitSignal(folder_list.folder_list_view.folder_selected) as blocker:
             folder_list.select_next_folder(1)
 
         assert folder_list.folder_list_view.currentRow() == 1
@@ -134,9 +132,7 @@ class TestFolderList:
             folder_list.update_folder_list_by_items(mock_folder_items)
         item = folder_list.folder_list_view.item(0)
 
-        with qtbot.waitSignal(
-            folder_list.folder_list_view.sig_folder_selected
-        ) as blocker:
+        with qtbot.waitSignal(folder_list.folder_list_view.folder_selected) as blocker:
             folder_list.folder_list_view.itemClicked.emit(item)
 
         assert blocker.args[0].data == "/path/to/Folder A"
@@ -260,3 +256,44 @@ class TestFolderList:
             font = folder_list.folder_list_view.font()
             size = font.pointSize() if font.pointSize() != -1 else font.pixelSize()
             assert size == APP_THEME.font_size
+
+    def test_help_tooltip(self, folder_list):
+        """Verify the help tooltip contains expected information."""
+        # Need to patch settings in the fixture or the test
+        folder_list.settings.settings_data_model.media_configs = [
+            {"label": "M1", "path": "/p1"},
+            {"label": "M2", "path": "/p2"},
+        ]
+        folder_list.settings.settings_data_model.db_enabled.return_value = True
+
+        folder_list._update_help_tooltip()
+
+        tooltip = folder_list.help_icon.toolTip()
+        assert "Checking 2 media folders" in tooltip
+        assert "Loading from: 2 Databases" in tooltip
+
+        folder_list.settings.settings_data_model.db_enabled.return_value = False
+        folder_list._update_help_tooltip()
+
+        tooltip = folder_list.help_icon.toolTip()
+        assert "Loading from: File System" in tooltip
+
+    def test_help_tooltip_updates_on_signal(self, folder_list):
+        """Verify the help tooltip updates when settings_changed is emitted."""
+        # 1. Connect
+        folder_list.connect_sigs()
+
+        # 2. Get the callback
+        connect_mock = folder_list.settings.settings_data_model.settings_changed.connect
+        callback = connect_mock.call_args[0][0]
+
+        # 3. Setup initial state
+        folder_list.settings.settings_data_model.db_enabled.return_value = True
+        folder_list._update_help_tooltip()
+        assert "Loading from: " in folder_list.help_icon.toolTip()
+
+        # 4. Change state and trigger callback
+        folder_list.settings.settings_data_model.db_enabled.return_value = False
+        callback(None)  # Trigger signal
+
+        assert "Loading from: File System" in folder_list.help_icon.toolTip()

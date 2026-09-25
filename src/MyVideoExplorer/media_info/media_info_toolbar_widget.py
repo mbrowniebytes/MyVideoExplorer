@@ -12,8 +12,8 @@ from MyVideoExplorer.theme.theme import APP_THEME
 
 
 class MediaInfoToolbarWidget(QWidget):
-    sig_section_visibility_toggle_requested = Signal(object)
-    sig_play_video_requested = Signal(object)
+    section_visibility_toggle_requested = Signal(object)
+    play_video_requested = Signal(object)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -50,7 +50,7 @@ class MediaInfoToolbarWidget(QWidget):
     def _add_section_toggle_button(
         self, section_id: str, section_label: str
     ) -> QPushButton:
-        section_toggle_button = QPushButton(section_label)
+        section_toggle_button = QPushButton(section_label, parent=self)
         section_toggle_button.setObjectName("media_info_toolbar_toggle_button")
         section_toggle_button.setCheckable(True)
         section_toggle_button.setChecked(True)
@@ -73,7 +73,7 @@ class MediaInfoToolbarWidget(QWidget):
         return section_toggle_button
 
     def _on_section_toggle_clicked(self, section_id: str) -> None:
-        self.sig_section_visibility_toggle_requested.emit(
+        self.section_visibility_toggle_requested.emit(
             SignalPayload(
                 data=section_id,
                 sender=self.__class__.__name__,
@@ -84,11 +84,11 @@ class MediaInfoToolbarWidget(QWidget):
         )
 
     def _add_play_button(self) -> QPushButton:
-        play_video_button = QPushButton("▶")
+        play_video_button = QPushButton("▶", parent=self)
         play_video_button.setObjectName("media_info_toolbar_play_button")
         play_video_button.setMinimumWidth(40)
         play_video_button.clicked.connect(
-            lambda: self.sig_play_video_requested.emit(
+            lambda: self.play_video_requested.emit(
                 SignalPayload(
                     data=None,
                     sender=self.__class__.__name__,

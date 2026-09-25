@@ -1,8 +1,9 @@
-import pytest
-from unittest.mock import patch
-from unittest.mock import MagicMock
-from MyVideoExplorer.settings.settings_state import SettingsState
 import json
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from MyVideoExplorer.settings.settings_state import SettingsState
 
 
 class TestSettingsSplit:
@@ -19,7 +20,8 @@ class TestSettingsSplit:
         # Patch CFG_DIR and file paths in SettingsState
         monkeypatch.setattr("MyVideoExplorer.settings.settings_state.CFG_DIR", cfg_dir)
         monkeypatch.setattr(
-            "MyVideoExplorer.settings.settings_state.SETTINGS_UI_FILE", cfg_dir / "settings_ui.json"
+            "MyVideoExplorer.settings.settings_state.SETTINGS_UI_FILE",
+            cfg_dir / "settings_ui.json",
         )
         monkeypatch.setattr(
             "MyVideoExplorer.settings.settings_state.SETTINGS_MEDIA_FILE",
@@ -30,7 +32,8 @@ class TestSettingsSplit:
             cfg_dir / "settings_filter.json",
         )
         monkeypatch.setattr(
-            "MyVideoExplorer.settings.settings_state.DEFAULTS_UI_FILE", cfg_dir / "defaults_ui.json"
+            "MyVideoExplorer.settings.settings_state.DEFAULTS_UI_FILE",
+            cfg_dir / "defaults_ui.json",
         )
         monkeypatch.setattr(
             "MyVideoExplorer.settings.settings_state.DEFAULTS_MEDIA_FILE",
@@ -53,23 +56,23 @@ class TestSettingsSplit:
         assert (cfg_dir / "defaults_filter.json").exists()
 
         # Verify content
-        with open(cfg_dir / "defaults_ui.json") as f:
+        with (cfg_dir / "defaults_ui.json").open(encoding="utf-8") as f:
             ui_data = json.load(f)
             assert "font_size" in ui_data
 
     def test_save_settings_creates_split_files(self, setup_cfg, mock_log_util):
         cfg_dir = setup_cfg
         state = SettingsState(mock_log_util)
-        state.folder_configs = [{"label": "Test", "path": "/test", "icon": "folder"}]
+        state.media_configs = [{"label": "Test", "path": "/test", "icon": "folder"}]
         state.save_settings()
 
         assert (cfg_dir / "settings_ui.json").exists()
         assert (cfg_dir / "settings_media.json").exists()
         assert (cfg_dir / "settings_filter.json").exists()
 
-        with open(cfg_dir / "settings_media.json") as f:
+        with (cfg_dir / "settings_media.json").open(encoding="utf-8") as f:
             media_data = json.load(f)
-            assert media_data["folder_configs"][0]["label"] == "Test"
+            assert media_data["media_configs"][0]["label"] == "Test"
 
     def test_load_settings_merges_split_files(self, setup_cfg, mock_log_util):
         cfg_dir = setup_cfg
@@ -79,7 +82,7 @@ class TestSettingsSplit:
             json.dumps({"font_size": 22}), encoding="utf-8"
         )
         (cfg_dir / "settings_media.json").write_text(
-            json.dumps({"folder_configs": [{"label": "Loaded", "path": "/loaded"}]}),
+            json.dumps({"media_configs": [{"label": "Loaded", "path": "/loaded"}]}),
             encoding="utf-8",
         )
 
@@ -89,9 +92,9 @@ class TestSettingsSplit:
         from MyVideoExplorer.theme.theme import APP_THEME
 
         assert APP_THEME.font_size == 22
-        assert state.folder_configs[0]["label"] == "Loaded"
+        assert state.media_configs[0]["label"] == "Loaded"
         # Check if icon was added by migration/ensure logic
-        assert state.folder_configs[0]["icon"] == "folder"
+        assert state.media_configs[0]["icon"] == "fa6s.folder"
 
     def test_backups_for_each_file(self, setup_cfg, mock_log_util):
         state = SettingsState(mock_log_util)
@@ -103,7 +106,9 @@ class TestSettingsSplit:
         # Actually backup_file only creates one per day.
         # To test it creates backups for each, we just check if they are called.
 
-        with patch("MyVideoExplorer.utils.json_util.JsonUtil.backup_file") as mock_backup:
+        with patch(
+            "MyVideoExplorer.utils.json_util.JsonUtil.backup_file"
+        ) as mock_backup:
             state.save_settings()
             # Should be called 4 times, once for each settings file (app, ui, media, filter)
             assert mock_backup.call_count == 4
@@ -127,6 +132,6 @@ class TestSettingsSplit:
         assert state.saved_filters[0]["name"] == "Filter2"
 
         # Verify it was saved
-        with open(setup_cfg / "settings_filter.json") as f:
+        with (setup_cfg / "settings_filter.json").open(encoding="utf-8") as f:
             data = json.load(f)
             assert len(data["saved_filters"]) == 1

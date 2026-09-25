@@ -5,8 +5,8 @@ from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from MyVideoExplorer.image_list.image_label import ImageLabel
-from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
+from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.ui_utils import UIUtils
 
@@ -22,12 +22,12 @@ class ImagePreviewWidget(QWidget, ThemableMixin):
     Widget for previewing an image with automatic scaling and delayed rendering.
     """
 
-    sig_wheel_step = Signal(object)
-    sig_right_click = Signal(object)
-    sig_double_click = Signal(object)
+    wheel_step = Signal(object)
+    context_menu_requested = Signal(object)
+    double_click_requested = Signal(object)
 
-    def __init__(self, log_util:LogUtil) -> None:
-        super().__init__()
+    def __init__(self, log_util: LogUtil, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
         self.log_util = log_util
         self._ui_utils = UIUtils()
         self.timer = QTimer()
@@ -37,9 +37,13 @@ class ImagePreviewWidget(QWidget, ThemableMixin):
         self._loading_state_text = "Loading..."
 
         self.image_label = ImageLabel(log_util, _NO_IMAGE_FOUND)
-        self.image_label.sig_wheel_step.connect(self.sig_wheel_step.emit)
-        self.image_label.sig_right_click.connect(self.sig_right_click.emit)
-        self.image_label.sig_double_click.connect(self.sig_double_click.emit)
+        self.image_label.wheel_step.connect(self.wheel_step.emit)
+        self.image_label.context_menu_requested.connect(
+            self.context_menu_requested.emit
+        )
+        self.image_label.double_click_requested.connect(
+            self.double_click_requested.emit
+        )
 
         layout = self._ui_utils.apply_compact_layout(self, QVBoxLayout)
         layout.addWidget(self.image_label)
@@ -62,7 +66,7 @@ class ImagePreviewWidget(QWidget, ThemableMixin):
             self.apply_scaled_pixmap()
         except Exception as e:
             if self.log_util:
-                self.log_util.error(f"Error in load_pixmap: {str(e)}")
+                self.log_util.error(f"Error in load_pixmap: {e!s}")
             raise
 
     def _reset_preview(self) -> None:
@@ -101,12 +105,14 @@ class ImagePreviewWidget(QWidget, ThemableMixin):
                 return
 
             scaled = self._pixmap.scaled(
-                target_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
+                target_size,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
             )
             self.image_label.setPixmap(scaled)
         except Exception as e:
             if self.log_util:
-                self.log_util.error(f"Error in apply_scaled_pixmap: {str(e)}")
+                self.log_util.error(f"Error in apply_scaled_pixmap: {e!s}")
             raise
 
     def apply_theme(self) -> None:

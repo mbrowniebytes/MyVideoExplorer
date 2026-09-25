@@ -32,8 +32,8 @@ from MyVideoExplorer.media_info_section.media_info_section_details import (
 from MyVideoExplorer.media_info_section.media_info_section_plot import (
     MediaInfoPlotSection,
 )
-from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
+from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.utils.str_util import StrUtil
@@ -41,7 +41,7 @@ from MyVideoExplorer.utils.ui_utils import UIUtils
 
 
 class MediaInfoView(QWidget, ThemableMixin):
-    sig_info_play_video_btn_clicked = Signal(object)
+    info_play_video_btn_clicked = Signal(object)
 
     def __init__(
         self,
@@ -59,26 +59,27 @@ class MediaInfoView(QWidget, ThemableMixin):
         self.movie_info: dict | None = None
         self.view_mode = MEDIA_INFO_VIEW_MODE_DEFAULT
 
-        self.toolbar_widget = MediaInfoToolbarWidget()
-        self.scroll_content_widget = MediaInfoScrollContentWidget(log_util)
+        # Create child widgets with this view as parent to avoid top-level windows
+        self.toolbar_widget = MediaInfoToolbarWidget(parent=self)
+        self.scroll_content_widget = MediaInfoScrollContentWidget(log_util, parent=self)
 
-        self.common_section = MediaInfoCommonSection(self.str_util)
-        self.plot_section = MediaInfoPlotSection()
-        self.ids_section = MediaInfoDetailsSection()
-        self.videos_section = MediaInfoDetailsSection()
-        self.audios_section = MediaInfoDetailsSection()
-        self.subtitles_section = MediaInfoDetailsSection()
-        self.actors_section = MediaInfoActorsSection()
+        self.common_section = MediaInfoCommonSection(self.str_util, parent=self)
+        self.plot_section = MediaInfoPlotSection(parent=self)
+        self.ids_section = MediaInfoDetailsSection(parent=self)
+        self.videos_section = MediaInfoDetailsSection(parent=self)
+        self.audios_section = MediaInfoDetailsSection(parent=self)
+        self.subtitles_section = MediaInfoDetailsSection(parent=self)
+        self.actors_section = MediaInfoActorsSection(parent=self)
 
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.addWidget(self.toolbar_widget)
         self.main_layout.addWidget(self.scroll_content_widget)
 
-        self.toolbar_widget.sig_section_visibility_toggle_requested.connect(
+        self.toolbar_widget.section_visibility_toggle_requested.connect(
             lambda p: self._toggle_section(p.data)
         )
-        self.toolbar_widget.sig_play_video_requested.connect(self.play_video)
+        self.toolbar_widget.play_video_requested.connect(self.play_video)
 
         # Backward-compatible aliases for existing tests/callers.
         self.section_widgets = self.scroll_content_widget.section_widgets_by_id
@@ -128,8 +129,9 @@ class MediaInfoView(QWidget, ThemableMixin):
             self.build_from_movie_info(self.movie_info)
 
     def play_video(self, payload: SignalPayload | None = None) -> None:
-        self.sig_info_play_video_btn_clicked.emit(
-            payload or SignalPayload(
+        self.info_play_video_btn_clicked.emit(
+            payload
+            or SignalPayload(
                 data=None,
                 sender=self.__class__.__name__,
                 name="Play Video Requested",

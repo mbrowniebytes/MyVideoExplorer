@@ -68,7 +68,7 @@ class TestFileList:
 
         item = file_list.file_list_view.item(0)
 
-        with qtbot.waitSignal(file_list.sig_file_selected_intent) as blocker:
+        with qtbot.waitSignal(file_list.file_selected_intent) as blocker:
             file_list.file_list_view.itemClicked.emit(item)
 
         assert blocker.args[0].data == "/path/to/video1.mp4"
@@ -85,10 +85,11 @@ class TestFileList:
     def test_apply_theme(self, file_list):
         """Verify that applying theme updates styles and fonts."""
         with (
-            patch("MyVideoExplorer.file_list.file_list_view.APP_THEME") as mock_theme_view,
+            patch(
+                "MyVideoExplorer.file_list.file_list_view.APP_THEME"
+            ) as mock_theme_view,
             patch("MyVideoExplorer.file_list.file_list.APP_THEME") as mock_theme_list,
         ):
-
             for mock_theme in [mock_theme_view, mock_theme_list]:
                 mock_theme.font_family = "Arial"
                 mock_theme.font_size = 14
@@ -96,7 +97,9 @@ class TestFileList:
                 mock_theme.list_qss.return_value = "list { color: yellow; }"
                 mock_theme.label_qss.return_value = "label { color: green; }"
                 mock_theme.small_button_qss.return_value = "button { color: red; }"
-                mock_theme.help_icon_label_qss.return_value = "help_icon { color: orange; }"
+                mock_theme.help_icon_label_qss.return_value = (
+                    "help_icon { color: orange; }"
+                )
 
             file_list.apply_theme()
 

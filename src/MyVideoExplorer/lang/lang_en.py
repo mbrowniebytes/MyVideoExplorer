@@ -1,0 +1,37 @@
+class LangEn:
+    def __init__(self):
+        self.loading_messages = [
+            "Scrolling through the bits..",
+            "Calculate calculate..",
+            "Shuffling through the 1s and 0s..",
+            "Rollin', rollin', rollin'..",
+            "Nom nom nom..",
+            "Wrangling electrons into place..",
+            "Feeding the hamsters in the wheel..",
+            "Convincing the pixels to cooperate..",
+            "Brewing a fresh batch of data..",
+            "Feeding the gremlins..",
+            "Polishing each byte by bit..",
+            "Herding wild packets across the wire..",
+            "Consulting the magic 8-ball..",
+            "Teaching the algorithms to sit..",
+            "Counting infinity twice to be sure..",
+            "Negotiating with the cache goblins..",
+            "Loading the unloading loader..",
+            "Reversing the polarity of the neutron flow..",
+            "Conjuring results from the digital ether..",
+            "Spin spin spin..",
+            "Spin spun spin..",
+        ]
+        self.scan_progress = {
+            "scanning_media_subfolders": "Scanning Media Subfolders",
+            "saving_media_data": "Saving media data",
+            "cleaning_old_media_records": "Cleaning old media rows",
+            "preparing_media_rows": "Preparing media rows",
+            "writing_media_rows": "Writing media rows",
+            "saving_media_rows": "Saving media rows",
+            "saved_media_rows": "Saved media rows",
+            "saving_stats": "Saving stats",
+            "saved_stats": "Saved stats",
+            "done": "Done",
+        }

@@ -23,7 +23,7 @@ class FolderFilterTable(QTableWidget):
         "OS",
         "Folder",
         "File",
-        # TODO re-enable once have a db
+        # TODO: re-enable once have a db
         # "NFO",
         # "Genre",
         # "Actor",
@@ -32,13 +32,13 @@ class FolderFilterTable(QTableWidget):
         # "Plot",
     ]
 
-    sig_genre_changed = Signal(object)
-    sig_root_folder = Signal(object)
+    genre_changed = Signal(object)
+    root_folder = Signal(object)
 
-    def __init__(self, genres: list[str], folder_configs: list[dict]):
+    def __init__(self, genres: list[str], media_configs: list[dict]):
         super().__init__()
         self.genres = genres
-        self.folder_configs = folder_configs
+        self.media_configs = media_configs
         self._setup_ui()
 
     def _setup_ui(self) -> None:
@@ -116,7 +116,7 @@ class FolderFilterTable(QTableWidget):
         clean_type = filter_type.casefold().strip()
         if clean_type == "genre":
             # For Genre, we use a new combo box
-            combo = QComboBox()
+            combo = QComboBox(self)
             combo.addItem("-none-")
             for genre in self.genres:
                 combo.addItem(genre)
@@ -129,9 +129,9 @@ class FolderFilterTable(QTableWidget):
 
         if clean_type == "media":
             # For Media, we use a new combo box
-            combo = QComboBox()
+            combo = QComboBox(self)
             combo.addItem("- Select Folder -", userData="")
-            for config in self.folder_configs:
+            for config in self.media_configs:
                 combo.addItem(config["label"], userData=config["path"])
             if filter_value:
                 # Try to find by text first, then by data if that fails
@@ -162,8 +162,8 @@ class FolderFilterTable(QTableWidget):
 
     def _set_remove_button_cell(self, row_nbr: int) -> None:
 
-        remove_btn = QToolButton()
-        remove_btn.setIcon(APP_THEME.icon("fa5s.times", color=APP_THEME.text_color))
+        remove_btn = QToolButton(self)
+        remove_btn.setIcon(APP_THEME.icon("fa6s.xmark", color=APP_THEME.text_color))
         remove_btn.setToolTip("Remove filter")
         remove_btn.clicked.connect(lambda: self._remove_filter_row(remove_btn))
         self.setCellWidget(row_nbr, 2, remove_btn)
@@ -234,7 +234,7 @@ class FolderFilterTable(QTableWidget):
             description="Emitted when the genre changes in FolderFilterTable.",
             flow=SignalFlow.USER_INPUT,
         )
-        self.sig_genre_changed.emit(payload)
+        self.genre_changed.emit(payload)
 
     def _on_root_folder_changed(self, idx: int, combo: QComboBox):
         if idx > 0:
@@ -245,4 +245,4 @@ class FolderFilterTable(QTableWidget):
                 description="Emitted when a root folder is selected in FolderFilterTable.",
                 flow=SignalFlow.USER_INPUT,
             )
-            self.sig_root_folder.emit(payload)
+            self.root_folder.emit(payload)

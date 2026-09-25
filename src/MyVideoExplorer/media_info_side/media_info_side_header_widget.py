@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
-from MyVideoExplorer.app.app_signals_model import SignalPayload, SignalFlow
 from PySide6.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget
 
+from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
@@ -12,9 +12,11 @@ from MyVideoExplorer.utils.log_util import LogUtil
 class MediaInfoSideHeaderWidget(QWidget, ThemableMixin):
     """Compact side header with quick actions for the selected media item."""
 
-    sig_play_video_requested = Signal(object)
+    play_video_requested = Signal(object)
 
-    def __init__(self, log_util: LogUtil | None = None, parent: QWidget | None = None) -> None:
+    def __init__(
+        self, log_util: LogUtil | None = None, parent: QWidget | None = None
+    ) -> None:
         super().__init__(parent)
         self.log_util = log_util or LogUtil()
 
@@ -23,11 +25,11 @@ class MediaInfoSideHeaderWidget(QWidget, ThemableMixin):
         self.header_layout.setSpacing(8)
         self.header_layout.setAlignment(Qt.AlignmentFlag.AlignRight)
 
-        self.play_video_button = QPushButton("▶")
+        self.play_video_button = QPushButton("▶", parent=self)
         self.play_video_button.setMinimumWidth(60)
 
         self.play_video_button.clicked.connect(
-            lambda: self.sig_play_video_requested.emit(
+            lambda: self.play_video_requested.emit(
                 SignalPayload(
                     data=None,
                     sender=self.__class__.__name__,
@@ -38,7 +40,7 @@ class MediaInfoSideHeaderWidget(QWidget, ThemableMixin):
             )
         )
 
-        self.title_label = QLabel("NFO")
+        self.title_label = QLabel("NFO", parent=self)
         self.title_label.setWordWrap(False)
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignRight)
 
