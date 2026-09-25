@@ -2,7 +2,7 @@
 
 ---
 
-### 2026-##-##
+### 2026-09-25
 
 - add [duckdb](https://duckdb.org/) support
   - loading from db is faster and allows for more future filtering, local media tracking
@@ -28,11 +28,11 @@
   - add basic db data checks
   - remove more packages from build, reducing build size
   - update pyside6, ruff, ty, pyinstaller, etc
-  - backups in cfg/backups/, db/backups/
+  - move backups to cfg/backups/, db/backups/
   - several more ruff checks, formatting
   - cleanup docs
 
-release - [MyVideoExplorer-2026####-0.005 ](https://github.com/mbrowniebytes/MyVideoExplorer/releases/tag/2026####-0.005)
+release - [MyVideoExplorer-20260925-0.005 ](https://github.com/mbrowniebytes/MyVideoExplorer/releases/tag/20260925-0.005)
 
 ### 2026-08-07
 
