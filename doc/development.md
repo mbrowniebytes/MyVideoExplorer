@@ -175,7 +175,7 @@ skip as `main.spec` already exists
 > pyinstaller src/main.py
 
 creates dist
-> pyinstaller --noconfirm main.spec
+> pyinstaller --clean --noconfirm main.spec
 
 ---
 

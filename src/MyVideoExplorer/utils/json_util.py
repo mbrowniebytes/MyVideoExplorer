@@ -30,6 +30,8 @@ class JsonUtil:
 
     def load_json(self, file_path: Path) -> dict[str, Any]:
         """Load JSON data from a file. Returns empty dict on error or missing file."""
+        if not file_path.exists():
+            return {}
         try:
             with file_path.open(encoding=self.DEFAULT_ENCODING) as f:
                 data: Any = json.load(f)

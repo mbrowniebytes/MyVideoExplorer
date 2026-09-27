@@ -12,7 +12,7 @@ a = Analysis(
         ( 'src/MyVideoExplorer/settings/cfg/defaults*.json', 'MyVideoExplorer/settings/cfg/' ),
         ( 'src/MyVideoExplorer/db/migrations/*.sql', 'MyVideoExplorer/db/migrations/' ),
     ],
-    hiddenimports=['uuid', '_uuid', 'duckdb', 'pandas'],
+    hiddenimports=['uuid', '_uuid', 'duckdb', 'pandas', 'pytz'],
     collect_all=['duckdb'],
     hookspath=[],
     runtime_hooks=[],

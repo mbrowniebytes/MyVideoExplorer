@@ -1,3 +1,5 @@
+import shutil
+
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QMainWindow
 
@@ -43,8 +45,17 @@ class AppContainer:
 
         try:
             json_util = JsonUtil(log_util)
+            if not SETTINGS_APP_FILE.exists() and DEFAULTS_APP_FILE.exists():
+                try:
+                    SETTINGS_APP_FILE.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(DEFAULTS_APP_FILE, SETTINGS_APP_FILE)
+                except OSError as e:
+                    self.log_util.error(
+                        f"Failed to create {SETTINGS_APP_FILE} from {DEFAULTS_APP_FILE}: {e}"
+                    )
             app_data = json_util.load_json(DEFAULTS_APP_FILE)
-            app_data.update(json_util.load_json(SETTINGS_APP_FILE))
+            if SETTINGS_APP_FILE.exists():
+                app_data.update(json_util.load_json(SETTINGS_APP_FILE))
             log_level = app_data.get("log_level", "error")
 
             self.log_util = log_util.configure(log_level)
@@ -237,7 +248,9 @@ class AppContainer:
         )
         self._connect(
             self.settings.settings_data_model.window_pos_changed,
-            lambda p: self.resize_window(self.window, app_pos=p.data),
+            lambda p: self.resize_window(
+                self.window, app_pos=p.data, apply_resize=False
+            ),
         )
         self._connect(
             self.settings.media_settings_tab.root_folders_changed,
