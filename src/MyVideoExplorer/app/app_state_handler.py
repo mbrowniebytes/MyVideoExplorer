@@ -42,7 +42,6 @@ class AppStateHandler:
     def initialize(self) -> None:
         self.window.setUpdatesEnabled(False)
         self._initialize_app_state()
-        self.container.resize_window(self.window)
         self.window.setUpdatesEnabled(True)
 
     def _initialize_app_state(self) -> None:

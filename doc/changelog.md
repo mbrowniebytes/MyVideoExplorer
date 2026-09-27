@@ -2,6 +2,16 @@
 
 ---
 
+### 2026-09-27
+
+- internal:
+  - explicit add pytz to build
+  - fix dup app resize on startup
+  - create app_setttings if doesnt exist
+  - ruff formatting
+
+release - [MyVideoExplorer-20260927-0.006 ](https://github.com/mbrowniebytes/MyVideoExplorer/releases/tag/20260927-0.006)
+
 ### 2026-09-25
 
 - add [duckdb](https://duckdb.org/) support

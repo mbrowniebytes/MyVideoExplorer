@@ -1,4 +1,5 @@
 import re
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -94,6 +95,15 @@ class SettingsState(QObject):
         self.json_util.ensure_defaults(
             PACKAGE_CFG_DIR, DEFAULTS_FILTER_FILE, filter_defaults
         )
+
+        if not SETTINGS_APP_FILE.exists() and DEFAULTS_APP_FILE.exists():
+            try:
+                CFG_DIR.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(DEFAULTS_APP_FILE, SETTINGS_APP_FILE)
+            except OSError as e:
+                self.log_util.error(
+                    f"Failed to create {SETTINGS_APP_FILE} from {DEFAULTS_APP_FILE}: {e}"
+                )
 
     def _load_settings(self) -> None:
         """Load settings from split json files, falling back to split defaults."""
@@ -244,6 +254,14 @@ class SettingsState(QObject):
 
     def load_app(self) -> None:
         """Reload App settings from file."""
+        if not SETTINGS_APP_FILE.exists() and DEFAULTS_APP_FILE.exists():
+            try:
+                CFG_DIR.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(DEFAULTS_APP_FILE, SETTINGS_APP_FILE)
+            except OSError as e:
+                self.log_util.error(
+                    f"Failed to create {SETTINGS_APP_FILE} from {DEFAULTS_APP_FILE}: {e}"
+                )
         app_data = self.json_util.load_json(DEFAULTS_APP_FILE)
         if SETTINGS_APP_FILE.exists():
             app_data.update(self.json_util.load_json(SETTINGS_APP_FILE))

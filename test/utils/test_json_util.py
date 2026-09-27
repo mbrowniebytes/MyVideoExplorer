@@ -40,10 +40,18 @@ class TestJsonUtil:
         loaded_data = json_util.load_json(file_path)
         assert loaded_data == test_data
 
-    def test_load_json_non_existent(self, tmp_path, json_util):
+    def test_load_json_non_existent(self, tmp_path, json_util, mock_log_util):
         file_path = tmp_path / "non_existent.json"
         loaded_data = json_util.load_json(file_path)
         assert loaded_data == {}
+        mock_log_util.error.assert_not_called()
+
+    def test_load_json_corrupted(self, tmp_path, json_util, mock_log_util):
+        file_path = tmp_path / "corrupted.json"
+        file_path.write_text("{invalid json", encoding="utf-8")
+        loaded_data = json_util.load_json(file_path)
+        assert loaded_data == {}
+        mock_log_util.error.assert_called_once()
 
     def test_save_json(self, tmp_path, json_util):
         file_path = tmp_path / "subdir" / "test.json"

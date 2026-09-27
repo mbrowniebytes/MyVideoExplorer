@@ -20,6 +20,10 @@ class TestSettingsSplit:
         # Patch CFG_DIR and file paths in SettingsState
         monkeypatch.setattr("MyVideoExplorer.settings.settings_state.CFG_DIR", cfg_dir)
         monkeypatch.setattr(
+            "MyVideoExplorer.settings.settings_state.SETTINGS_APP_FILE",
+            cfg_dir / "settings_app.json",
+        )
+        monkeypatch.setattr(
             "MyVideoExplorer.settings.settings_state.SETTINGS_UI_FILE",
             cfg_dir / "settings_ui.json",
         )
@@ -30,6 +34,10 @@ class TestSettingsSplit:
         monkeypatch.setattr(
             "MyVideoExplorer.settings.settings_state.SETTINGS_FILTER_FILE",
             cfg_dir / "settings_filter.json",
+        )
+        monkeypatch.setattr(
+            "MyVideoExplorer.settings.settings_state.DEFAULTS_APP_FILE",
+            cfg_dir / "defaults_app.json",
         )
         monkeypatch.setattr(
             "MyVideoExplorer.settings.settings_state.DEFAULTS_UI_FILE",
@@ -54,11 +62,17 @@ class TestSettingsSplit:
         assert (cfg_dir / "defaults_ui.json").exists()
         assert (cfg_dir / "defaults_media.json").exists()
         assert (cfg_dir / "defaults_filter.json").exists()
+        assert (cfg_dir / "defaults_app.json").exists()
+        assert (cfg_dir / "settings_app.json").exists()
 
         # Verify content
         with (cfg_dir / "defaults_ui.json").open(encoding="utf-8") as f:
             ui_data = json.load(f)
             assert "font_size" in ui_data
+
+        with (cfg_dir / "settings_app.json").open(encoding="utf-8") as f:
+            app_data = json.load(f)
+            assert "log_level" in app_data
 
     def test_save_settings_creates_split_files(self, setup_cfg, mock_log_util):
         cfg_dir = setup_cfg
