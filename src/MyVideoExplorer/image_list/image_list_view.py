@@ -32,6 +32,7 @@ class ImageListView(QWidget, ThemableMixin):
     wheel_step = Signal(object)
     context_menu_requested = Signal(object)
     double_click_requested = Signal(object)
+    play_video_requested = Signal(object)
 
     def __init__(
         self,
@@ -94,6 +95,7 @@ class ImageListView(QWidget, ThemableMixin):
         self.log_util.debug("double_click_requested emitted")
 
     def _build_ui(self) -> None:
+        self.title_widget.play_video_requested.connect(self.play_video_requested)
         self.preview_widget.wheel_step.connect(self._handle_wheel_step)
         self.preview_widget.context_menu_requested.connect(self._handle_right_click)
         self.preview_widget.double_click_requested.connect(self._handle_double_click)
@@ -108,22 +110,17 @@ class ImageListView(QWidget, ThemableMixin):
             self.content_container, QVBoxLayout
         )
 
-        title_and_preview_widget = QWidget(self)
-        title_and_preview_layout = self._ui_utils.apply_compact_layout(
-            title_and_preview_widget, QVBoxLayout
-        )
-        title_and_preview_layout.addWidget(self.title_widget)
-        title_and_preview_layout.addWidget(self.preview_widget)
+        main_layout.addWidget(self.title_widget)
 
-        top_content_widget = QWidget(self)
+        preview_and_info_widget = QWidget(self)
         top_content_layout = cast(
             QHBoxLayout,
-            self._ui_utils.apply_compact_layout(top_content_widget, QHBoxLayout),
+            self._ui_utils.apply_compact_layout(preview_and_info_widget, QHBoxLayout),
         )
-        top_content_layout.addWidget(title_and_preview_widget, 2)
+        top_content_layout.addWidget(self.preview_widget, 2)
         top_content_layout.addWidget(self.media_info_side_view)
 
-        main_layout.addWidget(top_content_widget)
+        main_layout.addWidget(preview_and_info_widget)
         main_layout.addWidget(self.file_list.build())
         main_layout.addWidget(self.plot_text)
 

@@ -28,9 +28,9 @@ class FolderNav(QWidget, ThemableMixin):
         self.root_folders: list[str] = []
         self.folder_filter_widget = folder_filter_widget
         self._signals_connected = False
-
-        # self._timer = QTimer(self)
-        # self._timer.setSingleShot(True)
+        self._filter_timer = QTimer(self)
+        self._filter_timer.setSingleShot(True)
+        self._filter_timer.timeout.connect(self.apply_filters)
 
     def build(self) -> FolderNav:
         """Builds the navigation UI and connects internal signals."""
@@ -77,7 +77,7 @@ class FolderNav(QWidget, ThemableMixin):
             self.folder_filter_widget.media_filter_widget.refresh_buttons()
 
             # self.apply_filters_requested()
-            QTimer.singleShot(150, lambda: self.apply_filters())
+            self._filter_timer.start(150)
         except Exception as e:
             self.log_util.error(f"Error in _refresh_filters: {e}")
             # Safe-guard: don't crash if methods are not present yet

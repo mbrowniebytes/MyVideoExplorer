@@ -176,6 +176,11 @@ class ThemeManager:
     def setup_button(self, widget: QAbstractButton | QSpinBox) -> None:
         if isinstance(widget, (QPushButton, QToolButton)):
             object_name = widget.objectName()
+            if object_name in ("meta_column_toggle", "nfo_column_toggle"):
+                widget.setStyleSheet(
+                    StyleButton.get_toggle_button_qss(self.config, object_name)
+                )
+                return
             if object_name in (
                 "folder_filter_media_nav_button",
                 "media_info_toolbar_toggle_button",

@@ -186,10 +186,9 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             stats = db_util.get_stats(self.media_config["path"])
 
         last_scanned_short, last_scanned_full = self._format_last_scanned(
-            stats[7] if stats else None
+            stats.last_scanned if stats else None
         )
 
-        # stats: (folder_path, subfolders, files, images, videos, nfo, other, last_scanned)
         stats_icons = [
             "fa6s.folder",
             "fa6s.file",
@@ -210,12 +209,12 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         }
 
         stats_data = [
-            str(stats[1]) if stats else "-",
-            str(stats[2]) if stats else "-",
-            str(stats[3]) if stats else "-",
-            str(stats[4]) if stats else "-",
-            str(stats[5]) if stats else "-",
-            str(stats[6]) if stats else "-",
+            str(stats.subfolders_count) if stats else "-",
+            str(stats.files_count) if stats else "-",
+            str(stats.images_count) if stats else "-",
+            str(stats.videos_count) if stats else "-",
+            str(stats.nfo_count) if stats else "-",
+            str(stats.other_count) if stats else "-",
             last_scanned_short,
         ]
 
@@ -433,15 +432,15 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             stats = db_util.get_stats(media_config["path"])
 
         last_scanned_short, last_scanned_full = self._format_last_scanned(
-            stats[7] if stats else None
+            stats.last_scanned if stats else None
         )
         stats_data = [
-            str(stats[1]) if stats else "-",
-            str(stats[2]) if stats else "-",
-            str(stats[3]) if stats else "-",
-            str(stats[4]) if stats else "-",
-            str(stats[5]) if stats else "-",
-            str(stats[6]) if stats else "-",
+            str(stats.subfolders_count) if stats else "-",
+            str(stats.files_count) if stats else "-",
+            str(stats.images_count) if stats else "-",
+            str(stats.videos_count) if stats else "-",
+            str(stats.nfo_count) if stats else "-",
+            str(stats.other_count) if stats else "-",
             last_scanned_short,
         ]
 

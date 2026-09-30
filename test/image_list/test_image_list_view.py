@@ -36,6 +36,52 @@ class TestImageListView:
         assert image_list_view.title_widget is not None
         assert image_list_view.media_info_side_view is not None
 
+    def test_title_is_above_preview_and_side_by_side_info(self, image_list_view):
+        main_layout = image_list_view.content_container.layout()
+        assert main_layout.itemAt(0).widget() is image_list_view.title_widget
+        title_label = image_list_view.title_widget.title_label
+        assert title_label.minimumHeight() >= title_label.fontMetrics().height() + 16
+
+        preview_and_info = main_layout.itemAt(1).widget()
+        preview_and_info_layout = preview_and_info.layout()
+        assert (
+            preview_and_info_layout.itemAt(0).widget() is image_list_view.preview_widget
+        )
+        assert (
+            preview_and_info_layout.itemAt(1).widget()
+            is image_list_view.media_info_side_view
+        )
+
+    def test_title_play_button_emits_play_request(self, image_list_view, qtbot):
+        title_widget = image_list_view.title_widget
+        actions_layout = title_widget.actions_layout
+        assert actions_layout.itemAt(0).widget() is title_widget.help_icon
+        assert actions_layout.itemAt(1).spacerItem() is not None
+        assert actions_layout.itemAt(2).widget() is title_widget.play_video_button
+        actions_widget_width = title_widget.actions_widget.width()
+        assert actions_widget_width >= (
+            title_widget.help_icon.width()
+            + title_widget.play_video_button.minimumWidth()
+            + 24
+        )
+        with qtbot.waitSignal(image_list_view.play_video_requested):
+            title_widget.play_video_button.click()
+
+    def test_collapsing_meta_gives_width_to_preview(self, image_list_view, qtbot):
+        image_list_view.resize(1000, 600)
+        image_list_view.show()
+        qtbot.wait(10)
+        preview = image_list_view.preview_widget
+        nfo = image_list_view.media_info_side_view.side_content_widget.nfo_widget
+        preview_width = preview.width()
+        nfo_width = nfo.width()
+
+        image_list_view.media_info_side_view.side_content_widget.meta_collapse_button.click()
+        qtbot.wait(10)
+
+        assert preview.width() > preview_width
+        assert nfo.width() == nfo_width
+
     def test_load_pixmap_null(self, image_list_view):
         image_list_view.load_pixmap(None)
         assert image_list_view.preview_widget.image_label.text() == _NO_IMAGE_FOUND

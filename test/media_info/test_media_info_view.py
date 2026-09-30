@@ -48,6 +48,10 @@ class TestMediaInfoView:
         assert media_info_view.nfo_parse_util is not None
         assert media_info_view.view_mode == "media_info"
 
+    def test_section_build_timer_is_owned_by_view(self, media_info_view):
+        assert media_info_view._section_build_timer.parent() is media_info_view
+        assert media_info_view._section_build_timer.isSingleShot()
+
     def test_refresh_calls_nfo_parse(self, media_info_view, mock_nfo_data):
         media_info_view.nfo_parse_util.parse_nfo.return_value = mock_nfo_data
 

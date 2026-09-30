@@ -5,6 +5,7 @@ import duckdb
 import pytest
 
 from MyVideoExplorer.db.db_scan import DbScanUtil
+from MyVideoExplorer.db.models.media_path_stats import MediaPathStats
 
 
 class TestDbScanUtil:
@@ -42,9 +43,10 @@ class TestDbScanUtil:
         db_util.save_stats(stats)
         retrieved = db_util.get_stats("/test/path")
         assert retrieved is not None
-        assert retrieved[0] == "/test/path"
-        assert retrieved[1] == 1
-        assert retrieved[2] == 2
+        assert isinstance(retrieved, MediaPathStats)
+        assert retrieved.media_path == "/test/path"
+        assert retrieved.subfolders_count == 1
+        assert retrieved.files_count == 2
 
     def test_save_media(self, db_util, db_path):
         media_list = [

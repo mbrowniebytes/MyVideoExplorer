@@ -35,6 +35,11 @@ class DbQuery:
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """
 
-        SELECT = "SELECT * FROM media_path_stats WHERE media_path = ?"
+        SELECT = """
+            SELECT media_path, subfolders_count, files_count, images_count,
+                videos_count, nfo_count, other_count, last_scanned
+            FROM media_path_stats
+            WHERE media_path = ?
+        """
 
         DELETE = "DELETE FROM media_path_stats WHERE media_path = ?"

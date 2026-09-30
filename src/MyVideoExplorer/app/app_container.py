@@ -5,6 +5,7 @@ from PySide6.QtWidgets import QMainWindow
 
 from MyVideoExplorer.app.app_controller import AppController
 from MyVideoExplorer.app.app_signals import SignalRegistry
+from MyVideoExplorer.db.db_play_history import DbPlayHistory
 from MyVideoExplorer.file_list.file_list import FileList
 from MyVideoExplorer.folder_filter.folder_filter import FolderFilters
 from MyVideoExplorer.folder_filter.folder_filter_filter import FolderFilterFilter
@@ -76,6 +77,7 @@ class AppContainer:
             self.nfo_parse_util = NfoParseUtil(self.file_util, self.log_util)
             self.str_util = StrUtil(self.log_util)
             self.font_util = FontUtil(self.log_util, self.file_util)
+            self.db_play_history = DbPlayHistory(self.settings.settings_data_model)
 
             self.signals = SignalRegistry()
             self.controller = AppController(self.log_util, self.signals)
@@ -105,7 +107,10 @@ class AppContainer:
             )
             self.media_info_view.setParent(self.window)
             self.media_info_side_view = MediaInfoSideView(
-                self.nfo_parse_util, self.str_util, self.log_util
+                self.nfo_parse_util,
+                self.str_util,
+                self.log_util,
+                self.db_play_history,
             )
             self.media_info_side_view.setParent(self.window)
             self.media_info = MediaInfo(
@@ -272,6 +277,11 @@ class AppContainer:
             lambda p: self._play_video_from_current_folder(),
         )
         self._connect(
+            self.image_list_view.play_video_requested,
+            lambda p: self._play_video_from_current_folder(),
+        )
+        self._connect(self.video_player.video_played, self._record_video_playback)
+        self._connect(
             self.media_info.play_video_requested,
             lambda p: self._play_video_from_current_folder(),
         )
@@ -287,6 +297,13 @@ class AppContainer:
     def _play_video_from_current_folder(self) -> None:
         self.video_player.set_folder_path(self.controller.state.current_folder)
         self.video_player.play_video()
+
+    def _record_video_playback(self, file_path: str) -> None:
+        if not self.db_play_history.record_playback(file_path):
+            self.log_util.warning(f"Could not record playback for {file_path}")
+            return
+        if self.media_info_side_view.media_file_path == file_path:
+            self.media_info_side_view.refresh_play_history()
 
     def _on_filtered_items(self, items: list[FileUtilModel]) -> None:
         self.folder_list.populate_view(items)
@@ -336,6 +353,8 @@ class AppContainer:
             self.file_list.set_selected_file(self.image_list.selected_image_path)
 
         self.video_player.set_folder_path(folder_path)
+        video_path = self.video_player.video_finder.find_associated_video(folder_path)
+        self.media_info_side_view.set_media_file_path(video_path)
         self.media_info.refresh(folder_path, self.controller.state.current_tab)
 
     @staticmethod

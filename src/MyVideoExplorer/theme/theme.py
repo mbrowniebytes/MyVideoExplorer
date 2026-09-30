@@ -112,6 +112,9 @@ class Theme(ThemeManager):
     def small_button_qss(self) -> str:
         return StyleButton.get_small_button_qss(self.config)
 
+    def toggle_button_qss(self, widget_name: str) -> str:
+        return StyleButton.get_toggle_button_qss(self.config, widget_name)
+
     def container_qss(self) -> str:
         return StyleApp.get_app_qss(self.config)
 
