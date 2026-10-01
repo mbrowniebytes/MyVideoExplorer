@@ -5,11 +5,13 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QTabBar, QTabWidget, QVBoxLayout, QWidget
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
+from MyVideoExplorer.db.db_tags import DbTags
 from MyVideoExplorer.settings.settings_app_tab import SettingsAppTab
 from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
 from MyVideoExplorer.settings.settings_filter_tab import SettingsFilterTab
 from MyVideoExplorer.settings.settings_media_tab import SettingsMediaTab
 from MyVideoExplorer.settings.settings_state import SettingsState
+from MyVideoExplorer.settings.settings_tags import SettingsTagsTab
 from MyVideoExplorer.settings.settings_ui_tab import SettingsUITab
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
@@ -30,6 +32,7 @@ class Settings(QWidget, ThemableMixin):
 
         # Data Model (State Management)
         self.settings_data_model = SettingsState(self.log_util)
+        self.tag_store: DbTags | None = None
 
         # View Components (Settings Tabs) - Initialized in _build_ui
         self.managed_tabs: list[SettingsBaseTab] = []
@@ -37,6 +40,7 @@ class Settings(QWidget, ThemableMixin):
         self._ui_settings_tab: SettingsUITab | None = None
         self._media_settings_tab: SettingsMediaTab | None = None
         self._filter_settings_tab: SettingsFilterTab | None = None
+        self._tags_settings_tab: SettingsTagsTab | None = None
 
     @property
     def app_settings_tab(self) -> SettingsAppTab:
@@ -70,6 +74,14 @@ class Settings(QWidget, ThemableMixin):
         assert self._filter_settings_tab is not None
         return self._filter_settings_tab
 
+    @property
+    def tags_settings_tab(self) -> SettingsTagsTab:
+        if self._tags_settings_tab is None:
+            self._build_ui()
+            self._connect_signals()
+        assert self._tags_settings_tab is not None
+        return self._tags_settings_tab
+
     def _build_ui(self) -> None:
         """Constructs the settings UI layout and registers tabs."""
         if self.layout() is not None:
@@ -89,6 +101,12 @@ class Settings(QWidget, ThemableMixin):
             self._filter_settings_tab = SettingsFilterTab(
                 self.settings_data_model, self.log_util, parent=self
             )
+            self._tags_settings_tab = SettingsTagsTab(
+                self.settings_data_model,
+                self.log_util,
+                tag_store=self.tag_store,
+                parent=self,
+            )
 
             # Group tabs for centralized management (DRY principle)
             self.managed_tabs = [
@@ -96,6 +114,7 @@ class Settings(QWidget, ThemableMixin):
                 self._ui_settings_tab,
                 self._media_settings_tab,
                 self._filter_settings_tab,
+                self._tags_settings_tab,
             ]
 
         main_layout = QVBoxLayout(self)
@@ -111,7 +130,7 @@ class Settings(QWidget, ThemableMixin):
         self._add_spacer_tab(self.settings_tabs_container, tab_bar)
 
         # Register settings tabs with consistent labels
-        tab_labels = ["App", "UI", "Media", "Filters"]
+        tab_labels = ["App", "UI", "Media", "Filters", "Tags"]
         for tab_widget, label in zip(self.managed_tabs, tab_labels):
             self.settings_tabs_container.addTab(tab_widget, f" {label} ")
 

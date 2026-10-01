@@ -10,7 +10,13 @@
     - track last video played
       - to clear, delete date or right click -> clear date
     - intent is for future filtering
+  - add Tags
+    - add Tags to Media, and Settings
+    - able to name, color tags
+    - able to sort by name and qty
+    - intent is for future filtering
   - able to collapse NFO and META columns
+
 - internal:
   - add basic db/models/ for query results
   - fix play video using associated mpc-qt 

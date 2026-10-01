@@ -15,12 +15,14 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from MyVideoExplorer.db.db_tags import DbTags
 from MyVideoExplorer.media_info_side.media_info_side_facts_widget import (
     MediaInfoSideFactsWidget,
 )
 from MyVideoExplorer.media_info_side.media_info_side_header_widget import (
     MediaInfoSideHeaderWidget,
 )
+from MyVideoExplorer.tag_cloud.tag_cloud_media import TagCloudMedia, TagStateProtocol
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
@@ -76,6 +78,8 @@ class MediaInfoSideContentWidget(QWidget, ThemableMixin):
         str_util: StrUtil,
         log_util: LogUtil | None = None,
         parent: QWidget | None = None,
+        tag_state: TagStateProtocol | None = None,
+        tag_store: DbTags | None = None,
     ) -> None:
         super().__init__(parent)
         self.log_util = log_util or LogUtil()
@@ -157,12 +161,14 @@ class MediaInfoSideContentWidget(QWidget, ThemableMixin):
             "0000-00-00"
         )
         self.last_played_date_edit.setFixedWidth(date_text_width + 44)
+        self.tag_cloud_widget = TagCloudMedia(tag_state, tag_store, self.meta_widget)
         self.meta_body_layout.addWidget(self.played_label)
         self.meta_body_layout.addWidget(
             self.played_spin_box, 0, Qt.AlignmentFlag.AlignRight
         )
         self.meta_body_layout.addWidget(self.last_played_label)
         self.meta_body_layout.addWidget(self.last_played_date_edit)
+        self.meta_body_layout.addWidget(self.tag_cloud_widget)
         self.meta_body_layout.addStretch()
         self.meta_layout.addWidget(self.meta_header_widget)
         self.meta_layout.addWidget(self.meta_body_widget)

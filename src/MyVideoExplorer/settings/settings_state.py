@@ -31,6 +31,7 @@ class SettingsState(QObject):
     settings_changed = Signal(object)
     window_size_changed = Signal(object)
     window_pos_changed = Signal(object)
+    tags_changed = Signal()
 
     def __init__(self, log_util: Any) -> None:
         super().__init__()
@@ -49,6 +50,7 @@ class SettingsState(QObject):
         self.show_loading_screen = True
 
         self.media_configs: list[dict[str, Any]] = []
+        self.tags: list[dict[str, str]] = []
         self._db_enabled = True
         self.saved_filters: list[dict[str, Any]] = []
         self._load_settings()
@@ -242,6 +244,39 @@ class SettingsState(QObject):
                 flow=SignalFlow.COMPONENT_INTERACTION,
             )
         )
+
+    @staticmethod
+    def normalize_tags(tags: Any) -> list[dict[str, str]]:
+        if not isinstance(tags, list):
+            return []
+        normalized: list[dict[str, str]] = []
+        seen: set[str] = set()
+        for item in tags:
+            if not isinstance(item, dict):
+                continue
+            tag = str(item.get("tag", "")).strip()
+            if not tag or tag.casefold() in seen:
+                continue
+            seen.add(tag.casefold())
+            color = str(item.get("color", "#808080")).strip()
+            if not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
+                color = "#808080"
+            normalized.append({"tag": tag, "color": color})
+        return normalized
+
+    def add_tag(self, tag: str, color: str = "#808080") -> bool:
+        clean_tag = tag.strip()
+        if not clean_tag or any(
+            item["tag"].casefold() == clean_tag.casefold() for item in self.tags
+        ):
+            return False
+        self.tags.append(self.normalize_tags([{"tag": clean_tag, "color": color}])[0])
+        self.tags_changed.emit()
+        return True
+
+    def set_tags(self, tags: list[dict[str, str]]) -> None:
+        self.tags = self.normalize_tags(tags)
+        self.tags_changed.emit()
 
     def load_ui(self) -> None:
         """Reload UI settings from file."""

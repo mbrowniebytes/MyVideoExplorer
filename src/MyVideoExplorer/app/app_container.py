@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QMainWindow
 from MyVideoExplorer.app.app_controller import AppController
 from MyVideoExplorer.app.app_signals import SignalRegistry
 from MyVideoExplorer.db.db_play_history import DbPlayHistory
+from MyVideoExplorer.db.db_tags import DbTags
 from MyVideoExplorer.file_list.file_list import FileList
 from MyVideoExplorer.folder_filter.folder_filter import FolderFilters
 from MyVideoExplorer.folder_filter.folder_filter_filter import FolderFilterFilter
@@ -78,6 +79,8 @@ class AppContainer:
             self.str_util = StrUtil(self.log_util)
             self.font_util = FontUtil(self.log_util, self.file_util)
             self.db_play_history = DbPlayHistory(self.settings.settings_data_model)
+            self.db_tags = DbTags(self.settings.settings_data_model)
+            self.settings.tag_store = self.db_tags
 
             self.signals = SignalRegistry()
             self.controller = AppController(self.log_util, self.signals)
@@ -111,6 +114,8 @@ class AppContainer:
                 self.str_util,
                 self.log_util,
                 self.db_play_history,
+                self.db_tags,
+                self.settings.settings_data_model,
             )
             self.media_info_side_view.setParent(self.window)
             self.media_info = MediaInfo(
