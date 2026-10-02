@@ -34,6 +34,7 @@ from MyVideoExplorer.theme.theme import APP_THEME
 class TagStateProtocol(Protocol):
     tags: list[dict[str, str]]
     tags_changed: Any
+    tag_counts_changed: Any
 
     def add_tag(self, tag: str) -> Any: ...
 
@@ -102,6 +103,7 @@ class TagCloudMedia(QWidget):
 
         if self.state is not None:
             self.state.tags_changed.connect(self._on_catalog_changed)
+            self.state.tag_counts_changed.connect(self._refresh_cloud)
         self._refresh_cloud()
         self.set_enabled(False)
 
@@ -425,12 +427,15 @@ class TagCloudMedia(QWidget):
         if self.tag_store is None:
             return
         new_name = name_edit.text().strip()
-        if not new_name or any(
+        if not new_name or not new_name.isalnum() or any(
             item["tag"].casefold() == new_name.casefold()
             and item["tag"].casefold() != old_name.casefold()
             for item in self.tag_store.list_tags()
         ):
-            name_edit.setToolTip("Enter a unique tag name.")
+            if not new_name.isalnum():
+                name_edit.setToolTip("Tag names must be alphanumeric only.")
+            else:
+                name_edit.setToolTip("Enter a unique tag name.")
             return
         color = str(color_button.property("tag_color"))
         if self.tag_store.update_catalog_tag(old_name, new_name, color):
@@ -487,6 +492,9 @@ class TagCloudMedia(QWidget):
             return
         tag = self._new_tag_edit.text().strip()
         if not tag:
+            return
+        if not tag.isalnum():
+            self._new_tag_edit.setToolTip("Tag names must be alphanumeric only.")
             return
         added = (
             self.tag_store.add_catalog_tag(tag)

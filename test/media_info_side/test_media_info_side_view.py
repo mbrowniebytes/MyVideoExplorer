@@ -193,6 +193,7 @@ class TestMediaInfoSideView:
     def test_media_tags_load_add_and_save(self, qtbot, monkeypatch):
         class TagState(QObject):
             tags_changed = Signal()
+            tag_counts_changed = Signal()
 
             def __init__(self):
                 super().__init__()
@@ -206,6 +207,8 @@ class TestMediaInfoSideView:
                 self.tags_changed.emit()
 
         tag_state = TagState()
+        tag_count_refreshes = []
+        tag_state.tag_counts_changed.connect(lambda: tag_count_refreshes.append(True))
         tag_store = MagicMock()
         current_media_tags = ["Favorite"]
         tag_store.get_tags.side_effect = lambda _path: list(current_media_tags)
@@ -301,6 +304,7 @@ class TestMediaInfoSideView:
             "C:/movies/film.mkv",
             ["Favorite", "Comedy"],
         )
+        assert len(tag_count_refreshes) == 1
         assert any(
             "Remove Comedy" in button.toolTip()
             for button in popup.findChildren(QToolButton)
@@ -328,6 +332,7 @@ class TestMediaInfoSideView:
             "C:/movies/film.mkv",
             ["Favorite"],
         )
+        assert len(tag_count_refreshes) == 2
         assert not any(
             "Remove Comedy" in button.toolTip()
             for button in tag_widget.tags_container.findChildren(QToolButton)

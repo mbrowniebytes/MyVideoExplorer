@@ -47,6 +47,9 @@ class SettingsTagsTab(SettingsBaseTab):
         tag = self.new_tag_edit.text().strip()
         if not tag:
             return
+        if not self.state.is_valid_tag_name(tag):
+            self.new_tag_edit.setToolTip("Tag names must be alphanumeric only.")
+            return
         if self.tag_store is not None:
             added = self.tag_store.add_catalog_tag(tag)
         else:

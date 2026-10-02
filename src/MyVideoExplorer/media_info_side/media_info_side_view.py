@@ -276,6 +276,8 @@ class MediaInfoSideView(QWidget, ThemableMixin):
             self.log_util.warning(f"Could not save tags for {self.media_file_path}")
             return
         tag_widget.set_tags(updated_tags)
+        if self.tag_state is not None:
+            self.tag_state.tag_counts_changed.emit()
 
     def _remove_media_tag(self, tag: str) -> None:
         tag_widget = self.side_content_widget.tag_cloud_widget
@@ -292,3 +294,5 @@ class MediaInfoSideView(QWidget, ThemableMixin):
             self.log_util.warning(f"Could not save tags for {self.media_file_path}")
             return
         tag_widget.set_tags(updated_tags)
+        if self.tag_state is not None:
+            self.tag_state.tag_counts_changed.emit()

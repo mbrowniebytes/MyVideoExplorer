@@ -374,11 +374,14 @@ class TagCloudWidget(QWidget):
         chip: QWidget,
     ) -> None:
         new_name = name_edit.text().strip()
-        if not new_name or any(
+        if not new_name or not new_name.isalnum() or any(
             current is not tag and current["tag"].casefold() == new_name.casefold()
             for current in self._tags
         ):
-            name_edit.setToolTip("Enter a unique tag name.")
+            if not new_name.isalnum():
+                name_edit.setToolTip("Tag names must be alphanumeric only.")
+            else:
+                name_edit.setToolTip("Enter a unique tag name.")
             return
 
         original_name = tag["tag"]

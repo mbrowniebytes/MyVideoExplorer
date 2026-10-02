@@ -27,6 +27,7 @@ class TagCloudSettings(QWidget):
         self.cloud.tag_color_changed.connect(self._on_tag_color_changed)
         self.cloud.tag_deleted.connect(self._on_tag_deleted)
         self.state.tags_changed.connect(self.refresh)
+        self.state.tag_counts_changed.connect(self.refresh)
         self.refresh()
 
     def refresh(self) -> None:

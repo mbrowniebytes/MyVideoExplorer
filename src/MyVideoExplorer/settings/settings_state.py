@@ -32,6 +32,7 @@ class SettingsState(QObject):
     window_size_changed = Signal(object)
     window_pos_changed = Signal(object)
     tags_changed = Signal()
+    tag_counts_changed = Signal()
 
     def __init__(self, log_util: Any) -> None:
         super().__init__()
@@ -246,6 +247,11 @@ class SettingsState(QObject):
         )
 
     @staticmethod
+    def is_valid_tag_name(tag: str) -> bool:
+        """Check if a tag name contains only alphanumeric characters."""
+        return bool(re.fullmatch(r"[A-Za-z0-9]+", tag))
+
+    @staticmethod
     def normalize_tags(tags: Any) -> list[dict[str, str]]:
         if not isinstance(tags, list):
             return []
@@ -255,7 +261,7 @@ class SettingsState(QObject):
             if not isinstance(item, dict):
                 continue
             tag = str(item.get("tag", "")).strip()
-            if not tag or tag.casefold() in seen:
+            if not tag or not SettingsState.is_valid_tag_name(tag) or tag.casefold() in seen:
                 continue
             seen.add(tag.casefold())
             color = str(item.get("color", "#808080")).strip()
@@ -266,8 +272,12 @@ class SettingsState(QObject):
 
     def add_tag(self, tag: str, color: str = "#808080") -> bool:
         clean_tag = tag.strip()
-        if not clean_tag or any(
-            item["tag"].casefold() == clean_tag.casefold() for item in self.tags
+        if (
+            not clean_tag
+            or not SettingsState.is_valid_tag_name(clean_tag)
+            or any(
+                item["tag"].casefold() == clean_tag.casefold() for item in self.tags
+            )
         ):
             return False
         self.tags.append(self.normalize_tags([{"tag": clean_tag, "color": color}])[0])

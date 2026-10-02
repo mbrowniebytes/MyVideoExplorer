@@ -55,6 +55,10 @@ def test_tag_settings_edits_and_deletes_are_saved_immediately(
     )
     widget = TagCloudSettings(state, store)
     qtbot.addWidget(widget)
+    cloud_set_tags = MagicMock(wraps=widget.cloud.set_tags)
+    monkeypatch.setattr(widget.cloud, "set_tags", cloud_set_tags)
+    state.tag_counts_changed.emit()
+    cloud_set_tags.assert_called_once()
 
     initial_chip = next(
         chip for tag, chip in widget.cloud._tag_widgets if tag["tag"] == "Favorite"
@@ -75,7 +79,7 @@ def test_tag_settings_edits_and_deletes_are_saved_immediately(
     qtbot.mouseDClick(favorite_button, Qt.MouseButton.LeftButton)
     name_edit = favorite_chip.findChild(QLineEdit)
     assert name_edit is not None
-    name_edit.setText("Must Watch")
+    name_edit.setText("MustWatch")
     monkeypatch.setattr(
         "MyVideoExplorer.tag_cloud.tag_cloud_widget.QColorDialog.getColor",
         lambda *_args: QColor("#112233"),
@@ -87,7 +91,7 @@ def test_tag_settings_edits_and_deletes_are_saved_immediately(
     save_button.click()
     assert store.list_tags() == [
         {"tag": "Comedy", "color": "#00ff00"},
-        {"tag": "Must Watch", "color": "#112233"},
+        {"tag": "MustWatch", "color": "#112233"},
     ]
     assert state.tags == store.list_tags()
 
@@ -105,11 +109,11 @@ def test_tag_settings_edits_and_deletes_are_saved_immediately(
     assert "border: 0" in delete_button.styleSheet()
     delete_button.click()
 
-    assert store.list_tags() == [{"tag": "Must Watch", "color": "#112233"}]
+    assert store.list_tags() == [{"tag": "MustWatch", "color": "#112233"}]
     assert state.tags == store.list_tags()
 
-    store.add_catalog_tag("Created from media")
-    assert any(tag["tag"] == "Created from media" for tag in widget.cloud.tags)
+    store.add_catalog_tag("CreatedFromMedia")
+    assert any(tag["tag"] == "CreatedFromMedia" for tag in widget.cloud.tags)
 
 
 def test_tag_cloud_filter_and_sort(qtbot):
@@ -192,12 +196,105 @@ def test_settings_tags_can_create_tag(qtbot, tmp_path, monkeypatch):
     settings_tab = SettingsTagsTab(state, MagicMock(), store)
     qtbot.addWidget(settings_tab)
 
-    settings_tab.new_tag_edit.setText("New tag")
+    settings_tab.new_tag_edit.setText("NewTag")
     settings_tab.add_tag_button.click()
 
-    assert store.list_tags() == [{"tag": "New tag", "color": "#808080"}]
+    assert store.list_tags() == [{"tag": "NewTag", "color": "#808080"}]
     assert settings_tab.save_btn is None
     assert settings_tab.reset_btn is None
     assert any(
-        tag["tag"] == "New tag" for tag in settings_tab.tag_cloud_settings.cloud.tags
+        tag["tag"] == "NewTag" for tag in settings_tab.tag_cloud_settings.cloud.tags
     )
+
+
+def test_tag_name_must_be_alphanumeric(qtbot, tmp_path, monkeypatch):
+    """Tags should be alphanumeric only; spaces and punctuation are rejected."""
+    cfg_dir = tmp_path / "cfg"
+    cfg_dir.mkdir()
+    for name in (
+        "SETTINGS_STATE_FILE",
+        "SETTINGS_APP_FILE",
+        "SETTINGS_UI_FILE",
+        "SETTINGS_MEDIA_FILE",
+        "SETTINGS_FILTER_FILE",
+    ):
+        monkeypatch.setattr(
+            f"MyVideoExplorer.settings.settings_state.{name}",
+            cfg_dir / f"{name.removeprefix('SETTINGS_').lower()}.json",
+        )
+    for name in (
+        "DEFAULTS_STATE_FILE",
+        "DEFAULTS_APP_FILE",
+        "DEFAULTS_UI_FILE",
+        "DEFAULTS_MEDIA_FILE",
+        "DEFAULTS_FILTER_FILE",
+    ):
+        monkeypatch.setattr(
+            f"MyVideoExplorer.settings.settings_state.{name}",
+            cfg_dir / "defaults" / f"{name.removeprefix('DEFAULTS_').lower()}.json",
+        )
+    monkeypatch.setattr("MyVideoExplorer.settings.settings_state.CFG_DIR", cfg_dir)
+    monkeypatch.setattr(
+        "MyVideoExplorer.settings.settings_state.PACKAGE_CFG_DIR",
+        cfg_dir / "defaults",
+    )
+    state = SettingsState(MagicMock())
+    store = DbTags(state, tmp_path / "tag_catalog.db")
+    settings_tab = SettingsTagsTab(state, MagicMock(), store)
+    qtbot.addWidget(settings_tab)
+
+    # Valid alphanumeric tag should be accepted
+    settings_tab.new_tag_edit.setText("Action")
+    settings_tab.add_tag_button.click()
+    assert store.list_tags() == [{"tag": "Action", "color": "#808080"}]
+
+    # Tag with space should be rejected
+    settings_tab.new_tag_edit.setText("Action Comedy")
+    settings_tab.add_tag_button.click()
+    assert store.list_tags() == [{"tag": "Action", "color": "#808080"}]
+    assert settings_tab.new_tag_edit.toolTip() == "Tag names must be alphanumeric only."
+
+    # Tag with punctuation should be rejected
+    settings_tab.new_tag_edit.setText("Sci-Fi")
+    settings_tab.add_tag_button.click()
+    assert store.list_tags() == [{"tag": "Action", "color": "#808080"}]
+    assert settings_tab.new_tag_edit.toolTip() == "Tag names must be alphanumeric only."
+
+    # Tag with underscore should be rejected
+    settings_tab.new_tag_edit.setText("Sci_Fi")
+    settings_tab.add_tag_button.click()
+    assert store.list_tags() == [{"tag": "Action", "color": "#808080"}]
+    assert settings_tab.new_tag_edit.toolTip() == "Tag names must be alphanumeric only."
+
+
+def test_normalize_tags_rejects_non_alphanumeric():
+    """normalize_tags should filter out tags with spaces or punctuation."""
+    result = SettingsState.normalize_tags([
+        {"tag": "ValidTag", "color": "#ff0000"},
+        {"tag": "Has Space", "color": "#00ff00"},
+        {"tag": "Has-Dash", "color": "#0000ff"},
+        {"tag": "Has_Underscore", "color": "#ffff00"},
+        {"tag": "Has.Dot", "color": "#ff00ff"},
+        {"tag": "123", "color": "#00ffff"},
+    ])
+    tag_names = [item["tag"] for item in result]
+    assert "ValidTag" in tag_names
+    assert "123" in tag_names
+    assert "Has Space" not in tag_names
+    assert "Has-Dash" not in tag_names
+    assert "Has_Underscore" not in tag_names
+    assert "Has.Dot" not in tag_names
+
+
+def test_is_valid_tag_name():
+    """is_valid_tag_name should accept only alphanumeric strings."""
+    assert SettingsState.is_valid_tag_name("Action") is True
+    assert SettingsState.is_valid_tag_name("123") is True
+    assert SettingsState.is_valid_tag_name("Action123") is True
+    assert SettingsState.is_valid_tag_name("a") is True
+    assert SettingsState.is_valid_tag_name("") is False
+    assert SettingsState.is_valid_tag_name("Has Space") is False
+    assert SettingsState.is_valid_tag_name("Sci-Fi") is False
+    assert SettingsState.is_valid_tag_name("Sci_Fi") is False
+    assert SettingsState.is_valid_tag_name("tag!") is False
+    assert SettingsState.is_valid_tag_name("tag.") is False
