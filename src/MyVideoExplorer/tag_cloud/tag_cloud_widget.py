@@ -1,22 +1,30 @@
 from __future__ import annotations
 
 from math import sqrt
+from typing import Any
 
-from PySide6.QtCore import QPoint, QRect, QSize, Qt, Signal
+from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtGui import QColor, QFont
 from PySide6.QtWidgets import (
     QColorDialog,
     QComboBox,
     QHBoxLayout,
     QLabel,
-    QLayout,
     QLineEdit,
     QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
+from MyVideoExplorer.db.models.tag_item import TagItem
+from MyVideoExplorer.tag_cloud.tag_button import TagButton
+from MyVideoExplorer.tag_cloud.tag_util import (
+    get_contrast_text_color,
+    style_painter_button,
+    validate_tag_name,
+)
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.widgets.flow_layout import FlowLayout
 
 _TAG_CLOUD_SORT_MODE = "Name"
 
@@ -29,90 +37,6 @@ def set_tag_cloud_sort_mode(mode: str) -> None:
     global _TAG_CLOUD_SORT_MODE
     if mode in (TagCloudWidget.SORT_NAME, TagCloudWidget.SORT_QUANTITY):
         _TAG_CLOUD_SORT_MODE = mode
-
-
-class TagButton(QToolButton):
-    double_clicked = Signal()
-
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setProperty("preserve_custom_style", True)
-
-    def mouseDoubleClickEvent(self, event) -> None:
-        self.double_clicked.emit()
-        super().mouseDoubleClickEvent(event)
-
-
-class FlowLayout(QLayout):
-    """Layout items left-to-right, wrapping them to additional rows."""
-
-    def __init__(self, parent: QWidget | None = None, spacing: int = 8) -> None:
-        super().__init__(parent)
-        self._items = []
-        self.setSpacing(spacing)
-
-    def addItem(self, item) -> None:
-        self._items.append(item)
-
-    def count(self) -> int:
-        return len(self._items)
-
-    def itemAt(self, index: int):
-        return self._items[index] if 0 <= index < len(self._items) else None
-
-    def takeAt(self, index: int):
-        return self._items.pop(index) if 0 <= index < len(self._items) else None
-
-    def expandingDirections(self) -> Qt.Orientation:
-        return Qt.Orientation(0)
-
-    def hasHeightForWidth(self) -> bool:
-        return True
-
-    def heightForWidth(self, width: int) -> int:
-        return self._do_layout(QRect(0, 0, width, 0), test_only=True)
-
-    def setGeometry(self, rect: QRect) -> None:
-        super().setGeometry(rect)
-        self._do_layout(rect, test_only=False)
-
-    def sizeHint(self) -> QSize:
-        return self.minimumSize()
-
-    def minimumSize(self) -> QSize:
-        size = QSize()
-        for item in self._items:
-            size = size.expandedTo(item.minimumSize())
-        margins = self.contentsMargins()
-        return size + QSize(
-            margins.left() + margins.right(), margins.top() + margins.bottom()
-        )
-
-    def _do_layout(self, rect: QRect, test_only: bool) -> int:
-        margins = self.contentsMargins()
-        area = rect.adjusted(
-            margins.left(), margins.top(), -margins.right(), -margins.bottom()
-        )
-        x = area.x()
-        y = area.y()
-        line_height = 0
-        spacing = self.spacing()
-        for item in self._items:
-            widget = item.widget()
-            if widget is not None and widget.isHidden():
-                continue
-            item_size = item.sizeHint()
-            next_x = x + item_size.width() + spacing
-            if line_height and next_x - spacing > area.right() + 1:
-                x = area.x()
-                y += line_height + spacing
-                next_x = x + item_size.width() + spacing
-                line_height = 0
-            if not test_only:
-                item.setGeometry(QRect(QPoint(x, y), item_size))
-            x = next_x
-            line_height = max(line_height, item_size.height())
-        return y + line_height - rect.y() + margins.bottom()
 
 
 class TagCloudWidget(QWidget):
@@ -131,7 +55,7 @@ class TagCloudWidget(QWidget):
 
     def __init__(
         self,
-        tags: list[dict] | None = None,
+        tags: list[dict[str, Any] | TagItem] | None = None,
         *,
         editable: bool = False,
         selectable: bool = False,
@@ -144,9 +68,9 @@ class TagCloudWidget(QWidget):
         self.selectable = selectable
         self.color_editable = color_editable
         self.deletable = deletable
-        self._tags: list[dict] = []
+        self._tags: list[dict[str, Any]] = []
         self._selected_tags: set[str] = set()
-        self._tag_widgets: list[tuple[dict, QWidget]] = []
+        self._tag_widgets: list[tuple[dict[str, Any], QWidget]] = []
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -174,7 +98,7 @@ class TagCloudWidget(QWidget):
         self.set_tags(tags or [])
 
     @property
-    def tags(self) -> list[dict]:
+    def tags(self) -> list[dict[str, Any]]:
         return [dict(tag) for tag in self._tags]
 
     @property
@@ -189,16 +113,25 @@ class TagCloudWidget(QWidget):
         self._selected_tags = {tag.casefold() for tag in selected_tags}
         self.refresh()
 
-    def set_tags(self, tags: list[dict]) -> None:
-        self._tags = [
-            {
-                "tag": str(item.get("tag", "")).strip(),
-                "color": str(item.get("color", "#808080")),
-                "qty": max(0, int(item.get("qty", 0) or 0)),
-            }
-            for item in tags
-            if str(item.get("tag", "")).strip()
-        ]
+    def set_tags(self, tags: list[dict[str, Any] | TagItem]) -> None:
+        normalized: list[dict[str, Any]] = []
+        for item in tags:
+            if isinstance(item, TagItem):
+                tag_dict = item.to_dict()
+            elif isinstance(item, dict):
+                tag_dict = item
+            else:
+                continue
+            tag_name = str(tag_dict.get("tag", "")).strip()
+            if tag_name:
+                normalized.append(
+                    {
+                        "tag": tag_name,
+                        "color": str(tag_dict.get("color", "#808080")),
+                        "qty": max(0, int(tag_dict.get("qty", 0) or 0)),
+                    }
+                )
+        self._tags = normalized
         self.refresh()
 
     def refresh(self) -> None:
@@ -221,7 +154,7 @@ class TagCloudWidget(QWidget):
             self.cloud_layout.addWidget(chip)
             self._tag_widgets.append((tag, chip))
 
-    def _make_chip(self, tag: dict, maximum_qty: int) -> QWidget:
+    def _make_chip(self, tag: dict[str, Any], maximum_qty: int) -> QWidget:
         chip = QWidget(self.cloud_container)
         layout = QHBoxLayout(chip)
         layout.setContentsMargins(8, 3, 8, 3)
@@ -315,7 +248,7 @@ class TagCloudWidget(QWidget):
             layout.addWidget(delete_button)
         return chip
 
-    def _edit_chip(self, chip: QWidget, tag: dict) -> None:
+    def _edit_chip(self, chip: QWidget, tag: dict[str, Any]) -> None:
         layout = chip.layout()
         if layout is None:
             raise RuntimeError("Tag chip is missing its layout.")
@@ -368,20 +301,22 @@ class TagCloudWidget(QWidget):
 
     def _save_edit(
         self,
-        tag: dict,
+        tag: dict[str, Any],
         name_edit: QLineEdit,
         color_button: QToolButton,
         chip: QWidget,
     ) -> None:
         new_name = name_edit.text().strip()
-        if not new_name or not new_name.isalnum() or any(
+        is_valid, error_msg = validate_tag_name(new_name)
+        if not is_valid:
+            name_edit.setToolTip(error_msg)
+            return
+
+        if any(
             current is not tag and current["tag"].casefold() == new_name.casefold()
             for current in self._tags
         ):
-            if not new_name.isalnum():
-                name_edit.setToolTip("Tag names must be alphanumeric only.")
-            else:
-                name_edit.setToolTip("Enter a unique tag name.")
+            name_edit.setToolTip("Enter a unique tag name.")
             return
 
         original_name = tag["tag"]
@@ -403,7 +338,7 @@ class TagCloudWidget(QWidget):
         )
         self._style_painter_button(button, color.name())
 
-    def _choose_tag_color(self, button: QToolButton, tag: dict) -> None:
+    def _choose_tag_color(self, button: QToolButton, tag: dict[str, Any]) -> None:
         color = QColorDialog.getColor(
             QColor(str(button.property("tag_color"))), self, "Choose Tag Color"
         )
@@ -420,13 +355,7 @@ class TagCloudWidget(QWidget):
         self.tag_color_changed.emit(tag["tag"], color_value)
 
     def _style_painter_button(self, button: QToolButton, color: str) -> None:
-        button.setProperty("preserve_custom_style", True)
-        button.setStyleSheet(
-            "QToolButton {"
-            f" background-color: {color};"
-            " border: 1px solid palette(mid); border-radius: 3px; padding: 2px;"
-            "}"
-        )
+        style_painter_button(button, color)
 
     def _delete_tag(self, tag_name: str) -> None:
         self._tags = [
@@ -450,12 +379,4 @@ class TagCloudWidget(QWidget):
 
     @staticmethod
     def _text_color(color: str) -> str:
-        background = QColor(color)
-        if not background.isValid():
-            return "#000000"
-        luminance = (
-            0.299 * background.red()
-            + 0.587 * background.green()
-            + 0.114 * background.blue()
-        )
-        return "#000000" if luminance > 150 else "#ffffff"
+        return get_contrast_text_color(color)

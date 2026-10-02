@@ -1,20 +1,16 @@
 from __future__ import annotations
 
-from typing import Any, Protocol
+from typing import Any
 
-from PySide6.QtCore import QSize, Qt, Signal
-from PySide6.QtGui import QColor
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QColorDialog,
     QComboBox,
-    QDialog,
     QHBoxLayout,
     QLabel,
     QLayout,
     QLineEdit,
     QMainWindow,
-    QPushButton,
-    QScrollArea,
     QTabWidget,
     QToolButton,
     QVBoxLayout,
@@ -22,25 +18,21 @@ from PySide6.QtWidgets import (
 )
 
 from MyVideoExplorer.db.db_tags import DbTags
+from MyVideoExplorer.db.models.tag_item import TagStateProtocol
+from MyVideoExplorer.tag_cloud.tag_button import TagButton
 from MyVideoExplorer.tag_cloud.tag_cloud_widget import (
-    TagButton,
     TagCloudWidget,
     get_tag_cloud_sort_mode,
     set_tag_cloud_sort_mode,
 )
+from MyVideoExplorer.tag_cloud.tag_picker_dialog import TagPickerDialog
+from MyVideoExplorer.tag_cloud.tag_util import (
+    get_contrast_text_color,
+    validate_tag_name,
+)
 from MyVideoExplorer.theme.theme import APP_THEME
 
-
-class TagStateProtocol(Protocol):
-    tags: list[dict[str, str]]
-    tags_changed: Any
-    tag_counts_changed: Any
-
-    def add_tag(self, tag: str) -> Any: ...
-
-
-class TagPickerDialog(QDialog):
-    pass
+__all__ = ["QColorDialog", "TagCloudMedia", "TagPickerDialog", "TagStateProtocol"]
 
 
 class TagCloudMedia(QWidget):
@@ -58,9 +50,6 @@ class TagCloudMedia(QWidget):
         self.tag_store = tag_store
         self._tags: list[str] = []
         self._popup: TagPickerDialog | None = None
-        self._cloud: TagCloudWidget | None = None
-        self._new_tag_edit: QLineEdit | None = None
-        self._popup_assigned_layout: QHBoxLayout | None = None
         self._tag_colors: dict[str, str] = {}
 
         layout = QVBoxLayout(self)
@@ -108,37 +97,56 @@ class TagCloudMedia(QWidget):
         self.set_enabled(False)
 
     @property
+    def _cloud(self) -> TagCloudWidget | None:
+        return self._popup.cloud if self._popup is not None else None
+
+    @property
+    def _new_tag_edit(self) -> QLineEdit | None:
+        return self.new_tag_edit
+
+    @property
+    def new_tag_edit(self) -> QLineEdit | None:
+        return self._popup.new_tag_edit if self._popup is not None else None
+
+    @property
+    def _popup_assigned_layout(self) -> QHBoxLayout | None:
+        return self._popup.assigned_layout if self._popup is not None else None
+
+    @property
     def tags(self) -> list[str]:
         return list(self._tags)
 
     def set_tags(self, tags: list[str] | None) -> None:
         self._tags = list(tags or [])
+        catalog_tags = (
+            self.tag_store.list_tags()
+            if self.tag_store
+            else (self.state.tags if self.state else [])
+        )
         self._tag_colors = {
             item["tag"].casefold(): item.get("color", "#808080")
-            for item in (self.state.tags if self.state else [])
+            for item in catalog_tags
         }
         self._clear_layout(self.tags_layout)
         self._render_assigned_tags(
             self.tags_layout, self.tags_container, vertical_rows=True
         )
-        if self._popup_assigned_layout is not None and self._popup is not None:
-            self._clear_layout(self._popup_assigned_layout)
-            self._render_assigned_tags(
-                self._popup_assigned_layout,
-                self._popup,
-                vertical_rows=False,
-                removable=True,
-            )
+        self._sync_popup_data()
 
     def set_enabled(self, enabled: bool) -> None:
         self.add_button.setEnabled(enabled)
+
+    def apply_theme(self) -> None:
+        self.setStyleSheet(APP_THEME.container_qss())
+        if self._popup is not None:
+            self._popup.setStyleSheet(APP_THEME.container_qss())
 
     def _show_tag_cloud(self) -> None:
         if self.state is None:
             return
         if self._popup is None:
             self._build_popup()
-        self._refresh_cloud()
+        self._sync_popup_data()
         assert self._popup is not None
         self._popup.adjustSize()
         screen = self.screen()
@@ -168,66 +176,25 @@ class TagCloudMedia(QWidget):
     def _build_popup(self) -> None:
         owner = self.window()
         self._popup = TagPickerDialog(owner)
-        self._popup.setWindowFlags(
-            Qt.WindowType.Popup | Qt.WindowType.WindowStaysOnTopHint
-        )
-        self._popup.setWindowTitle("Select Tags")
-        layout = QVBoxLayout(self._popup)
+        self._popup.tag_selected.connect(self._on_tag_selected)
+        self._popup.tag_created.connect(self._create_and_add_tag)
+        self._popup.tag_removed.connect(self._remove_tag)
+        self._popup.tag_color_changed.connect(self._change_catalog_tag_color)
+        self._popup.tag_edited.connect(self._update_catalog_tag)
 
-        layout.addWidget(QLabel("Current tags", self._popup))
-        assigned = QWidget(self._popup)
-        self._popup_assigned_layout = QHBoxLayout(assigned)
-        self._popup_assigned_layout.setContentsMargins(0, 0, 0, 0)
-        self._popup_assigned_layout.setSpacing(4)
-        self._render_assigned_tags(
-            self._popup_assigned_layout,
-            assigned,
-            vertical_rows=False,
-            removable=True,
-        )
-        layout.addWidget(assigned)
-
-        layout.addWidget(QLabel("Available tags", self._popup))
-        self._cloud = TagCloudWidget(
-            editable=True, selectable=True, color_editable=True, parent=self._popup
-        )
-        self._cloud.tag_selected.connect(self._on_tag_selected)
-        self._cloud.tag_color_changed.connect(self._change_catalog_tag_color)
-        self._cloud.tag_edited.connect(self._update_catalog_tag)
-        scroll = QScrollArea(self._popup)
-        scroll.setWidgetResizable(True)
-        scroll.setWidget(self._cloud)
-        layout.addWidget(scroll, 1)
-
-        create_row = QHBoxLayout()
-        self._new_tag_edit = QLineEdit(self._popup)
-        self._new_tag_edit.setPlaceholderText("Create a new tag")
-        create_button = QPushButton("Create and Add", self._popup)
-        create_button.clicked.connect(self._create_and_add_tag)
-        self._new_tag_edit.returnPressed.connect(self._create_and_add_tag)
-        create_row.addWidget(self._new_tag_edit, 1)
-        create_row.addWidget(create_button)
-        layout.addLayout(create_row)
-
-    def _refresh_cloud(self) -> None:
-        if self._cloud is None:
+    def _sync_popup_data(self) -> None:
+        if self._popup is None:
             return
-        tags = (
+        catalog_tags = (
             self.tag_store.list_tags()
             if self.tag_store
-            else self.state.tags
-            if self.state
-            else []
+            else (self.state.tags if self.state else [])
         )
         counts = self.tag_store.get_tag_counts() if self.tag_store else {}
-        assigned = {current.casefold() for current in self._tags}
-        self._cloud.set_tags(
-            [
-                {**tag, "qty": counts.get(tag["tag"].casefold(), 0)}
-                for tag in tags
-                if tag["tag"].casefold() not in assigned
-            ]
-        )
+        self._popup.set_data(self._tags, self._tag_colors, catalog_tags, counts)
+
+    def _refresh_cloud(self) -> None:
+        self._sync_popup_data()
 
     def _media_container(self) -> QWidget | None:
         current = self.parentWidget()
@@ -268,59 +235,12 @@ class TagCloudMedia(QWidget):
             label.setToolTip(tag)
             label.setCursor(Qt.CursorShape.PointingHandCursor)
             label.setStyleSheet(
-                f"QToolButton {{ color: {TagCloudWidget._text_color(color)}; "
+                f"QToolButton {{ color: {get_contrast_text_color(color)}; "
                 f"background-color: {color}; border-radius: 4px; padding: 2px 4px; }}"
             )
             if vertical_rows:
                 row.addStretch(1)
             row.addWidget(label)
-            if removable:
-                label.setToolTip(f"Double-click to edit {tag}")
-                label.double_clicked.connect(
-                    lambda current_tag=tag, current_row=row_widget: (
-                        self._edit_popup_assigned_tag(current_tag, current_row)
-                    )
-                )
-            if removable:
-                color_button = QToolButton(row_widget)
-                color_button.setProperty("preserve_custom_style", True)
-                color_button.setIcon(
-                    APP_THEME.icon(
-                        "fa6s.palette",
-                        color=TagCloudWidget._text_color(color),
-                    )
-                )
-                color_button.setStyleSheet(
-                    f"QToolButton {{ background-color: {color}; "
-                    "border: 1px solid palette(mid); border-radius: 3px; padding: 2px; }"
-                )
-                color_button.setFixedSize(24, 24)
-                color_button.setCursor(Qt.CursorShape.PointingHandCursor)
-                color_button.setToolTip(f"Change color for {tag}")
-                color_button.clicked.connect(
-                    lambda checked=False, name=tag, current=color: (
-                        self._choose_assigned_color(name, current)
-                    )
-                )
-                row.addWidget(color_button)
-            if removable:
-                remove_button = QToolButton(row_widget)
-                remove_button.setIcon(
-                    APP_THEME.icon("fa6s.trash-can", color=APP_THEME.text_color)
-                )
-                remove_button.setProperty("preserve_custom_style", True)
-                remove_button.setIconSize(QSize(14, 14))
-                remove_button.setFixedSize(22, 22)
-                remove_button.setAutoRaise(True)
-                remove_button.setStyleSheet(
-                    "QToolButton { background: transparent; border: 0; padding: 2px; }"
-                )
-                remove_button.setCursor(Qt.CursorShape.PointingHandCursor)
-                remove_button.setToolTip(f"Remove {tag} from this media")
-                remove_button.clicked.connect(
-                    lambda checked=False, name=tag: self._remove_tag(name)
-                )
-                row.addWidget(remove_button)
             if not vertical_rows:
                 row.addStretch(1)
             layout.addWidget(row_widget)
@@ -339,117 +259,13 @@ class TagCloudMedia(QWidget):
         if tag.casefold() not in {current.casefold() for current in self._tags}:
             return
         self.tag_removed.emit(tag)
-        self._refresh_cloud()
-
-    def _edit_popup_assigned_tag(self, tag: str, row_widget: QWidget) -> None:
-        if self.tag_store is None:
-            return
-        row = row_widget.layout()
-        if row is None:
-            raise RuntimeError("Assigned tag row is missing its layout.")
-        while row.count():
-            item = row.takeAt(0)
-            widget = item.widget() if item else None
-            if widget is not None:
-                widget.deleteLater()
-
-        name_edit = QLineEdit(tag, row_widget)
-        name_edit.setObjectName("edit_popup_assigned_tag_name")
-        name_edit.setMinimumWidth(100)
-        current_color = self._tag_colors.get(tag.casefold(), "#808080")
-        color_button = QToolButton(row_widget)
-        color_button.setProperty("preserve_custom_style", True)
-        color_button.setObjectName("edit_popup_assigned_tag_color")
-        color_button.setProperty("tag_color", current_color)
-        color_button.setIcon(
-            APP_THEME.icon(
-                "fa6s.palette",
-                color=TagCloudWidget._text_color(current_color),
-            )
-        )
-        color_button.setStyleSheet(
-            f"QToolButton {{ background-color: {current_color}; "
-            "border: 1px solid palette(mid); border-radius: 3px; padding: 2px; }"
-        )
-        color_button.setFixedSize(24, 24)
-        color_button.setToolTip("Choose tag color")
-        color_button.clicked.connect(
-            lambda checked=False, button=color_button: self._choose_popup_tag_color(
-                button
-            )
-        )
-
-        save_button = QToolButton(row_widget)
-        save_button.setObjectName("save_popup_assigned_tag")
-        save_button.setIcon(
-            APP_THEME.icon("fa6s.floppy-disk", color=APP_THEME.text_color)
-        )
-        save_button.setToolTip("Save tag")
-        save_button.setAutoRaise(True)
-        cancel_button = QToolButton(row_widget)
-        cancel_button.setIcon(APP_THEME.icon("fa6s.xmark", color=APP_THEME.text_color))
-        cancel_button.setToolTip("Cancel editing")
-        cancel_button.setAutoRaise(True)
-        row.addWidget(name_edit)
-        row.addWidget(color_button)
-        row.addWidget(save_button)
-        row.addWidget(cancel_button)
-        save_button.clicked.connect(
-            lambda checked=False: self._save_popup_assigned_tag(
-                tag, name_edit, color_button
-            )
-        )
-        cancel_button.clicked.connect(lambda: self.set_tags(self._tags))
-
-    def _choose_popup_tag_color(self, button: QToolButton) -> None:
-        color = QColorDialog.getColor(
-            QColor(str(button.property("tag_color"))), self, "Choose Tag Color"
-        )
-        if not color.isValid():
-            return
-        color_value = color.name()
-        button.setProperty("tag_color", color_value)
-        button.setProperty("preserve_custom_style", True)
-        button.setIcon(
-            APP_THEME.icon(
-                "fa6s.palette",
-                color=TagCloudWidget._text_color(color_value),
-            )
-        )
-        button.setStyleSheet(
-            f"QToolButton {{ background-color: {color_value}; "
-            "border: 1px solid palette(mid); border-radius: 3px; padding: 2px; }"
-        )
-
-    def _save_popup_assigned_tag(
-        self, old_name: str, name_edit: QLineEdit, color_button: QToolButton
-    ) -> None:
-        if self.tag_store is None:
-            return
-        new_name = name_edit.text().strip()
-        if not new_name or not new_name.isalnum() or any(
-            item["tag"].casefold() == new_name.casefold()
-            and item["tag"].casefold() != old_name.casefold()
-            for item in self.tag_store.list_tags()
-        ):
-            if not new_name.isalnum():
-                name_edit.setToolTip("Tag names must be alphanumeric only.")
-            else:
-                name_edit.setToolTip("Enter a unique tag name.")
-            return
-        color = str(color_button.property("tag_color"))
-        if self.tag_store.update_catalog_tag(old_name, new_name, color):
-            self._tags = [
-                new_name if current.casefold() == old_name.casefold() else current
-                for current in self._tags
-            ]
-            self._on_catalog_changed()
+        self._sync_popup_data()
 
     def _change_catalog_tag_color(self, tag: str, color: str) -> None:
         if self.tag_store is not None and self.tag_store.set_tag_color(tag, color):
             self._on_catalog_changed()
 
-    def _update_catalog_tag(self, old_tag: str, new_tag: dict) -> None:
+    def _update_catalog_tag(self, old_tag: str, new_tag: dict[str, Any]) -> None:
         if self.tag_store is not None and self.tag_store.update_catalog_tag(
             old_tag, new_tag["tag"], new_tag["color"]
         ):
@@ -459,14 +275,9 @@ class TagCloudMedia(QWidget):
             ]
             self._on_catalog_changed()
 
-    def _choose_assigned_color(self, tag: str, current_color: str) -> None:
-        color = QColorDialog.getColor(QColor(current_color), self, "Choose Tag Color")
-        if color.isValid():
-            self._change_catalog_tag_color(tag, color.name())
-
     def _on_catalog_changed(self) -> None:
         self.set_tags(self._tags)
-        self._refresh_cloud()
+        self._sync_popup_data()
 
     def _on_media_sort_changed(self, index: int) -> None:
         mode = self.sort_combo.itemData(index)
@@ -477,24 +288,23 @@ class TagCloudMedia(QWidget):
                 self._cloud.sort_combo.findData(mode)
             )
 
-    def _on_tag_selected(self, tag: str, selected: bool) -> None:
-        if not selected or tag.casefold() in {item.casefold() for item in self._tags}:
+    def _on_tag_selected(self, tag: str) -> None:
+        if tag.casefold() in {item.casefold() for item in self._tags}:
             return
         self.tag_added.emit(tag)
-        self._refresh_cloud()
+        self._sync_popup_data()
         if self._cloud is not None:
             self._cloud.set_selected_tags([])
         if self._popup is not None:
             self._popup.hide()
 
-    def _create_and_add_tag(self) -> None:
-        if self._new_tag_edit is None:
-            return
-        tag = self._new_tag_edit.text().strip()
+    def _create_and_add_tag(self, tag: str) -> None:
         if not tag:
             return
-        if not tag.isalnum():
-            self._new_tag_edit.setToolTip("Tag names must be alphanumeric only.")
+        is_valid, _ = validate_tag_name(tag)
+        if not is_valid:
+            if self._popup is not None:
+                self._popup.new_tag_edit.setToolTip("Tag names must be alphanumeric only.")
             return
         added = (
             self.tag_store.add_catalog_tag(tag)
@@ -511,10 +321,14 @@ class TagCloudMedia(QWidget):
                 if self._popup is not None:
                     self._popup.hide()
             else:
-                self._new_tag_edit.setToolTip("A tag with this name already exists.")
+                if self._popup is not None:
+                    self._popup.new_tag_edit.setToolTip(
+                        "A tag with this name already exists."
+                    )
             return
-        self._new_tag_edit.clear()
+        if self._popup is not None:
+            self._popup.new_tag_edit.clear()
         self.tag_added.emit(tag)
-        self._refresh_cloud()
+        self._sync_popup_data()
         if self._popup is not None:
             self._popup.hide()
