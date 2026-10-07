@@ -58,6 +58,10 @@ class MediaInfoView(QWidget, ThemableMixin):
 
         self.movie_info: dict | None = None
         self.view_mode = MEDIA_INFO_VIEW_MODE_DEFAULT
+        self._pending_movie_info: dict | None = None
+        self._section_build_timer = QTimer(self)
+        self._section_build_timer.setSingleShot(True)
+        self._section_build_timer.timeout.connect(self._build_pending_sections)
 
         # Create child widgets with this view as parent to avoid top-level windows
         self.toolbar_widget = MediaInfoToolbarWidget(parent=self)
@@ -112,11 +116,20 @@ class MediaInfoView(QWidget, ThemableMixin):
 
     def build_from_movie_info(self, movie_info: dict | None) -> None:
         if not movie_info:
+            self._section_build_timer.stop()
+            self._pending_movie_info = None
             self.clear_nfo()
             return
 
         self.toolbar_widget.rebuild_for_view_mode(self.view_mode)
-        QTimer.singleShot(150, lambda: self._build_or_update_sections(movie_info))
+        self._pending_movie_info = movie_info
+        self._section_build_timer.start(150)
+
+    def _build_pending_sections(self) -> None:
+        movie_info = self._pending_movie_info
+        self._pending_movie_info = None
+        if movie_info is not None:
+            self._build_or_update_sections(movie_info)
 
     def set_view_mode(self, mode: str) -> None:
         if self.view_mode == mode:

@@ -38,6 +38,10 @@ htmlcov/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+test/log/*
+test/cfg/*
+test/db/*
+test/tmp/*
 
 # ai
 .junie/memory/

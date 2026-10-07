@@ -1,5 +1,6 @@
 import asyncio
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -22,7 +23,14 @@ class VideoLauncher:
 
         try:
             if os.name == "nt":  # Windows
-                await asyncio.to_thread(os.startfile, normalized_path)
+                # works with vlc, caused qt env error with mpc-qt
+                # await asyncio.to_thread(os.startfile, normalized_path)
+
+                # works with mpc-qt, vlc
+                await asyncio.to_thread(
+                    subprocess.Popen,
+                    ["explorer.exe", os.path.normpath(video_path)],
+                )
             elif sys.platform == "darwin":  # macOS
                 await asyncio.create_subprocess_exec("open", normalized_path)
             else:  # Linux / Unix

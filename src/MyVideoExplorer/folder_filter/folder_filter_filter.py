@@ -8,6 +8,7 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QWidget
 
 from MyVideoExplorer.db import db_query
+from MyVideoExplorer.db.models.media_file_metadata import MediaFileMetadata
 from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
@@ -166,18 +167,7 @@ class FolderFilterFilter:
                         con.close()
 
                         if res:
-                            return {
-                                "title": res[0],
-                                "year": res[1],
-                                "plot": res[2],
-                                "score": res[3],
-                                "rated": res[4],
-                                "runtime": res[5],
-                                "tags": res[6],
-                                "genres": res[7],
-                                "actors": res[8],
-                                "director": res[9],
-                            }
+                            return MediaFileMetadata(*res).to_movie_info()
 
         # Fallback
         return self.nfo_parse_util.parse_nfo(nfo_file=item.full_path)

@@ -1,0 +1,2 @@
+ALTER TABLE media_file
+ADD COLUMN IF NOT EXISTS user_tags VARCHAR[] DEFAULT [];

@@ -54,6 +54,50 @@ class StyleButton:
          """
 
     @staticmethod
+    def get_toggle_button_qss(c: ThemeConfig, widget_name: str) -> str:
+        return f"""
+            QAbstractButton#{widget_name},
+            QAbstractButton#{widget_name}:hover,
+            QAbstractButton#{widget_name}:pressed,
+            QAbstractButton#{widget_name}:checked,
+            QAbstractButton#{widget_name}:focus,
+            QAbstractButton#{widget_name}:disabled,
+            QToolButton#{widget_name},
+            QToolButton#{widget_name}:hover,
+            QToolButton#{widget_name}:pressed,
+            QToolButton#{widget_name}:checked,
+            QToolButton#{widget_name}:focus,
+            QToolButton#{widget_name}:disabled {{
+                border: none;
+                outline: none;
+                font-weight: normal;
+            }}
+            QAbstractButton#{widget_name},
+            QToolButton#{widget_name} {{
+                color: {c.color_text_primary};
+                background: transparent;
+                padding: 0 4px;
+                font-size: 12px;
+                font-weight: normal;
+            }}
+            QToolButton#{widget_name}:hover {{
+                color: {c.color_text_primary};
+                background: {c.color_interaction_hover};
+            }}
+            QToolButton#{widget_name}:checked {{
+                color: {c.color_text_primary};
+                background: transparent;
+                padding: 0 4px;
+                font-size: 12px;
+                border: none;
+            }}
+            QToolButton#{widget_name}:checked:hover {{
+                color: {c.color_text_primary};
+                background: {c.color_interaction_hover};
+            }}
+        """
+
+    @staticmethod
     def get_button_highlight_qss(c: ThemeConfig) -> str:
         return f"""
              QAbstractButton {{

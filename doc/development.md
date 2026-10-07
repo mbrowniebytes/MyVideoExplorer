@@ -75,7 +75,7 @@ list top level packages and all dependencies
 skip for now, errors "cannot be installed when requiring hashes"
 > pip install -r pylock.toml
 
-### quality tools
+### Quality tools
 
 #### ruff https://docs.astral.sh/ruff/linter/
 code quality, formatting
@@ -92,10 +92,11 @@ code type checker
 > ty check
 
 
-#### ci
+#### CI
 Local:  
-`git bash> ci.sh`  
-`powrshell> powershell ci.ps1`  
+`git bash> bash ci.sh`  
+`git bash> powershell -File ci.ps1`
+`powershell> powershell ci.ps1`  
 
 GitHub:  
 `.github/workflows/ci.yaml`

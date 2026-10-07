@@ -124,7 +124,7 @@ class TestSettingsSplit:
             "MyVideoExplorer.utils.json_util.JsonUtil.backup_file"
         ) as mock_backup:
             state.save_settings()
-            # Should be called 4 times, once for each settings file (app, ui, media, filter)
+            # One backup is requested for each persisted settings file.
             assert mock_backup.call_count == 4
 
             # Verify paths - check that all settings files are in the called paths

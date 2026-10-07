@@ -6,6 +6,7 @@ from typing import Any
 import duckdb
 
 from MyVideoExplorer.db import db_migrations, db_query
+from MyVideoExplorer.db.models.media_path_stats import MediaPathStats
 from MyVideoExplorer.lang.lang_loader import LangLoader
 
 logger = logging.getLogger(__name__)
@@ -101,13 +102,14 @@ class DbScanUtil:
         if progress_callback is not None:
             progress_callback(100, self.lang.scan_progress["saved_stats"])
 
-    def get_stats(self, media_path: str):
-        con = duckdb.connect(self.db_path)
-        res = con.execute(
-            db_query.DbQuery.MediaPathStats.SELECT, (media_path,)
-        ).fetchone()
-        con.close()
-        return res
+    def get_stats(self, media_path: str) -> MediaPathStats | None:
+        with duckdb.connect(self.db_path) as con:
+            row = con.execute(
+                db_query.DbQuery.MediaPathStats.SELECT, (media_path,)
+            ).fetchone()
+        if row is None:
+            return None
+        return MediaPathStats(*row)
 
     def delete_stats(self, media_path: str):
         def _delete(con):

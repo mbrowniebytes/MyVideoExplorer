@@ -1,6 +1,6 @@
 import pytest
 from PySide6.QtCore import QSize
-from PySide6.QtWidgets import QListWidget
+from PySide6.QtWidgets import QListWidget, QToolButton
 
 from MyVideoExplorer.theme.theme import Theme
 
@@ -36,6 +36,19 @@ class TestTheme:
         # Verify icon size is set
         assert lw.iconSize() == QSize(theme.icon_size, theme.icon_size)
         assert lw.styleSheet() != ""
+
+    @pytest.mark.parametrize("object_name", ["meta_column_toggle", "nfo_column_toggle"])
+    def test_setup_toggle_button_preserves_borderless_style(
+        self, theme, qtbot, object_name
+    ):
+        button = QToolButton()
+        button.setObjectName(object_name)
+        qtbot.addWidget(button)
+
+        theme.setup_button(button)
+
+        assert "border: none" in button.styleSheet()
+        assert "border: 2px solid" not in button.styleSheet()
 
     def test_refresh_theme(self, theme, qtbot):
         import sys

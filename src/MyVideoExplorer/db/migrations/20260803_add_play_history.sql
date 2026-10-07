@@ -1,0 +1,5 @@
+ALTER TABLE media_file
+ADD COLUMN IF NOT EXISTS qty_played INTEGER DEFAULT 0;
+
+ALTER TABLE media_file
+ADD COLUMN IF NOT EXISTS last_played DATE;

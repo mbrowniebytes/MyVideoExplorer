@@ -1,6 +1,7 @@
 import asyncio
 from typing import Any
 
+from PySide6.QtCore import QObject, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QMainWindow
 
@@ -11,12 +12,15 @@ from MyVideoExplorer.video_player.video_finder import VideoFinder
 from MyVideoExplorer.video_player.video_launcher import VideoLauncher
 
 
-class VideoPlayer:
+class VideoPlayer(QObject):
     """
     Controller for video playback UI and orchestration.
     """
 
+    video_played = Signal(str)
+
     def __init__(self, file_util: FileUtil, log_util: LogUtil) -> None:
+        super().__init__()
         self.log_util = log_util
         self.file_util = file_util
         self.video_finder = VideoFinder(log_util)
@@ -55,6 +59,7 @@ class VideoPlayer:
         asyncio.create_task(
             self.video_launcher.play_via_external_app(target_video_path)
         )
+        self.video_played.emit(target_video_path)
 
         return True
 
