@@ -261,7 +261,11 @@ class SettingsState(QObject):
             if not isinstance(item, dict):
                 continue
             tag = str(item.get("tag", "")).strip()
-            if not tag or not SettingsState.is_valid_tag_name(tag) or tag.casefold() in seen:
+            if (
+                not tag
+                or not SettingsState.is_valid_tag_name(tag)
+                or tag.casefold() in seen
+            ):
                 continue
             seen.add(tag.casefold())
             color = str(item.get("color", "#808080")).strip()
@@ -275,9 +279,7 @@ class SettingsState(QObject):
         if (
             not clean_tag
             or not SettingsState.is_valid_tag_name(clean_tag)
-            or any(
-                item["tag"].casefold() == clean_tag.casefold() for item in self.tags
-            )
+            or any(item["tag"].casefold() == clean_tag.casefold() for item in self.tags)
         ):
             return False
         self.tags.append(self.normalize_tags([{"tag": clean_tag, "color": color}])[0])

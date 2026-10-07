@@ -18,15 +18,24 @@ def test_flow_layout_item_management(qtbot):
     layout.addWidget(lbl3)
 
     assert layout.count() == 3
-    assert layout.itemAt(0).widget() == lbl1
-    assert layout.itemAt(1).widget() == lbl2
-    assert layout.itemAt(2).widget() == lbl3
+    item0 = layout.itemAt(0)
+    assert item0 is not None
+    assert item0.widget() == lbl1
+    item1 = layout.itemAt(1)
+    assert item1 is not None
+    assert item1.widget() == lbl2
+    item2 = layout.itemAt(2)
+    assert item2 is not None
+    assert item2.widget() == lbl3
     assert layout.itemAt(3) is None
 
     taken = layout.takeAt(1)
+    assert taken is not None
     assert taken.widget() == lbl2
     assert layout.count() == 2
-    assert layout.itemAt(1).widget() == lbl3
+    item1_after = layout.itemAt(1)
+    assert item1_after is not None
+    assert item1_after.widget() == lbl3
 
 
 def test_flow_layout_size_hint_and_height_for_width(qtbot):

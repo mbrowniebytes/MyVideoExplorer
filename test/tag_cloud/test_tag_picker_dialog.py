@@ -2,6 +2,7 @@ from unittest.mock import MagicMock
 
 from PySide6.QtWidgets import QToolButton, QWidget
 
+from MyVideoExplorer.tag_cloud.tag_button import TagButton
 from MyVideoExplorer.tag_cloud.tag_picker_dialog import TagPickerDialog
 
 
@@ -28,8 +29,14 @@ def test_tag_picker_dialog_set_data_and_signals(qtbot):
         tag_counts={"action": 5, "comedy": 10},
     )
 
-    # Current tags row contains Action
+    # Current tags row contains Action with tag count
     assert dialog.assigned_layout.count() >= 1
+    assigned_btn = next(
+        btn
+        for btn in dialog.assigned_container.findChildren(TagButton)
+        if btn.text() == "Action (5)"
+    )
+    assert assigned_btn is not None
 
     # Remove button in assigned tags
     remove_btn = next(

@@ -269,14 +269,16 @@ def test_tag_name_must_be_alphanumeric(qtbot, tmp_path, monkeypatch):
 
 def test_normalize_tags_rejects_non_alphanumeric():
     """normalize_tags should filter out tags with spaces or punctuation."""
-    result = SettingsState.normalize_tags([
-        {"tag": "ValidTag", "color": "#ff0000"},
-        {"tag": "Has Space", "color": "#00ff00"},
-        {"tag": "Has-Dash", "color": "#0000ff"},
-        {"tag": "Has_Underscore", "color": "#ffff00"},
-        {"tag": "Has.Dot", "color": "#ff00ff"},
-        {"tag": "123", "color": "#00ffff"},
-    ])
+    result = SettingsState.normalize_tags(
+        [
+            {"tag": "ValidTag", "color": "#ff0000"},
+            {"tag": "Has Space", "color": "#00ff00"},
+            {"tag": "Has-Dash", "color": "#0000ff"},
+            {"tag": "Has_Underscore", "color": "#ffff00"},
+            {"tag": "Has.Dot", "color": "#ff00ff"},
+            {"tag": "123", "color": "#00ffff"},
+        ]
+    )
     tag_names = [item["tag"] for item in result]
     assert "ValidTag" in tag_names
     assert "123" in tag_names

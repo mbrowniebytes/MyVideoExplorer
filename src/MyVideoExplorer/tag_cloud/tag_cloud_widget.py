@@ -137,8 +137,10 @@ class TagCloudWidget(QWidget):
     def refresh(self) -> None:
         while self.cloud_layout.count():
             item = self.cloud_layout.takeAt(0)
-            if item and item.widget():
-                item.widget().deleteLater()
+            if item:
+                w = item.widget()
+                if w is not None:
+                    w.deleteLater()
 
         query = self.filter_edit.text().strip().casefold()
         tags = [tag for tag in self._tags if query in tag["tag"].casefold()]

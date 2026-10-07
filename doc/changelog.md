@@ -2,7 +2,7 @@
 
 ---
 
-### 2026-10-##
+### 2026-10-06
 
 - movie info
   - add META column
@@ -20,6 +20,8 @@
 - internal:
   - add basic db/models/ for query results
   - fix play video using associated mpc-qt 
+
+release - [MyVideoExplorer-20261006-0.007](https://github.com/mbrowniebytes/MyVideoExplorer/releases/tag/20261006-0.007)
 
 ### 2026-09-27
 

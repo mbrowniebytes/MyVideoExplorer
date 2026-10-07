@@ -22,14 +22,18 @@ def test_tag_cloud_widget_filter_and_sort(qtbot):
     assert len(widget.tags) == 3
     # Default sort A-Z
     chip_texts = [
-        chip.findChild(QToolButton).text() for _, chip in widget._tag_widgets
+        btn.text()
+        for _, chip in widget._tag_widgets
+        if (btn := chip.findChild(QToolButton)) is not None
     ]
     assert chip_texts == ["Alpha (50)", "Beta (20)", "Zebra (10)"]
 
     # Filter
     widget.filter_edit.setText("alp")
     chip_texts = [
-        chip.findChild(QToolButton).text() for _, chip in widget._tag_widgets
+        btn.text()
+        for _, chip in widget._tag_widgets
+        if (btn := chip.findChild(QToolButton)) is not None
     ]
     assert chip_texts == ["Alpha (50)"]
 
@@ -39,7 +43,9 @@ def test_tag_cloud_widget_filter_and_sort(qtbot):
         widget.sort_combo.findData(TagCloudWidget.SORT_QUANTITY)
     )
     chip_texts = [
-        chip.findChild(QToolButton).text() for _, chip in widget._tag_widgets
+        btn.text()
+        for _, chip in widget._tag_widgets
+        if (btn := chip.findChild(QToolButton)) is not None
     ]
     assert chip_texts == ["Alpha (50)", "Beta (20)", "Zebra (10)"]
 
@@ -59,6 +65,7 @@ def test_tag_cloud_widget_selection(qtbot):
     widget.tag_selected.connect(selected_callback)
 
     tag_btn = widget._tag_widgets[0][1].findChild(QToolButton)
+    assert tag_btn is not None
     tag_btn.click()
     selected_callback.assert_called_with("Drama", True)
     assert widget.selected_tags == ["Drama"]

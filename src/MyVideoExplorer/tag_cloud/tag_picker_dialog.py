@@ -139,8 +139,9 @@ class TagPickerDialog(QDialog):
             row.setContentsMargins(0, 0, 0, 0)
             row.setSpacing(4)
             color = self._tag_colors.get(tag.casefold(), "#808080")
+            count = self._tag_counts.get(tag.casefold(), 0)
             label = TagButton(row_widget)
-            label.setText(tag)
+            label.setText(f"{tag} ({count})")
             label.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
             label.setToolTip(f"Double-click to edit {tag}")
             label.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -149,8 +150,8 @@ class TagPickerDialog(QDialog):
                 f"background-color: {color}; border-radius: 4px; padding: 2px 4px; }}"
             )
             label.double_clicked.connect(
-                lambda current_tag=tag, current_row=row_widget: (
-                    self._edit_assigned_tag(current_tag, current_row)
+                lambda current_tag=tag, current_row=row_widget: self._edit_assigned_tag(
+                    current_tag, current_row
                 )
             )
             row.addWidget(label)

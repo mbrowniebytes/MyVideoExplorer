@@ -377,7 +377,7 @@ class TestMediaInfoSideView:
         popup_favorite = next(
             button
             for button in popup.findChildren(TagButton)
-            if button.text() == "Favorite"
+            if button.text() == "Favorite (2)"
         )
         qtbot.mouseDClick(popup_favorite, Qt.MouseButton.LeftButton)
         popup_name_edit = popup.findChild(QLineEdit, "edit_popup_assigned_tag_name")

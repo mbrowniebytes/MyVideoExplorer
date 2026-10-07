@@ -4,13 +4,23 @@ import duckdb
 
 
 class DbMigrations:
+    _migrated_dbs: set[str] = set()
+
     def __init__(self, db_path: str):
         self.db_path = db_path
         self.migrations_dir = Path(__file__).parent / "migrations"
 
+    @classmethod
+    def clear_migrated_cache(cls) -> None:
+        cls._migrated_dbs.clear()
+
     def run_migrations(self):
         if not str(self.db_path).strip():
             raise ValueError("Database path is empty. A valid media name is required.")
+
+        resolved_path = str(Path(self.db_path).resolve())
+        if resolved_path in self._migrated_dbs:
+            return
 
         db_dir = Path(self.db_path).parent
         if db_dir != Path():
@@ -57,5 +67,6 @@ class DbMigrations:
                             "INSERT INTO schema_migrations (version) VALUES (?)",
                             (migration_file,),
                         )
+            self._migrated_dbs.add(resolved_path)
         finally:
             con.close()

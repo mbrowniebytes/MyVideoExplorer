@@ -19,6 +19,8 @@ class DbTags:
         self.settings_state = settings_state
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._tags_cache: list[dict[str, str]] | None = None
+        self._tag_counts_cache: dict[str, int] | None = None
         with duckdb.connect(str(self.db_path)) as con:
             con.execute(
                 """
@@ -59,11 +61,14 @@ class DbTags:
         self._sync_state()
 
     def list_tags(self) -> list[dict[str, str]]:
+        if self._tags_cache is not None:
+            return [dict(item) for item in self._tags_cache]
         with duckdb.connect(str(self.db_path), read_only=True) as con:
             rows = con.execute(
                 "SELECT tag, color FROM tags ORDER BY lower(tag)"
             ).fetchall()
-        return [{"tag": row[0], "color": row[1]} for row in rows]
+        self._tags_cache = [{"tag": row[0], "color": row[1]} for row in rows]
+        return [dict(item) for item in self._tags_cache]
 
     def add_catalog_tag(self, tag: str, color: str = "#808080") -> bool:
         normalized = self.settings_state.normalize_tags([{"tag": tag, "color": color}])
@@ -80,6 +85,7 @@ class DbTags:
                 "INSERT INTO tags (tag, color) VALUES (?, ?)",
                 (tag_data["tag"], tag_data["color"]),
             )
+        self._tags_cache = None
         self._sync_state()
         return True
 
@@ -94,6 +100,7 @@ class DbTags:
             ).fetchone()
         if updated is None:
             return False
+        self._tags_cache = None
         self._sync_state()
         return True
 
@@ -168,7 +175,8 @@ class DbTags:
         if len(normalized) != len([tag for tag in tags if tag.get("tag", "").strip()]):
             raise ValueError("Tag names must be unique and colors must be valid.")
 
-        self._update_media_assignments(renamed, deleted)
+        if renamed or deleted:
+            self._update_media_assignments(renamed, deleted)
         with duckdb.connect(str(self.db_path)) as con:
             con.begin()
             try:
@@ -182,6 +190,7 @@ class DbTags:
             except Exception:
                 con.rollback()
                 raise
+        self._tags_cache = None
         self._sync_state()
 
     def get_tags(self, file_path: str) -> list[str] | None:
@@ -210,9 +219,17 @@ class DbTags:
                 "RETURNING file_path",
                 (tags, Path(file_path).as_posix()),
             ).fetchone()
-        return updated is not None
+        if updated is not None:
+            self.invalidate_tag_counts()
+            return True
+        return False
+
+    def invalidate_tag_counts(self) -> None:
+        self._tag_counts_cache = None
 
     def get_tag_counts(self) -> dict[str, int]:
+        if self._tag_counts_cache is not None:
+            return dict(self._tag_counts_cache)
         counts: dict[str, int] = {}
         visited_paths: set[str] = set()
         for config in self.settings_state.media_configs:
@@ -234,11 +251,14 @@ class DbTags:
             for tag, quantity in rows:
                 key = tag.casefold()
                 counts[key] = counts.get(key, 0) + quantity
-        return counts
+        self._tag_counts_cache = counts
+        return dict(counts)
 
     def _update_media_assignments(
         self, renamed: dict[str, str], deleted: list[str]
     ) -> None:
+        if not renamed and not deleted:
+            return
         rename_map = {old.casefold(): new for old, new in renamed.items()}
         deleted_tags = {tag.casefold() for tag in deleted}
         for config in self.settings_state.media_configs:
@@ -253,6 +273,7 @@ class DbTags:
                         "SELECT file_path, user_tags FROM media_file "
                         "WHERE user_tags IS NOT NULL"
                     ).fetchall()
+                    updates: list[tuple[list[str], str]] = []
                     for file_path, tags in media_rows:
                         updated: list[str] = []
                         seen: set[str] = set()
@@ -264,15 +285,17 @@ class DbTags:
                                 updated.append(normalized_tag)
                                 seen.add(normalized_tag.casefold())
                         if updated != list(tags or []):
-                            con.execute(
-                                "UPDATE media_file SET user_tags = ? "
-                                "WHERE file_path = ?",
-                                (updated, file_path),
-                            )
+                            updates.append((updated, file_path))
+                    if updates:
+                        con.executemany(
+                            "UPDATE media_file SET user_tags = ? WHERE file_path = ?",
+                            updates,
+                        )
                     con.commit()
                 except Exception:
                     con.rollback()
                     raise
+        self.invalidate_tag_counts()
 
     def _sync_state(self) -> None:
         self.settings_state.set_tags(self.list_tags())
