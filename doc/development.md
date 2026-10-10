@@ -95,7 +95,7 @@ code type checker
 #### CI
 Local:  
 `git bash> bash ci.sh`  
-`git bash> powershell -File ci.ps1`
+`git bash> powershell -File ci.ps1`  
 `powershell> powershell ci.ps1`  
 
 GitHub:  

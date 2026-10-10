@@ -307,8 +307,8 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             media_config["_previous_label"] = current_label
             return
 
-        previous_db = f"db/{self._safe_db_label(previous_label)}.db"
-        current_db = f"db/{self._safe_db_label(current_label)}.db"
+        previous_db = f"db/media_{self._safe_db_label(previous_label)}.db"
+        current_db = f"db/media_{self._safe_db_label(current_label)}.db"
 
         if previous_db == current_db:
             media_config["_previous_label"] = current_label

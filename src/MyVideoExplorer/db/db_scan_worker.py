@@ -201,4 +201,4 @@ class ScanWorker(QThread):
             safe_label = "media"
 
         # Return path using POSIX separator so DB filenames use '/' even on Windows
-        return f"db/{safe_label}.db"
+        return f"db/media_{safe_label}.db"

@@ -39,8 +39,6 @@ Screenshot:
 
 ### Wishlist:
 
-- tags for filtering
-- track played count, last played
 - add filters for nfo, tags, played
 - more ui settings
 - play series episodes
