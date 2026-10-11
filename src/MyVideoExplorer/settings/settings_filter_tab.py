@@ -37,10 +37,15 @@ class SettingsFilterTab(SettingsBaseTab):
     )
 
     def __init__(
-        self, state: SettingsState, log_util: LogUtil, parent: QWidget | None = None
+        self,
+        state: SettingsState,
+        log_util: LogUtil,
+        tag_store: Any | None = None,
+        parent: QWidget | None = None,
     ) -> None:
         super().__init__(log_util, parent)
         self.state = state
+        self._tag_store = tag_store
         self.row_widgets: list[FilterRowContainer] = []
 
         self._layout = QVBoxLayout(self)
@@ -61,6 +66,17 @@ class SettingsFilterTab(SettingsBaseTab):
 
         scroll.setWidget(self.main_widget)
         self._layout.addWidget(scroll)
+
+    @property
+    def tag_store(self) -> Any | None:
+        return self._tag_store
+
+    @tag_store.setter
+    def tag_store(self, value: Any | None) -> None:
+        self._tag_store = value
+        for row in self.row_widgets:
+            if row.filter_table is not None:
+                row.filter_table.tag_store = value
 
     @property
     def layout(self) -> QVBoxLayout:
@@ -177,7 +193,12 @@ class SettingsFilterTab(SettingsBaseTab):
         name_layout.addWidget(filter_type_combo)
 
         # Create filter table for this specific row
-        filter_table = FolderFilterTable(self.GENRES, self.state.media_configs)
+        filter_table = FolderFilterTable(
+            self.GENRES,
+            self.state.media_configs,
+            state=self.state,
+            tag_store=self.tag_store,
+        )
         filters_data = filter_cfg.get("filters") or []
         for f in filters_data:
             filter_table.add_filter(f.get("filter", ""), f.get("value", ""))

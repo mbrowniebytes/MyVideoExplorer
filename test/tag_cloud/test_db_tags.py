@@ -124,6 +124,33 @@ def test_db_tags_caching_and_invalidation(tmp_path):
     assert tags._tags_cache == [{"tag": "Action", "color": "#00ff00"}]
 
 
+def test_db_tags_unindexed_file_and_case_insensitivity(tmp_path):
+    media_root = tmp_path / "media"
+    media_root.mkdir()
+    file_path = media_root / "unindexed.mkv"
+    file_path.touch()
+    db_path = tmp_path / "media.db"
+    DbMigrations(str(db_path)).run_migrations()
+
+    state = MockTagState(
+        [{"path": str(media_root)}],
+        {str(media_root): str(db_path)},
+    )
+    tags = DbTags(state, tmp_path / "tag_catalog.db")
+
+    # File was not inserted in media_file initially
+    assert tags.get_tags(str(file_path)) is None
+    # Setting tags creates the row
+    assert tags.set_tags(str(file_path), ["Sci-Fi", "Classic"])
+    assert tags.get_tags(str(file_path)) == ["Sci-Fi", "Classic"]
+    # Path with different casing matches
+    cased_path = str(file_path).upper()
+    assert tags.get_tags(cased_path) == ["Sci-Fi", "Classic"]
+    assert tags.set_tags(cased_path, ["Sci-Fi"])
+    assert tags.get_tags(str(file_path)) == ["Sci-Fi"]
+    assert tags.get_tag_counts() == {"sci-fi": 1}
+
+
 def test_db_migrations_cache(tmp_path):
     DbMigrations.clear_migrated_cache()
     db_path = str(tmp_path / "migrated.db")

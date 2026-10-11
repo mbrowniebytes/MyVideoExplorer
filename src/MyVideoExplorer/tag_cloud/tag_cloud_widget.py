@@ -3,7 +3,7 @@ from __future__ import annotations
 from math import sqrt
 from typing import Any
 
-from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtCore import QRect, QSize, Qt, Signal
 from PySide6.QtGui import QColor, QFont
 from PySide6.QtWidgets import (
     QColorDialog,
@@ -140,6 +140,8 @@ class TagCloudWidget(QWidget):
             if item:
                 w = item.widget()
                 if w is not None:
+                    w.hide()
+                    w.setParent(None)
                     w.deleteLater()
 
         query = self.filter_edit.text().strip().casefold()
@@ -153,8 +155,19 @@ class TagCloudWidget(QWidget):
         self._tag_widgets = []
         for tag in tags:
             chip = self._make_chip(tag, maximum_qty)
+            chip.show()
             self.cloud_layout.addWidget(chip)
             self._tag_widgets.append((tag, chip))
+
+        target_w = self.cloud_container.width()
+        parent = self.parentWidget()
+        if target_w <= 50 and parent is not None:
+            target_w = parent.width()
+        if target_w <= 50:
+            target_w = 400
+        target_h = self.cloud_layout.heightForWidth(max(target_w, 50))
+        self.cloud_layout.setGeometry(QRect(0, 0, max(target_w, 50), max(target_h, 30)))
+        self.cloud_container.updateGeometry()
 
     def _make_chip(self, tag: dict[str, Any], maximum_qty: int) -> QWidget:
         chip = QWidget(self.cloud_container)
@@ -258,6 +271,8 @@ class TagCloudWidget(QWidget):
             item = layout.takeAt(0)
             widget = item.widget() if item else None
             if widget is not None:
+                widget.hide()
+                widget.setParent(None)
                 widget.deleteLater()
 
         name_edit = QLineEdit(tag["tag"], chip)

@@ -199,26 +199,36 @@ class DbTags:
             return None
 
         DbMigrations(db_path).run_migrations()
+        posix_path = Path(file_path).as_posix()
         with duckdb.connect(db_path) as con:
             result = con.execute(
-                "SELECT user_tags FROM media_file WHERE file_path = ?",
-                (Path(file_path).as_posix(),),
+                "SELECT user_tags FROM media_file WHERE file_path = ? OR lower(file_path) = lower(?)",
+                (posix_path, posix_path),
             ).fetchone()
 
         return list(result[0] or []) if result is not None else None
 
     def set_tags(self, file_path: str, tags: list[str]) -> bool:
         db_path = self._get_db_path(file_path)
-        if db_path is None or not Path(db_path).exists():
+        if db_path is None:
             return False
 
         DbMigrations(db_path).run_migrations()
+        posix_path = Path(file_path).as_posix()
         with duckdb.connect(db_path) as con:
             updated = con.execute(
-                "UPDATE media_file SET user_tags = ? WHERE file_path = ? "
+                "UPDATE media_file SET user_tags = ? WHERE file_path = ? OR lower(file_path) = lower(?) "
                 "RETURNING file_path",
-                (tags, Path(file_path).as_posix()),
+                (tags, posix_path, posix_path),
             ).fetchone()
+            if updated is None:
+                config = self._get_matching_config(file_path)
+                media_path = str(config.get("path", "")).strip() if config else ""
+                con.execute(
+                    "INSERT INTO media_file (media_path, file_path, user_tags) VALUES (?, ?, ?)",
+                    (media_path, posix_path, tags),
+                )
+                updated = (posix_path,)
         if updated is not None:
             self.invalidate_tag_counts()
             return True
@@ -300,7 +310,7 @@ class DbTags:
     def _sync_state(self) -> None:
         self.settings_state.set_tags(self.list_tags())
 
-    def _get_db_path(self, file_path: str) -> str | None:
+    def _get_matching_config(self, file_path: str) -> dict[str, Any] | None:
         target_path = Path(file_path).resolve()
         matching_configs: list[tuple[int, dict[str, Any]]] = []
         for config in self.settings_state.media_configs:
@@ -316,5 +326,10 @@ class DbTags:
 
         if not matching_configs:
             return None
-        config = max(matching_configs, key=lambda item: item[0])[1]
+        return max(matching_configs, key=lambda item: item[0])[1]
+
+    def _get_db_path(self, file_path: str) -> str | None:
+        config = self._get_matching_config(file_path)
+        if config is None:
+            return None
         return self.settings_state.get_db_path(config)

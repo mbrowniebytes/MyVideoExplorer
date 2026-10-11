@@ -417,3 +417,32 @@ class TestMediaInfoSideView:
         date_edit.eventFilter(calendar, QEvent(QEvent.Type.Show))
         QTest.qWait(10)
         assert calendar.selectedDate() == selected_date
+
+    def test_tag_button_enabled_when_media_selected_without_tags(self, qtbot):
+        tag_store = MagicMock()
+        tag_store.get_tags.return_value = None
+        tag_store.list_tags.return_value = []
+        tag_store.get_tag_counts.return_value = {}
+
+        tag_state = MagicMock()
+        tag_state.tags = []
+
+        view = MediaInfoSideView(
+            MagicMock(spec=NfoParseUtil),
+            MagicMock(spec=StrUtil),
+            MagicMock(),
+            tag_store=tag_store,
+            tag_state=tag_state,
+        )
+        qtbot.addWidget(view)
+
+        tag_widget = view.side_content_widget.tag_cloud_widget
+        assert not tag_widget.add_button.isEnabled()
+
+        # When media file is selected with no existing tags
+        view.set_media_file_path("C:/movies/untagged.mkv")
+        assert tag_widget.add_button.isEnabled()
+
+        # When selection is cleared
+        view.set_media_file_path(None)
+        assert not tag_widget.add_button.isEnabled()

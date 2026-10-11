@@ -20,10 +20,12 @@ class DbPlayHistory:
             return None
 
         DbMigrations(db_path).run_migrations()
+        posix_path = Path(file_path).as_posix()
         with duckdb.connect(db_path) as con:
             result = con.execute(
-                "SELECT qty_played, last_played FROM media_file WHERE file_path = ?",
-                (Path(file_path).as_posix(),),
+                "SELECT qty_played, last_played FROM media_file "
+                "WHERE file_path = ? OR lower(file_path) = lower(?)",
+                (posix_path, posix_path),
             ).fetchone()
 
         if result is None:
@@ -31,27 +33,31 @@ class DbPlayHistory:
         return PlayHistory(qty_played=result[0], last_played=result[1])
 
     def record_playback(self, file_path: str) -> bool:
+        posix_path = Path(file_path).as_posix()
         return self._update(
             file_path,
             "UPDATE media_file SET qty_played = qty_played + 1, "
-            "last_played = CURRENT_DATE WHERE file_path = ? RETURNING file_path",
-            (Path(file_path).as_posix(),),
+            "last_played = CURRENT_DATE WHERE file_path = ? OR lower(file_path) = lower(?) "
+            "RETURNING file_path",
+            (posix_path, posix_path),
         )
 
     def set_qty_played(self, file_path: str, qty_played: int) -> bool:
+        posix_path = Path(file_path).as_posix()
         return self._update(
             file_path,
-            "UPDATE media_file SET qty_played = ? WHERE file_path = ? "
+            "UPDATE media_file SET qty_played = ? WHERE file_path = ? OR lower(file_path) = lower(?) "
             "RETURNING file_path",
-            (qty_played, Path(file_path).as_posix()),
+            (qty_played, posix_path, posix_path),
         )
 
     def set_last_played(self, file_path: str, last_played: date | None) -> bool:
+        posix_path = Path(file_path).as_posix()
         return self._update(
             file_path,
-            "UPDATE media_file SET last_played = ? WHERE file_path = ? "
+            "UPDATE media_file SET last_played = ? WHERE file_path = ? OR lower(file_path) = lower(?) "
             "RETURNING file_path",
-            (last_played, Path(file_path).as_posix()),
+            (last_played, posix_path, posix_path),
         )
 
     def _update(self, file_path: str, query: str, parameters: tuple) -> bool:

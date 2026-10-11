@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtCore import QRect, QSize, Qt, Signal
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QColorDialog,
@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QPushButton,
     QScrollArea,
+    QSizePolicy,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -28,6 +29,54 @@ from MyVideoExplorer.tag_cloud.tag_util import (
     validate_tag_name,
 )
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.widgets.flow_layout import FlowLayout
+
+
+class AssignedTagsContainer(QWidget):
+    """Container for assigned tags that wraps items in a flow layout and dynamically expands in height."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.flow_layout = FlowLayout(self, spacing=4)
+        self.flow_layout.setContentsMargins(0, 0, 0, 0)
+        self.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Minimum,
+        )
+
+    def hasHeightForWidth(self) -> bool:
+        return True
+
+    def heightForWidth(self, width: int) -> int:
+        return max(self.flow_layout.heightForWidth(width), 24)
+
+    def sizeHint(self) -> QSize:
+        w = self.width()
+        parent = self.parentWidget()
+        if w <= 50 and parent is not None:
+            w = parent.width() - 20
+        if w <= 50:
+            w = 400
+        h = self.flow_layout.heightForWidth(w)
+        return QSize(w, max(h, 24))
+
+    def minimumSizeHint(self) -> QSize:
+        return self.sizeHint()
+
+    def relayout(self) -> None:
+        w = self.width()
+        parent = self.parentWidget()
+        if w <= 50 and parent is not None:
+            w = parent.width() - 20
+        if w <= 50:
+            w = 400
+        h = self.flow_layout.heightForWidth(w)
+        self.flow_layout.setGeometry(QRect(0, 0, max(w, 50), max(h, 24)))
+        self.updateGeometry()
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self.flow_layout.setGeometry(self.rect())
 
 
 class TagPickerDialog(QDialog):
@@ -39,12 +88,24 @@ class TagPickerDialog(QDialog):
     tag_color_changed = Signal(str, str)
     tag_edited = Signal(str, object)
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        allow_create: bool = True,
+        allow_delete: bool = True,
+        allow_remove: bool | None = None,
+    ) -> None:
         super().__init__(parent)
         self.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.WindowStaysOnTopHint)
         self.setWindowTitle("Select Tags")
         self.setStyleSheet(APP_THEME.container_qss())
+        self.resize(520, 420)
+        self.setMinimumSize(450, 350)
 
+        self.allow_create = allow_create
+        self.allow_delete = allow_delete if allow_remove is None else allow_remove
+        self.allow_remove = self.allow_delete
         self._tags: list[str] = []
         self._tag_colors: dict[str, str] = {}
         self._tag_counts: dict[str, int] = {}
@@ -73,10 +134,8 @@ class TagPickerDialog(QDialog):
         header_layout.addWidget(self.close_button)
         layout.addLayout(header_layout)
 
-        self.assigned_container = QWidget(self)
-        self.assigned_layout = QHBoxLayout(self.assigned_container)
-        self.assigned_layout.setContentsMargins(0, 0, 0, 0)
-        self.assigned_layout.setSpacing(4)
+        self.assigned_container = AssignedTagsContainer(self)
+        self.assigned_layout = self.assigned_container.flow_layout
         layout.addWidget(self.assigned_container)
 
         layout.addWidget(QLabel("Available tags", self))
@@ -92,17 +151,23 @@ class TagPickerDialog(QDialog):
         scroll.setWidget(self.cloud)
         layout.addWidget(scroll, 1)
 
-        create_row = QHBoxLayout()
-        self.new_tag_edit = QLineEdit(self)
-        self.new_tag_edit.setPlaceholderText("Create a new tag")
-        self.create_button = QPushButton("Create and Add", self)
-        self.create_button.clicked.connect(self._on_create_and_add)
-        self.new_tag_edit.returnPressed.connect(self._on_create_and_add)
-        create_row.addWidget(self.new_tag_edit, 1)
-        create_row.addWidget(self.create_button)
-        layout.addLayout(create_row)
+        self.new_tag_edit: QLineEdit | None = None
+        self.create_button: QPushButton | None = None
+        if self.allow_create:
+            create_row = QHBoxLayout()
+            self.new_tag_edit = QLineEdit(self)
+            self.new_tag_edit.setPlaceholderText("Create a new tag")
+            self.create_button = QPushButton("Create and Add", self)
+            self.create_button.clicked.connect(self._on_create_and_add)
+            self.new_tag_edit.returnPressed.connect(self._on_create_and_add)
+            create_row.addWidget(self.new_tag_edit, 1)
+            create_row.addWidget(self.create_button)
+            layout.addLayout(create_row)
 
         self._render_assigned_tags()
+
+    def sizeHint(self) -> QSize:
+        return QSize(520, 420)
 
     def set_data(
         self,
@@ -178,26 +243,35 @@ class TagPickerDialog(QDialog):
             )
             row.addWidget(color_button)
 
-            remove_button = QToolButton(row_widget)
-            remove_button.setIcon(
-                APP_THEME.icon("fa6s.trash-can", color=APP_THEME.text_color)
-            )
-            remove_button.setProperty("preserve_custom_style", True)
-            remove_button.setIconSize(QSize(14, 14))
-            remove_button.setFixedSize(22, 22)
-            remove_button.setAutoRaise(True)
-            remove_button.setStyleSheet(
-                "QToolButton { background: transparent; border: 0; padding: 2px; }"
-            )
-            remove_button.setCursor(Qt.CursorShape.PointingHandCursor)
-            remove_button.setToolTip(f"Remove {tag} from this media")
-            remove_button.clicked.connect(
-                lambda checked=False, name=tag: self.tag_removed.emit(name)
-            )
-            row.addWidget(remove_button)
+            if self.allow_delete:
+                remove_button = QToolButton(row_widget)
+                remove_button.setIcon(
+                    APP_THEME.icon("fa6s.trash-can", color=APP_THEME.text_color)
+                )
+                remove_button.setProperty("preserve_custom_style", True)
+                remove_button.setIconSize(QSize(14, 14))
+                remove_button.setFixedSize(22, 22)
+                remove_button.setAutoRaise(True)
+                remove_button.setStyleSheet(
+                    "QToolButton { background: transparent; border: 0; padding: 2px; }"
+                )
+                remove_button.setCursor(Qt.CursorShape.PointingHandCursor)
+                remove_button.setToolTip(f"Remove {tag} from this media")
+                remove_button.clicked.connect(
+                    lambda checked=False, name=tag: self.tag_removed.emit(name)
+                )
+                row.addWidget(remove_button)
 
+            row_widget.show()
             self.assigned_layout.addWidget(row_widget)
-        self.assigned_layout.addStretch(1)
+        self.assigned_container.relayout()
+        layout = self.layout()
+        if layout is not None:
+            layout.activate()
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self.assigned_container.updateGeometry()
 
     def _edit_assigned_tag(self, tag: str, row_widget: QWidget) -> None:
         row = row_widget.layout()
@@ -207,6 +281,8 @@ class TagPickerDialog(QDialog):
             item = row.takeAt(0)
             widget = item.widget() if item else None
             if widget is not None:
+                widget.hide()
+                widget.setParent(None)
                 widget.deleteLater()
 
         name_edit = QLineEdit(tag, row_widget)
@@ -326,6 +402,8 @@ class TagPickerDialog(QDialog):
         self.tag_edited.emit(old_tag, new_tag)
 
     def _on_create_and_add(self) -> None:
+        if self.new_tag_edit is None:
+            return
         tag = self.new_tag_edit.text().strip()
         is_valid, error_msg = validate_tag_name(tag)
         if not is_valid:
@@ -339,4 +417,6 @@ class TagPickerDialog(QDialog):
             item = layout.takeAt(0)
             widget = item.widget() if item else None
             if widget is not None:
+                widget.hide()
+                widget.setParent(None)
                 widget.deleteLater()

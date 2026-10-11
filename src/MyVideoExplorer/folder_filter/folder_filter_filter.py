@@ -37,25 +37,120 @@ class FolderFilterFilter:
         if not filters:
             return self._default_folders(items)
 
-        filtered_items: list[FileUtilModel] = []
-        seen_paths: set[str] = set()
+        # Separate and group items by directory
+        from collections import defaultdict
 
-        current_dir: FileUtilModel | None = None
+        dir_items: list[FileUtilModel] = []
+        dir_by_path: dict[str, FileUtilModel] = {}
+        files_by_dir: dict[str, list[FileUtilModel]] = defaultdict(list)
 
         for item in items:
             if item.is_dir:
-                current_dir = item
+                posix_path = Path(item.full_path).as_posix().casefold()
+                if posix_path not in dir_by_path:
+                    dir_by_path[posix_path] = item
+                    dir_items.append(item)
+            elif item.is_file:
+                parent_posix = Path(item.full_path).parent.as_posix().casefold()
+                files_by_dir[parent_posix].append(item)
 
-            # print(f"DEBUG: item={item.full_path}, is_dir={item.is_dir}, current_dir={current_dir.full_path if current_dir else None}")
+        # If there are file items whose parent directories are not explicitly in dir_items,
+        # create synthetic folder items for them so they can be matched and returned.
+        for parent_posix, files in files_by_dir.items():
+            if parent_posix not in dir_by_path and files:
+                first_file = files[0]
+                parent_path_orig = Path(first_file.full_path).parent.as_posix()
+                parent_name = Path(first_file.full_path).parent.name
+                dir_item = FileUtilModel(
+                    type="dir",
+                    name=parent_name,
+                    full_path=parent_path_orig,
+                    depth=max(0, first_file.depth - 1),
+                )
+                dir_by_path[parent_posix] = dir_item
+                dir_items.append(dir_item)
 
-            if current_dir is None:
-                continue
+        # Group filters by type
+        grouped_filters = defaultdict(list)
+        for f in filters:
+            grouped_filters[f["filter"].casefold()].append(f["value"])
 
-            if self._item_matches(item=item, filters=filters):
-                # print(f"DEBUG: match! item={item.full_path}")
-                if current_dir.full_path and current_dir.full_path not in seen_paths:
-                    filtered_items.append(current_dir)
-                    seen_paths.add(current_dir.full_path)
+        filtered_items: list[FileUtilModel] = []
+        seen_paths: set[str] = set()
+
+        for dir_item in dir_items:
+            dir_key = Path(dir_item.full_path).as_posix().casefold()
+            associated_files = files_by_dir.get(dir_key, [])
+
+            # Check all filter type groups: directory must match all active filter types
+            dir_matches = True
+            for filter_type, values in grouped_filters.items():
+                type_match = False
+                for filter_value in values:
+                    if filter_type == "media":
+                        if self._matches_media_filter(dir_item, filter_value):
+                            type_match = True
+                            break
+                        if any(
+                            self._matches_media_filter(f, filter_value)
+                            for f in associated_files
+                        ):
+                            type_match = True
+                            break
+
+                    elif filter_type == "folder":
+                        if self._matches_folder_filter(
+                            filter_type, dir_item.name, filter_value
+                        ):
+                            type_match = True
+                            break
+
+                    elif filter_type == "file":
+                        if any(
+                            self._matches_file_filter(filter_type, f.name, filter_value)
+                            for f in associated_files
+                        ):
+                            type_match = True
+                            break
+                        if not associated_files and self._matches_file_filter(
+                            filter_type, dir_item.name, filter_value
+                        ):
+                            type_match = True
+                            break
+
+                    elif filter_type in {
+                        "genre",
+                        "actor",
+                        "director",
+                        "title",
+                        "tag",
+                        "nfo",
+                    }:
+                        for f in associated_files:
+                            movie_info = self._get_movie_info(f)
+                            if movie_info and self._matches_nfo_filter(
+                                filter_type, filter_value, movie_info
+                            ):
+                                type_match = True
+                                break
+                        if not associated_files and dir_item.is_dir:
+                            movie_info = self._get_movie_info(dir_item)
+                            if movie_info and self._matches_nfo_filter(
+                                filter_type, filter_value, movie_info
+                            ):
+                                type_match = True
+                                break
+                        if type_match:
+                            break
+
+                if not type_match:
+                    dir_matches = False
+                    break
+
+            if dir_matches:
+                if dir_item.full_path not in seen_paths:
+                    filtered_items.append(dir_item)
+                    seen_paths.add(dir_item.full_path)
 
         return filtered_items
 
@@ -92,15 +187,6 @@ class FolderFilterFilter:
 
         # AND across types, OR within types
         for filter_type, values in grouped_filters.items():
-            if not self.settings_state.db_enabled() and filter_type in {
-                "genre",
-                "actor",
-                "director",
-                "title",
-                "plot",
-            }:
-                continue
-
             type_match = False
             for filter_value in values:
                 # print(f"filter_type:{filter_type} filter_value:{filter_value}")
@@ -118,24 +204,34 @@ class FolderFilterFilter:
                         break
                     continue
 
-                if not item.is_file:
-                    continue
+                if item.is_file:
+                    if self._matches_file_filter(filter_type, file_name, filter_value):
+                        type_match = True
+                        break
 
-                if self._matches_file_filter(filter_type, file_name, filter_value):
-                    type_match = True
-                    break
-
-                if file_type != "nfo":
-                    continue
+                    parent_name = Path(item.full_path).parent.name
+                    if self._matches_folder_filter(
+                        filter_type, parent_name, filter_value
+                    ):
+                        type_match = True
+                        break
 
                 if filter_type not in {
                     "genre",
                     "actor",
                     "director",
                     "title",
-                    "plot",
+                    "tag",
+                    "nfo",
                 }:
                     continue
+
+                if (
+                    not self.settings_state.db_enabled()
+                    and file_type != "nfo"
+                    and not str(item.full_path).lower().endswith(".nfo")
+                ):
+                    pass
 
                 movie_info = self._get_movie_info(item)
                 if movie_info is None:
@@ -153,31 +249,61 @@ class FolderFilterFilter:
     def _get_movie_info(self, item: FileUtilModel) -> dict[str, Any] | None:
         if self.settings_state.db_enabled():
             # Find folder config
+            item_path = Path(item.full_path).as_posix()
             for config in self.settings_state.media_configs:
-                if item.full_path.startswith(config["path"]):
+                config_path = Path(config.get("path", "")).as_posix()
+                if item_path.casefold().startswith(config_path.casefold()):
                     db_path = self.settings_state.get_db_path(config)
-                    if Path(db_path).exists():
+                    if db_path and Path(db_path).exists():
                         # Query DB
                         db_path_str = Path(db_path).as_posix()
                         con = duckdb.connect(db_path_str)
-                        res = con.execute(
-                            db_query.DbQuery.MediaFile.SELECT_METADATA,
-                            (item.full_path,),
-                        ).fetchone()
+                        try:
+                            res = con.execute(
+                                """
+                                SELECT title, year, plot, score, rated, runtime,
+                                       list_concat(coalesce(tags, []), coalesce(user_tags, [])) AS tags,
+                                       genres, actors, directors
+                                FROM media_file WHERE file_path = ? OR lower(file_path) = lower(?)
+                                """,
+                                (item_path, item_path),
+                            ).fetchone()
+                        except Exception:
+                            res = con.execute(
+                                db_query.DbQuery.MediaFile.SELECT_METADATA,
+                                (item.full_path,),
+                            ).fetchone()
                         con.close()
 
                         if res:
                             return MediaFileMetadata(*res).to_movie_info()
 
-        # Fallback
-        return self.nfo_parse_util.parse_nfo(nfo_file=item.full_path)
+        # Fallback to NFO file if present
+        if item.file_type == "nfo" or str(item.full_path).lower().endswith(".nfo"):
+            return self.nfo_parse_util.parse_nfo(nfo_file=item.full_path)
+
+        if item.is_file:
+            nfo_path = Path(item.full_path).with_suffix(".nfo")
+            if nfo_path.exists():
+                return self.nfo_parse_util.parse_nfo(nfo_file=str(nfo_path))
+            movie_nfo = Path(item.full_path).parent / "movie.nfo"
+            if movie_nfo.exists():
+                return self.nfo_parse_util.parse_nfo(nfo_file=str(movie_nfo))
+
+        if item.is_dir:
+            movie_nfo = Path(item.full_path) / "movie.nfo"
+            if movie_nfo.exists():
+                return self.nfo_parse_util.parse_nfo(nfo_file=str(movie_nfo))
+
+        return None
 
     @staticmethod
     def _matches_folder_filter(
         filter_type: str, file_name: str, filter_value: str
     ) -> bool:
         return (
-            filter_type.casefold() == "folder" and filter_value.casefold() in file_name
+            filter_type.casefold() == "folder"
+            and filter_value.casefold() in file_name.casefold()
         )
 
     def _matches_media_filter(
@@ -209,17 +335,23 @@ class FolderFilterFilter:
     def _matches_file_filter(
         filter_type: str, file_name: str, filter_value: str
     ) -> bool:
-        return filter_type == "file" and filter_value.casefold() in file_name
+        return (
+            filter_type.casefold() == "file"
+            and filter_value.casefold() in file_name.casefold()
+        )
 
     def _matches_nfo_filter(
         self,
         filter_type: str,
-        filter_value: str,
+        filter_value: str | list[str],
         movie_info: dict,
     ) -> bool:
         clean_type = filter_type.casefold().strip()
         if clean_type == "genre":
             return self._matches_genre(movie_info, filter_value)
+
+        if clean_type == "tag":
+            return self._matches_tag(movie_info, filter_value)
 
         if clean_type == "actor":
             return self._contains_any(movie_info.get("actors", []), filter_value)
@@ -230,24 +362,57 @@ class FolderFilterFilter:
         if clean_type == "title":
             return self._contains_text(movie_info.get("title", ""), filter_value)
 
-        if clean_type == "plot":
-            return self._contains_text(movie_info.get("plot", ""), filter_value)
+        if clean_type == "nfo":
+            return (
+                self._contains_text(movie_info.get("title", ""), filter_value)
+                or self._contains_text(movie_info.get("plot", ""), filter_value)
+                or self._contains_any(movie_info.get("genres", []), filter_value)
+                or self._contains_any(movie_info.get("actors", []), filter_value)
+                or self._contains_text(movie_info.get("director", ""), filter_value)
+                or self._matches_tag(movie_info, filter_value)
+            )
 
         return False
 
     @staticmethod
-    def _matches_genre(movie_info: dict, genre: str) -> bool:
+    def _matches_genre(movie_info: dict, genre: str | list[str]) -> bool:
         if not genre:
             return False
         return FolderFilterFilter._contains_any(movie_info.get("genres", []), genre)
 
     @staticmethod
-    def _contains_any(values: list[str], needle: str) -> bool:
-        return any(needle in value.casefold() for value in values)
+    def _matches_tag(movie_info: dict, tag: str | list[str]) -> bool:
+        if not tag:
+            return False
+        if isinstance(tag, list):
+            return any(FolderFilterFilter._matches_tag(movie_info, t) for t in tag)
+        if isinstance(tag, str) and "," in tag:
+            tags = [t.strip() for t in tag.split(",") if t.strip()]
+            return any(FolderFilterFilter._matches_tag(movie_info, t) for t in tags)
+        return FolderFilterFilter._contains_any(
+            movie_info.get("tags", []) or [], str(tag)
+        )
 
     @staticmethod
-    def _contains_text(value: str, needle: str) -> bool:
-        return bool(value) and needle in value.casefold()
+    def _contains_any(values: list[Any], needle: Any) -> bool:
+        if isinstance(needle, (list, tuple)):
+            return any(FolderFilterFilter._contains_any(values, n) for n in needle)
+        needle_fold = str(needle).casefold()
+        for value in values:
+            if isinstance(value, dict):
+                name = str(value.get("name", "") or value.get("tag", "")).casefold()
+                if needle_fold in name:
+                    return True
+            elif isinstance(value, str):
+                if needle_fold in value.casefold():
+                    return True
+        return False
+
+    @staticmethod
+    def _contains_text(value: str, needle: str | list[str]) -> bool:
+        if isinstance(needle, list):
+            return any(FolderFilterFilter._contains_text(value, n) for n in needle)
+        return bool(value) and needle.casefold() in str(value).casefold()
 
     def apply_theme(self) -> None:
         return

@@ -168,9 +168,7 @@ class MediaInfoSideView(QWidget, ThemableMixin):
         )
         self.side_content_widget.tag_cloud_widget.set_tags(tags)
         self.side_content_widget.tag_cloud_widget.set_enabled(
-            self.tag_store is not None
-            and bool(self.media_file_path)
-            and tags is not None
+            self.tag_store is not None and bool(self.media_file_path)
         )
 
     def refresh_play_history(self) -> None:

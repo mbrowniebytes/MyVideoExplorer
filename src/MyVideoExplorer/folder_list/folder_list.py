@@ -114,8 +114,7 @@ class FolderList(QWidget, ThemableMixin):
         tooltip = (
             "Folder List Usage:\n"
             "- Click a folder to view its contents\n"
-            "- Use 'Add Media Folder' in settings to add more roots\n"
-            "- Use the folder picker to browse other directories\n\n"
+            "- Use 'Add Media Folder' in settings to add more media paths\n"
             f"Settings:\n"
             f"- Checking {num_folders} media folder{'s' if num_folders != 1 else ''}\n"
             f"- Loading from: {loading_source}"

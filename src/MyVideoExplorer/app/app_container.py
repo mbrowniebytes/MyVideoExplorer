@@ -234,14 +234,7 @@ class AppContainer:
         )
         self._connect(
             self.signals.file_changed,
-            lambda p: self.file_list.set_selected_file(p.data),
-        )
-        self._connect(
-            self.signals.file_changed, lambda p: self.media_info.set_image_path(p.data)
-        )
-        self._connect(
-            self.signals.file_changed,
-            lambda p: self.image_list.update_image_from_item(p.data),
+            lambda p: self._on_file_changed(p.data),
         )
         self._connect(
             self.signals.image_changed,
@@ -332,6 +325,13 @@ class AppContainer:
                 self.controller.set_current_folder(first_item.full_path, force=True)
         else:
             self.image_list.update_image_from_folder("")
+
+    def _on_file_changed(self, file_path: str) -> None:
+        self.file_list.set_selected_file(file_path)
+        self.media_info.set_image_path(file_path)
+        self.image_list.update_image_from_item(file_path)
+        video_path = self.video_player.video_finder.find_associated_video(file_path)
+        self.media_info_side_view.set_media_file_path(video_path or file_path)
 
     def _on_folder_selected(self, folder_path: str) -> None:
         if (

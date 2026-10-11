@@ -17,8 +17,7 @@ def test_settings_state_get_db_path():
             assert state.get_db_path({"label": "Movies"}) == "db/media_Movies.db"
             assert state.get_db_path({"label": ""}) == "db/media_media.db"
             assert (
-                state.get_db_path({"label": "TV Shows"}, "Anime")
-                == "db/media_Anime.db"
+                state.get_db_path({"label": "TV Shows"}, "Anime") == "db/media_Anime.db"
             )
             assert state.get_db_path({"label": ".."}) == "db/media_media.db"
 
@@ -94,7 +93,9 @@ def test_section_rename_db_file_if_needed(tmp_path, monkeypatch, qtbot):
 
     section = SettingsMediaFolderBrowserSection(
         media_config=config,
-        get_db_path_callback=lambda c, label_override=None: f"db/media_{c.get('label')}.db",
+        get_db_path_callback=lambda c, label_override=None: (
+            f"db/media_{c.get('label')}.db"
+        ),
         file_util=mock_file_util,
         nfo_util=mock_nfo_util,
         parent=None,
