@@ -174,7 +174,7 @@ class SettingsFilterTab(SettingsBaseTab):
         index = 0
         for filter_type in FolderFilterTable.FILTER_TYPES:
             clean_type = filter_type.casefold().strip()
-            if clean_type in ("os", "nfo"):
+            if clean_type in ("os", "nfo", "meta"):
                 filter_type_combo.insertSeparator(index)
                 label_text = filter_type
                 filter_type_combo.addItem(label_text)
@@ -209,7 +209,8 @@ class SettingsFilterTab(SettingsBaseTab):
         container.filter_table = filter_table
 
         add_btn = QPushButton("Add", parent=name_container)
-        add_btn.setIcon(APP_THEME.icon("fa6s.plus-circle", color=APP_THEME.text_color))
+        add_btn.setIcon(APP_THEME.icon("fa6s.circle-plus", color=APP_THEME.text_color))
+        add_btn.setToolTip("Add Selected Criteria")
         add_btn.setIconSize(QSize(APP_THEME.icon_size - 5, APP_THEME.icon_size - 5))
         add_btn.setStyleSheet(APP_THEME.button_qss())
         add_btn.clicked.connect(
@@ -219,7 +220,7 @@ class SettingsFilterTab(SettingsBaseTab):
         )
 
         delete_btn = QPushButton("", parent=name_container)
-        delete_btn.setIcon(APP_THEME.icon("fa6s.trash-alt", color=APP_THEME.text_color))
+        delete_btn.setIcon(APP_THEME.icon("fa6s.trash-can", color=APP_THEME.text_color))
         delete_btn.setIconSize(QSize(APP_THEME.icon_size - 5, APP_THEME.icon_size - 5))
         delete_btn.setStyleSheet(APP_THEME.button_qss())
         delete_btn.clicked.connect(lambda: self._delete_filter(filter_cfg))
@@ -232,7 +233,7 @@ class SettingsFilterTab(SettingsBaseTab):
     def _add_filter_to_table(
         self, filter_table: FolderFilterTable, filter_type: str
     ) -> None:
-        if filter_type.upper() in ("", "OS", "NFO"):
+        if filter_type.upper() in ("", "OS", "NFO", "META"):
             return
         filter_table.add_filter(filter_type)
         self._on_setting_changed()

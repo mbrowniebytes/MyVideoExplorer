@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QToolButton, QWidget
 
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
@@ -7,6 +7,7 @@ from MyVideoExplorer.theme.theme import APP_THEME
 
 class FolderListHeader(QWidget, ThemableMixin):
     backward_clicked = Signal()
+    clear_filter_clicked = Signal()
     forward_clicked = Signal()
     random_clicked = Signal()
 
@@ -15,6 +16,7 @@ class FolderListHeader(QWidget, ThemableMixin):
         self.title_label = QLabel("Folders", parent=self)
         self.help_icon = QLabel("?", parent=self)
         self.backward_folder_button = self._create_nav_folder_button("backward")
+        self.clear_filter_button = self._create_clear_filter_button()
         self.forward_folder_button = self._create_nav_folder_button("forward")
         self.random_folder_button = self._create_nav_folder_button("random")
         self._build()
@@ -33,9 +35,22 @@ class FolderListHeader(QWidget, ThemableMixin):
         layout.addWidget(self.help_icon)
         layout.addStretch()
 
+        layout.addWidget(self.clear_filter_button)
         layout.addWidget(self.backward_folder_button)
         layout.addWidget(self.forward_folder_button)
         layout.addWidget(self.random_folder_button)
+
+    def _create_clear_filter_button(self) -> QToolButton:
+        button = QToolButton(self)
+        button.setFixedSize(30, 30)
+        button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+        button.setIcon(APP_THEME.icon("fa6s.filter-circle-xmark"))
+        button.setIconSize(QSize(APP_THEME.icon_size, APP_THEME.icon_size))
+        button.setToolTip("Clear Filter")
+        button.setStyleSheet(APP_THEME.button_qss())
+        button.setEnabled(False)
+        button.clicked.connect(self.clear_filter_clicked)
+        return button
 
     def _create_nav_folder_button(self, direction: str) -> QToolButton:
         button = QToolButton(self)
@@ -62,5 +77,6 @@ class FolderListHeader(QWidget, ThemableMixin):
         self.title_label.setStyleSheet(APP_THEME.label_qss())
         self.help_icon.setStyleSheet(APP_THEME.help_icon_label_qss())
         self.backward_folder_button.setStyleSheet(APP_THEME.button_qss())
+        self.clear_filter_button.setStyleSheet(APP_THEME.button_qss())
         self.forward_folder_button.setStyleSheet(APP_THEME.button_qss())
         self.random_folder_button.setStyleSheet(APP_THEME.button_qss())

@@ -228,6 +228,7 @@ class FolderFilterTable(QTableWidget):
         "Actor",
         "Director",
         "Title",
+        "META",
         "Tag",
     ]
 
@@ -385,7 +386,7 @@ class FolderFilterTable(QTableWidget):
 
     def _set_filter_type_cell(self, row_nbr: int, filter_type: str) -> None:
         clean_type = filter_type.casefold().strip()
-        if clean_type in ("os", "nfo"):
+        if clean_type in ("os", "nfo", "meta"):
             label_text = filter_type.strip()
         else:
             label_text = f"  {filter_type.strip()}"
@@ -402,7 +403,7 @@ class FolderFilterTable(QTableWidget):
             return
 
         filter_type_label = QTableWidgetItem(label_text)
-        if clean_type in ("os", "nfo"):
+        if clean_type in ("os", "nfo", "meta"):
             filter_type_label.setFlags(Qt.ItemFlag.NoItemFlags)
         else:
             filter_type_label.setFlags(
@@ -540,7 +541,7 @@ class FolderFilterTable(QTableWidget):
             return
 
         filter_type_value = QTableWidgetItem(filter_value)
-        if filter_type.upper() in ("OS", "NFO"):
+        if filter_type.upper() in ("OS", "NFO", "META"):
             filter_type_value.setFlags(
                 Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
             )
@@ -557,8 +558,8 @@ class FolderFilterTable(QTableWidget):
     def _set_remove_button_cell(self, row_nbr: int) -> None:
 
         remove_btn = QToolButton(self)
-        remove_btn.setIcon(APP_THEME.icon("fa6s.xmark", color=APP_THEME.text_color))
-        remove_btn.setToolTip("Remove filter")
+        remove_btn.setIcon(APP_THEME.icon("fa6s.trash-can", color=APP_THEME.text_color))
+        remove_btn.setToolTip("Delete Criteria")
         remove_btn.clicked.connect(lambda: self._remove_filter_row(remove_btn))
         self.setCellWidget(row_nbr, 2, remove_btn)
 

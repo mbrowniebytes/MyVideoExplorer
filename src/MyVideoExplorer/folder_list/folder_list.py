@@ -33,6 +33,7 @@ _EMPTY_STATE_NO_MEDIA_FOLDERS = (
 class FolderList(QWidget, ThemableMixin):
     folder_selected_intent = Signal(object)
     folder_navigation_requested = Signal(object)
+    clear_filter_requested = Signal()
     HISTORY_FOLDER_LENGTH = 100
 
     def __init__(
@@ -67,6 +68,10 @@ class FolderList(QWidget, ThemableMixin):
         return self.header.backward_folder_button
 
     @property
+    def clear_filter_button(self):
+        return self.header.clear_filter_button
+
+    @property
     def forward_folder_button(self):
         return self.header.forward_folder_button
 
@@ -79,6 +84,7 @@ class FolderList(QWidget, ThemableMixin):
         layout = QVBoxLayout(self._container)
 
         self.header.backward_clicked.connect(self._on_backward_folder_clicked)
+        self.header.clear_filter_clicked.connect(self.clear_filter_requested)
         self.header.forward_clicked.connect(self._on_forward_folder_clicked)
         self.header.random_clicked.connect(self._on_random_folder_clicked)
 
@@ -347,6 +353,9 @@ class FolderList(QWidget, ThemableMixin):
         has_folders = self.folder_list_view.has_folders()
         if self.header.random_folder_button.isEnabled() != has_folders:
             self.header.random_folder_button.setEnabled(has_folders)
+
+    def set_clear_filter_enabled(self, enabled: bool) -> None:
+        self.header.clear_filter_button.setEnabled(enabled)
 
     def _add_to_history(self, folder_path: str) -> None:
         self.navigation_controller.add_to_history(folder_path)

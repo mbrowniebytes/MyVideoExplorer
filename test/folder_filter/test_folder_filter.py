@@ -123,6 +123,26 @@ class TestFolderNavFilters:
             nav_filters.apply_button.click()
         assert blocker.args is not None
 
+    def test_filter_criteria_button_opens_popup_with_criteria_table(
+        self, nav_filters
+    ):
+        assert nav_filters.filter_criteria_button.toolTip() == "View Filter Criteria"
+        assert not nav_filters.filter_criteria_button.icon().isNull()
+
+        nav_filters.filter_table.add_filter("Folder", "my_movie")
+        nav_filters.filter_criteria_button.click()
+
+        assert nav_filters._criteria_popup is not None
+        assert nav_filters._criteria_popup.isVisible()
+        assert (
+            nav_filters._criteria_popup.findChild(FolderFilterTable)
+            is nav_filters.filter_table
+        )
+        assert nav_filters.filter_table.collect_filters() == [
+            {"filter": "Folder", "value": "my_movie"}
+        ]
+        nav_filters._criteria_popup.close()
+
     def test_apply_filters_logic(self, nav_filters, qtbot):
         """Verify apply_filters_requested calls the filter engine with correct data."""
         nav_filters.settings.settings_data_model.db_enabled.return_value = False
@@ -239,6 +259,32 @@ class TestFolderNavFilters:
         assert {"filter": "Folder", "value": "my_movie"} in applied_filters
         assert {"filter": "Genre", "value": "Sci-Fi"} in applied_filters
         assert {"filter": "Tag", "value": "Favorite"} in applied_filters
+
+    def test_clear_saved_filter_resets_selection_and_criteria(
+        self, nav_filters, settings_mock
+    ):
+        settings_mock.settings_data_model.saved_filters = [
+            {
+                "name": "MyFilter",
+                "filters": [{"filter": "Folder", "value": "my_movie"}],
+            }
+        ]
+        nav_filters._refresh_saved_filters_combo()
+        selection_changes = []
+        nav_filters.saved_filter_selection_changed.connect(selection_changes.append)
+
+        index = nav_filters.saved_filters_combo.findText("MyFilter")
+        nav_filters.saved_filters_combo.setCurrentIndex(index)
+        assert selection_changes[-1] is True
+        assert nav_filters.filter_table.collect_filters() == [
+            {"filter": "Folder", "value": "my_movie"}
+        ]
+
+        nav_filters.clear_saved_filter()
+
+        assert nav_filters.saved_filters_combo.currentIndex() == 0
+        assert selection_changes[-1] is False
+        assert nav_filters.filter_table.collect_filters() == []
 
     def test_tag_button_opens_popup_without_create(self, nav_filters):
         """Verify tag button popup does not have tag creation controls and does not have trashcan delete buttons."""

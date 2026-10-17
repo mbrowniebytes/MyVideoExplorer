@@ -32,6 +32,7 @@ class TestMediaTabs:
         assert media_tabs.tab_container.tabText(1) == "info"
         assert media_tabs.tab_container.tabText(2) == ""
         assert media_tabs.tab_container.tabText(3) == ""
+        assert media_tabs.settings_button.toolTip() == "Settings"
 
     def test_tab_changed_emits_signal(self, media_tabs, qtbot):
         with qtbot.waitSignal(media_tabs.tab_selection_changed) as blocker:

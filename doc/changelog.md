@@ -2,6 +2,18 @@
 
 ---
 
+### 2026-11-00
+
+- folder nav, filters
+  - filter select box is now a combobox
+  - move filter criteria from an inline table to button dialog
+  - add clear filter button
+
+- internal:
+  - 
+
+release - [MyVideoExplorer-20261100-0.008](https://github.com/mbrowniebytes/MyVideoExplorer/releases/tag/20261100-0.008)
+
 ### 2026-10-06
 
 - movie info

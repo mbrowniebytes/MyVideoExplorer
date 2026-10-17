@@ -7,8 +7,11 @@ import duckdb
 from PySide6.QtCore import QRect, QSize, Qt, Signal
 from PySide6.QtWidgets import (
     QComboBox,
+    QDialog,
     QHBoxLayout,
+    QLabel,
     QLayout,
+    QScrollArea,
     QSizePolicy,
     QToolButton,
     QVBoxLayout,
@@ -37,6 +40,7 @@ from MyVideoExplorer.widgets.flow_layout import FlowLayout
 
 class FolderFilters(QWidget, ThemableMixin):
     filters_requested = Signal()
+    saved_filter_selection_changed = Signal(bool)
     genre_changed = Signal(object)
     root_folder = Signal(object)
     loading_started = Signal(object)
@@ -59,6 +63,7 @@ class FolderFilters(QWidget, ThemableMixin):
 
         self.apply_button = QToolButton(self)
         self.tag_button = QToolButton(self)
+        self.filter_criteria_button = QToolButton(self)
         self.genre_combo = GenreComboWidget(self.GENRES, parent=self)
         self.nav_combo = QComboBox(self)
         self.saved_filters_combo = QComboBox(self)
@@ -71,6 +76,7 @@ class FolderFilters(QWidget, ThemableMixin):
 
         self._selected_tags: list[str] = []
         self._popup: TagPickerDialog | None = None
+        self._criteria_popup: QDialog | None = None
 
         self.media_filter_widget = FolderFilterMedia(self.settings, log_util, self)
         self.filter_table = FolderFilterTable(
@@ -80,6 +86,7 @@ class FolderFilters(QWidget, ThemableMixin):
             tag_store=getattr(self.settings, "tag_store", None),
             readonly=True,
         )
+        self.filter_table.setParent(self)
 
         self.root_folders: list[str] = []
         self.folder_nav_filters_filter = filter_engine_engine
@@ -94,12 +101,14 @@ class FolderFilters(QWidget, ThemableMixin):
 
         self.build_nav_combo()
         self._build_saved_filters_combo()
+        self._build_filter_criteria_button()
         self._build_tag_button()
         self._build_apply_button()
 
-        # Add saved filters and tag button row
+        # Add saved filters and filter controls row
         saved_filters_layout = QHBoxLayout()
         saved_filters_layout.addWidget(self.saved_filters_combo, 1)
+        saved_filters_layout.addWidget(self.filter_criteria_button)
         saved_filters_layout.addWidget(self.tag_button)
         saved_filters_layout.addWidget(self.apply_button)
 
@@ -109,7 +118,6 @@ class FolderFilters(QWidget, ThemableMixin):
         filter_layout.addWidget(self.media_filter_widget)
         filter_layout.addLayout(saved_filters_layout)
         filter_layout.addWidget(self.selected_tags_container)
-        filter_layout.addWidget(self.filter_table)
 
         left_layout = QVBoxLayout(self)
         left_layout.addWidget(filter_container)
@@ -145,8 +153,21 @@ class FolderFilters(QWidget, ThemableMixin):
         self.tag_button.setFixedWidth(40)
         self.tag_button.clicked.connect(self._show_tag_cloud)
 
+    def _build_filter_criteria_button(self) -> None:
+        self.filter_criteria_button = self._make_tool_button(
+            "View Filter Criteria", "fa6s.filter"
+        )
+        self.filter_criteria_button.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonIconOnly
+        )
+        self.filter_criteria_button.setFixedWidth(40)
+        self.filter_criteria_button.clicked.connect(self._show_filter_criteria)
+
     def _build_saved_filters_combo(self) -> None:
-        self.saved_filters_combo.setEditable(False)
+        self.saved_filters_combo.setEditable(True)
+        self.saved_filters_combo.setToolTip(
+            "Select a saved filter (type to search)"
+        )
         self._refresh_saved_filters_combo()
         self.saved_filters_combo.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
@@ -166,6 +187,36 @@ class FolderFilters(QWidget, ThemableMixin):
             self.saved_filters_combo.addItem(name)
         self.saved_filters_combo.blockSignals(False)
 
+    def _resolve_filter_text(self, text: str) -> int:
+        """Map typed combo text to a saved-filter item index (-1 when unknown).
+
+        Prefers an exact case-insensitive match; otherwise accepts a unique
+        prefix match so typing progressively selects the intended filter.
+        """
+        wanted = text.strip().casefold()
+        if not wanted:
+            return -1
+
+        combo = self.saved_filters_combo
+        prefix_index = -1
+        prefix_matches = 0
+        for index in range(combo.count()):
+            name = combo.itemText(index).casefold()
+            if name == wanted:
+                return index
+            if name.startswith(wanted):
+                prefix_index = index
+                prefix_matches += 1
+
+        return prefix_index if prefix_matches == 1 else -1
+
+    def _handle_filter_text(self, text: str) -> None:
+        """Resolve typed filter names into a selection of the saved-filter combo."""
+        index = self._resolve_filter_text(text)
+        if index < 0 or index == self.saved_filters_combo.currentIndex():
+            return
+        self.saved_filters_combo.setCurrentIndex(index)
+
     def _make_tool_button(
         self, label: str, icon_name: str = "fa6s.folder"
     ) -> QToolButton:
@@ -183,6 +234,7 @@ class FolderFilters(QWidget, ThemableMixin):
         self.apply_button.clicked.connect(self.filters_requested.emit)
         self.media_filter_widget.apply_filters.connect(self.filters_requested.emit)
         self.saved_filters_combo.currentIndexChanged.connect(self._load_saved_filter)
+        self.saved_filters_combo.currentTextChanged.connect(self._handle_filter_text)
         self.genre_combo.genre_changed.connect(
             lambda payload: self.genre_changed.emit(payload)
         )
@@ -220,6 +272,7 @@ class FolderFilters(QWidget, ThemableMixin):
         self.root_folder.emit(payload)
 
     def _load_saved_filter(self, index: int) -> None:
+        self.saved_filter_selection_changed.emit(index > 0)
         self.clear_selected_tags()
         if index <= 0:
             self.filter_table.setRowCount(0)
@@ -240,6 +293,69 @@ class FolderFilters(QWidget, ThemableMixin):
                     filter_item["filter"], filter_item["value"]
                 )
         self.filter_table._check_empty_state()
+
+    def clear_saved_filter(self) -> None:
+        if self.saved_filters_combo.currentIndex() > 0:
+            self.saved_filters_combo.setCurrentIndex(0)
+
+    def _show_filter_criteria(self) -> None:
+        if self._criteria_popup is None:
+            self._build_filter_criteria_popup()
+        assert self._criteria_popup is not None
+
+        pos = self.filter_criteria_button.mapToGlobal(
+            self.filter_criteria_button.rect().bottomLeft()
+        )
+        screen = self.screen()
+        if screen is not None:
+            available = screen.availableGeometry()
+            popup_w = min(520, available.width() - 20)
+            popup_h = min(420, available.height() - 20)
+            self._criteria_popup.resize(popup_w, popup_h)
+            x = min(pos.x(), available.right() - popup_w - 10)
+            y = min(pos.y(), available.bottom() - popup_h - 10)
+            self._criteria_popup.move(
+                max(x, available.left()), max(y, available.top())
+            )
+        else:
+            self._criteria_popup.resize(520, 420)
+            self._criteria_popup.move(pos)
+        self._criteria_popup.show()
+        self._criteria_popup.raise_()
+        self._criteria_popup.activateWindow()
+
+    def _build_filter_criteria_popup(self) -> None:
+        popup = QDialog(self.window())
+        popup.setWindowFlags(
+            Qt.WindowType.Popup | Qt.WindowType.WindowStaysOnTopHint
+        )
+        popup.setWindowTitle("Filter Criteria")
+        popup.setStyleSheet(APP_THEME.container_qss())
+        popup.resize(520, 420)
+        popup.setMinimumSize(450, 300)
+
+        layout = QVBoxLayout(popup)
+        header_layout = QHBoxLayout()
+        header_layout.addWidget(QLabel("Filter Criteria", popup))
+        header_layout.addStretch(1)
+
+        close_button = QToolButton(popup)
+        close_button.setIcon(
+            APP_THEME.icon("fa6s.xmark", color=APP_THEME.text_color)
+        )
+        close_button.setIconSize(QSize(14, 14))
+        close_button.setFixedSize(22, 22)
+        close_button.setAutoRaise(True)
+        close_button.setToolTip("Close")
+        close_button.clicked.connect(popup.close)
+        header_layout.addWidget(close_button)
+        layout.addLayout(header_layout)
+
+        scroll = QScrollArea(popup)
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(self.filter_table)
+        layout.addWidget(scroll, 1)
+        self._criteria_popup = popup
 
     def _show_tag_cloud(self) -> None:
         if self._popup is None:

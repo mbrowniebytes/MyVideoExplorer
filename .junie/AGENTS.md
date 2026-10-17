@@ -3,7 +3,7 @@
 
 ## Overview
 
-MyVideoExplorer is a PySide6 desktop application for browsing and managing video collections.
+MyVideoExplorer is a PySide6 desktop application designed for browsing and managing video collections efficiently.
 
 ## Core Commands
 
@@ -12,13 +12,11 @@ MyVideoExplorer is a PySide6 desktop application for browsing and managing video
 - **Linter**: `ruff check`
 - **Build**: `pyinstaller --noconfirm main.spec`
 
-## Architecture
+## Architecture Highlights
 
-- **Dependency Management**: Uses an `AppContainer` for centralized object creation and dependency injection.
-- **Entry Point**: `src/MyVideoExplorer/main.py` initializes the `AppContainer` and starts the `App`.
-- **UI Structure**:
-    - `src/MyVideoExplorer/app/app.py` constructs the `QMainWindow`.
-    - Layout is based on `QSplitter` dividing left (navigation/folders) and right (content/details) panels.
+- **Dependency Management**: Utilizes an `AppContainer` for centralized object creation and dependency injection.
+- **Entry Point Initialization**: The application's startup is handled from `src/MyVideoExplorer/main.py`, initializing the `AppContainer`.
+- **UI Structure**: Constructed in `src/MyVideoExplorer/app/app.py`, leveraging a `QSplitter` for layout division into left (navigation/folders) and right (content/details) panels.
 - **State Management**: A `Controller` (accessible via container) manages high-level state, such as the current root
   folder(s).
 - **Core Modules**:
@@ -32,7 +30,7 @@ MyVideoExplorer is a PySide6 desktop application for browsing and managing video
 
 ## Development Guidelines
 - Never run git add or git commit
-- Follow existing file structure and naming conventions.
-- Keep UI components self-contained where possible.
-- Use the `doc/python-best-practices.md` doc for Python-specific development rules.
-- Read `README.md` and `doc/development.md` for more details.
+- Adhere to existing file structure and naming conventions.
+- Maintain UI components' self-containment where feasible.
+- Reference Python best practices in `doc/python-best-practices.md`.
+- Consult `README.md` and `doc/development.md` for additional development details.

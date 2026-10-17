@@ -287,6 +287,13 @@ class AppContainer:
             self.folder_nav.filtered_items_updated,
             lambda p: self._on_filtered_items(p.data),
         )
+        self._connect(
+            self.folder_list.clear_filter_requested, self.folder_nav.clear_saved_filter
+        )
+        self._connect(
+            self.folder_nav_filters.saved_filter_selection_changed,
+            self.folder_list.set_clear_filter_enabled,
+        )
 
     def _on_tab_changed(self, tab_index: int) -> None:
         """Bridge: translate controller signal to component method."""
