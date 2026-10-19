@@ -165,9 +165,7 @@ class FolderFilters(QWidget, ThemableMixin):
 
     def _build_saved_filters_combo(self) -> None:
         self.saved_filters_combo.setEditable(True)
-        self.saved_filters_combo.setToolTip(
-            "Select a saved filter (type to search)"
-        )
+        self.saved_filters_combo.setToolTip("Select a saved filter (type to search)")
         self._refresh_saved_filters_combo()
         self.saved_filters_combo.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
@@ -314,9 +312,7 @@ class FolderFilters(QWidget, ThemableMixin):
             self._criteria_popup.resize(popup_w, popup_h)
             x = min(pos.x(), available.right() - popup_w - 10)
             y = min(pos.y(), available.bottom() - popup_h - 10)
-            self._criteria_popup.move(
-                max(x, available.left()), max(y, available.top())
-            )
+            self._criteria_popup.move(max(x, available.left()), max(y, available.top()))
         else:
             self._criteria_popup.resize(520, 420)
             self._criteria_popup.move(pos)
@@ -326,9 +322,7 @@ class FolderFilters(QWidget, ThemableMixin):
 
     def _build_filter_criteria_popup(self) -> None:
         popup = QDialog(self.window())
-        popup.setWindowFlags(
-            Qt.WindowType.Popup | Qt.WindowType.WindowStaysOnTopHint
-        )
+        popup.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.WindowStaysOnTopHint)
         popup.setWindowTitle("Filter Criteria")
         popup.setStyleSheet(APP_THEME.container_qss())
         popup.resize(520, 420)
@@ -340,9 +334,7 @@ class FolderFilters(QWidget, ThemableMixin):
         header_layout.addStretch(1)
 
         close_button = QToolButton(popup)
-        close_button.setIcon(
-            APP_THEME.icon("fa6s.xmark", color=APP_THEME.text_color)
-        )
+        close_button.setIcon(APP_THEME.icon("fa6s.xmark", color=APP_THEME.text_color))
         close_button.setIconSize(QSize(14, 14))
         close_button.setFixedSize(22, 22)
         close_button.setAutoRaise(True)

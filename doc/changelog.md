@@ -4,10 +4,13 @@
 
 ### 2026-11-00
 
-- folder nav, filters
-  - filter select box is now a combobox
-  - move filter criteria from an inline table to button dialog
+- folder nav
+  - filters
+    - filter select box is now a combobox
+    - move filter criteria from an inline table to button dialog
   - add clear filter button
+  - add quick search
+    - similar criteria as filter 
 
 - internal:
   - 

@@ -33,6 +33,11 @@ class TestFolderList:
         assert folder_list.folder_list_view.count() == 1
         # Check if title label exists in layout (indirectly via build)
         assert folder_list._container.objectName() == "folderListContainer"
+        assert folder_list._container.layout().itemAt(0).widget() is (
+            folder_list.media_nav_search
+        )
+        assert folder_list._container.layout().itemAt(1).widget() is folder_list.header
+        assert folder_list.media_nav_search_box.objectName() == "media_nav_search_box"
 
     def test_show_loading_state(self, folder_list):
         """Verify loading state displays correct text."""

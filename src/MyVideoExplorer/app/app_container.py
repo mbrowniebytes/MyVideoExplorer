@@ -11,6 +11,10 @@ from MyVideoExplorer.file_list.file_list import FileList
 from MyVideoExplorer.folder_filter.folder_filter import FolderFilters
 from MyVideoExplorer.folder_filter.folder_filter_filter import FolderFilterFilter
 from MyVideoExplorer.folder_list.folder_list import FolderList
+from MyVideoExplorer.folder_list.media_nav_search import (
+    MediaNavSearch,
+    MediaNavSearchCriteria,
+)
 from MyVideoExplorer.folder_nav.folder_nav import FolderNav
 from MyVideoExplorer.image_list.image_list import ImageList
 from MyVideoExplorer.image_list.image_list_view import ImageListView
@@ -89,6 +93,9 @@ class AppContainer:
                 self.nfo_parse_util,
                 self.settings.settings_data_model,
                 self.log_util,
+            )
+            self.media_nav_search_service = MediaNavSearch(
+                self.settings.settings_data_model
             )
             self.folder_list = FolderList(self.file_util, self.settings, self.log_util)
             self.folder_list.setParent(self.window)
@@ -294,6 +301,26 @@ class AppContainer:
             self.folder_nav_filters.saved_filter_selection_changed,
             self.folder_list.set_clear_filter_enabled,
         )
+        self._connect(
+            self.folder_list.media_nav_search_requested,
+            self._on_media_nav_search_requested,
+        )
+        self._connect(
+            self.folder_list.media_nav_clear_search_requested,
+            self.folder_nav.apply_filters,
+        )
+
+    def _on_media_nav_search_requested(self, criteria: MediaNavSearchCriteria) -> None:
+        try:
+            items = self.media_nav_search_service.search(criteria)
+        except Exception as error:
+            self.log_util.error(
+                f"Media navigation search failed: {error}",
+                extra_info={"criteria": criteria},
+            )
+            self.folder_list.media_nav_search.show_error(f"Search failed: {error}")
+            return
+        self._on_filtered_items(items)
 
     def _on_tab_changed(self, tab_index: int) -> None:
         """Bridge: translate controller signal to component method."""

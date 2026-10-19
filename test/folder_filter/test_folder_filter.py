@@ -123,9 +123,7 @@ class TestFolderNavFilters:
             nav_filters.apply_button.click()
         assert blocker.args is not None
 
-    def test_filter_criteria_button_opens_popup_with_criteria_table(
-        self, nav_filters
-    ):
+    def test_filter_criteria_button_opens_popup_with_criteria_table(self, nav_filters):
         assert nav_filters.filter_criteria_button.toolTip() == "View Filter Criteria"
         assert not nav_filters.filter_criteria_button.icon().isNull()
 

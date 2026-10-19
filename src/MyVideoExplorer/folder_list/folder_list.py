@@ -5,6 +5,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QLabel,
+    QLineEdit,
     QSizePolicy,
     QStackedWidget,
     QVBoxLayout,
@@ -17,6 +18,7 @@ from MyVideoExplorer.folder_list.folder_list_view import FolderListView
 from MyVideoExplorer.folder_list.folder_navigation_controller import (
     FolderNavigationController,
 )
+from MyVideoExplorer.folder_list.media_nav_search_widget import MediaNavSearchWidget
 from MyVideoExplorer.settings.settings import Settings
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
@@ -34,6 +36,8 @@ class FolderList(QWidget, ThemableMixin):
     folder_selected_intent = Signal(object)
     folder_navigation_requested = Signal(object)
     clear_filter_requested = Signal()
+    media_nav_search_requested = Signal(object)
+    media_nav_clear_search_requested = Signal()
     HISTORY_FOLDER_LENGTH = 100
 
     def __init__(
@@ -50,6 +54,7 @@ class FolderList(QWidget, ThemableMixin):
         self.stack.addWidget(self.loading_label)
         self.file_util = file_util
         self.settings = settings
+        self.media_nav_search = MediaNavSearchWidget(settings, self)
         self._signals_connected = False
         self._container = QWidget(self)
         self.header = FolderListHeader(parent=self)
@@ -79,6 +84,10 @@ class FolderList(QWidget, ThemableMixin):
     def random_folder_button(self):
         return self.header.random_folder_button
 
+    @property
+    def media_nav_search_box(self) -> QLineEdit:
+        return self.media_nav_search.media_nav_search_box
+
     def build(self) -> QWidget:
         self._container = self._build_container()
         layout = QVBoxLayout(self._container)
@@ -87,7 +96,12 @@ class FolderList(QWidget, ThemableMixin):
         self.header.clear_filter_clicked.connect(self.clear_filter_requested)
         self.header.forward_clicked.connect(self._on_forward_folder_clicked)
         self.header.random_clicked.connect(self._on_random_folder_clicked)
+        self.media_nav_search.search_requested.connect(self.media_nav_search_requested)
+        self.media_nav_search.clear_search_requested.connect(
+            self.media_nav_clear_search_requested
+        )
 
+        layout.addWidget(self.media_nav_search)
         layout.addWidget(self.header)
         layout.addWidget(self.stack)
         self.folder_list_view.setSizePolicy(
