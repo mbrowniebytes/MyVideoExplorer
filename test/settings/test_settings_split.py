@@ -88,6 +88,12 @@ class TestSettingsSplit:
             media_data = json.load(f)
             assert media_data["media_configs"][0]["label"] == "Test"
 
+        state.scan_media_timeout_seconds = 300
+        state.save_app()
+        with (cfg_dir / "settings_app.json").open(encoding="utf-8") as f:
+            app_data = json.load(f)
+        assert app_data["scan_media_timeout_seconds"] == 300
+
     def test_load_settings_merges_split_files(self, setup_cfg, mock_log_util):
         cfg_dir = setup_cfg
 
@@ -149,3 +155,15 @@ class TestSettingsSplit:
         with (setup_cfg / "settings_filter.json").open(encoding="utf-8") as f:
             data = json.load(f)
             assert len(data["saved_filters"]) == 1
+
+    def test_load_scan_timeout_setting_and_default(self, setup_cfg, mock_log_util):
+        settings_app = setup_cfg / "settings_app.json"
+        settings_app.write_text(
+            json.dumps({"scan_media_timeout_seconds": 60}), encoding="utf-8"
+        )
+        assert SettingsState(mock_log_util).scan_media_timeout_seconds == 60
+
+        settings_app.write_text(
+            json.dumps({"scan_media_timeout_seconds": 45}), encoding="utf-8"
+        )
+        assert SettingsState(mock_log_util).scan_media_timeout_seconds == 120

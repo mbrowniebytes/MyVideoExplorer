@@ -48,6 +48,7 @@ USE_LOCK=0
 
 # --- helpers ---------------------------------------------------------------------
 step() { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
+success() { printf '\n\033[1;32m==> %s\033[0m\n' "$*"; }
 fail() { printf '\033[1;31mFAILED: %s\033[0m\n' "$*" >&2; exit 1; }
 
 run_pytest() {
@@ -107,7 +108,7 @@ if [[ "$MODE" == "all" ]]; then
     lint
     typecheck
     test_checks
-    step "All checks passed ✔"
+    success "All checks passed [OK]"
 else
     "$MODE"
 fi

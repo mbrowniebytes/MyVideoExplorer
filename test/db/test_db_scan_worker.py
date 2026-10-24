@@ -68,6 +68,31 @@ class TestScanWorker:
         assert saved_stats["videos_count"] == 2
 
     @patch("MyVideoExplorer.db.db_scan_worker.DbScanUtil")
+    def test_run_stops_when_interruption_is_requested(
+        self,
+        mock_db_util_class,
+        tmp_path,
+        mock_file_util,
+        mock_nfo_util,
+        monkeypatch,
+    ):
+        media_folder = tmp_path / "media"
+        media_folder.mkdir()
+        worker = ScanWorker(
+            {"label": "Test", "path": str(media_folder)},
+            mock_file_util,
+            mock_nfo_util,
+        )
+        finished = MagicMock()
+        worker.finished.connect(finished)
+        monkeypatch.setattr(ScanWorker, "isInterruptionRequested", lambda _worker: True)
+
+        worker.run()
+
+        mock_db_util_class.assert_not_called()
+        finished.assert_called_once_with()
+
+    @patch("MyVideoExplorer.db.db_scan_worker.DbScanUtil")
     @patch("os.path.exists")
     @patch("os.remove")
     @patch("os.walk")

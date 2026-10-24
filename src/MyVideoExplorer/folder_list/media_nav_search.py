@@ -7,6 +7,10 @@ from typing import Any
 
 import duckdb
 
+from MyVideoExplorer.folder_list.folder_hierarchy import (
+    build_folder_rows,
+    merge_folder_rows,
+)
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 
 TEXT_SEARCH_FIELDS = frozenset(
@@ -149,19 +153,23 @@ class MediaNavSearch:
         sql = "SELECT file_path FROM media_file WHERE "
         sql += " AND ".join(where)
         sql += " ORDER BY lower(file_path)"
-        matches: dict[str, FileUtilModel] = {}
-        visited_databases: set[str] = set()
+        folder_items: list[FileUtilModel] = []
+        visited_databases: set[tuple[str, str]] = set()
+        folders_by_root: dict[str, dict[str, FileUtilModel]] = {}
 
         for config in self.settings_state.media_configs:
+            media_root = str(config.get("path", ""))
             db_path = self.settings_state.get_db_path(config)
             if not db_path or not Path(db_path).is_file():
                 continue
             normalized_db = str(Path(db_path).resolve()).casefold()
-            if normalized_db in visited_databases:
+            normalized_root = _normalize_media_path(media_root)
+            database_root = (normalized_db, normalized_root)
+            if database_root in visited_databases:
                 continue
-            visited_databases.add(normalized_db)
+            visited_databases.add(database_root)
 
-            with duckdb.connect(str(db_path), read_only=True) as connection:
+            with duckdb.connect(Path(db_path).as_posix(), read_only=True) as connection:
                 if criteria.has_criteria:
                     rows = connection.execute(sql, parameters).fetchall()
                 else:
@@ -169,19 +177,23 @@ class MediaNavSearch:
                         "SELECT file_path FROM media_file ORDER BY lower(file_path)"
                     ).fetchall()
 
+            folders_by_path = folders_by_root.setdefault(normalized_root, {})
             for (file_path,) in rows:
                 if not file_path:
                     continue
-                folder_path = Path(file_path).parent
-                normalized_path = folder_path.as_posix().casefold()
-                if normalized_path in matches:
-                    continue
-                name = folder_path.name or folder_path.as_posix()
-                matches[normalized_path] = FileUtilModel(
-                    type="dir",
-                    name=name,
-                    full_path=folder_path.as_posix(),
-                    depth=0,
+                merge_folder_rows(
+                    folder_items,
+                    folders_by_path,
+                    build_folder_rows(file_path, media_root),
                 )
 
-        return sorted(matches.values(), key=lambda item: item.name.casefold())
+        return sorted(folder_items, key=lambda item: item.full_path.casefold())
+
+
+def _normalize_media_path(path: str) -> str:
+    normalized = str(path).strip().replace("\\", "/")
+    while len(normalized) > 1 and normalized.endswith("/"):
+        if len(normalized) == 3 and normalized[1] == ":":
+            break
+        normalized = normalized[:-1]
+    return normalized.casefold()

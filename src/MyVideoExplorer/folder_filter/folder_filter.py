@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from pathlib import Path
 
-import duckdb
 from PySide6.QtCore import QRect, QSize, Qt, Signal
 from PySide6.QtWidgets import (
     QComboBox,
@@ -19,7 +17,7 @@ from PySide6.QtWidgets import (
 )
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
-from MyVideoExplorer.db import db_query
+from MyVideoExplorer.db.db_filter import DbFilter
 from MyVideoExplorer.folder_filter.folder_filter_filter import FolderFilterFilter
 from MyVideoExplorer.folder_filter.folder_filter_genre_combo_widget import (
     GenreComboWidget,
@@ -91,6 +89,7 @@ class FolderFilters(QWidget, ThemableMixin):
         self.root_folders: list[str] = []
         self.folder_nav_filters_filter = filter_engine_engine
         self.file_util = file_util
+        self.db_filter = DbFilter(self.settings.settings_data_model)
 
     @property
     def selected_tags(self) -> list[str]:
@@ -511,38 +510,21 @@ class FolderFilters(QWidget, ThemableMixin):
             ]
 
         if self.settings.settings_data_model.db_enabled():
-            # Use database
+            # Use fast vectorized database filtering
             for folder_path in folder_paths:
                 self.loading_started.emit([folder_path])
-                # Find folder config
-                db_path = None
-                for config in self.settings.settings_data_model.media_configs:
-                    if config["path"] == folder_path:
-                        db_path = self.settings.settings_data_model.get_db_path(config)
-                        break
 
-                if db_path and Path(db_path).exists():
-                    db_path_str = Path(db_path).as_posix()
-                    con = duckdb.connect(db_path_str)
-                    res = con.execute(
-                        db_query.DbQuery.MediaFile.SELECT_ALL_PATHS
-                    ).fetchall()
-                    con.close()
+            filters = self.filter_table.collect_filters()
+            filters.extend(self.media_filter_widget.collect_filters())
+            for tag in self._selected_tags:
+                filters.append({"filter": "Tag", "value": tag})
 
-                    # 1. Add files and their parent directories
-                    paths = [r[0] for r in res]
-                    # Sort by parent folder then filename to mimic filesystem scan order
-                    paths.sort(
-                        key=lambda p: (
-                            str(Path(p).parent).lower(),
-                            Path(p).name.lower(),
-                        )
-                    )
-                    h = self.file_util.build_hierarchy_from_paths(paths, folder_path)
-                    items.extend(h)
-
+            results = self.db_filter.filter(
+                filters=filters,
+                selected_folders=folder_paths,
+            )
             if on_complete:
-                on_complete(self._apply_filters_internal(items))
+                on_complete(results)
             return
 
         # Sequential processing helper

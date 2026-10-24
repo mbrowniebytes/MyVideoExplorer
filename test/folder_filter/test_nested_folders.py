@@ -60,7 +60,9 @@ class TestNestedFolderStructure:
         qtbot.addWidget(widget)
         return widget
 
-    def test_nested_folders_added(self, nav_filters, qtbot):
+    def test_database_filter_returns_matching_nested_parent_folder(
+        self, nav_filters, qtbot
+    ):
         with patch("duckdb.connect") as mock_connect:
             mock_con = MagicMock()
             mock_connect.return_value = mock_con
@@ -75,28 +77,9 @@ class TestNestedFolderStructure:
 
             on_complete_mock = MagicMock()
 
-            # Bypass filtering for verification
-            with patch.object(
-                nav_filters, "_apply_filters_internal", side_effect=lambda x: x
-            ):
-                nav_filters.apply_filters(
-                    selected_folders=["movies"], on_complete=on_complete_mock
-                )
-
-            # Verify that items were added.
-            # We expect 'movies', 'movies/subdir1', 'movie1.mp4', 'movie2.mp4' (or similar)
-            # Actually, the file scan logic adds dirs.
+            nav_filters.apply_filters(
+                selected_folders=["movies"], on_complete=on_complete_mock
+            )
 
             items = on_complete_mock.call_args[0][0]
-
-            # The expected structure is nested folders, so we should see 'movies' and 'subdir1' as dirs.
-
-            paths = [item.full_path for item in items]
-
-            # Print paths for debugging
-            print(f"Paths: {paths}")
-
-            assert "movies" in paths
-            assert "movies/subdir1" in paths
-            assert "movies/subdir1/movie1.mp4" in paths
-            assert "movies/subdir1/movie2.mp4" in paths
+            assert [item.full_path for item in items] == ["movies/subdir1"]

@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+from pathlib import Path
 from typing import Any
 
 import duckdb
@@ -8,13 +9,14 @@ import duckdb
 from MyVideoExplorer.db import db_migrations, db_query
 from MyVideoExplorer.db.models.media_path_stats import MediaPathStats
 from MyVideoExplorer.lang.lang_loader import LangLoader
+from MyVideoExplorer.utils.file_util import FileUtil
 
 logger = logging.getLogger(__name__)
 
 
 class DbScanUtil:
     def __init__(self, db_path: str):
-        self.db_path = db_path
+        self.db_path = Path(db_path).as_posix()
         self.lang = LangLoader.get_lang("en")
         self._init_db()
 
@@ -87,7 +89,7 @@ class DbScanUtil:
             con.execute(
                 db_query.DbQuery.MediaPathStats.INSERT,
                 (
-                    stats["media_path"],
+                    Path(stats["media_path"]).as_posix(),
                     stats["subfolders_count"],
                     stats["files_count"],
                     stats["images_count"],
@@ -105,7 +107,8 @@ class DbScanUtil:
     def get_stats(self, media_path: str) -> MediaPathStats | None:
         with duckdb.connect(self.db_path) as con:
             row = con.execute(
-                db_query.DbQuery.MediaPathStats.SELECT, (media_path,)
+                db_query.DbQuery.MediaPathStats.SELECT,
+                (Path(media_path).as_posix(),),
             ).fetchone()
         if row is None:
             return None
@@ -113,13 +116,24 @@ class DbScanUtil:
 
     def delete_stats(self, media_path: str):
         def _delete(con):
-            con.execute(db_query.DbQuery.MediaPathStats.DELETE, (media_path,))
+            con.execute(
+                db_query.DbQuery.MediaPathStats.DELETE,
+                (Path(media_path).as_posix(),),
+            )
 
         self._run_in_transaction(_delete)
 
     def save_media(
         self, media_list: list[dict[str, Any]], media_path: str, progress_callback=None
     ):
+        normalized_media_path = Path(media_path).as_posix()
+        normalized_file_paths: list[str] = []
+        for item in media_list:
+            file_path = item.get("file_path")
+            if not isinstance(file_path, str) or not file_path:
+                raise ValueError("Every media record must have a valid file_path.")
+            normalized_file_paths.append(Path(file_path).as_posix())
+
         con = duckdb.connect(self.db_path)
 
         if progress_callback is not None:
@@ -129,10 +143,9 @@ class DbScanUtil:
             # 1. Delete records for the scanned folder that are no longer present
             def _cleanup(con):
                 if media_list:
-                    incoming_paths = [item.get("file_path") for item in media_list]
                     con.execute(
                         db_query.DbQuery.MediaFile.DELETE_BY_DIR_NOT_IN,
-                        (f"{media_path}%", incoming_paths),
+                        (f"{normalized_media_path}%", normalized_file_paths),
                     )
                 else:
                     self.delete_stats(media_path)
@@ -152,7 +165,9 @@ class DbScanUtil:
                 progress_callback(25, self.lang.scan_progress["preparing_media_rows"])
 
             data = []
-            for item in media_list:
+            for item, normalized_file_path in zip(
+                media_list, normalized_file_paths, strict=True
+            ):
                 metadata = item.get("metadata") or {}
 
                 year = metadata.get("year")
@@ -163,6 +178,9 @@ class DbScanUtil:
                         year = int(year)
                     except ValueError, TypeError:
                         year = None
+
+                if year is None or year <= 0:
+                    year = FileUtil.extract_year_from_path(normalized_file_path)
 
                 runtime = metadata.get("runtime")
                 if runtime == "" or runtime is None:
@@ -175,8 +193,8 @@ class DbScanUtil:
 
                 data.append(
                     (
-                        media_path,
-                        item.get("file_path"),
+                        normalized_media_path,
+                        normalized_file_path,
                         item.get("type"),
                         metadata.get("title"),
                         year,

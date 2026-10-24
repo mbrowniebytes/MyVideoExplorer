@@ -21,7 +21,7 @@ class DbPlayHistory:
 
         DbMigrations(db_path).run_migrations()
         posix_path = Path(file_path).as_posix()
-        with duckdb.connect(db_path) as con:
+        with duckdb.connect(Path(db_path).as_posix()) as con:
             result = con.execute(
                 "SELECT qty_played, last_played FROM media_file "
                 "WHERE file_path = ? OR lower(file_path) = lower(?)",
@@ -66,7 +66,7 @@ class DbPlayHistory:
             return False
 
         DbMigrations(db_path).run_migrations()
-        with duckdb.connect(db_path) as con:
+        with duckdb.connect(Path(db_path).as_posix()) as con:
             con.begin()
             try:
                 updated = con.execute(query, parameters).fetchone()

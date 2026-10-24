@@ -83,6 +83,7 @@ class FolderListView(QListWidget):
     def add_folder_item(
         self, item: FileUtilModel, icon_name: str = "fa6s.folder"
     ) -> None:
+        icon_name = item.icon_name or icon_name
         prefix = "  " * item.depth
         if item.depth > 0:
             # prefix += "└─ "
@@ -97,6 +98,7 @@ class FolderListView(QListWidget):
         list_item = QListWidgetItem(icon, f"{prefix}{item.name}")
         list_item.setData(Qt.ItemDataRole.UserRole, item.full_path)
         list_item.setData(Qt.ItemDataRole.UserRole + 1, icon_name)
+        list_item.setData(Qt.ItemDataRole.UserRole + 2, item.icon_name)
         self.addItem(list_item)
 
     def refresh_icons(self, get_icon_func) -> None:
@@ -106,7 +108,9 @@ class FolderListView(QListWidget):
             if not path:
                 continue
 
-            new_icon_name = get_icon_func(path)
+            new_icon_name = item.data(Qt.ItemDataRole.UserRole + 2) or get_icon_func(
+                path
+            )
             old_icon_name = item.data(Qt.ItemDataRole.UserRole + 1)
 
             if new_icon_name != old_icon_name:
@@ -142,39 +146,9 @@ class FolderListView(QListWidget):
         self.setUpdatesEnabled(False)
         try:
             folder_items = [item for item in items if item.is_dir]
-
-            if folder_items:
-                # Build parent map
-                last_at_depth = {}
-                # children_map: id(parent) -> list of children
-                children_map = {id(None): []}
-
-                for item in folder_items:
-                    parent = (
-                        last_at_depth.get(item.depth - 1) if item.depth > 0 else None
-                    )
-                    parent_id = id(parent)
-                    if parent_id not in children_map:
-                        children_map[parent_id] = []
-                    children_map[parent_id].append(item)
-                    last_at_depth[item.depth] = item
-
-                # Sort children
-                for parent_id, children in children_map.items():
-                    children.sort(key=lambda x: x.name.lower())
-
-                # Reconstruct
-                sorted_items = []
-
-                def add_sorted_children(parent):
-                    parent_id = id(parent)
-                    if parent_id in children_map:
-                        for child in children_map[parent_id]:
-                            sorted_items.append(child)
-                            add_sorted_children(child)
-
-                add_sorted_children(None)
-                folder_items = sorted_items
+            folder_items.sort(
+                key=lambda item: item.full_path.replace("\\", "/").casefold()
+            )
 
             self.clear()
             if not folder_items:

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import datetime
 import os
+import re
 import sys
 import threading
 from collections.abc import Callable, Sequence
@@ -312,4 +314,38 @@ class FileUtil:
         for f in files:
             if self.file_type.is_nfo_file(f):
                 return str(Path(path, f).as_posix())
+        return None
+
+    @staticmethod
+    def extract_year_from_path(path: str | os.PathLike[str]) -> int | None:
+        """Extract a 4-digit release year from a file or folder path.
+
+        Checks filename stem first, then parent folder name.
+        Validates against years from 1900 through current_year + 10.
+        """
+        if not path:
+            return None
+
+        path_obj = Path(path)
+        candidates = [path_obj.stem, path_obj.parent.name]
+        max_year = datetime.datetime.now(datetime.UTC).year + 10
+
+        for text in candidates:
+            if not text:
+                continue
+
+            # 1. Prefer parenthesized or bracketed 4-digit years: (1999), [2021]
+            bracketed = re.findall(r"[\(\[\{]\s*(\d{4})\s*[\)\]\}]", text)
+            for match in reversed(bracketed):
+                year = int(match)
+                if 1900 <= year <= max_year:
+                    return year
+
+            # 2. Match delimited 4-digit years: .1999., _2021_, -1999-, " 2021 "
+            delimited = re.findall(r"(?:^|[\s\.\-_])(\d{4})(?:$|[\s\.\-_])", text)
+            for match in reversed(delimited):
+                year = int(match)
+                if 1900 <= year <= max_year:
+                    return year
+
         return None

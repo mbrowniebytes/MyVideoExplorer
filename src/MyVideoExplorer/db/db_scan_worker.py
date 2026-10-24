@@ -22,6 +22,7 @@ class ScanWorker(QThread):
     progress_init = Signal(int)
     progress_updated = Signal(int)
     progress_stage = Signal(str)
+    STALL_CHECK_INTERVAL = 100
 
     def __init__(
         self, media_config: dict[str, Any], file_util: FileUtil, nfo_util: NfoParseUtil
@@ -96,17 +97,22 @@ class ScanWorker(QThread):
             new_results = []
             media_path = self.media_config.get("path", "")
 
-            # Count all folders for progress bar
-            total_folders = 0
-            media_path_obj = Path(media_path)
-            if media_path_obj.is_dir():
-                for _ in media_path_obj.rglob("*"):
-                    if _.is_dir():
-                        total_folders += 1
             self.progress_init.emit(100)
             self.progress_stage.emit(
                 self.lang.scan_progress["scanning_media_subfolders"]
             )
+
+            # Count all folders for progress bar
+            total_folders = 0
+            media_path_obj = Path(media_path)
+            if media_path_obj.is_dir():
+                for count, entry in enumerate(media_path_obj.rglob("*"), start=1):
+                    if self.isInterruptionRequested():
+                        return
+                    if entry.is_dir():
+                        total_folders += 1
+                    if count % self.STALL_CHECK_INTERVAL == 0:
+                        self.progress_updated.emit(0)
 
             stats = {
                 "media_path": media_path,
@@ -123,6 +129,8 @@ class ScanWorker(QThread):
             if media_path and Path(media_path).is_dir():
                 folder_steps = max(total_folders, 1)
                 for root, dirs, files in os.walk(media_path):
+                    if self.isInterruptionRequested():
+                        return
                     stats["subfolders_count"] += len(dirs)
                     stats["files_count"] += len(files)
 
@@ -131,7 +139,12 @@ class ScanWorker(QThread):
                     scan_progress = min(75, int((progress / folder_steps) * 75))
                     self.progress_updated.emit(scan_progress)
 
-                    for file in files:
+                    for file_index, file in enumerate(files, start=1):
+                        if self.isInterruptionRequested():
+                            return
+                        if file_index % self.STALL_CHECK_INTERVAL == 0:
+                            self.progress_updated.emit(scan_progress)
+
                         # dev test large qty folders
                         if IS_DEVELOPMENT:
                             sleep(0.011)
@@ -157,6 +170,9 @@ class ScanWorker(QThread):
                         else:
                             stats["other_count"] += 1
 
+            if self.isInterruptionRequested():
+                return
+
             # Save to DB
             db_path = self._get_db_path()
             if db_path == "":
@@ -171,6 +187,8 @@ class ScanWorker(QThread):
             self._backup_db(db_path)
 
             def on_db_progress(pct: int, label: str):
+                if self.isInterruptionRequested():
+                    raise InterruptedError("Media scan was cancelled after a stall.")
                 self.progress_stage.emit(label)
                 self.progress_updated.emit(
                     min(100, max(75, int(75 + (pct / 100) * 25)))
@@ -182,8 +200,12 @@ class ScanWorker(QThread):
                 media_path,
                 progress_callback=lambda pct, label: on_db_progress(pct, label),
             )
+            if self.isInterruptionRequested():
+                return
             db_util.save_stats(stats, progress_callback=on_db_progress)
             self.progress_updated.emit(100)
+        except InterruptedError:
+            return
         except Exception as exc:  # pragma: no cover - surfaced via UI dialog
             self.error.emit(self._format_error(exc))
         finally:

@@ -21,7 +21,7 @@ class DbTags:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._tags_cache: list[dict[str, str]] | None = None
         self._tag_counts_cache: dict[str, int] | None = None
-        with duckdb.connect(str(self.db_path)) as con:
+        with duckdb.connect(self.db_path.as_posix()) as con:
             con.execute(
                 """
                 CREATE TABLE IF NOT EXISTS tags (
@@ -63,7 +63,7 @@ class DbTags:
     def list_tags(self) -> list[dict[str, str]]:
         if self._tags_cache is not None:
             return [dict(item) for item in self._tags_cache]
-        with duckdb.connect(str(self.db_path), read_only=True) as con:
+        with duckdb.connect(self.db_path.as_posix(), read_only=True) as con:
             rows = con.execute(
                 "SELECT tag, color FROM tags ORDER BY lower(tag)"
             ).fetchall()
@@ -75,7 +75,7 @@ class DbTags:
         if not normalized:
             return False
         tag_data = normalized[0]
-        with duckdb.connect(str(self.db_path)) as con:
+        with duckdb.connect(self.db_path.as_posix()) as con:
             exists = con.execute(
                 "SELECT 1 FROM tags WHERE lower(tag) = lower(?)", (tag_data["tag"],)
             ).fetchone()
@@ -93,7 +93,7 @@ class DbTags:
         normalized = self.settings_state.normalize_tags([{"tag": tag, "color": color}])
         if not normalized:
             return False
-        with duckdb.connect(str(self.db_path)) as con:
+        with duckdb.connect(self.db_path.as_posix()) as con:
             updated = con.execute(
                 "UPDATE tags SET color = ? WHERE lower(tag) = lower(?) RETURNING tag",
                 (normalized[0]["color"], normalized[0]["tag"]),
@@ -177,7 +177,7 @@ class DbTags:
 
         if renamed or deleted:
             self._update_media_assignments(renamed, deleted)
-        with duckdb.connect(str(self.db_path)) as con:
+        with duckdb.connect(self.db_path.as_posix()) as con:
             con.begin()
             try:
                 con.execute("DELETE FROM tags")
@@ -200,7 +200,7 @@ class DbTags:
 
         DbMigrations(db_path).run_migrations()
         posix_path = Path(file_path).as_posix()
-        with duckdb.connect(db_path) as con:
+        with duckdb.connect(Path(db_path).as_posix()) as con:
             result = con.execute(
                 "SELECT user_tags FROM media_file WHERE file_path = ? OR lower(file_path) = lower(?)",
                 (posix_path, posix_path),
@@ -215,7 +215,7 @@ class DbTags:
 
         DbMigrations(db_path).run_migrations()
         posix_path = Path(file_path).as_posix()
-        with duckdb.connect(db_path) as con:
+        with duckdb.connect(Path(db_path).as_posix()) as con:
             updated = con.execute(
                 "UPDATE media_file SET user_tags = ? WHERE file_path = ? OR lower(file_path) = lower(?) "
                 "RETURNING file_path",
@@ -250,7 +250,7 @@ class DbTags:
             visited_paths.add(resolved_db_path)
 
             DbMigrations(db_path).run_migrations()
-            with duckdb.connect(db_path, read_only=True) as con:
+            with duckdb.connect(Path(db_path).as_posix(), read_only=True) as con:
                 rows = con.execute(
                     """
                     SELECT tag, count(*)
@@ -276,7 +276,7 @@ class DbTags:
             if not Path(db_path).exists():
                 continue
             DbMigrations(db_path).run_migrations()
-            with duckdb.connect(db_path) as con:
+            with duckdb.connect(Path(db_path).as_posix()) as con:
                 con.begin()
                 try:
                     media_rows = con.execute(

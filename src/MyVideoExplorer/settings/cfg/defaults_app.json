@@ -3,5 +3,6 @@
     "launch_app_size": "app_size_1200x800",
     "launch_app_pos": "app_pos_center_center",
     "show_loading_screen": true,
-    "log_level": "info"
+    "log_level": "info",
+    "scan_media_timeout_seconds": 120
 }

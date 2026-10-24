@@ -19,7 +19,9 @@ from MyVideoExplorer.folder_list.media_nav_search_widget import (
 
 class _SearchSettings:
     def __init__(self, database_paths: list[str]) -> None:
-        self.media_configs = [{"db_path": path} for path in database_paths]
+        self.media_configs = [
+            {"db_path": path, "path": "C:/Movies"} for path in database_paths
+        ]
 
     def db_enabled(self) -> bool:
         return bool(self.media_configs)
@@ -136,6 +138,86 @@ def test_search_name_text_fields(media_db, name_field, query):
     assert [item.name for item in results] == ["Alpha"]
 
 
+def test_search_returns_ancestor_folders_below_media_root(media_db):
+    with duckdb.connect(str(media_db)) as connection:
+        connection.execute(
+            """
+            INSERT INTO media_file (media_path, file_path, type, title)
+            VALUES (
+                'C:/Movies',
+                'C:/Movies/TV/Show/Season 1/episode.mkv',
+                'video',
+                'Nested Series'
+            )
+            """
+        )
+
+    results = _search(media_db).search(
+        MediaNavSearchCriteria(query="nested", name_field="movie_name")
+    )
+
+    assert [(item.full_path, item.depth) for item in results] == [
+        ("C:/Movies/TV", 0),
+        ("C:/Movies/TV/Show", 1),
+        ("C:/Movies/TV/Show/Season 1", 2),
+    ]
+    assert [item.icon_name for item in results] == [
+        "fa6s.folder-open",
+        "fa6s.folder-open",
+        None,
+    ]
+
+
+def test_search_deduplicates_ancestor_folders_within_media_root(media_db):
+    with duckdb.connect(str(media_db)) as connection:
+        connection.execute(
+            """
+            INSERT INTO media_file (media_path, file_path, type, title)
+            VALUES
+                ('C:/Movies', 'C:/Movies/TV/Show/Season 1/one.mkv', 'video', 'First'),
+                ('C:/Movies', 'C:/Movies/TV/Show/Season 1/two.mkv', 'video', 'Second')
+            """
+        )
+
+    results = _search(media_db).search(
+        MediaNavSearchCriteria(query="", fields=frozenset())
+    )
+
+    assert [item.full_path for item in results].count("C:/Movies/TV") == 1
+    assert [item.full_path for item in results].count("C:/Movies/TV/Show") == 1
+    assert [item.full_path for item in results].count("C:/Movies/TV/Show/Season 1") == 1
+
+
+def test_search_uses_media_icon_when_ancestor_is_also_movie_folder(media_db):
+    with duckdb.connect(str(media_db)) as connection:
+        connection.execute(
+            """
+            INSERT INTO media_file (media_path, file_path, type, title)
+            VALUES
+                (
+                    'C:/Movies',
+                    'C:/Movies/TV/Show/A/episode.mkv',
+                    'video',
+                    'Match Nested'
+                ),
+                (
+                    'C:/Movies',
+                    'C:/Movies/TV/Show/Z.mkv',
+                    'video',
+                    'Match Direct'
+                )
+            """
+        )
+
+    results = _search(media_db).search(
+        MediaNavSearchCriteria(query="match", name_field="movie_name")
+    )
+    show_folders = [item for item in results if item.full_path == "C:/Movies/TV/Show"]
+
+    assert len(show_folders) == 1
+    assert show_folders[0].icon_name is None
+
+
 @pytest.mark.parametrize(
     ("field", "query"),
     [("director", "a. director"), ("actor", "a. actor")],
@@ -240,7 +322,7 @@ def test_search_ands_selected_tags_qty_and_date(media_db):
     assert missing_tag == []
 
 
-def test_search_spans_databases_and_deduplicates_folders(media_db, tmp_path):
+def test_search_spans_databases_and_deduplicates_folders_per_root(media_db, tmp_path):
     duplicate_db = tmp_path / "duplicate.duckdb"
     copyfile(media_db, duplicate_db)
     service = MediaNavSearch(
@@ -254,6 +336,30 @@ def test_search_spans_databases_and_deduplicates_folders(media_db, tmp_path):
         )
     )
     assert [item.full_path for item in results] == ["C:/Movies/Alpha"]
+
+
+def test_search_combines_results_from_multiple_media_roots(media_db, tmp_path):
+    second_db = tmp_path / "second_media.duckdb"
+    copyfile(media_db, second_db)
+    with duckdb.connect(str(second_db)) as connection:
+        connection.execute(
+            """
+            UPDATE media_file
+            SET media_path = 'D:/Movies',
+                file_path = replace(file_path, 'C:/Movies', 'D:/Movies')
+            """
+        )
+
+    settings = _SearchSettings([str(media_db), str(second_db)])
+    settings.media_configs[1]["path"] = "D:/Movies"
+    results = MediaNavSearch(settings).search(
+        MediaNavSearchCriteria(query="alpha", name_field="movie_name")
+    )
+
+    assert [item.full_path for item in results] == [
+        "C:/Movies/Alpha",
+        "D:/Movies/Alpha",
+    ]
 
 
 @pytest.mark.parametrize(

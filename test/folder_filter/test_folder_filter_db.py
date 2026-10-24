@@ -67,7 +67,7 @@ class TestFolderNavFiltersDB:
             mock_connect.return_value = mock_con
             # Mock the query result
             mock_con.execute.return_value.fetchall.return_value = [
-                ("movies/movie1.mp4",)
+                ("movies/Film/movie1.mp4",)
             ]
 
             # Add a filter to ensure we get results back
@@ -80,7 +80,7 @@ class TestFolderNavFiltersDB:
             )
 
             # Verify that duckdb was called
-            mock_connect.assert_called_with("tmp/db/Test.db")
+            mock_connect.assert_called_with(Path("tmp/db/Test.db").as_posix())
 
             # Verify that items were added
             assert on_complete_mock.called
@@ -88,4 +88,4 @@ class TestFolderNavFiltersDB:
             # We expect a dir
             assert len(items) == 1
             assert items[0].is_dir
-            assert items[0].full_path == "movies"
+            assert items[0].full_path == "movies/Film"

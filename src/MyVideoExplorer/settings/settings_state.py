@@ -25,6 +25,8 @@ DEFAULTS_APP_FILE = PACKAGE_CFG_DIR / "defaults_app.json"
 DEFAULTS_UI_FILE = PACKAGE_CFG_DIR / "defaults_ui.json"
 DEFAULTS_MEDIA_FILE = PACKAGE_CFG_DIR / "defaults_media.json"
 DEFAULTS_FILTER_FILE = PACKAGE_CFG_DIR / "defaults_filter.json"
+SCAN_MEDIA_TIMEOUT_OPTIONS = (30, 60, 120, 300)
+DEFAULT_SCAN_MEDIA_TIMEOUT_SECONDS = 120
 
 
 class SettingsState(QObject):
@@ -49,6 +51,7 @@ class SettingsState(QObject):
         self.launch_app_size = "app_size_min"
         self.launch_app_pos = "app_pos_center_center"
         self.show_loading_screen = True
+        self.scan_media_timeout_seconds = DEFAULT_SCAN_MEDIA_TIMEOUT_SECONDS
 
         self.media_configs: list[dict[str, Any]] = []
         self.tags: list[dict[str, str]] = []
@@ -68,12 +71,13 @@ class SettingsState(QObject):
             "app_pos": "",
             "app_size": "",
         }
-        app_defaults: dict[str, str | bool] = {
+        app_defaults: dict[str, str | bool | int] = {
             "log_level": self.log_level,
             "auto_select_folder": self.auto_select_folder,
             "launch_app_size": self.launch_app_size,
             "launch_app_pos": self.launch_app_pos,
             "show_loading_screen": self.show_loading_screen,
+            "scan_media_timeout_seconds": self.scan_media_timeout_seconds,
         }
         ui_defaults: dict[str, int | str] = {
             "font_size": 18,
@@ -133,6 +137,11 @@ class SettingsState(QObject):
         self.launch_app_size = app_data.get("launch_app_size", "app_size_min")
         self.launch_app_pos = app_data.get("launch_app_pos", "app_pos_center_center")
         self.show_loading_screen = app_data.get("show_loading_screen", True)
+        self.scan_media_timeout_seconds = self._validated_scan_media_timeout(
+            app_data.get(
+                "scan_media_timeout_seconds", DEFAULT_SCAN_MEDIA_TIMEOUT_SECONDS
+            )
+        )
 
         # Load UI Settings
         ui_data = self.json_util.load_json(DEFAULTS_UI_FILE)
@@ -185,12 +194,13 @@ class SettingsState(QObject):
         """Save only App tab settings."""
         self._ensure_defaults()
 
-        app_settings: dict[str, str | bool] = {
+        app_settings: dict[str, str | bool | int] = {
             "log_level": self.log_level,
             "auto_select_folder": self.auto_select_folder,
             "launch_app_size": self.launch_app_size,
             "launch_app_pos": self.launch_app_pos,
             "show_loading_screen": self.show_loading_screen,
+            "scan_media_timeout_seconds": self.scan_media_timeout_seconds,
         }
 
         # Backup then save
@@ -319,6 +329,23 @@ class SettingsState(QObject):
         self.launch_app_size = app_data.get("launch_app_size", "app_size_min")
         self.launch_app_pos = app_data.get("launch_app_pos", "app_pos_last")
         self.show_loading_screen = app_data.get("show_loading_screen", True)
+        self.scan_media_timeout_seconds = self._validated_scan_media_timeout(
+            app_data.get(
+                "scan_media_timeout_seconds", DEFAULT_SCAN_MEDIA_TIMEOUT_SECONDS
+            )
+        )
+
+    @staticmethod
+    def _validated_scan_media_timeout(value: Any) -> int:
+        try:
+            timeout = int(value)
+        except TypeError, ValueError:
+            return DEFAULT_SCAN_MEDIA_TIMEOUT_SECONDS
+        return (
+            timeout
+            if timeout in SCAN_MEDIA_TIMEOUT_OPTIONS
+            else DEFAULT_SCAN_MEDIA_TIMEOUT_SECONDS
+        )
 
     def load_media(self) -> None:
         """Reload Media settings from file."""

@@ -259,21 +259,23 @@ class FolderFilterFilter:
                         db_path_str = Path(db_path).as_posix()
                         con = duckdb.connect(db_path_str)
                         try:
-                            res = con.execute(
-                                """
-                                SELECT title, year, plot, score, rated, runtime,
-                                       list_concat(coalesce(tags, []), coalesce(user_tags, [])) AS tags,
-                                       genres, actors, directors
-                                FROM media_file WHERE file_path = ? OR lower(file_path) = lower(?)
-                                """,
-                                (item_path, item_path),
-                            ).fetchone()
-                        except Exception:
-                            res = con.execute(
-                                db_query.DbQuery.MediaFile.SELECT_METADATA,
-                                (item.full_path,),
-                            ).fetchone()
-                        con.close()
+                            try:
+                                res = con.execute(
+                                    """
+                                    SELECT title, year, plot, score, rated, runtime,
+                                           list_concat(coalesce(tags, []), coalesce(user_tags, [])) AS tags,
+                                           genres, actors, directors
+                                    FROM media_file WHERE file_path = ? OR lower(file_path) = lower(?)
+                                    """,
+                                    (item_path, item_path),
+                                ).fetchone()
+                            except Exception:
+                                res = con.execute(
+                                    db_query.DbQuery.MediaFile.SELECT_METADATA,
+                                    (item.full_path,),
+                                ).fetchone()
+                        finally:
+                            con.close()
 
                         if res:
                             return MediaFileMetadata(*res).to_movie_info()

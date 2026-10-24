@@ -156,6 +156,53 @@ class TestFolderList:
         # Subfolder (depth 1)
         assert folder_list.folder_list_view.item(1).text() == "  ・ Subfolder"
 
+    def test_path_depths_for_database_and_search_results(self, folder_list):
+        """Keep hierarchy depths derived by database and search result builders."""
+        folder_list.settings.settings_data_model.media_configs = [{"path": "/path/to"}]
+        items = [
+            FileUtilModel(
+                type="dir",
+                name="Season 1",
+                full_path="/path/to/TV/Season 1",
+                depth=1,
+            ),
+            FileUtilModel(
+                type="dir",
+                name="TV",
+                full_path="/path/to/TV",
+                depth=0,
+            ),
+            FileUtilModel(
+                type="dir",
+                name="Movies",
+                full_path="/path/to/Movies",
+                depth=0,
+            ),
+        ]
+
+        folder_list.update_folder_list_by_items(items)
+
+        assert [
+            folder_list.folder_list_view.item(row).text()
+            for row in range(folder_list.folder_list_view.count())
+        ] == [" Movies", " TV", "  ・ Season 1"]
+
+    def test_derived_ancestor_icon_survives_icon_refresh(self, folder_list):
+        item = FileUtilModel(
+            type="dir",
+            name="TV",
+            full_path="/path/to/TV",
+            icon_name="fa6s.folder-open",
+        )
+
+        folder_list.update_folder_list_by_items([item])
+        folder_list.folder_list_view.refresh_icons(lambda _: "fa6s.star")
+
+        assert (
+            folder_list.folder_list_view.item(0).data(Qt.ItemDataRole.UserRole + 1)
+            == "fa6s.folder-open"
+        )
+
     def test_refresh_asynchronous(self, folder_list, qtbot):
         """Verify refresh method triggers update via timer."""
         test_path = "/refresh/path"

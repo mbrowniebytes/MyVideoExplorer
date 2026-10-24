@@ -25,7 +25,11 @@ from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
 from MyVideoExplorer.settings.settings_media_folder_browser_section import (
     SettingsMediaFolderBrowserSection,
 )
-from MyVideoExplorer.settings.settings_state import SettingsState
+from MyVideoExplorer.settings.settings_state import (
+    DEFAULT_SCAN_MEDIA_TIMEOUT_SECONDS,
+    SCAN_MEDIA_TIMEOUT_OPTIONS,
+    SettingsState,
+)
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.log_util import LogUtil
@@ -91,6 +95,15 @@ class SettingsMediaTab(SettingsBaseTab):
         self.db_enabled_dropdown.currentIndexChanged.connect(self._on_setting_changed)
         db_dropdown_layout.addWidget(self.db_enabled_dropdown)
         db_dropdown_layout.addStretch()
+
+        self.scan_all_btn = QPushButton("Scan All", parent=self)
+        self.scan_all_btn.setIcon(APP_THEME.icon("fa6s.rotate"))
+        self.scan_all_btn.setStyleSheet(APP_THEME.button_qss())
+        self.scan_all_btn.setToolTip(
+            "Scan all configured media folders into the database"
+        )
+        self.scan_all_btn.clicked.connect(self._on_scan_all_clicked)
+        db_dropdown_layout.addWidget(self.scan_all_btn)
 
         self.content_layout.addLayout(db_dropdown_layout)
 
@@ -256,15 +269,32 @@ class SettingsMediaTab(SettingsBaseTab):
             instr.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size - 4))
             instr.setStyleSheet(APP_THEME.label_qss("small"))
             self.folder_nav_layout.addRow(instr)
+            self._refresh_scan_all_button_state()
             return
 
         for i, media_config in enumerate(self.state.media_configs):
             browser = SettingsMediaFolderBrowserSection(
-                media_config, self.state.get_db_path, self.file_util, self.nfo_util
+                media_config,
+                self.state.get_db_path,
+                self.file_util,
+                self.nfo_util,
+                scan_timeout_seconds=self._get_scan_timeout_seconds,
             )
             browser.config_changed.connect(self._on_config_changed)
             browser.remove_requested.connect(self._remove_folder)
             self.folder_nav_layout.addRow(browser)
+
+        self._refresh_scan_all_button_state()
+
+    def _get_scan_timeout_seconds(self) -> int:
+        timeout = getattr(
+            self.state, "scan_media_timeout_seconds", DEFAULT_SCAN_MEDIA_TIMEOUT_SECONDS
+        )
+        return (
+            timeout
+            if isinstance(timeout, int) and timeout in SCAN_MEDIA_TIMEOUT_OPTIONS
+            else DEFAULT_SCAN_MEDIA_TIMEOUT_SECONDS
+        )
 
     def _has_valid_media_folders(self) -> bool:
         for cfg in self.state.media_configs:
@@ -272,6 +302,78 @@ class SettingsMediaTab(SettingsBaseTab):
             if p and Path(p).is_dir():
                 return True
         return False
+
+    def _refresh_scan_all_button_state(self) -> None:
+        if not hasattr(self, "scan_all_btn"):
+            return
+        if getattr(self, "_scan_all_active", False):
+            return
+        self.scan_all_btn.setEnabled(self._has_valid_media_folders())
+
+    def _on_scan_all_clicked(self) -> None:
+        sections = self.folder_nav_content.findChildren(
+            SettingsMediaFolderBrowserSection
+        )
+        valid_sections = [
+            s
+            for s in sections
+            if str(s.media_config.get("label", "")).strip()
+            and str(s.media_config.get("path", "")).strip()
+            and Path(str(s.media_config.get("path", ""))).is_dir()
+        ]
+
+        if not valid_sections:
+            QMessageBox.information(
+                self,
+                "Scan All",
+                "No configured media folders with valid paths found to scan.",
+            )
+            return
+
+        self._scan_all_queue = list(valid_sections)
+        self._scan_all_total = len(valid_sections)
+        self._scan_all_current = 0
+        self._scan_all_active = True
+        self.scan_all_btn.setEnabled(False)
+        self._run_next_scan_all()
+
+    def _run_next_scan_all(self) -> None:
+        if not getattr(self, "_scan_all_queue", None):
+            self._scan_all_active = False
+            self.scan_all_btn.setEnabled(self._has_valid_media_folders())
+            self.scan_all_btn.setText("Scan All")
+            self.scan_all_btn.setIcon(APP_THEME.icon("fa6s.rotate"))
+            self._update_db_tooltip()
+            return
+
+        self._scan_all_current += 1
+        section = self._scan_all_queue.pop(0)
+        self.scan_all_btn.setText(
+            f"Scanning {self._scan_all_current} of {self._scan_all_total}..."
+        )
+        self.folder_scroll_area.ensureWidgetVisible(section.progress_bar, 12, 24)
+
+        def on_section_finished():
+            try:
+                section.scan_finished.disconnect(on_section_finished)
+            except RuntimeError, TypeError:
+                pass
+            try:
+                section.scan_stalled.disconnect(on_section_stalled)
+            except RuntimeError, TypeError:
+                pass
+            self._run_next_scan_all()
+
+        def on_section_stalled():
+            self.scan_all_btn.setText(
+                f"Stopping stalled scan {self._scan_all_current} of "
+                f"{self._scan_all_total}..."
+            )
+
+        section.scan_finished.connect(on_section_finished)
+        section.scan_stalled.connect(on_section_stalled)
+        if not section.start_scan():
+            on_section_finished()
 
     def _get_valid_media_paths(self) -> list[str]:
         valid_paths: list[str] = []

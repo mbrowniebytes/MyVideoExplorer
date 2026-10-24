@@ -269,7 +269,6 @@ class FolderList(QWidget, ThemableMixin):
         on_complete: Callable[[list[FileUtilModel]], None] | None = None,
     ):
         """Sorts and populates the FolderListView."""
-
         if not items and not self._has_valid_media_folders():
             self.folder_list_view.show_empty_state(
                 message=_EMPTY_STATE_NO_MEDIA_FOLDERS

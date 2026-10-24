@@ -11,9 +11,17 @@
   - add clear filter button
   - add quick search
     - similar criteria as filter 
-
+  - show media ancestor even if empty
+- settings 
+  - media
+    - scan media speed and save to db greatly increased
+    - add Scan All button
+  - app
+    - add Scan Media Timeout
 - internal:
-  - 
+  - optimize filter and scan sql 
+  - parse and store media Year in db
+  - update ai docs in doc/ and .junie/
 
 release - [MyVideoExplorer-20261100-0.008](https://github.com/mbrowniebytes/MyVideoExplorer/releases/tag/20261100-0.008)
 

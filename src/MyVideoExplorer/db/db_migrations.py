@@ -7,7 +7,7 @@ class DbMigrations:
     _migrated_dbs: set[str] = set()
 
     def __init__(self, db_path: str):
-        self.db_path = db_path
+        self.db_path = Path(db_path).as_posix()
         self.migrations_dir = Path(__file__).parent / "migrations"
 
     @classmethod
