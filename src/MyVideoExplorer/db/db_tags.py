@@ -6,6 +6,7 @@ from typing import Any
 import duckdb
 
 from MyVideoExplorer.db.db_migrations import DbMigrations
+from MyVideoExplorer.utils.file_util import FileUtils
 
 DEFAULT_TAG_DB_PATH = Path("db") / "tag_catalog.db"
 
@@ -15,13 +16,15 @@ class DbTags:
         self,
         settings_state: Any,
         db_path: Path | str = DEFAULT_TAG_DB_PATH,
+        path_utils: FileUtils | None = None,
     ) -> None:
         self.settings_state = settings_state
+        self.path_utils = path_utils or FileUtils()
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._tags_cache: list[dict[str, str]] | None = None
         self._tag_counts_cache: dict[str, int] | None = None
-        with duckdb.connect(self.db_path.as_posix()) as con:
+        with duckdb.connect(self.path_utils.normalize_path(self.db_path)) as con:
             con.execute(
                 """
                 CREATE TABLE IF NOT EXISTS tags (
@@ -63,7 +66,9 @@ class DbTags:
     def list_tags(self) -> list[dict[str, str]]:
         if self._tags_cache is not None:
             return [dict(item) for item in self._tags_cache]
-        with duckdb.connect(self.db_path.as_posix(), read_only=True) as con:
+        with duckdb.connect(
+            self.path_utils.normalize_path(self.db_path), read_only=True
+        ) as con:
             rows = con.execute(
                 "SELECT tag, color FROM tags ORDER BY lower(tag)"
             ).fetchall()
@@ -75,7 +80,7 @@ class DbTags:
         if not normalized:
             return False
         tag_data = normalized[0]
-        with duckdb.connect(self.db_path.as_posix()) as con:
+        with duckdb.connect(self.path_utils.normalize_path(self.db_path)) as con:
             exists = con.execute(
                 "SELECT 1 FROM tags WHERE lower(tag) = lower(?)", (tag_data["tag"],)
             ).fetchone()
@@ -93,7 +98,7 @@ class DbTags:
         normalized = self.settings_state.normalize_tags([{"tag": tag, "color": color}])
         if not normalized:
             return False
-        with duckdb.connect(self.db_path.as_posix()) as con:
+        with duckdb.connect(self.path_utils.normalize_path(self.db_path)) as con:
             updated = con.execute(
                 "UPDATE tags SET color = ? WHERE lower(tag) = lower(?) RETURNING tag",
                 (normalized[0]["color"], normalized[0]["tag"]),
@@ -177,7 +182,7 @@ class DbTags:
 
         if renamed or deleted:
             self._update_media_assignments(renamed, deleted)
-        with duckdb.connect(self.db_path.as_posix()) as con:
+        with duckdb.connect(self.path_utils.normalize_path(self.db_path)) as con:
             con.begin()
             try:
                 con.execute("DELETE FROM tags")
@@ -195,12 +200,15 @@ class DbTags:
 
     def get_tags(self, file_path: str) -> list[str] | None:
         db_path = self._get_db_path(file_path)
-        if db_path is None or not Path(db_path).exists():
+        if (
+            db_path is None
+            or not Path(self.path_utils.normalize_path(db_path)).exists()
+        ):
             return None
 
         DbMigrations(db_path).run_migrations()
-        posix_path = Path(file_path).as_posix()
-        with duckdb.connect(Path(db_path).as_posix()) as con:
+        posix_path = self.path_utils.normalize_path(file_path)
+        with duckdb.connect(self.path_utils.normalize_path(db_path)) as con:
             result = con.execute(
                 "SELECT user_tags FROM media_file WHERE file_path = ? OR lower(file_path) = lower(?)",
                 (posix_path, posix_path),
@@ -214,8 +222,8 @@ class DbTags:
             return False
 
         DbMigrations(db_path).run_migrations()
-        posix_path = Path(file_path).as_posix()
-        with duckdb.connect(Path(db_path).as_posix()) as con:
+        posix_path = self.path_utils.normalize_path(file_path)
+        with duckdb.connect(self.path_utils.normalize_path(db_path)) as con:
             updated = con.execute(
                 "UPDATE media_file SET user_tags = ? WHERE file_path = ? OR lower(file_path) = lower(?) "
                 "RETURNING file_path",
@@ -223,7 +231,11 @@ class DbTags:
             ).fetchone()
             if updated is None:
                 config = self._get_matching_config(file_path)
-                media_path = str(config.get("path", "")).strip() if config else ""
+                media_path = (
+                    self.path_utils.normalize_path(config.get("path", ""))
+                    if config
+                    else ""
+                )
                 con.execute(
                     "INSERT INTO media_file (media_path, file_path, user_tags) VALUES (?, ?, ?)",
                     (media_path, posix_path, tags),
@@ -244,13 +256,18 @@ class DbTags:
         visited_paths: set[str] = set()
         for config in self.settings_state.media_configs:
             db_path = self.settings_state.get_db_path(config)
-            resolved_db_path = str(Path(db_path).resolve())
-            if resolved_db_path in visited_paths or not Path(db_path).exists():
+            resolved_db_path = self.path_utils.resolve_path(db_path)
+            if (
+                resolved_db_path in visited_paths
+                or not Path(self.path_utils.normalize_path(db_path)).exists()
+            ):
                 continue
             visited_paths.add(resolved_db_path)
 
             DbMigrations(db_path).run_migrations()
-            with duckdb.connect(Path(db_path).as_posix(), read_only=True) as con:
+            with duckdb.connect(
+                self.path_utils.normalize_path(db_path), read_only=True
+            ) as con:
                 rows = con.execute(
                     """
                     SELECT tag, count(*)
@@ -273,10 +290,10 @@ class DbTags:
         deleted_tags = {tag.casefold() for tag in deleted}
         for config in self.settings_state.media_configs:
             db_path = self.settings_state.get_db_path(config)
-            if not Path(db_path).exists():
+            if not Path(self.path_utils.normalize_path(db_path)).exists():
                 continue
             DbMigrations(db_path).run_migrations()
-            with duckdb.connect(Path(db_path).as_posix()) as con:
+            with duckdb.connect(self.path_utils.normalize_path(db_path)) as con:
                 con.begin()
                 try:
                     media_rows = con.execute(
@@ -311,18 +328,16 @@ class DbTags:
         self.settings_state.set_tags(self.list_tags())
 
     def _get_matching_config(self, file_path: str) -> dict[str, Any] | None:
-        target_path = Path(file_path).resolve()
+        target_path = self.path_utils.resolve_path(file_path)
         matching_configs: list[tuple[int, dict[str, Any]]] = []
         for config in self.settings_state.media_configs:
             configured_path = str(config.get("path", "")).strip()
             if not configured_path:
                 continue
-            root_path = Path(configured_path).resolve()
-            try:
-                target_path.relative_to(root_path)
-            except ValueError:
+            root_path = self.path_utils.resolve_path(configured_path)
+            if not self.path_utils.is_same_or_descendant(target_path, root_path):
                 continue
-            matching_configs.append((len(root_path.parts), config))
+            matching_configs.append((self.path_utils.depth(root_path), config))
 
         if not matching_configs:
             return None

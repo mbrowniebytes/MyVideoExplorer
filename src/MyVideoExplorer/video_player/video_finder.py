@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from MyVideoExplorer.utils.file_util import FileUtils
 from MyVideoExplorer.utils.log_util import LogUtil
 
 
@@ -28,14 +29,14 @@ class VideoFinder:
 
         suffix = folder_path_obj.suffix.lower()
         if suffix in self.VIDEO_EXTS:
-            return folder_path_obj.as_posix()
+            return FileUtils.normalize_path(folder_path_obj)
 
         if suffix in self.IMAGE_EXTS or suffix == ".nfo":
             parent = folder_path_obj.parent
             for ext in self.VIDEO_EXTS:
                 matching = parent / f"{folder_path_obj.stem}{ext}"
                 if matching.is_file():
-                    return matching.as_posix()
+                    return FileUtils.normalize_path(matching)
             folder_path_obj = parent
 
         if not folder_path_obj.is_dir():
@@ -58,6 +59,6 @@ class VideoFinder:
             if full_item_path.suffix.lower() not in self.VIDEO_EXTS:
                 continue
 
-            return full_item_path.as_posix()
+            return FileUtils.normalize_path(full_item_path)
 
         return None

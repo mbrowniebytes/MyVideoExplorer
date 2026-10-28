@@ -11,6 +11,7 @@ from MyVideoExplorer.db import db_query
 from MyVideoExplorer.db.models.media_file_metadata import MediaFileMetadata
 from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.utils.file_util import FileUtils
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
@@ -22,8 +23,10 @@ class FolderFilterFilter:
         nfo_parse_util: NfoParseUtil,
         settings_state: SettingsState,
         log_util: LogUtil | None = None,
+        path_utils: FileUtils | None = None,
     ):
         self.log_util = log_util
+        self.path_utils = path_utils or FileUtils()
         self.nfo_parse_util = nfo_parse_util
         self.settings_state = settings_state
         if self.log_util:
@@ -46,12 +49,12 @@ class FolderFilterFilter:
 
         for item in items:
             if item.is_dir:
-                posix_path = Path(item.full_path).as_posix().casefold()
+                posix_path = self.path_utils.normalize_path(item.full_path).casefold()
                 if posix_path not in dir_by_path:
                     dir_by_path[posix_path] = item
                     dir_items.append(item)
             elif item.is_file:
-                parent_posix = Path(item.full_path).parent.as_posix().casefold()
+                parent_posix = self.path_utils.parent(item.full_path).casefold()
                 files_by_dir[parent_posix].append(item)
 
         # If there are file items whose parent directories are not explicitly in dir_items,
@@ -59,8 +62,8 @@ class FolderFilterFilter:
         for parent_posix, files in files_by_dir.items():
             if parent_posix not in dir_by_path and files:
                 first_file = files[0]
-                parent_path_orig = Path(first_file.full_path).parent.as_posix()
-                parent_name = Path(first_file.full_path).parent.name
+                parent_path_orig = self.path_utils.parent(first_file.full_path)
+                parent_name = self.path_utils.name(parent_path_orig)
                 dir_item = FileUtilModel(
                     type="dir",
                     name=parent_name,
@@ -79,7 +82,7 @@ class FolderFilterFilter:
         seen_paths: set[str] = set()
 
         for dir_item in dir_items:
-            dir_key = Path(dir_item.full_path).as_posix().casefold()
+            dir_key = self.path_utils.normalize_path(dir_item.full_path).casefold()
             associated_files = files_by_dir.get(dir_key, [])
 
             # Check all filter type groups: directory must match all active filter types
@@ -209,7 +212,9 @@ class FolderFilterFilter:
                         type_match = True
                         break
 
-                    parent_name = Path(item.full_path).parent.name
+                    parent_name = self.path_utils.name(
+                        self.path_utils.parent(item.full_path)
+                    )
                     if self._matches_folder_filter(
                         filter_type, parent_name, filter_value
                     ):
@@ -249,14 +254,17 @@ class FolderFilterFilter:
     def _get_movie_info(self, item: FileUtilModel) -> dict[str, Any] | None:
         if self.settings_state.db_enabled():
             # Find folder config
-            item_path = Path(item.full_path).as_posix()
+            item_path = self.path_utils.normalize_path(item.full_path)
             for config in self.settings_state.media_configs:
-                config_path = Path(config.get("path", "")).as_posix()
-                if item_path.casefold().startswith(config_path.casefold()):
+                config_path = self.path_utils.normalize_path(config.get("path", ""))
+                if self.path_utils.is_same_or_descendant(item_path, config_path):
                     db_path = self.settings_state.get_db_path(config)
-                    if db_path and Path(db_path).exists():
+                    if (
+                        db_path
+                        and Path(self.path_utils.normalize_path(db_path)).exists()
+                    ):
                         # Query DB
-                        db_path_str = Path(db_path).as_posix()
+                        db_path_str = self.path_utils.normalize_path(db_path)
                         con = duckdb.connect(db_path_str)
                         try:
                             try:
@@ -272,7 +280,7 @@ class FolderFilterFilter:
                             except Exception:
                                 res = con.execute(
                                     db_query.DbQuery.MediaFile.SELECT_METADATA,
-                                    (item.full_path,),
+                                    (item_path,),
                                 ).fetchone()
                         finally:
                             con.close()
@@ -285,17 +293,25 @@ class FolderFilterFilter:
             return self.nfo_parse_util.parse_nfo(nfo_file=item.full_path)
 
         if item.is_file:
-            nfo_path = Path(item.full_path).with_suffix(".nfo")
+            nfo_path = Path(self.path_utils.normalize_path(item.full_path)).with_suffix(
+                ".nfo"
+            )
             if nfo_path.exists():
-                return self.nfo_parse_util.parse_nfo(nfo_file=str(nfo_path))
+                return self.nfo_parse_util.parse_nfo(
+                    nfo_file=self.path_utils.normalize_path(nfo_path)
+                )
             movie_nfo = Path(item.full_path).parent / "movie.nfo"
             if movie_nfo.exists():
-                return self.nfo_parse_util.parse_nfo(nfo_file=str(movie_nfo))
+                return self.nfo_parse_util.parse_nfo(
+                    nfo_file=self.path_utils.normalize_path(movie_nfo)
+                )
 
         if item.is_dir:
             movie_nfo = Path(item.full_path) / "movie.nfo"
             if movie_nfo.exists():
-                return self.nfo_parse_util.parse_nfo(nfo_file=str(movie_nfo))
+                return self.nfo_parse_util.parse_nfo(
+                    nfo_file=self.path_utils.normalize_path(movie_nfo)
+                )
 
         return None
 
@@ -315,20 +331,8 @@ class FolderFilterFilter:
             return False
 
         # Normalize item path
-        item_path = item.full_path.replace("\\", "/").casefold()
-        item_path_with_slash = item_path if item_path.endswith("/") else item_path + "/"
-
         for path in media_paths:
-            # Normalize and casefold the matching paths, ensuring they end with a slash for clean matching
-            normalized_path = path.replace("\\", "/").casefold()
-            if not normalized_path.endswith("/"):
-                normalized_path += "/"
-
-            # Check if the item's path (normalized) starts with the matching path
-            # print(
-            #     "fitem_path_with_slash:{item_path_with_slash} normalized_path:{normalized_path}"
-            # )
-            if item_path_with_slash.startswith(normalized_path):
+            if self.path_utils.is_same_or_descendant(item.full_path, path):
                 return True
 
         return False

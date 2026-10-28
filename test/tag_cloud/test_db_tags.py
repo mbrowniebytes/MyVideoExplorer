@@ -3,6 +3,7 @@ import duckdb
 from MyVideoExplorer.db.db_migrations import DbMigrations
 from MyVideoExplorer.db.db_tags import DbTags
 from MyVideoExplorer.settings.settings_state import SettingsState
+from MyVideoExplorer.utils.file_util import FileUtils
 
 
 class MockTagState:
@@ -156,7 +157,9 @@ def test_db_migrations_cache(tmp_path):
     db_path = str(tmp_path / "migrated.db")
     migration = DbMigrations(db_path)
     migration.run_migrations()
-    assert str((tmp_path / "migrated.db").resolve()) in DbMigrations._migrated_dbs
+    assert (
+        FileUtils.resolve_path(tmp_path / "migrated.db") in DbMigrations._migrated_dbs
+    )
 
     # Calling run_migrations again returns early
     migration.run_migrations()

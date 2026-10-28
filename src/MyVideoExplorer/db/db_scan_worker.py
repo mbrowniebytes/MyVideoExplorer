@@ -95,7 +95,9 @@ class ScanWorker(QThread):
         try:
             # Scan folder
             new_results = []
-            media_path = self.media_config.get("path", "")
+            media_path = self.file_util.path_utils.normalize_path(
+                self.media_config.get("path", "")
+            )
 
             self.progress_init.emit(100)
             self.progress_stage.emit(
@@ -153,7 +155,9 @@ class ScanWorker(QThread):
                         ext = file_path_obj.suffix.lower()
                         if ext in FileUtilType.VIDEO_EXTS:
                             stats["videos_count"] += 1
-                            file_path = file_path_obj.as_posix()
+                            file_path = self.file_util.path_utils.normalize_path(
+                                file_path_obj
+                            )
 
                             # Find NFO in the same directory as the video
                             nfo_path = self.file_util.find_nfo_in_list(root, files)
@@ -194,7 +198,7 @@ class ScanWorker(QThread):
                     min(100, max(75, int(75 + (pct / 100) * 25)))
                 )
 
-            db_util = DbScanUtil(db_path)
+            db_util = DbScanUtil(db_path, self.file_util.path_utils)
             db_util.save_media(
                 new_results,
                 media_path,

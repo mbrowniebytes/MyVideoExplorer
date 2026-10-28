@@ -43,6 +43,17 @@ class TestMediaInfoSideView:
     def test_initialization(self, media_info_side_view):
         assert media_info_side_view.nfo_parse_util is not None
 
+    def test_last_played_date_edit_includes_calendar_control_width(
+        self, media_info_side_view
+    ):
+        content = media_info_side_view.side_content_widget
+        date_edit = content.last_played_date_edit
+        expected_width = date_edit.fontMetrics().horizontalAdvance("0000-00-00") + 49
+
+        assert date_edit.width() == expected_width
+        content._resize_meta_column()
+        assert date_edit.width() == expected_width
+
     def test_refresh_calls_nfo_parse(self, media_info_side_view, mock_nfo_data):
         media_info_side_view.nfo_parse_util.parse_nfo.return_value = mock_nfo_data
 

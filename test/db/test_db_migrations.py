@@ -33,6 +33,7 @@ def test_run_migrations_on_fresh_install(tmp_path):
         ("20260801_create_media.sql",),
         ("20260803_add_play_history.sql",),
         ("20260930_add_user_tags.sql",),
+        ("20261027_normalize_posix_paths.sql",),
     ]
     columns = {
         row[0]
@@ -43,6 +44,63 @@ def test_run_migrations_on_fresh_install(tmp_path):
     }
     assert {"qty_played", "last_played", "user_tags"}.issubset(columns)
     con.close()
+
+
+def test_posix_path_migration_merges_colliding_legacy_rows(tmp_path):
+    db_path = tmp_path / "legacy_paths.db"
+    DbMigrations.clear_migrated_cache()
+    migration = DbMigrations(str(db_path))
+    migration.migrations_dir = MIGRATIONS_DIR
+    migration.run_migrations()
+
+    with duckdb.connect(str(db_path)) as con:
+        con.execute(
+            "INSERT INTO media_file (media_path, file_path, title, user_tags, qty_played) "
+            "VALUES (?, ?, ?, ?, ?), (?, ?, ?, ?, ?)",
+            (
+                "\\media",
+                "\\media\\film.mkv",
+                "Legacy title",
+                ["legacy"],
+                7,
+                "/media",
+                "/media/film.mkv",
+                "POSIX title",
+                ["posix"],
+                3,
+            ),
+        )
+        con.execute(
+            "INSERT INTO media_path_stats (media_path, files_count, last_scanned) "
+            "VALUES (?, ?, ?), (?, ?, ?)",
+            (
+                "\\media",
+                1,
+                "2024-01-01 00:00:00+00",
+                "/media",
+                2,
+                "2025-01-01 00:00:00+00",
+            ),
+        )
+        con.execute(
+            "DELETE FROM schema_migrations WHERE version = ?",
+            ("20261027_normalize_posix_paths.sql",),
+        )
+
+    DbMigrations.clear_migrated_cache()
+    migration.run_migrations()
+
+    with duckdb.connect(str(db_path)) as con:
+        media_rows = con.execute(
+            "SELECT media_path, file_path, title, user_tags, qty_played FROM media_file"
+        ).fetchall()
+        stats_rows = con.execute(
+            "SELECT media_path, files_count FROM media_path_stats"
+        ).fetchall()
+    assert media_rows == [
+        ("/media", "/media/film.mkv", "POSIX title", ["posix", "legacy"], 7)
+    ]
+    assert stats_rows == [("/media", 2)]
 
 
 def test_run_migrations_on_upgrade(tmp_path):

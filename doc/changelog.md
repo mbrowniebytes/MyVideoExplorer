@@ -12,15 +12,21 @@
   - add quick search
     - similar criteria as filter 
   - show media ancestor even if empty
+  - restore tooltip info
+  - reselect folder nav media on search or filter, if possible
 - settings 
   - media
     - scan media speed and save to db greatly increased
     - add Scan All button
   - app
     - add Scan Media Timeout
+- fixes
+  - re-select prior media on app launch
+  - potential support launching either system associated media player vlc or mpc-qt
 - internal:
   - optimize filter and scan sql 
   - parse and store media Year in db
+  - normalize all paths as posix and consolidate to file_utils
   - update ai docs in doc/ and .junie/
 
 release - [MyVideoExplorer-20261100-0.008](https://github.com/mbrowniebytes/MyVideoExplorer/releases/tag/20261100-0.008)

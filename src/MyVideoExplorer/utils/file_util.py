@@ -6,8 +6,9 @@ import re
 import sys
 import threading
 from collections.abc import Callable, Sequence
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from time import sleep
+from typing import Any, Protocol
 
 from PySide6.QtCore import QThread
 
@@ -15,14 +16,83 @@ from MyVideoExplorer.app.app_environment import IS_DEVELOPMENT
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.file_util_type import FileUtilType
 from MyVideoExplorer.utils.file_util_worker import FileUtilWorker
-from MyVideoExplorer.utils.log_util import LogUtil
+
+
+class _FileUtilLogger(Protocol):
+    def debug(
+        self, message: str, *, extra_info: dict[str, Any] | None = None
+    ) -> None: ...
+
+    def error(
+        self, message: str, *, extra_info: dict[str, Any] | None = None
+    ) -> None: ...
+
+
+class FileUtils:
+    """Shared POSIX path normalization and comparison helpers."""
+
+    @staticmethod
+    def normalize_path(path: str | os.PathLike[str]) -> str:
+        """Normalize path separators for application, filesystem, and database use."""
+        value = os.fspath(path).strip().replace("\\", "/")
+        if not value:
+            return ""
+        if len(value) == 3 and value[1:] == ":/":
+            return value
+        return PurePosixPath(value).as_posix()
+
+    @staticmethod
+    def resolve_path(path: str | os.PathLike[str]) -> str:
+        """Resolve a path and return it with POSIX separators."""
+        return (
+            Path(FileUtils.normalize_path(path))
+            .expanduser()
+            .resolve(strict=False)
+            .as_posix()
+        )
+
+    @staticmethod
+    def parent(path: str | os.PathLike[str]) -> str:
+        return PurePosixPath(FileUtils.normalize_path(path)).parent.as_posix()
+
+    @staticmethod
+    def name(path: str | os.PathLike[str]) -> str:
+        return PurePosixPath(FileUtils.normalize_path(path)).name
+
+    @staticmethod
+    def suffix(path: str | os.PathLike[str]) -> str:
+        return PurePosixPath(FileUtils.normalize_path(path)).suffix
+
+    @staticmethod
+    def depth(path: str | os.PathLike[str]) -> int:
+        return len(PurePosixPath(FileUtils.normalize_path(path)).parts)
+
+    @staticmethod
+    def join(path: str | os.PathLike[str], *parts: str) -> str:
+        return PurePosixPath(FileUtils.normalize_path(path)).joinpath(*parts).as_posix()
+
+    @staticmethod
+    def is_same_or_descendant(
+        path: str | os.PathLike[str], root: str | os.PathLike[str]
+    ) -> bool:
+        normalized_path = FileUtils.normalize_path(path).casefold().rstrip("/")
+        normalized_root = FileUtils.normalize_path(root).casefold().rstrip("/")
+        if normalized_path == normalized_root:
+            return True
+        prefix = (
+            normalized_root if normalized_root.endswith("/") else f"{normalized_root}/"
+        )
+        return normalized_path.startswith(prefix)
 
 
 class FileUtil:
     """Utility class for filesystem traversal, classification, and metadata extraction."""
 
-    def __init__(self, log_util: LogUtil) -> None:
+    def __init__(
+        self, log_util: _FileUtilLogger, path_utils: FileUtils | None = None
+    ) -> None:
         self.log_util = log_util
+        self.path_utils = path_utils or FileUtils()
         self.file_type = FileUtilType()
         self._scan_lock = threading.Lock()
         self.active_tasks: list[dict] = []
@@ -32,8 +102,7 @@ class FileUtil:
     @staticmethod
     def normalize_path(path: str | os.PathLike[str]) -> str:
         """Return a normalized filesystem path using forward-slash separators."""
-        candidate = Path(path).expanduser().resolve(strict=False)
-        return candidate.as_posix()
+        return FileUtils.resolve_path(Path(path).expanduser())
 
     @staticmethod
     def get_resource_path(relative_path: str) -> str:
@@ -44,7 +113,7 @@ class FileUtil:
         except AttributeError:
             base_path = Path.cwd()
 
-        return (base_path / relative_path).as_posix()
+        return FileUtils.normalize_path(base_path / relative_path)
 
     def _scan_directory(self, path: Path) -> list[os.DirEntry[str]]:
         """Safely scan a directory and return entries sorted by name."""
@@ -170,7 +239,7 @@ class FileUtil:
                     continue
                 if self.is_image_file(entry.path):
                     stem = Path(entry.name).stem.casefold()
-                    normalized_path = Path(entry.path).as_posix()
+                    normalized_path = self.path_utils.normalize_path(entry.path)
                     if stem.endswith("poster"):
                         posters.append(normalized_path)
                     elif stem.endswith("fanart"):
@@ -190,7 +259,7 @@ class FileUtil:
         """Construct a FileUtilModel representing a directory."""
         target = Path(path)
         name = target.name
-        full_path = target.as_posix()
+        full_path = self.path_utils.normalize_path(target)
         return FileUtilModel(
             type="dir",
             name=name,
@@ -206,12 +275,12 @@ class FileUtil:
         dir_paths = set()
 
         # 1. Collect all parent directories
-        root = Path(root_path)
+        root = Path(self.path_utils.normalize_path(root_path))
         for path in paths:
             current = Path(path).parent
-            while current.as_posix().startswith(root.as_posix()):
-                if current.as_posix() not in dir_paths:
-                    dir_paths.add(current.as_posix())
+            while self.path_utils.is_same_or_descendant(current, root):
+                if self.path_utils.normalize_path(current) not in dir_paths:
+                    dir_paths.add(self.path_utils.normalize_path(current))
                 if current == root:
                     break
                 parent = current.parent
@@ -223,7 +292,7 @@ class FileUtil:
         # Sort directories to ensure deterministic order similar to filesystem scans
         sorted_dirs = sorted(dir_paths, key=lambda p: p.lower())
         for p in sorted_dirs:
-            if p == root.as_posix():
+            if p == self.path_utils.normalize_path(root):
                 continue
 
             # depth: number of levels below root_path
@@ -236,7 +305,10 @@ class FileUtil:
         # Sort files by parent directory then filename for consistent ordering
         sorted_paths = sorted(
             paths,
-            key=lambda p: (Path(p).parent.as_posix().lower(), Path(p).name.lower()),
+            key=lambda p: (
+                self.path_utils.parent(p).lower(),
+                self.path_utils.name(p).lower(),
+            ),
         )
         for path in sorted_paths:
             # depth: number of levels below root_path + 1 for file
@@ -252,7 +324,7 @@ class FileUtil:
         return FileUtilModel(
             type="file",
             name=target.name,
-            full_path=target.as_posix(),
+            full_path=self.path_utils.normalize_path(target),
             depth=depth,
             file_type=self.classify_file(target.name),
         )
@@ -281,7 +353,7 @@ class FileUtil:
                     entry.is_file(follow_symlinks=False)
                     and Path(entry.name).suffix.casefold() in exts
                 ):
-                    return Path(entry.path).as_posix()
+                    return self.path_utils.normalize_path(entry.path)
             except OSError:
                 continue
         return None
@@ -308,12 +380,12 @@ class FileUtil:
         # First pass: prioritize standard media NFO names
         for f in files:
             if f.casefold() in preferred_names:
-                return str(Path(path, f).as_posix())
+                return self.path_utils.normalize_path(Path(path, f))
 
         # Second pass: fallback to any file with NFO extension
         for f in files:
             if self.file_type.is_nfo_file(f):
-                return str(Path(path, f).as_posix())
+                return self.path_utils.normalize_path(Path(path, f))
         return None
 
     @staticmethod

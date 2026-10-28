@@ -37,10 +37,9 @@
 ## AI Guidelines & Conventions
 - **One class per file**: Snake_case filename, PascalCase class name. Keep classes in dedicated modules.
 - **Imports**: Top-of-file only; no conditional imports; enforce `from __future__ import annotations`.
-- **Paths**: Use `pathlib.Path` (avoid `os.path`).
+- **Paths**: Use `pathlib` for path operations and `utils/file_utils.py` for shared normalization. Keep application, filesystem, UI, and database path strings POSIX-formatted with `/` separators, including on Windows.
 - **Threading**: Run long-running tasks (DB scan/filter, thumbnail gen) off the GUI thread with progress/cancellation.
 - **Decoupling**: Keep UI widgets self-contained; communicate via `AppSignals` or `AppController`.
 - **Test Naming**: `test_{func}_{condition}_should_{expected}`.
 - **Docs**: Google-style docstrings (focus on *why*, not *what*).
 - **References**: `doc/python-best-practices.agent.md` | `doc/development.md`.
-

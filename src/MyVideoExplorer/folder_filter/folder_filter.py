@@ -30,7 +30,7 @@ from MyVideoExplorer.tag_cloud.tag_picker_dialog import TagPickerDialog
 from MyVideoExplorer.tag_cloud.tag_util import get_contrast_text_color
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
-from MyVideoExplorer.utils.file_util import FileUtil
+from MyVideoExplorer.utils.file_util import FileUtil, FileUtils
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.ui_utils import UIUtils
 from MyVideoExplorer.widgets.flow_layout import FlowLayout
@@ -89,7 +89,10 @@ class FolderFilters(QWidget, ThemableMixin):
         self.root_folders: list[str] = []
         self.folder_nav_filters_filter = filter_engine_engine
         self.file_util = file_util
-        self.db_filter = DbFilter(self.settings.settings_data_model)
+        self.db_filter = DbFilter(
+            self.settings.settings_data_model,
+            getattr(self.file_util, "path_utils", None) or FileUtils(),
+        )
 
     @property
     def selected_tags(self) -> list[str]:

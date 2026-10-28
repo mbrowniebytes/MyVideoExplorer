@@ -11,6 +11,7 @@ from MyVideoExplorer.folder_list.folder_hierarchy import (
     build_folder_rows,
     merge_folder_rows,
 )
+from MyVideoExplorer.utils.file_util import FileUtils
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 
 TEXT_SEARCH_FIELDS = frozenset(
@@ -95,8 +96,11 @@ class MediaNavSearchCriteria:
 class MediaNavSearch:
     """Search configured media databases and return matching parent folders."""
 
-    def __init__(self, settings_state: Any) -> None:
+    def __init__(
+        self, settings_state: Any, path_utils: FileUtils | None = None
+    ) -> None:
         self.settings_state = settings_state
+        self.path_utils = path_utils or FileUtils()
 
     def search(self, criteria: MediaNavSearchCriteria) -> list[FileUtilModel]:
         if not self.settings_state.db_enabled():
@@ -160,16 +164,21 @@ class MediaNavSearch:
         for config in self.settings_state.media_configs:
             media_root = str(config.get("path", ""))
             db_path = self.settings_state.get_db_path(config)
-            if not db_path or not Path(db_path).is_file():
+            if (
+                not db_path
+                or not Path(self.path_utils.normalize_path(db_path)).is_file()
+            ):
                 continue
-            normalized_db = str(Path(db_path).resolve()).casefold()
-            normalized_root = _normalize_media_path(media_root)
+            normalized_db = self.path_utils.resolve_path(db_path).casefold()
+            normalized_root = self.path_utils.normalize_path(media_root).casefold()
             database_root = (normalized_db, normalized_root)
             if database_root in visited_databases:
                 continue
             visited_databases.add(database_root)
 
-            with duckdb.connect(Path(db_path).as_posix(), read_only=True) as connection:
+            with duckdb.connect(
+                self.path_utils.normalize_path(db_path), read_only=True
+            ) as connection:
                 if criteria.has_criteria:
                     rows = connection.execute(sql, parameters).fetchall()
                 else:
@@ -188,12 +197,3 @@ class MediaNavSearch:
                 )
 
         return sorted(folder_items, key=lambda item: item.full_path.casefold())
-
-
-def _normalize_media_path(path: str) -> str:
-    normalized = str(path).strip().replace("\\", "/")
-    while len(normalized) > 1 and normalized.endswith("/"):
-        if len(normalized) == 3 and normalized[1] == ":":
-            break
-        normalized = normalized[:-1]
-    return normalized.casefold()

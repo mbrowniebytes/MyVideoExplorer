@@ -1,11 +1,11 @@
 from collections.abc import Callable
-from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QListWidget, QListWidgetItem
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.utils.file_util import FileUtils
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.log_util import LogUtil
 
@@ -68,7 +68,7 @@ class FolderListView(QListWidget):
             if message:
                 text = message
             elif root_path:
-                root_label = Path(root_path).as_posix()
+                root_label = FileUtils.normalize_path(root_path)
                 text = f"No folders found under\n{root_label}"
             else:
                 text = "No folders found."
@@ -147,7 +147,7 @@ class FolderListView(QListWidget):
         try:
             folder_items = [item for item in items if item.is_dir]
             folder_items.sort(
-                key=lambda item: item.full_path.replace("\\", "/").casefold()
+                key=lambda item: FileUtils.normalize_path(item.full_path).casefold()
             )
 
             self.clear()

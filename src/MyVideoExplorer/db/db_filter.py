@@ -11,6 +11,7 @@ from MyVideoExplorer.folder_list.folder_hierarchy import (
     build_folder_rows,
     merge_folder_rows,
 )
+from MyVideoExplorer.utils.file_util import FileUtils
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 
 logger = logging.getLogger(__name__)
@@ -19,24 +20,19 @@ logger = logging.getLogger(__name__)
 class DbFilter:
     """High-performance database-backed filtering using DuckDB vectorized execution."""
 
-    def __init__(self, settings_state: Any) -> None:
+    def __init__(
+        self, settings_state: Any, path_utils: FileUtils | None = None
+    ) -> None:
         self.settings_state = settings_state
+        self.path_utils = path_utils or FileUtils()
 
     @staticmethod
     def _normalize_path(path: str) -> str:
-        normalized = str(path).strip().replace("\\", "/")
-        while len(normalized) > 1 and normalized.endswith("/"):
-            if len(normalized) == 3 and normalized[1] == ":":
-                break
-            normalized = normalized[:-1]
-        return normalized.casefold()
+        return FileUtils.normalize_path(path).casefold()
 
     @staticmethod
     def _is_same_or_descendant(path: str, root: str) -> bool:
-        if path == root:
-            return True
-        prefix = root if root.endswith("/") else f"{root}/"
-        return path.startswith(prefix)
+        return FileUtils.is_same_or_descendant(path, root)
 
     def build_query(self, filters: list[dict[str, Any]]) -> tuple[str, list[Any]]:
         """Construct a parameterized DuckDB SQL query from filter table criteria."""
@@ -222,11 +218,14 @@ class DbFilter:
             if hasattr(self.settings_state, "get_db_path"):
                 db_path = self.settings_state.get_db_path(config)
 
-            if not db_path or not Path(db_path).is_file():
+            if (
+                not db_path
+                or not Path(self.path_utils.normalize_path(db_path)).is_file()
+            ):
                 continue
 
-            db_path_posix = Path(db_path).as_posix()
-            resolved_db = Path(db_path).resolve().as_posix().casefold()
+            db_path_posix = self.path_utils.normalize_path(db_path)
+            resolved_db = self.path_utils.resolve_path(db_path).casefold()
             db_root_key = (resolved_db, cfg_path)
             if db_root_key in visited_dbs:
                 continue
@@ -245,7 +244,7 @@ class DbFilter:
             for (file_path,) in rows:
                 if not file_path:
                     continue
-                normalized_file_path = str(file_path).replace("\\", "/")
+                normalized_file_path = self.path_utils.normalize_path(file_path)
                 normalized_file_fold = self._normalize_path(normalized_file_path)
                 if media_filters and not any(
                     self._is_same_or_descendant(normalized_file_fold, media_root)

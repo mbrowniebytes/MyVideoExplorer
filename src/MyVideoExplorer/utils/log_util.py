@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from MyVideoExplorer.app.app_environment import IS_DEVELOPMENT
+from MyVideoExplorer.utils.file_util import FileUtils
 
 
 class CustomFormatter(logging.Formatter):
@@ -30,7 +31,7 @@ class CustomFormatter(logging.Formatter):
 
 
 # Define log directory and file paths
-BASE_PATH = Path().cwd().as_posix()
+BASE_PATH = FileUtils.normalize_path(Path().cwd())
 SRC_PATH = Path(BASE_PATH + "/MyVideoExplorer/")
 LOG_DIR = Path("log")
 
@@ -112,7 +113,7 @@ class LogUtil:
 
         app_frame = None
         for frame in reversed(frames):
-            filename = frame.filename.replace("\\", "/")
+            filename = FileUtils.normalize_path(frame.filename)
 
             # Only accept frames that contain 'MyVideoExplorer/' — our application code
             if IS_DEVELOPMENT:
@@ -129,13 +130,13 @@ class LogUtil:
             return "n/a"
 
         # Calculate relative path from app root, using Linux-style slashes
-        full_path = str(app_frame.filename).replace("\\", "/")
+        full_path = FileUtils.normalize_path(app_frame.filename)
 
         if full_path.find("MyVideoExplorer/") != -1:
             root_path = str(SRC_PATH)
         else:
             root_path = str(BASE_PATH)
-        root_path = root_path.replace("\\", "/")
+        root_path = FileUtils.normalize_path(root_path)
         rel_path = full_path.removeprefix(root_path) or "app"
 
         # Format as "filename@lineno"
@@ -381,7 +382,10 @@ class LogUtil:
         date_str = datetime.datetime.now(datetime.UTC).astimezone().strftime("%Y%m%d")
         backup_log = LOG_DIR / f"app-{date_str}.log"
         # shutil.move(self.LOG_FILE, LOG_DIR / f"app-{date_str}.log")
-        self.concat_files([self.LOG_FILE.as_posix()], backup_log.as_posix())
+        self.concat_files(
+            [FileUtils.normalize_path(self.LOG_FILE)],
+            FileUtils.normalize_path(backup_log),
+        )
 
         # self.LOG_FILE.unlink()
         self.LOG_FILE.open("w", encoding="utf-8").close()

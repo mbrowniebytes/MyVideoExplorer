@@ -7,6 +7,7 @@ from PySide6.QtCore import QObject, Signal
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.utils.file_util import FileUtils
 from MyVideoExplorer.utils.json_util import JsonUtil
 
 # Use a package-local defaults directory so built-in defaults are versioned with
@@ -121,7 +122,7 @@ class SettingsState(QObject):
         if SETTINGS_STATE_FILE.exists():
             state_data.update(self.json_util.load_json(SETTINGS_STATE_FILE))
 
-        self.prior_folder = state_data.get("prior_folder", "")
+        self.prior_folder = FileUtils.normalize_path(state_data.get("prior_folder", ""))
         self.app_size = state_data.get("app_size", "")
         self.app_pos = state_data.get("app_pos", "")
 
@@ -156,6 +157,7 @@ class SettingsState(QObject):
         if SETTINGS_MEDIA_FILE.exists():
             media_data.update(self.json_util.load_json(SETTINGS_MEDIA_FILE))
         self.media_configs = media_data.get("media_configs", self.media_configs)
+        self._normalize_media_config_paths()
         self._db_enabled = media_data.get("db_enabled", False)
 
         # Ensure each folder config has an icon
@@ -181,7 +183,7 @@ class SettingsState(QObject):
         self._ensure_defaults()
 
         state_settings: dict[str, str] = {
-            "prior_folder": settings.get("prior_folder", ""),
+            "prior_folder": FileUtils.normalize_path(settings.get("prior_folder", "")),
             "app_size": settings.get("app_size", ""),
             "app_pos": settings.get("app_pos", ""),
         }
@@ -223,6 +225,7 @@ class SettingsState(QObject):
     def save_media(self) -> None:
         """Save only Media tab settings."""
         self._ensure_defaults()
+        self._normalize_media_config_paths()
 
         media_settings: dict[str, Any] = {
             "media_configs": self.media_configs,
@@ -353,12 +356,18 @@ class SettingsState(QObject):
         if SETTINGS_MEDIA_FILE.exists():
             media_data.update(self.json_util.load_json(SETTINGS_MEDIA_FILE))
         self.media_configs = media_data.get("media_configs", self.media_configs)
+        self._normalize_media_config_paths()
         self.log_util.info(f"Loaded media_configs: {self.media_configs}")
         self._db_enabled = media_data.get("db_enabled", True)
         # Ensure each folder config has an icon
         for config in self.media_configs:
             if "icon" not in config:
                 config["icon"] = "fa6s.folder"
+
+    def _normalize_media_config_paths(self) -> None:
+        for config in self.media_configs:
+            if isinstance(config, dict) and config.get("path"):
+                config["path"] = FileUtils.normalize_path(str(config["path"]))
 
     def load_filters(self) -> None:
         """Reload Filter settings from file."""

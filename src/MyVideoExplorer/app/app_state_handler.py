@@ -3,7 +3,7 @@ from pathlib import Path
 from PySide6.QtWidgets import QMainWindow
 
 from MyVideoExplorer.app.app_container import AppContainer
-from MyVideoExplorer.utils.file_util import FileUtil
+from MyVideoExplorer.utils.file_util import FileUtil, FileUtils
 
 
 class AppStateHandler:
@@ -48,6 +48,19 @@ class AppStateHandler:
         media_configs = self.container.settings.settings_data_model.media_configs
         valid_paths = self._collect_valid_root_paths(media_configs)
         self.controller.set_root_folders(valid_paths)
+
+        settings = self.container.settings.settings_data_model
+        prior_folder = FileUtils.normalize_path(settings.prior_folder)
+        if (
+            settings.auto_select_folder == "auto_select_prior_folder"
+            and prior_folder
+            and Path(prior_folder).is_dir()
+            and any(
+                FileUtils.is_same_or_descendant(prior_folder, root_path)
+                for root_path in valid_paths
+            )
+        ):
+            self.controller.set_current_folder(prior_folder, force=True)
 
     def close(self) -> None:
         prior_folder = self.controller.state.current_folder

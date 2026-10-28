@@ -31,7 +31,7 @@ from MyVideoExplorer.settings.settings_state import (
     SettingsState,
 )
 from MyVideoExplorer.theme.theme import APP_THEME
-from MyVideoExplorer.utils.file_util import FileUtil
+from MyVideoExplorer.utils.file_util import FileUtil, FileUtils
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 
@@ -381,11 +381,11 @@ class SettingsMediaTab(SettingsBaseTab):
             p = cfg.get("path", "")
             if p:
                 try:
-                    real = Path(p).expanduser().resolve(strict=False)
+                    real = FileUtils.resolve_path(p)
                 except Exception:
                     continue
-                if real.is_dir():
-                    valid_paths.append(real.as_posix())
+                if Path(real).is_dir():
+                    valid_paths.append(real)
         return valid_paths
 
     def _on_config_changed(
@@ -399,10 +399,11 @@ class SettingsMediaTab(SettingsBaseTab):
     def _on_folder_selected(
         self, value: str, folder_edit: QLineEdit, media_config: dict[str, Any]
     ) -> None:
+        normalized_value = FileUtils.normalize_path(value)
         folder_edit.blockSignals(True)
-        folder_edit.setText(value)
+        folder_edit.setText(normalized_value)
         folder_edit.blockSignals(False)
-        media_config["path"] = value
+        media_config["path"] = normalized_value
         self._on_setting_changed()
 
     def _add_folder(self) -> None:

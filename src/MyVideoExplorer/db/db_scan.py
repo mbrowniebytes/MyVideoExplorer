@@ -1,7 +1,6 @@
 import json
 import logging
 import re
-from pathlib import Path
 from typing import Any
 
 import duckdb
@@ -9,14 +8,15 @@ import duckdb
 from MyVideoExplorer.db import db_migrations, db_query
 from MyVideoExplorer.db.models.media_path_stats import MediaPathStats
 from MyVideoExplorer.lang.lang_loader import LangLoader
-from MyVideoExplorer.utils.file_util import FileUtil
+from MyVideoExplorer.utils.file_util import FileUtil, FileUtils
 
 logger = logging.getLogger(__name__)
 
 
 class DbScanUtil:
-    def __init__(self, db_path: str):
-        self.db_path = Path(db_path).as_posix()
+    def __init__(self, db_path: str, path_utils: FileUtils | None = None):
+        self.path_utils = path_utils or FileUtils()
+        self.db_path = self.path_utils.normalize_path(db_path)
         self.lang = LangLoader.get_lang("en")
         self._init_db()
 
@@ -89,7 +89,7 @@ class DbScanUtil:
             con.execute(
                 db_query.DbQuery.MediaPathStats.INSERT,
                 (
-                    Path(stats["media_path"]).as_posix(),
+                    self.path_utils.normalize_path(stats["media_path"]),
                     stats["subfolders_count"],
                     stats["files_count"],
                     stats["images_count"],
@@ -108,7 +108,7 @@ class DbScanUtil:
         with duckdb.connect(self.db_path) as con:
             row = con.execute(
                 db_query.DbQuery.MediaPathStats.SELECT,
-                (Path(media_path).as_posix(),),
+                (self.path_utils.normalize_path(media_path),),
             ).fetchone()
         if row is None:
             return None
@@ -118,7 +118,7 @@ class DbScanUtil:
         def _delete(con):
             con.execute(
                 db_query.DbQuery.MediaPathStats.DELETE,
-                (Path(media_path).as_posix(),),
+                (self.path_utils.normalize_path(media_path),),
             )
 
         self._run_in_transaction(_delete)
@@ -126,13 +126,13 @@ class DbScanUtil:
     def save_media(
         self, media_list: list[dict[str, Any]], media_path: str, progress_callback=None
     ):
-        normalized_media_path = Path(media_path).as_posix()
+        normalized_media_path = self.path_utils.normalize_path(media_path)
         normalized_file_paths: list[str] = []
         for item in media_list:
             file_path = item.get("file_path")
             if not isinstance(file_path, str) or not file_path:
                 raise ValueError("Every media record must have a valid file_path.")
-            normalized_file_paths.append(Path(file_path).as_posix())
+            normalized_file_paths.append(self.path_utils.normalize_path(file_path))
 
         con = duckdb.connect(self.db_path)
 
@@ -145,7 +145,7 @@ class DbScanUtil:
                 if media_list:
                     con.execute(
                         db_query.DbQuery.MediaFile.DELETE_BY_DIR_NOT_IN,
-                        (f"{normalized_media_path}%", normalized_file_paths),
+                        (normalized_media_path, normalized_file_paths),
                     )
                 else:
                     self.delete_stats(media_path)

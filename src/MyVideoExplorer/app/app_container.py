@@ -24,7 +24,7 @@ from MyVideoExplorer.media_info_side.media_info_side_view import MediaInfoSideVi
 from MyVideoExplorer.media_info_tabs.media_info_tabs import MediaInfoTabs
 from MyVideoExplorer.settings.settings import Settings
 from MyVideoExplorer.settings.settings_state import DEFAULTS_APP_FILE, SETTINGS_APP_FILE
-from MyVideoExplorer.utils.file_util import FileUtil
+from MyVideoExplorer.utils.file_util import FileUtil, FileUtils
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.font_util import FontUtil
 from MyVideoExplorer.utils.json_util import JsonUtil
@@ -71,7 +71,8 @@ class AppContainer:
             raise
 
         try:
-            self.file_util = FileUtil(self.log_util)
+            self.path_utils = FileUtils()
+            self.file_util = FileUtil(self.log_util, self.path_utils)
             self.settings = Settings(self.log_util, self.file_util)
         except Exception as e:
             self.log_util.error(f"Error initializing Settings: {e}")
@@ -82,8 +83,12 @@ class AppContainer:
             self.nfo_parse_util = NfoParseUtil(self.file_util, self.log_util)
             self.str_util = StrUtil(self.log_util)
             self.font_util = FontUtil(self.log_util, self.file_util)
-            self.db_play_history = DbPlayHistory(self.settings.settings_data_model)
-            self.db_tags = DbTags(self.settings.settings_data_model)
+            self.db_play_history = DbPlayHistory(
+                self.settings.settings_data_model, self.path_utils
+            )
+            self.db_tags = DbTags(
+                self.settings.settings_data_model, path_utils=self.path_utils
+            )
             self.settings.tag_store = self.db_tags
 
             self.signals = SignalRegistry()
@@ -93,9 +98,10 @@ class AppContainer:
                 self.nfo_parse_util,
                 self.settings.settings_data_model,
                 self.log_util,
+                self.path_utils,
             )
             self.media_nav_search_service = MediaNavSearch(
-                self.settings.settings_data_model
+                self.settings.settings_data_model, self.path_utils
             )
             self.folder_list = FolderList(self.file_util, self.settings, self.log_util)
             self.folder_list.setParent(self.window)
@@ -338,25 +344,36 @@ class AppContainer:
             self.media_info_side_view.refresh_play_history()
 
     def _on_filtered_items(self, items: list[FileUtilModel]) -> None:
+        current_folder = self.controller.state.current_folder
+        folder_paths = sorted(
+            (item.full_path for item in items if item.is_dir),
+            key=lambda path: FileUtils.normalize_path(path).casefold(),
+        )
         self.folder_list.populate_view(items)
 
-        if items:
-            first_item = items[0]
-            auto_select_folder = self.settings.settings_data_model.auto_select_folder
-            prior_folder = self.settings.settings_data_model.prior_folder
+        if folder_paths:
+            current_folder_key = FileUtils.normalize_path(current_folder).casefold()
+            selected_folder = next(
+                (
+                    path
+                    for path in folder_paths
+                    if FileUtils.normalize_path(path).casefold() == current_folder_key
+                ),
+                folder_paths[0],
+            )
             self.log_util.debug(
-                "Auto-selecting folder after filters change",
+                "Selecting folder after filters change",
                 extra_info={
-                    "auto_select_folder": auto_select_folder,
-                    "prior_folder": prior_folder,
-                    "first_item": first_item,
+                    "current_folder": current_folder,
+                    "selected_folder": selected_folder,
                 },
             )
-
-            if auto_select_folder == "auto_select_prior_folder" and prior_folder:
-                self.controller.set_current_folder(prior_folder, force=True)
-            else:
-                self.controller.set_current_folder(first_item.full_path, force=True)
+            self.folder_list.set_selected_folder(selected_folder)
+            if (
+                FileUtils.normalize_path(selected_folder).casefold()
+                != current_folder_key
+            ):
+                self.controller.set_current_folder(selected_folder, force=True)
         else:
             self.image_list.update_image_from_folder("")
 

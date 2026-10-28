@@ -22,7 +22,7 @@ from MyVideoExplorer.folder_list.media_nav_search_widget import MediaNavSearchWi
 from MyVideoExplorer.settings.settings import Settings
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
-from MyVideoExplorer.utils.file_util import FileUtil
+from MyVideoExplorer.utils.file_util import FileUtil, FileUtils
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.ui_utils import UIUtils
@@ -107,6 +107,7 @@ class FolderList(QWidget, ThemableMixin):
         self.folder_list_view.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
+        self._update_help_tooltip()
 
         if not self._has_valid_media_folders():
             self.folder_list_view.show_empty_state(
@@ -134,7 +135,9 @@ class FolderList(QWidget, ThemableMixin):
         tooltip = (
             "Folder List Usage:\n"
             "- Click a folder to view its contents\n"
-            "- Use 'Add Media Folder' in settings to add more media paths\n"
+            "- Use 'Add Media Folder' in settings to add more roots\n"
+            "- Use the folder picker to browse other directories\n"
+            "\n"
             f"Settings:\n"
             f"- Checking {num_folders} media folder{'s' if num_folders != 1 else ''}\n"
             f"- Loading from: {loading_source}"
@@ -300,7 +303,7 @@ class FolderList(QWidget, ThemableMixin):
             cfg_path = config.get("path", "")
             if not cfg_path:
                 continue
-            cfg_path = Path(cfg_path).as_posix().lower()
+            cfg_path = FileUtils.normalize_path(cfg_path).lower()
             # print(f"_get_icon_for_path: cfg_path: {cfg_path}, norm_path: {norm_path}")
             if norm_path.startswith(cfg_path):
                 return config.get("icon", "fa6s.folder")

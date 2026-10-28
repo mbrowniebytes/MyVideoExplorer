@@ -39,6 +39,13 @@ class TestFolderList:
         assert folder_list._container.layout().itemAt(1).widget() is folder_list.header
         assert folder_list.media_nav_search_box.objectName() == "media_nav_search_box"
 
+    def test_folder_help_tooltip_shows_usage_and_settings(self, folder_list):
+        tooltip = folder_list.help_icon.toolTip()
+
+        assert "Click a folder to view its contents" in tooltip
+        assert "Use the folder picker to browse other directories" in tooltip
+        assert "Loading from:" in tooltip
+
     def test_show_loading_state(self, folder_list):
         """Verify loading state displays correct text."""
         folder_list.folder_list_view.show_loading_state()
