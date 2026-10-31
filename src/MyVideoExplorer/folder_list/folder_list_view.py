@@ -42,6 +42,21 @@ class FolderListView(QListWidget):
             )
             self.folder_selected.emit(payload)
 
+    def clear_items(self) -> None:
+        """
+        Remove all items through Python instead of ``QListWidget.clear()``.
+
+        ``clear()`` deletes the items inside Qt, which under PySide 6.11 can
+        leave stale item wrappers behind and crashed the app with an access
+        violation when the list was rebuilt repeatedly (e.g. on filter save).
+        ``takeItem`` hands each item back to Python so shiboken deletes it and
+        invalidates its wrapper in one step.
+        """
+        self.setCurrentRow(-1)
+        while self.count():
+            item = self.takeItem(self.count() - 1)
+            del item
+
     def show_loading_state(self, folders: list[str] | None = None) -> None:
         self.setUpdatesEnabled(False)
         try:
@@ -51,7 +66,7 @@ class FolderListView(QListWidget):
             loading_item = QListWidgetItem(f"\n\n\n {text}")
             loading_item.setFlags(Qt.ItemFlag.NoItemFlags)
             loading_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.clear()
+            self.clear_items()
             self.addItem(loading_item)
         finally:
             self.setUpdatesEnabled(True)
@@ -64,7 +79,7 @@ class FolderListView(QListWidget):
         """
         self.setUpdatesEnabled(False)
         try:
-            self.clear()
+            self.clear_items()
             if message:
                 text = message
             elif root_path:
@@ -150,7 +165,7 @@ class FolderListView(QListWidget):
                 key=lambda item: FileUtils.normalize_path(item.full_path).casefold()
             )
 
-            self.clear()
+            self.clear_items()
             if not folder_items:
                 self.show_empty_state()
             else:

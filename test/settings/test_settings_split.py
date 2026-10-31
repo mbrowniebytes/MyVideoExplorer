@@ -156,6 +156,48 @@ class TestSettingsSplit:
             data = json.load(f)
             assert len(data["saved_filters"]) == 1
 
+    def test_save_filter_with_original_name_should_rename_in_place(
+        self, setup_cfg, mock_log_util
+    ):
+        state = SettingsState(mock_log_util)
+        state.saved_filters = [
+            {"name": "A", "filters": []},
+            {"name": "B", "filters": []},
+            {"name": "C", "filters": []},
+        ]
+        new_cfg = [{"filter": "Folder", "value": "x"}]
+
+        state.save_filter("B2", new_cfg, original_name="B")
+
+        assert [f["name"] for f in state.saved_filters] == ["A", "B2", "C"]
+        assert state.saved_filters[1]["filters"] == new_cfg
+
+    def test_save_filter_rename_onto_existing_name_should_not_duplicate(
+        self, setup_cfg, mock_log_util
+    ):
+        state = SettingsState(mock_log_util)
+        state.saved_filters = [
+            {"name": "A", "filters": []},
+            {"name": "B", "filters": []},
+        ]
+
+        state.save_filter("A", [], original_name="B")
+
+        assert [f["name"] for f in state.saved_filters] == ["A"]
+
+    def test_save_filter_should_emit_settings_changed_once(
+        self, setup_cfg, mock_log_util
+    ):
+        state = SettingsState(mock_log_util)
+        received: list[object] = []
+        state.settings_changed.connect(received.append)
+
+        state.save_filter("New", [])
+        assert len(received) == 1
+
+        state.delete_filter("New")
+        assert len(received) == 2
+
     def test_load_scan_timeout_setting_and_default(self, setup_cfg, mock_log_util):
         settings_app = setup_cfg / "settings_app.json"
         settings_app.write_text(

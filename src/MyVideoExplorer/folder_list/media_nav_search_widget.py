@@ -106,6 +106,7 @@ class _ChipContainer(QWidget):
 class MediaNavSearchOptionsDialog(QDialog):
     criteria_changed = Signal()
     tag_remove_requested = Signal(str)
+    create_filter_requested = Signal(list)  # list of filter dicts
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -267,6 +268,16 @@ class MediaNavSearchOptionsDialog(QDialog):
         self.selected_tags_container = _ChipContainer(self)
         layout.addWidget(self.selected_tags_container)
 
+        # Create Filter button at bottom-right
+        bottom_row = QHBoxLayout()
+        bottom_row.addStretch(1)
+        self.create_filter_button = self._make_button(
+            "Create Filter from Search", "fa6s.circle-plus"
+        )
+        self.create_filter_button.clicked.connect(self._on_create_filter)
+        bottom_row.addWidget(self.create_filter_button)
+        layout.addLayout(bottom_row)
+
         for checkbox in (self.qty_checkbox, self.date_checkbox):
             checkbox.toggled.connect(self.criteria_changed)
         for control in (
@@ -400,6 +411,86 @@ class MediaNavSearchOptionsDialog(QDialog):
         self.date_checkbox.setChecked(False)
         self.criteria_changed.emit()
 
+    def collect_criteria_as_filters(self) -> list[dict[str, str]]:
+        """Collect the current search criteria as a list of filter dicts."""
+        filters: list[dict[str, str]] = []
+        fields = self.selected_fields()
+
+        # Map name field to filter type
+        name_field = self.selected_name_field()
+        name_field_map = {
+            "movie_name": "Title",
+            "folder_name": "Folder",
+            "file_name": "File",
+        }
+        filter_type = name_field_map.get(name_field, "Title")
+
+        # Check if there's a search query in the parent widget
+        parent_widget = self.parent()
+        if parent_widget is not None and hasattr(parent_widget, "media_nav_search_box"):
+            query = parent_widget.media_nav_search_box.text().strip()  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]
+            if query:
+                filters.append({"filter": filter_type, "value": query})
+
+        # Person field (actor/director)
+        person_field = self.selected_person_field()
+        if person_field:
+            person_query = self.person_inputs[person_field].text().strip()
+            if person_query:
+                person_filter_map = {"actor": "Actor", "director": "Director"}
+                filters.append(
+                    {
+                        "filter": person_filter_map[person_field],
+                        "value": person_query,
+                    }
+                )
+
+        # Year
+        if "year" in fields:
+            year = self.year_combo.currentData()
+            if year is not None:
+                operator = self.year_operator.currentText()
+                filters.append(
+                    {
+                        "filter": "Year",
+                        "value": f"custom|{operator}|{year}",
+                    }
+                )
+
+        # Tags
+        if "tags" in fields:
+            for tag in self.selected_tags:
+                filters.append({"filter": "Tag", "value": tag})
+
+        # Qty Played
+        if "qty_played" in fields:
+            operator, value = self.qty_criteria()
+            if value is not None:
+                filters.append(
+                    {
+                        "filter": "Qty Played",
+                        "value": f"custom|{operator}|{value}",
+                    }
+                )
+
+        # Last Played
+        if "last_played" in fields:
+            operator, start = self.date_criteria()
+            if start is not None:
+                filters.append(
+                    {
+                        "filter": "Last Played",
+                        "value": f"custom|{operator}|{start}",
+                    }
+                )
+
+        return filters
+
+    def _on_create_filter(self) -> None:
+        """Emit signal with collected search criteria as filters."""
+        filters = self.collect_criteria_as_filters()
+        self.create_filter_requested.emit(filters)
+
     @staticmethod
     def _make_chip(
         label: str,
@@ -430,6 +521,7 @@ class MediaNavSearchOptionsDialog(QDialog):
 class MediaNavSearchWidget(QWidget):
     search_requested = Signal(object)
     clear_search_requested = Signal()
+    create_filter_requested = Signal(list)  # list of filter dicts
 
     def __init__(
         self, settings: _SearchSettings, parent: QWidget | None = None
@@ -447,12 +539,14 @@ class MediaNavSearchWidget(QWidget):
 
         self.search_button = self._make_button("Search", "fa6s.magnifying-glass")
         self.options_button = self._make_button("Search Options", "fa6s.sliders")
+        self.tag_button = self._make_button("Tags", "fa6s.tag")
         self.clear_search_button = self._make_button("Clear Search", "fa6s.xmark")
         self.search_button.setObjectName("media_nav_search_button")
         self.options_button.setObjectName("media_nav_search_options_button")
         self.clear_search_button.setObjectName("media_nav_clear_search_button")
         self.search_button.clicked.connect(self.submit_search)
         self.options_button.clicked.connect(self._show_options)
+        self.tag_button.clicked.connect(self._show_tag_picker)
         self.clear_search_button.clicked.connect(self.clear_search)
 
         self.criteria_summary = _ChipContainer(self)
@@ -461,11 +555,13 @@ class MediaNavSearchWidget(QWidget):
         self.status_label.setWordWrap(True)
         self.status_label.setVisible(False)
 
+        # Create Filter button (hidden until criteria chips are shown)
         row = QHBoxLayout()
         row.setContentsMargins(0, 0, 0, 0)
         row.addWidget(self.media_nav_search_box, 1)
         row.addWidget(self.search_button)
         row.addWidget(self.options_button)
+        row.addWidget(self.tag_button)
         row.addWidget(self.clear_search_button)
 
         layout = QVBoxLayout(self)
@@ -497,6 +593,9 @@ class MediaNavSearchWidget(QWidget):
         self._options_dialog.select_tags_button.clicked.connect(self._show_tag_picker)
         self._options_dialog.tag_remove_requested.connect(self.remove_selected_tag)
         self._options_dialog.criteria_changed.connect(self._refresh_criteria_summary)
+        self._options_dialog.create_filter_requested.connect(
+            self.create_filter_requested
+        )
         for radio in self.options_dialog.name_radios.values():
             radio.toggled.connect(self._update_search_placeholder)
         self._update_search_placeholder()
@@ -629,7 +728,8 @@ class MediaNavSearchWidget(QWidget):
         for label, tooltip, callback in criteria:
             chip = MediaNavSearchOptionsDialog._make_chip(label, tooltip, callback)
             summary.flow_layout.addWidget(chip)
-        summary.setVisible(bool(criteria))
+        has_criteria = bool(criteria)
+        summary.setVisible(has_criteria)
         summary.refresh_height()
 
     def submit_search(self) -> None:

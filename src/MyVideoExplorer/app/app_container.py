@@ -315,6 +315,40 @@ class AppContainer:
             self.folder_list.media_nav_clear_search_requested,
             self.folder_nav.apply_filters,
         )
+        self._connect(
+            self.media_info_side_view.side_content_widget.tag_cloud_widget.tag_clicked,
+            self._on_tag_clicked_for_filter,
+        )
+        self._connect(
+            self.settings.tags_settings_tab.tag_cloud_settings.tag_search_requested,
+            self._on_tag_search_requested,
+        )
+        self._connect(
+            self.folder_list.media_nav_search.create_filter_requested,
+            self._on_create_filter_from_search,
+        )
+
+    def _on_tag_clicked_for_filter(self, tag: str) -> None:
+        """Handle tag click from media info panel: clear search, add tag, and submit search."""
+        self.folder_nav.clear_saved_filter()
+        self.folder_list.media_nav_search_box.clear()
+        self.folder_list.media_nav_search._selected_tags.clear()
+        self.folder_list.media_nav_search.add_selected_tag(tag)
+        self.folder_list.media_nav_search.submit_search()
+
+    def _on_tag_search_requested(self, tag: str) -> None:
+        """Handle search button click from Settings Tags: add tag to search criteria and refresh."""
+        self.folder_list.media_nav_search.add_selected_tag(tag)
+        self.folder_list.media_nav_search.submit_search()
+
+    def _on_create_filter_from_search(self, filters: list[dict[str, str]]) -> None:
+        """Handle Create Filter from Search: switch to Settings → Filters and open add dialog."""
+        # Switch to the Settings tab
+        self.media_info_tabs.show_settings_tab()
+        # Switch to the Filters sub-tab (index 3: spacer=0, App=1, UI=2, Media=3, Filters=4)
+        self.settings.settings_tabs_container.setCurrentIndex(4)
+        # Open the add filter dialog pre-filled with the search criteria
+        self.settings.filter_settings_tab.open_add_filter(filters)
 
     def _on_media_nav_search_requested(self, criteria: MediaNavSearchCriteria) -> None:
         try:
@@ -374,6 +408,9 @@ class AppContainer:
                 != current_folder_key
             ):
                 self.controller.set_current_folder(selected_folder, force=True)
+            # Refresh media content for the selected folder
+            self.file_list.refresh(selected_folder)
+            self.image_list.refresh(selected_folder)
         else:
             self.image_list.update_image_from_folder("")
 

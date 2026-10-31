@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from MyVideoExplorer.db.db_tags import DbTags
@@ -8,6 +9,9 @@ from MyVideoExplorer.tag_cloud.tag_cloud_widget import TagCloudWidget
 
 
 class TagCloudSettings(QWidget):
+    tag_clicked = Signal(str)
+    tag_search_requested = Signal(str)
+
     def __init__(
         self,
         state: SettingsState,
@@ -20,12 +24,16 @@ class TagCloudSettings(QWidget):
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        self.cloud = TagCloudWidget(editable=True, deletable=True, parent=self)
+        self.cloud = TagCloudWidget(
+            editable=True, deletable=True, show_search_button=True, parent=self
+        )
         layout.addWidget(self.cloud)
 
         self.cloud.tag_edited.connect(self._on_tag_edited)
         self.cloud.tag_color_changed.connect(self._on_tag_color_changed)
         self.cloud.tag_deleted.connect(self._on_tag_deleted)
+        self.cloud.tag_selected.connect(self._on_tag_selected)
+        self.cloud.tag_search_requested.connect(self.tag_search_requested)
         self.state.tags_changed.connect(self.refresh)
         self.state.tag_counts_changed.connect(self.refresh)
         self.refresh()
@@ -70,6 +78,10 @@ class TagCloudSettings(QWidget):
                 for tag in self.state.tags
             ]
         )
+
+    def _on_tag_selected(self, tag_name: str, checked: bool) -> None:
+        if checked:
+            self.tag_clicked.emit(tag_name)
 
     def _on_tag_deleted(self, tag_name: str) -> None:
         if self.tag_store is not None:

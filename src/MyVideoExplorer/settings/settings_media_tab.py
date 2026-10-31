@@ -73,10 +73,6 @@ class SettingsMediaTab(SettingsBaseTab):
         scroll.setWidget(self.main_widget)
         self._layout.addWidget(scroll)
 
-    @property
-    def layout(self) -> QVBoxLayout:
-        return self._layout
-
     def _build_ui(self) -> None:
         # Dropdown
         db_dropdown_layout = QHBoxLayout()

@@ -41,6 +41,7 @@ __all__ = ["QColorDialog", "TagCloudMedia", "TagPickerDialog", "TagStateProtocol
 class TagCloudMedia(QWidget):
     tag_added = Signal(str)
     tag_removed = Signal(str)
+    tag_clicked = Signal(str)
 
     def __init__(
         self,
@@ -237,6 +238,7 @@ class TagCloudMedia(QWidget):
             label.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
             label.setToolTip(tag)
             label.setCursor(Qt.CursorShape.PointingHandCursor)
+            label.clicked.connect(lambda _, t=tag: self.tag_clicked.emit(t))
             label.setStyleSheet(
                 f"QToolButton {{ color: {get_contrast_text_color(color)}; "
                 f"background-color: {color}; border-radius: 4px; padding: 2px 4px; }}"

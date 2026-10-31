@@ -41,6 +41,7 @@ def test_filtered_items_preserve_selection_or_choose_first_folder(
     container.settings.settings_data_model.prior_folder = "/media/SavedPrior"
     container.log_util = MagicMock()
     container.image_list = MagicMock()
+    container.file_list = MagicMock()
 
     container._on_filtered_items(items)
 
@@ -52,6 +53,8 @@ def test_filtered_items_preserve_selection_or_choose_first_folder(
         container.controller.set_current_folder.assert_called_once_with(
             expected_folder, force=True
         )
+    container.file_list.refresh.assert_called_once_with(expected_folder)
+    container.image_list.refresh.assert_called_once_with(expected_folder)
     container.image_list.update_image_from_folder.assert_not_called()
 
 
@@ -67,6 +70,7 @@ def test_search_results_preserve_current_folder_when_present():
     container.folder_list = MagicMock()
     container.log_util = MagicMock()
     container.image_list = MagicMock()
+    container.file_list = MagicMock()
     container.media_nav_search_service = MagicMock()
     container.media_nav_search_service.search.return_value = items
 
@@ -75,3 +79,5 @@ def test_search_results_preserve_current_folder_when_present():
     container.folder_list.populate_view.assert_called_once_with(items)
     container.folder_list.set_selected_folder.assert_called_once_with(current_folder)
     container.controller.set_current_folder.assert_not_called()
+    container.file_list.refresh.assert_called_once_with(current_folder)
+    container.image_list.refresh.assert_called_once_with(current_folder)

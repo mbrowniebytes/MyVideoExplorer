@@ -53,10 +53,6 @@ class SettingsUITab(SettingsBaseTab):
         scroll.setWidget(self.main_widget)
         self._layout.addWidget(scroll)
 
-    @property
-    def layout(self) -> QVBoxLayout:
-        return self._layout
-
     def _build_ui(self) -> None:
         display_group = QGroupBox("UI Settings")
         display_layout = QFormLayout(display_group)

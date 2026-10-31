@@ -9,14 +9,14 @@ from MyVideoExplorer.utils.file_util_model import FileUtilModel
 
 class MockDirEntry(FileUtilModel):
     def is_file(self, follow_symlinks=False):
-        return self.is_file
+        return self.type == "file"
+
+    def is_dir(self, follow_symlinks=False):
+        return self.type == "dir"
 
     @property
     def path(self):
         return self.full_path
-
-    def is_dir(self, follow_symlinks=False):
-        return self.is_dir
 
 
 class TestFileUtil:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -126,8 +127,11 @@ class FolderFilterFilter:
                         "actor",
                         "director",
                         "title",
+                        "year",
                         "tag",
                         "nfo",
+                        "last played",
+                        "qty played",
                     }:
                         for f in associated_files:
                             movie_info = self._get_movie_info(f)
@@ -226,8 +230,11 @@ class FolderFilterFilter:
                     "actor",
                     "director",
                     "title",
+                    "year",
                     "tag",
                     "nfo",
+                    "last played",
+                    "qty played",
                 }:
                     continue
 
@@ -272,7 +279,8 @@ class FolderFilterFilter:
                                     """
                                     SELECT title, year, plot, score, rated, runtime,
                                            list_concat(coalesce(tags, []), coalesce(user_tags, [])) AS tags,
-                                           genres, actors, directors
+                                           genres, actors, directors,
+                                           qty_played, last_played
                                     FROM media_file WHERE file_path = ? OR lower(file_path) = lower(?)
                                     """,
                                     (item_path, item_path),
@@ -286,7 +294,11 @@ class FolderFilterFilter:
                             con.close()
 
                         if res:
-                            return MediaFileMetadata(*res).to_movie_info()
+                            movie_info = MediaFileMetadata(*res[:10]).to_movie_info()
+                            if len(res) >= 12:
+                                movie_info["qty_played"] = res[10] or 0
+                                movie_info["last_played"] = res[11]
+                            return movie_info
 
         # Fallback to NFO file if present
         if item.file_type == "nfo" or str(item.full_path).lower().endswith(".nfo"):
@@ -368,6 +380,9 @@ class FolderFilterFilter:
         if clean_type == "title":
             return self._contains_text(movie_info.get("title", ""), filter_value)
 
+        if clean_type == "year":
+            return self._matches_year(movie_info.get("year"), filter_value)
+
         if clean_type == "nfo":
             return (
                 self._contains_text(movie_info.get("title", ""), filter_value)
@@ -377,6 +392,12 @@ class FolderFilterFilter:
                 or self._contains_text(movie_info.get("director", ""), filter_value)
                 or self._matches_tag(movie_info, filter_value)
             )
+
+        if clean_type == "last played":
+            return self._matches_last_played(movie_info, filter_value)
+
+        if clean_type == "qty played":
+            return self._matches_qty_played(movie_info, filter_value)
 
         return False
 
@@ -419,6 +440,143 @@ class FolderFilterFilter:
         if isinstance(needle, list):
             return any(FolderFilterFilter._contains_text(value, n) for n in needle)
         return bool(value) and needle.casefold() in str(value).casefold()
+
+    @staticmethod
+    def _matches_year(year: Any, filter_value: str | list[str]) -> bool:
+        if isinstance(filter_value, list):
+            return any(
+                FolderFilterFilter._matches_year(year, value) for value in filter_value
+            )
+        if year is None or not filter_value:
+            return False
+        try:
+            actual_year = int(year)
+            if filter_value.startswith("custom|"):
+                _, operator, raw_year = filter_value.split("|", 2)
+                target_year = int(raw_year)
+            else:
+                operator, target_year = "=", int(filter_value)
+        except ValueError:
+            return False
+        return {
+            "=": actual_year == target_year,
+            "!=": actual_year != target_year,
+            ">": actual_year > target_year,
+            ">=": actual_year >= target_year,
+            "<": actual_year < target_year,
+            "<=": actual_year <= target_year,
+        }.get(operator, False)
+
+    @staticmethod
+    def _matches_last_played(movie_info: dict, filter_value: str | list[str]) -> bool:
+        """Match last_played date against a filter value (preset or custom)."""
+        if isinstance(filter_value, list):
+            return any(
+                FolderFilterFilter._matches_last_played(movie_info, v)
+                for v in filter_value
+            )
+        last_played = movie_info.get("last_played")
+        if not filter_value:
+            return False
+
+        today = datetime.now(UTC).date()
+
+        if filter_value == "never":
+            return last_played is None
+        if filter_value == "yesterday":
+            y = today - timedelta(days=1)
+            return last_played == y if last_played else False
+        if filter_value == "last_week":
+            if last_played is None:
+                return False
+            start = today - timedelta(days=7)
+            return start <= last_played <= today
+        if filter_value == "last_month":
+            if last_played is None:
+                return False
+            first_of_this = today.replace(day=1)
+            last_of_prev = first_of_this - timedelta(days=1)
+            first_of_prev = last_of_prev.replace(day=1)
+            return first_of_prev <= last_played <= last_of_prev
+        if filter_value == "last_year":
+            if last_played is None:
+                return False
+            prev_year = today.year - 1
+            start = date(prev_year, 1, 1)
+            end = date(prev_year, 12, 31)
+            return start <= last_played <= end
+        if filter_value.startswith("custom|"):
+            parts = filter_value.split("|")
+            if len(parts) >= 3:
+                op = parts[1]
+                try:
+                    y, m, d = (int(p) for p in parts[2].split("-"))
+                    target = date(y, m, d)
+                except ValueError, TypeError:
+                    return False
+                if last_played is None:
+                    return False
+                return {
+                    "=": last_played == target,
+                    "!=": last_played != target,
+                    ">": last_played > target,
+                    ">=": last_played >= target,
+                    "<": last_played < target,
+                    "<=": last_played <= target,
+                }.get(op, False)
+            return False
+
+        return False
+
+    @staticmethod
+    def _matches_qty_played(movie_info: dict, filter_value: str | list[str]) -> bool:
+        """Match qty_played against a filter value (preset or custom)."""
+        if isinstance(filter_value, list):
+            return any(
+                FolderFilterFilter._matches_qty_played(movie_info, v)
+                for v in filter_value
+            )
+        qty = movie_info.get("qty_played", 0) or 0
+        if not filter_value:
+            return False
+
+        if filter_value.startswith("custom|"):
+            parts = filter_value.split("|")
+            if len(parts) >= 3:
+                op = parts[1]
+                try:
+                    num = int(parts[2])
+                except ValueError, TypeError:
+                    return False
+                return {
+                    "=": qty == num,
+                    "!=": qty != num,
+                    ">": qty > num,
+                    ">=": qty >= num,
+                    "<": qty < num,
+                    "<=": qty <= num,
+                }.get(op, False)
+            return False
+
+        # Preset values
+        if filter_value.startswith("<"):
+            try:
+                num = int(filter_value[1:])
+                return qty < num
+            except ValueError:
+                return False
+        elif filter_value.startswith(">"):
+            try:
+                num = int(filter_value[1:])
+                return qty > num
+            except ValueError:
+                return False
+        else:
+            try:
+                num = int(filter_value)
+                return qty == num
+            except ValueError:
+                return False
 
     def apply_theme(self) -> None:
         return

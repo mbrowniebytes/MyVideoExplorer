@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +26,101 @@ class DbFilter:
     ) -> None:
         self.settings_state = settings_state
         self.path_utils = path_utils or FileUtils()
+
+    @staticmethod
+    def _build_last_played_condition(
+        value: str,
+    ) -> tuple[str, list[Any]] | None:
+        """Build a SQL condition for last_played date filtering.
+
+        Supports preset keys (never, yesterday, last_week, last_month, last_year)
+        and custom format: custom|<op>|<date>.
+        """
+        if not value:
+            return None
+
+        today = datetime.now(UTC).date()
+
+        if value == "never":
+            return "last_played IS NULL", []
+        if value == "yesterday":
+            y = today - timedelta(days=1)
+            return "last_played = ?", [y]
+        if value == "last_week":
+            start = today - timedelta(days=7)
+            return "last_played >= ? AND last_played <= ?", [start, today]
+        if value == "last_month":
+            # Previous calendar month: 1st to last day
+            first_of_this = today.replace(day=1)
+            last_of_prev = first_of_this - timedelta(days=1)
+            first_of_prev = last_of_prev.replace(day=1)
+            return "last_played >= ? AND last_played <= ?", [
+                first_of_prev,
+                last_of_prev,
+            ]
+        if value == "last_year":
+            # Previous calendar year: Jan 1 to Dec 31
+            prev_year = today.year - 1
+            start = date(prev_year, 1, 1)
+            end = date(prev_year, 12, 31)
+            return "last_played >= ? AND last_played <= ?", [start, end]
+        if value.startswith("custom|"):
+            parts = value.split("|")
+            if len(parts) >= 3:
+                op = parts[1]
+                try:
+                    target = date.fromisoformat(parts[2])
+                except ValueError:
+                    return None
+                if op in {"=", "!=", ">", ">=", "<", "<="}:
+                    return f"last_played {op} ?", [target]
+            return None
+
+        return None
+
+    @staticmethod
+    def _build_qty_played_condition(
+        value: str,
+    ) -> tuple[str, list[Any]] | None:
+        """Build a SQL condition for qty_played filtering.
+
+        Supports preset keys (0, 1, 2, 3, 5, <12, <50, <100, >100)
+        and custom format: custom|<op>|<number>.
+        """
+        if not value:
+            return None
+
+        if value.startswith("custom|"):
+            parts = value.split("|")
+            if len(parts) >= 3:
+                op = parts[1]
+                try:
+                    num = int(parts[2])
+                except ValueError:
+                    return None
+                if op in {"=", "!=", ">", ">=", "<", "<="}:
+                    return f"coalesce(qty_played, 0) {op} ?", [num]
+            return None
+
+        # Preset values
+        if value.startswith("<"):
+            try:
+                num = int(value[1:])
+                return "coalesce(qty_played, 0) < ?", [num]
+            except ValueError:
+                return None
+        elif value.startswith(">"):
+            try:
+                num = int(value[1:])
+                return "coalesce(qty_played, 0) > ?", [num]
+            except ValueError:
+                return None
+        else:
+            try:
+                num = int(value)
+                return "coalesce(qty_played, 0) = ?", [num]
+            except ValueError:
+                return None
 
     @staticmethod
     def _normalize_path(path: str) -> str:
@@ -133,10 +229,17 @@ class DbFilter:
                 elif ftype == "year":
                     for v in sub_values or ([val] if val is not None else []):
                         try:
-                            year_int = int(str(v).strip())
-                            type_conditions.append("year = ?")
+                            text = str(v).strip()
+                            if text.startswith("custom|"):
+                                _, op, raw_year = text.split("|", 2)
+                                year_int = int(raw_year)
+                                if op not in {"=", "!=", ">", ">=", "<", "<="}:
+                                    continue
+                            else:
+                                op, year_int = "=", int(text)
+                            type_conditions.append(f"year {op} ?")
                             parameters.append(year_int)
-                        except ValueError, TypeError:
+                        except ValueError:
                             continue
 
                 elif ftype == "nfo":
@@ -152,6 +255,22 @@ class DbFilter:
                             ")"
                         )
                         parameters.extend([v.casefold()] * 6)
+
+                elif ftype == "last played":
+                    for v in sub_values or ([val] if val is not None else []):
+                        condition = self._build_last_played_condition(str(v))
+                        if condition is not None:
+                            cond_sql, cond_params = condition
+                            type_conditions.append(cond_sql)
+                            parameters.extend(cond_params)
+
+                elif ftype == "qty played":
+                    for v in sub_values or ([val] if val is not None else []):
+                        condition = self._build_qty_played_condition(str(v))
+                        if condition is not None:
+                            cond_sql, cond_params = condition
+                            type_conditions.append(cond_sql)
+                            parameters.extend(cond_params)
 
             if type_conditions:
                 # Disjunction within the same filter category (OR)

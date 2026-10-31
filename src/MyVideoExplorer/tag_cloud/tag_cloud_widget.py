@@ -47,6 +47,7 @@ class TagCloudWidget(QWidget):
     tag_edited = Signal(str, object)
     tag_deleted = Signal(str)
     tag_color_changed = Signal(str, str)
+    tag_search_requested = Signal(str)
 
     SORT_NAME = "Name"
     SORT_QUANTITY = "Quantity"
@@ -61,6 +62,7 @@ class TagCloudWidget(QWidget):
         selectable: bool = False,
         color_editable: bool = False,
         deletable: bool = False,
+        show_search_button: bool = False,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -68,6 +70,7 @@ class TagCloudWidget(QWidget):
         self.selectable = selectable
         self.color_editable = color_editable
         self.deletable = deletable
+        self.show_search_button = show_search_button
         self._tags: list[dict[str, Any]] = []
         self._selected_tags: set[str] = set()
         self._tag_widgets: list[tuple[dict[str, Any], QWidget]] = []
@@ -201,6 +204,27 @@ class TagCloudWidget(QWidget):
             label.setToolTip("Double-click to edit this tag")
             label.double_clicked.connect(lambda: self._edit_chip(chip, tag))
         layout.addWidget(label)
+
+        if self.show_search_button:
+            search_button = QToolButton(chip)
+            search_button.setIcon(
+                APP_THEME.icon("fa6s.magnifying-glass", color=APP_THEME.text_color)
+            )
+            search_button.setProperty("preserve_custom_style", True)
+            search_button.setIconSize(QSize(14, 14))
+            search_button.setFixedSize(22, 22)
+            search_button.setAutoRaise(True)
+            search_button.setStyleSheet(
+                "QToolButton { background: transparent; border: 0; padding: 2px; }"
+            )
+            search_button.setCursor(Qt.CursorShape.PointingHandCursor)
+            search_button.setToolTip(f"Search for {tag['tag']}")
+            search_button.clicked.connect(
+                lambda checked=False, name=tag["tag"]: self.tag_search_requested.emit(
+                    name
+                )
+            )
+            layout.addWidget(search_button)
 
         if self.color_editable and not self.editable:
             color_button = QToolButton(chip)

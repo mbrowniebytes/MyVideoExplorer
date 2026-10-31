@@ -19,6 +19,12 @@ from PySide6.QtWidgets import (
 )
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
+from MyVideoExplorer.folder_filter.filter_last_played_widget import (
+    FilterLastPlayedWidget,
+)
+from MyVideoExplorer.folder_filter.filter_qty_played_widget import (
+    FilterQtyPlayedWidget,
+)
 from MyVideoExplorer.tag_cloud.tag_button import TagButton
 from MyVideoExplorer.tag_cloud.tag_util import get_contrast_text_color
 from MyVideoExplorer.theme.theme import APP_THEME
@@ -228,9 +234,16 @@ class FolderFilterTable(QTableWidget):
         "Actor",
         "Director",
         "Title",
+        "Year",
         "META",
+        "Last Played",
+        "Qty Played",
         "Tag",
     ]
+
+    # Group headers that separate sections in the table and dropdown;
+    # displayed as non-selectable separators.
+    FILTER_GROUP_HEADERS = {"OS", "NFO", "META"}
 
     genre_changed = Signal(object)
     root_folder = Signal(object)
@@ -276,7 +289,7 @@ class FolderFilterTable(QTableWidget):
         self.setStyleSheet(APP_THEME.table_qss())
 
         header = self.horizontalHeader()
-        header.setMinimumSectionSize(95)
+        header.setMinimumSectionSize(105)
         header.setSectionResizeMode(0, header.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(1, header.ResizeMode.Stretch)
         if not self.readonly:
@@ -295,7 +308,7 @@ class FolderFilterTable(QTableWidget):
             placeholder_text = (
                 "Select a filter from above dropdown"
                 if self.readonly
-                else "Add a Filter from above or edit in Settings -> Filters"
+                else "Add a Filter from above"
             )
             if self.readonly:
                 placeholder = QLabel(placeholder_text, self)
@@ -540,6 +553,32 @@ class FolderFilterTable(QTableWidget):
             self.setCellWidget(row_nbr, 1, combo)
             return
 
+        if clean_type == "last played":
+            widget = FilterLastPlayedWidget(
+                table=self, readonly=self.readonly, parent=self
+            )
+            if filter_value:
+                widget.set_value(filter_value)
+            self.setCellWidget(row_nbr, 1, widget)
+            item = QTableWidgetItem("")
+            item.setData(Qt.ItemDataRole.UserRole, filter_value)
+            item.setFlags(Qt.ItemFlag.NoItemFlags)
+            self.setItem(row_nbr, 1, item)
+            return
+
+        if clean_type == "qty played":
+            widget = FilterQtyPlayedWidget(
+                table=self, readonly=self.readonly, parent=self
+            )
+            if filter_value:
+                widget.set_value(filter_value)
+            self.setCellWidget(row_nbr, 1, widget)
+            item = QTableWidgetItem("")
+            item.setData(Qt.ItemDataRole.UserRole, filter_value)
+            item.setFlags(Qt.ItemFlag.NoItemFlags)
+            self.setItem(row_nbr, 1, item)
+            return
+
         filter_type_value = QTableWidgetItem(filter_value)
         if filter_type.upper() in ("OS", "NFO", "META"):
             filter_type_value.setFlags(
@@ -608,6 +647,10 @@ class FolderFilterTable(QTableWidget):
         widget = self.cellWidget(row, 1)
         if isinstance(widget, FilterTagCloudWidget):
             return ", ".join(widget.get_tags())
+        if isinstance(widget, FilterLastPlayedWidget):
+            return widget.get_value()
+        if isinstance(widget, FilterQtyPlayedWidget):
+            return widget.get_value()
         if isinstance(widget, QLabel):
             tag_val = widget.property("tag_value")
             if tag_val is not None:

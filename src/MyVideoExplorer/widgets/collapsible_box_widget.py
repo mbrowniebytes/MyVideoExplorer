@@ -27,10 +27,6 @@ class CollapsibleBoxWidget(QWidget):
         self._setup_ui()
         self._apply_initial_state()
 
-    @property
-    def layout(self) -> QVBoxLayout:
-        return self._layout
-
     def _setup_ui(self) -> None:
         """Configure layouts, widget properties, and signal connections."""
         # Toggle button configuration

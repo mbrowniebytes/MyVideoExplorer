@@ -382,43 +382,48 @@ class SettingsState(QObject):
                 new_filters.append({"name": name, "filters": filters})
             self.saved_filters = new_filters
 
-    def save_filter(self, name: str, filter_cfg: list[dict[str, Any]]) -> None:
-        """Saves a named filter configuration."""
-        # Check if filter with this name already exists
+    def save_filter(
+        self,
+        name: str,
+        filter_cfg: list[dict[str, Any]],
+        original_name: str | None = None,
+    ) -> None:
+        """
+        Saves a named filter configuration.
+
+        Args:
+            name: Filter name to store.
+            filter_cfg: Filter criteria list.
+            original_name: Previous name when renaming, so the existing entry is
+                replaced in place instead of a duplicate being appended.
+        """
+        target = original_name or name
+        entry = {"name": name, "filters": filter_cfg}
+        new_filters: list[dict[str, Any]] = []
         b_found = False
-        for i, saved_filter_cfg in enumerate(self.saved_filters):
-            if saved_filter_cfg.get("name") == name:
-                self.saved_filters[i] = {"name": name, "filters": filter_cfg}
+        for saved_filter_cfg in self.saved_filters:
+            saved_name = saved_filter_cfg.get("name")
+            if saved_name == target and not b_found:
+                new_filters.append(entry)
                 b_found = True
-                break
+            elif saved_name == name and target != name:
+                # Renaming onto an existing name replaces that filter
+                continue
+            else:
+                new_filters.append(saved_filter_cfg)
 
         if not b_found:
-            self.saved_filters.append({"name": name, "filters": filter_cfg})
+            new_filters.append(entry)
 
+        self.saved_filters = new_filters
+        # save_filters emits settings_changed
         self.save_filters()
-        self.settings_changed.emit(
-            SignalPayload(
-                data=None,
-                sender=self.__class__.__name__,
-                name="Settings Changed",
-                description="Filter settings were changed.",
-                flow=SignalFlow.COMPONENT_INTERACTION,
-            )
-        )
 
     def delete_filter(self, name: str) -> None:
         """Deletes a named filter configuration."""
         self.saved_filters = [f for f in self.saved_filters if f.get("name") != name]
+        # save_filters emits settings_changed
         self.save_filters()
-        self.settings_changed.emit(
-            SignalPayload(
-                data=None,
-                sender=self.__class__.__name__,
-                name="Settings Changed",
-                description="Filter settings were deleted.",
-                flow=SignalFlow.COMPONENT_INTERACTION,
-            )
-        )
 
     @staticmethod
     def sanitize_media_label(label: Any) -> str:

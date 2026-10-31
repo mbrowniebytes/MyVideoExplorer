@@ -93,7 +93,7 @@ class FolderList(QWidget, ThemableMixin):
         layout = QVBoxLayout(self._container)
 
         self.header.backward_clicked.connect(self._on_backward_folder_clicked)
-        self.header.clear_filter_clicked.connect(self.clear_filter_requested)
+        self.header.clear_filter_clicked.connect(self._on_clear_filter)
         self.header.forward_clicked.connect(self._on_forward_folder_clicked)
         self.header.random_clicked.connect(self._on_random_folder_clicked)
         self.media_nav_search.search_requested.connect(self.media_nav_search_requested)
@@ -369,6 +369,11 @@ class FolderList(QWidget, ThemableMixin):
         has_folders = self.folder_list_view.has_folders()
         if self.header.random_folder_button.isEnabled() != has_folders:
             self.header.random_folder_button.setEnabled(has_folders)
+
+    def _on_clear_filter(self) -> None:
+        """Clear both the saved filter selection and the quick search criteria."""
+        self.media_nav_search.clear_search()
+        self.clear_filter_requested.emit()
 
     def set_clear_filter_enabled(self, enabled: bool) -> None:
         self.header.clear_filter_button.setEnabled(enabled)

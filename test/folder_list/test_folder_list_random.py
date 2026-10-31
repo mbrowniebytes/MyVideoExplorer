@@ -31,7 +31,7 @@ class TestFolderListRandom:
         assert not folder_list.random_folder_button.isEnabled()
 
     def test_clear_filter_button_state_and_signal(self, folder_list, qtbot):
-        assert folder_list.clear_filter_button.toolTip() == "Clear Filter"
+        assert folder_list.clear_filter_button.toolTip() == "Clear Filter and Search"
         assert not folder_list.clear_filter_button.icon().isNull()
         assert not folder_list.clear_filter_button.isEnabled()
 

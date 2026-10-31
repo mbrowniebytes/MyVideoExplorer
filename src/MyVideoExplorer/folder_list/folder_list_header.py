@@ -46,7 +46,7 @@ class FolderListHeader(QWidget, ThemableMixin):
         button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
         button.setIcon(APP_THEME.icon("fa6s.filter-circle-xmark"))
         button.setIconSize(QSize(APP_THEME.icon_size, APP_THEME.icon_size))
-        button.setToolTip("Clear Filter")
+        button.setToolTip("Clear Filter and Search")
         button.setStyleSheet(APP_THEME.button_qss())
         button.setEnabled(False)
         button.clicked.connect(self.clear_filter_clicked)
