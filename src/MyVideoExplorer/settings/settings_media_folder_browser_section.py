@@ -24,6 +24,7 @@ from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
+from MyVideoExplorer.widgets.delayed_delete_button import DelayedDeleteButton
 from MyVideoExplorer.widgets.folder_picker_widget import FolderPickerWidget
 
 
@@ -95,10 +96,10 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         row1_layout.addWidget(self.type_combo)
 
         # Delete button
-        self.remove_btn = QPushButton(parent=self)
-        self.remove_btn.setIcon(APP_THEME.icon("fa6s.xmark"))
+        self.remove_btn = DelayedDeleteButton(parent=self)
         self.remove_btn.setStyleSheet(APP_THEME.button_qss())
         self.remove_btn.setFixedWidth(30)
+        self.remove_btn.setToolTip("Remove media folder configuration")
         self.remove_btn.clicked.connect(
             lambda: self.remove_requested.emit(self.media_config)
         )

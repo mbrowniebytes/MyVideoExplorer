@@ -170,6 +170,26 @@ class TestFolderNavFilters:
         assert nav_filters.filter_table.columnCount() == 2
         assert nav_filters.filter_table.readonly is True
 
+    def test_clicking_show_all_combo_clears_label_and_opens_popup(
+        self, nav_filters, qtbot
+    ):
+        nav_filters.settings.settings_data_model.saved_filters = [
+            {"name": "Example", "filters": []}
+        ]
+        nav_filters._refresh_saved_filters_combo()
+        nav_filters.show()
+        combo = nav_filters.saved_filters_combo
+
+        qtbot.mouseClick(combo.lineEdit(), Qt.MouseButton.LeftButton)
+        qtbot.wait(50)
+
+        assert combo.currentIndex() == 0
+        assert combo.currentText() == ""
+        assert combo.view().isVisible()
+
+        combo.setEditText("Example")
+        assert combo.currentIndex() == combo.findText("Example")
+
     def test_collect_filters(self, nav_filters):
         """Verify that filters are collected without tag filters."""
         nav_filters.filter_table.add_filter("Folder", "test_folder")
@@ -342,6 +362,28 @@ class TestFolderNavFilters:
 
         assert nav_filters.saved_filters_combo.currentIndex() == 0
         assert selection_changes[-1] is False
+        assert nav_filters.filter_table.collect_filters() == []
+
+    def test_selecting_show_all_clears_filter_and_requests_all_items(
+        self, nav_filters, settings_mock, qtbot
+    ):
+        settings_mock.settings_data_model.saved_filters = [
+            {
+                "name": "MyFilter",
+                "filters": [{"filter": "Folder", "value": "my_movie"}],
+            }
+        ]
+        nav_filters._refresh_saved_filters_combo()
+        nav_filters.saved_filters_combo.setCurrentIndex(
+            nav_filters.saved_filters_combo.findText("MyFilter")
+        )
+        assert nav_filters.filter_table.collect_filters() == [
+            {"filter": "Folder", "value": "my_movie"}
+        ]
+
+        with qtbot.waitSignal(nav_filters.filters_requested):
+            nav_filters.saved_filters_combo.setCurrentIndex(0)
+
         assert nav_filters.filter_table.collect_filters() == []
 
     def test_settings_filters_tab_tag_selection_and_counts(self, qtbot):

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtCore import QEvent, QObject, QSize, Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QHBoxLayout,
@@ -27,6 +27,8 @@ from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil, FileUtils
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.ui_utils import UIUtils
+
+_SHOW_ALL_FILTER_LABEL = "- Showing All - Select a Filter -"
 
 
 class FolderFilters(QWidget, ThemableMixin):
@@ -142,6 +144,10 @@ class FolderFilters(QWidget, ThemableMixin):
     def _build_saved_filters_combo(self) -> None:
         self.saved_filters_combo.setEditable(True)
         self.saved_filters_combo.setToolTip("Select a saved filter (type to search)")
+        self.saved_filters_combo.installEventFilter(self)
+        line_edit = self.saved_filters_combo.lineEdit()
+        if line_edit is not None:
+            line_edit.installEventFilter(self)
         self._refresh_saved_filters_combo()
         self.saved_filters_combo.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
@@ -151,7 +157,7 @@ class FolderFilters(QWidget, ThemableMixin):
     def _refresh_saved_filters_combo(self) -> None:
         self.saved_filters_combo.blockSignals(True)
         self.saved_filters_combo.clear()
-        self.saved_filters_combo.addItem("- Showing All - Select a Filter -")
+        self.saved_filters_combo.addItem(_SHOW_ALL_FILTER_LABEL)
         filter_names = [
             f.get("name", "")
             for f in self.settings.settings_data_model.saved_filters
@@ -160,6 +166,18 @@ class FolderFilters(QWidget, ThemableMixin):
         for name in sorted(filter_names):
             self.saved_filters_combo.addItem(name)
         self.saved_filters_combo.blockSignals(False)
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+        combo = self.saved_filters_combo
+        if (
+            watched in (combo, combo.lineEdit())
+            and event.type() == QEvent.Type.MouseButtonPress
+            and combo.currentIndex() == 0
+            and combo.currentText() == _SHOW_ALL_FILTER_LABEL
+        ):
+            combo.setEditText("")
+            QTimer.singleShot(0, combo.showPopup)
+        return super().eventFilter(watched, event)
 
     def _resolve_filter_text(self, text: str) -> int:
         """Map typed combo text to a saved-filter item index (-1 when unknown).
@@ -267,6 +285,7 @@ class FolderFilters(QWidget, ThemableMixin):
         if not has_filter:
             self.filter_table.setRowCount(0)
             self.filter_table._check_empty_state()
+            self.filters_requested.emit()
             return
 
         name = self.saved_filters_combo.itemText(index)

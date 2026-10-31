@@ -4,7 +4,8 @@ from types import SimpleNamespace
 
 import duckdb
 import pytest
-from PySide6.QtCore import QDate, Qt
+from PySide6.QtCore import QDate, QPointF, Qt
+from PySide6.QtGui import QEnterEvent
 from PySide6.QtWidgets import QToolButton
 
 from MyVideoExplorer.db.db_migrations import DbMigrations
@@ -15,6 +16,7 @@ from MyVideoExplorer.folder_list.media_nav_search import (
 from MyVideoExplorer.folder_list.media_nav_search_widget import (
     MediaNavSearchWidget,
 )
+from MyVideoExplorer.widgets.delayed_delete_button import DelayedDeleteButton
 
 
 class _SearchSettings:
@@ -539,7 +541,8 @@ def test_options_radio_groups_year_options_and_placeholder(qtbot):
     assert options.qty_value.lineEdit().text() == "12345"
 
 
-def test_tags_are_visible_in_dialog_and_summary_and_removable(qtbot):
+def test_tags_are_visible_in_dialog_and_summary_and_removable(qtbot, monkeypatch):
+    monkeypatch.setattr(DelayedDeleteButton, "DEFAULT_UNLOCK_DELAY_MS", 10)
     widget = MediaNavSearchWidget(_WidgetSettings())
     qtbot.addWidget(widget)
 
@@ -555,6 +558,9 @@ def test_tags_are_visible_in_dialog_and_summary_and_removable(qtbot):
     assert dialog_chip_item is not None
     dialog_chip = dialog_chip_item.widget()
     assert isinstance(dialog_chip, QToolButton)
+    assert isinstance(dialog_chip, DelayedDeleteButton)
+    dialog_chip.enterEvent(QEnterEvent(QPointF(1, 1), QPointF(1, 1), QPointF(1, 1)))
+    qtbot.waitUntil(lambda: dialog_chip.is_armed, timeout=300)
     dialog_chip.click()
 
     assert widget._selected_tags == []
@@ -562,7 +568,23 @@ def test_tags_are_visible_in_dialog_and_summary_and_removable(qtbot):
     assert widget.criteria_summary.flow_layout.count() == 0
 
 
-def test_active_filter_chips_expand_to_fit(qtbot):
+def test_tag_criteria_chip_uses_configured_tag_color(qtbot):
+    settings = _WidgetSettings()
+    settings.settings_data_model.tags = [{"tag": "Drama", "color": "#12ab34"}]
+    widget = MediaNavSearchWidget(settings)
+    qtbot.addWidget(widget)
+
+    widget.add_selected_tag("Drama")
+
+    chip_item = widget.criteria_summary.flow_layout.itemAt(0)
+    assert chip_item is not None
+    chip = chip_item.widget()
+    assert isinstance(chip, QToolButton)
+    assert "background-color: #12ab34" in chip.styleSheet()
+
+
+def test_active_filter_chips_expand_to_fit(qtbot, monkeypatch):
+    monkeypatch.setattr(DelayedDeleteButton, "DEFAULT_UNLOCK_DELAY_MS", 10)
     widget = MediaNavSearchWidget(_WidgetSettings())
     qtbot.addWidget(widget)
     options = widget.options_dialog
@@ -585,6 +607,9 @@ def test_active_filter_chips_expand_to_fit(qtbot):
     assert summary_item is not None
     summary_chip = summary_item.widget()
     assert isinstance(summary_chip, QToolButton)
+    assert isinstance(summary_chip, DelayedDeleteButton)
+    summary_chip.enterEvent(QEnterEvent(QPointF(1, 1), QPointF(1, 1), QPointF(1, 1)))
+    qtbot.waitUntil(lambda: summary_chip.is_armed, timeout=300)
     summary_chip.click()
     assert options.year_combo.currentData() is None
     assert widget.criteria_summary.flow_layout.count() == 5
@@ -615,5 +640,5 @@ def test_empty_search_restores_all_and_blank_query_keeps_active_filters(qtbot):
 
 
 class _WidgetSettings:
-    settings_data_model = SimpleNamespace(tags=[])
+    settings_data_model = SimpleNamespace(tags=[{"tag": "Drama", "color": "#ff0000"}])
     tag_store = None

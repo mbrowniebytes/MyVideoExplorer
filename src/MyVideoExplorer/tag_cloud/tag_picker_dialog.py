@@ -29,6 +29,7 @@ from MyVideoExplorer.tag_cloud.tag_util import (
     validate_tag_name,
 )
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.widgets.delayed_delete_button import DelayedDeleteButton
 from MyVideoExplorer.widgets.flow_layout import FlowLayout
 
 
@@ -244,10 +245,7 @@ class TagPickerDialog(QDialog):
             row.addWidget(color_button)
 
             if self.allow_delete:
-                remove_button = QToolButton(row_widget)
-                remove_button.setIcon(
-                    APP_THEME.icon("fa6s.trash-can", color=APP_THEME.text_color)
-                )
+                remove_button = DelayedDeleteButton(row_widget)
                 remove_button.setProperty("preserve_custom_style", True)
                 remove_button.setIconSize(QSize(14, 14))
                 remove_button.setFixedSize(22, 22)
@@ -255,7 +253,6 @@ class TagPickerDialog(QDialog):
                 remove_button.setStyleSheet(
                     "QToolButton { background: transparent; border: 0; padding: 2px; }"
                 )
-                remove_button.setCursor(Qt.CursorShape.PointingHandCursor)
                 remove_button.setToolTip(f"Remove {tag} from this media")
                 remove_button.clicked.connect(
                     lambda checked=False, name=tag: self.tag_removed.emit(name)

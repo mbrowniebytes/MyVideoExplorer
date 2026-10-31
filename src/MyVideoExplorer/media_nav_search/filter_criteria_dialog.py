@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
 from MyVideoExplorer.folder_filter.folder_filter_table import FolderFilterTable
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.widgets.combo_box_delegate import GroupedComboBoxDelegate
+from MyVideoExplorer.widgets.delayed_delete_button import DelayedDeleteButton
 
 if TYPE_CHECKING:
     from MyVideoExplorer.db.db_tags import DbTags
@@ -192,10 +193,7 @@ class FilterCriteriaDialog(QDialog):
             button_layout.addWidget(cancel_button)
 
             if self._edit_mode:
-                delete_button = QToolButton(self)
-                delete_button.setIcon(
-                    APP_THEME.icon("fa6s.trash-can", color=APP_THEME.text_color)
-                )
+                delete_button = DelayedDeleteButton(self)
                 delete_button.setIconSize(
                     QSize(APP_THEME.icon_size, APP_THEME.icon_size)
                 )

@@ -3,12 +3,14 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 import pytest
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QPointF, Qt
+from PySide6.QtGui import QEnterEvent
 from PySide6.QtWidgets import QToolButton
 
 from MyVideoExplorer.media_nav_search.filter_criteria_dialog import FilterCriteriaDialog
 from MyVideoExplorer.settings.settings_filter_tab import SettingsFilterTab
 from MyVideoExplorer.settings.settings_state import SettingsState
+from MyVideoExplorer.widgets.delayed_delete_button import DelayedDeleteButton
 
 
 @pytest.fixture
@@ -40,7 +42,9 @@ def _active_dialog(tab: SettingsFilterTab) -> FilterCriteriaDialog:
 
 
 def _dialog_button(dialog: FilterCriteriaDialog, tooltip: str) -> QToolButton:
-    buttons = [b for b in dialog.findChildren(QToolButton) if b.toolTip() == tooltip]
+    buttons = [
+        b for b in dialog.findChildren(QToolButton) if b.toolTip().startswith(tooltip)
+    ]
     assert buttons, f"button '{tooltip}' not found"
     return buttons[0]
 
@@ -116,6 +120,8 @@ def test_row_delete_button_should_delete_filter(qtbot, tab, state):
     delete_btn = table.cellWidget(0, SettingsFilterTab.COL_DELETE)
     assert isinstance(delete_btn, QToolButton)
 
+    delete_btn.enterEvent(QEnterEvent(QPointF(1, 1), QPointF(1, 1), QPointF(1, 1)))
+    qtbot.waitUntil(lambda: delete_btn.is_armed, timeout=3000)
     qtbot.mouseClick(delete_btn, Qt.MouseButton.LeftButton)
 
     qtbot.waitUntil(lambda: state.delete_filter.called)
@@ -128,7 +134,13 @@ def test_dialog_delete_after_rename_should_delete_original_name(qtbot, tab, stat
     assert dialog._name_edit is not None
     dialog._name_edit.setText("Typed")
 
-    qtbot.mouseClick(_dialog_button(dialog, "Delete Filter"), Qt.MouseButton.LeftButton)
+    delete_btn = _dialog_button(dialog, "Delete Filter")
+    delete_btn.enterEvent(QEnterEvent(QPointF(1, 1), QPointF(1, 1), QPointF(1, 1)))
+    qtbot.waitUntil(
+        lambda: isinstance(delete_btn, DelayedDeleteButton) and delete_btn.is_armed,
+        timeout=3000,
+    )
+    qtbot.mouseClick(delete_btn, Qt.MouseButton.LeftButton)
 
     qtbot.waitUntil(lambda: state.delete_filter.called)
     state.delete_filter.assert_called_once_with("Beta")

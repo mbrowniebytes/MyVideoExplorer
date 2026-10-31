@@ -39,6 +39,35 @@ class TestFolderList:
         assert folder_list._container.layout().itemAt(1).widget() is folder_list.header
         assert folder_list.media_nav_search_box.objectName() == "media_nav_search_box"
 
+    def test_quick_search_enables_and_clearing_disables_clear_button(self, folder_list):
+        assert not folder_list.clear_filter_button.isEnabled()
+
+        folder_list.media_nav_search_box.setText("Alpha")
+        assert folder_list.clear_filter_button.isEnabled()
+
+        folder_list.media_nav_search.clear_search()
+        assert not folder_list.clear_filter_button.isEnabled()
+
+        options = folder_list.media_nav_search.options_dialog
+        options.year_checkbox.setChecked(True)
+        options.year_combo.setCurrentIndex(1)
+        assert folder_list.clear_filter_button.isEnabled()
+
+        folder_list.media_nav_search.clear_search()
+        assert not folder_list.clear_filter_button.isEnabled()
+
+    def test_clear_button_stays_enabled_until_saved_filter_is_cleared(
+        self, folder_list
+    ):
+        folder_list.set_clear_filter_enabled(True)
+        folder_list.media_nav_search_box.setText("Alpha")
+
+        folder_list.media_nav_search.clear_search()
+        assert folder_list.clear_filter_button.isEnabled()
+
+        folder_list.set_clear_filter_enabled(False)
+        assert not folder_list.clear_filter_button.isEnabled()
+
     def test_folder_help_tooltip_shows_usage_and_settings(self, folder_list):
         tooltip = folder_list.help_icon.toolTip()
 

@@ -2,8 +2,8 @@ from datetime import date
 from unittest.mock import MagicMock, patch
 
 import pytest
-from PySide6.QtCore import QDate, QEvent, QObject, Qt, Signal
-from PySide6.QtGui import QColor
+from PySide6.QtCore import QDate, QEvent, QObject, QPointF, Qt, Signal
+from PySide6.QtGui import QColor, QEnterEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QLineEdit, QPushButton, QToolButton
 
@@ -12,6 +12,7 @@ from MyVideoExplorer.db.models.play_history import PlayHistory
 from MyVideoExplorer.media_info_side.media_info_side_view import MediaInfoSideView
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.utils.str_util import StrUtil
+from MyVideoExplorer.widgets.delayed_delete_button import DelayedDeleteButton
 
 
 class TestMediaInfoSideView:
@@ -318,7 +319,7 @@ class TestMediaInfoSideView:
         assert len(tag_count_refreshes) == 1
         assert any(
             "Remove Comedy" in button.toolTip()
-            for button in popup.findChildren(QToolButton)
+            for button in popup.findChildren(DelayedDeleteButton)
         )
         assigned_color_button = next(
             button
@@ -334,10 +335,14 @@ class TestMediaInfoSideView:
 
         remove_button = next(
             button
-            for button in popup.findChildren(QToolButton)
+            for button in popup.findChildren(DelayedDeleteButton)
             if "Remove Comedy" in button.toolTip()
         )
         assert not remove_button.icon().isNull()
+        remove_button.enterEvent(
+            QEnterEvent(QPointF(1, 1), QPointF(1, 1), QPointF(1, 1))
+        )
+        qtbot.waitUntil(lambda: remove_button.is_armed, timeout=3000)
         remove_button.click()
         assert tag_store.set_tags.call_args.args == (
             "C:/movies/film.mkv",

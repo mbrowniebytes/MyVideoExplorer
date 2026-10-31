@@ -31,6 +31,7 @@ from MyVideoExplorer.tag_cloud.tag_picker_dialog import TagPickerDialog
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.widgets.combo_box_delegate import GroupedComboBoxDelegate
+from MyVideoExplorer.widgets.delayed_delete_button import DelayedDeleteButton
 
 if TYPE_CHECKING:
     from MyVideoExplorer.db.db_tags import DbTags
@@ -474,12 +475,16 @@ class SettingsFilterTab(SettingsBaseTab):
         self._filtered_filters = filtered
 
     def _make_row_button(self, icon_name: str, tooltip: str, slot: Any) -> QToolButton:
-        btn = QToolButton(self._filter_table_widget)
-        btn.setIcon(APP_THEME.icon(icon_name, color=APP_THEME.text_color))
+        if icon_name == "fa6s.trash-can":
+            btn = DelayedDeleteButton(self._filter_table_widget, icon_name=icon_name)
+        else:
+            btn = QToolButton(self._filter_table_widget)
+            btn.setIcon(APP_THEME.icon(icon_name, color=APP_THEME.text_color))
         btn.setIconSize(QSize(14, 14))
         btn.setAutoRaise(True)
         btn.setToolTip(tooltip)
-        btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        if not isinstance(btn, DelayedDeleteButton):
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
         # Ignore the bool argument of clicked
         btn.clicked.connect(lambda _checked=False: slot())
         return btn

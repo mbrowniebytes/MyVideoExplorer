@@ -1,14 +1,19 @@
 from unittest.mock import MagicMock
 
+from PySide6.QtCore import QPointF
+from PySide6.QtGui import QEnterEvent
 from PySide6.QtWidgets import QToolButton
 
 from MyVideoExplorer.tag_cloud.tag_button import TagButton
 from MyVideoExplorer.tag_cloud.tag_picker_dialog import TagPickerDialog
+from MyVideoExplorer.widgets.delayed_delete_button import DelayedDeleteButton
 
 
-def test_tag_picker_dialog_set_data_and_signals(qtbot):
+def test_tag_picker_dialog_set_data_and_signals(qtbot, monkeypatch):
+    monkeypatch.setattr(DelayedDeleteButton, "DEFAULT_UNLOCK_DELAY_MS", 10)
     dialog = TagPickerDialog()
     qtbot.addWidget(dialog)
+    dialog.show()
 
     tag_selected = MagicMock()
     tag_removed = MagicMock()
@@ -39,9 +44,11 @@ def test_tag_picker_dialog_set_data_and_signals(qtbot):
     # Remove button in assigned tags
     remove_btn = next(
         btn
-        for btn in dialog.assigned_container.findChildren(QToolButton)
+        for btn in dialog.assigned_container.findChildren(DelayedDeleteButton)
         if "Remove Action" in btn.toolTip()
     )
+    remove_btn.enterEvent(QEnterEvent(QPointF(1, 1), QPointF(1, 1), QPointF(1, 1)))
+    qtbot.waitUntil(lambda: remove_btn.is_armed, timeout=300)
     remove_btn.click()
     tag_removed.assert_called_with("Action")
 

@@ -24,6 +24,7 @@ from MyVideoExplorer.tag_cloud.tag_util import (
     validate_tag_name,
 )
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.widgets.delayed_delete_button import DelayedDeleteButton
 from MyVideoExplorer.widgets.flow_layout import FlowLayout
 
 _TAG_CLOUD_SORT_MODE = "Name"
@@ -44,6 +45,7 @@ class TagCloudWidget(QWidget):
 
     changed = Signal()
     tag_selected = Signal(str, bool)
+    tag_added = Signal(object)
     tag_edited = Signal(str, object)
     tag_deleted = Signal(str)
     tag_color_changed = Signal(str, str)
@@ -63,6 +65,8 @@ class TagCloudWidget(QWidget):
         color_editable: bool = False,
         deletable: bool = False,
         show_search_button: bool = False,
+        show_add_button: bool = False,
+        confirm_delete_at_count: int | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -71,6 +75,10 @@ class TagCloudWidget(QWidget):
         self.color_editable = color_editable
         self.deletable = deletable
         self.show_search_button = show_search_button
+        self.show_add_button = show_add_button
+        if confirm_delete_at_count is not None and confirm_delete_at_count < 1:
+            raise ValueError("confirm_delete_at_count must be positive.")
+        self.confirm_delete_at_count = confirm_delete_at_count
         self._tags: list[dict[str, Any]] = []
         self._selected_tags: set[str] = set()
         self._tag_widgets: list[tuple[dict[str, Any], QWidget]] = []
@@ -89,6 +97,17 @@ class TagCloudWidget(QWidget):
         controls.addWidget(self.filter_edit, 1)
         controls.addWidget(QLabel("Sort:", self))
         controls.addWidget(self.sort_combo)
+        if self.show_add_button:
+            self.add_tag_button = QToolButton(self)
+            self.add_tag_button.setObjectName("add_tag_button")
+            self.add_tag_button.setIcon(
+                APP_THEME.icon("fa6s.tag", color=APP_THEME.text_color)
+            )
+            self.add_tag_button.setToolTip("Add new tag")
+            self.add_tag_button.setAutoRaise(True)
+            self.add_tag_button.setCursor(Qt.CursorShape.PointingHandCursor)
+            self.add_tag_button.clicked.connect(self._begin_add_tag)
+            controls.addWidget(self.add_tag_button)
         layout.addLayout(controls)
 
         self.cloud_container = QWidget(self)
@@ -136,6 +155,20 @@ class TagCloudWidget(QWidget):
                 )
         self._tags = normalized
         self.refresh()
+
+    def _begin_add_tag(self) -> None:
+        for tag, chip in self._tag_widgets:
+            name_edit = chip.findChild(QLineEdit, "edit_tag_name")
+            if not tag["tag"] and name_edit is not None:
+                name_edit.setFocus()
+                return
+
+        tag: dict[str, Any] = {"tag": "", "color": "#808080", "qty": 0}
+        chip = self._make_chip(tag, 0)
+        self.cloud_layout.addWidget(chip)
+        self._tag_widgets.append((tag, chip))
+        chip.show()
+        self._edit_chip(chip, tag, is_new=True)
 
     def refresh(self) -> None:
         while self.cloud_layout.count():
@@ -205,27 +238,6 @@ class TagCloudWidget(QWidget):
             label.double_clicked.connect(lambda: self._edit_chip(chip, tag))
         layout.addWidget(label)
 
-        if self.show_search_button:
-            search_button = QToolButton(chip)
-            search_button.setIcon(
-                APP_THEME.icon("fa6s.magnifying-glass", color=APP_THEME.text_color)
-            )
-            search_button.setProperty("preserve_custom_style", True)
-            search_button.setIconSize(QSize(14, 14))
-            search_button.setFixedSize(22, 22)
-            search_button.setAutoRaise(True)
-            search_button.setStyleSheet(
-                "QToolButton { background: transparent; border: 0; padding: 2px; }"
-            )
-            search_button.setCursor(Qt.CursorShape.PointingHandCursor)
-            search_button.setToolTip(f"Search for {tag['tag']}")
-            search_button.clicked.connect(
-                lambda checked=False, name=tag["tag"]: self.tag_search_requested.emit(
-                    name
-                )
-            )
-            layout.addWidget(search_button)
-
         if self.color_editable and not self.editable:
             color_button = QToolButton(chip)
             color_button.setProperty("tag_color", tag["color"])
@@ -267,10 +279,44 @@ class TagCloudWidget(QWidget):
             )
             layout.addWidget(edit_color_button)
 
+        if self.show_search_button:
+            search_button = QToolButton(chip)
+            search_button.setObjectName("search_tag")
+            search_button.setIcon(
+                APP_THEME.icon("fa6s.magnifying-glass", color=APP_THEME.text_color)
+            )
+            search_button.setProperty("preserve_custom_style", True)
+            search_button.setIconSize(QSize(14, 14))
+            search_button.setFixedSize(22, 22)
+            search_button.setAutoRaise(True)
+            search_button.setStyleSheet(
+                "QToolButton { background: transparent; border: 0; padding: 2px; }"
+            )
+            search_button.setCursor(Qt.CursorShape.PointingHandCursor)
+            search_button.setToolTip(f"Search for {tag['tag']}")
+            search_button.clicked.connect(
+                lambda checked=False, name=tag["tag"]: self.tag_search_requested.emit(
+                    name
+                )
+            )
+            layout.addWidget(search_button)
+
         if self.deletable:
-            delete_button = QToolButton(chip)
-            delete_button.setIcon(
-                APP_THEME.icon("fa6s.trash-can", color=APP_THEME.text_color)
+            confirm_title = None
+            confirm_message = None
+            if (
+                self.confirm_delete_at_count is not None
+                and tag["qty"] >= self.confirm_delete_at_count
+            ):
+                confirm_title = "Delete tag?"
+                confirm_message = (
+                    f'The tag "{tag["tag"]}" is used by {tag["qty"]} media items. '
+                    "Are you sure you want to delete it?"
+                )
+            delete_button = DelayedDeleteButton(
+                chip,
+                confirmation_title=confirm_title,
+                confirmation_message=confirm_message,
             )
             delete_button.setProperty("preserve_custom_style", True)
             delete_button.setIconSize(QSize(14, 14))
@@ -279,7 +325,6 @@ class TagCloudWidget(QWidget):
             delete_button.setStyleSheet(
                 "QToolButton { background: transparent; border: 0; padding: 2px; }"
             )
-            delete_button.setCursor(Qt.CursorShape.PointingHandCursor)
             delete_button.setToolTip(f"Delete {tag['tag']}")
             delete_button.clicked.connect(
                 lambda checked=False, name=tag["tag"]: self._delete_tag(name)
@@ -287,7 +332,9 @@ class TagCloudWidget(QWidget):
             layout.addWidget(delete_button)
         return chip
 
-    def _edit_chip(self, chip: QWidget, tag: dict[str, Any]) -> None:
+    def _edit_chip(
+        self, chip: QWidget, tag: dict[str, Any], *, is_new: bool = False
+    ) -> None:
         layout = chip.layout()
         if layout is None:
             raise RuntimeError("Tag chip is missing its layout.")
@@ -325,6 +372,7 @@ class TagCloudWidget(QWidget):
         save_button.setObjectName("save_tag_edit")
         save_button.setAutoRaise(True)
         save_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        save_button.setEnabled(bool(name_edit.text().strip()))
         cancel_button = QToolButton(chip)
         cancel_button.setIcon(APP_THEME.icon("fa6s.xmark", color=APP_THEME.text_color))
         cancel_button.setToolTip("Cancel editing")
@@ -336,9 +384,16 @@ class TagCloudWidget(QWidget):
         layout.addWidget(cancel_button)
 
         save_button.clicked.connect(
-            lambda checked=False: self._save_edit(tag, name_edit, color_button, chip)
+            lambda checked=False: self._save_edit(
+                tag, name_edit, color_button, chip, is_new=is_new
+            )
+        )
+        name_edit.textChanged.connect(
+            lambda text: save_button.setEnabled(bool(text.strip()))
         )
         cancel_button.clicked.connect(self.refresh)
+        if is_new:
+            name_edit.setFocus()
 
     def _save_edit(
         self,
@@ -346,6 +401,8 @@ class TagCloudWidget(QWidget):
         name_edit: QLineEdit,
         color_button: QToolButton,
         chip: QWidget,
+        *,
+        is_new: bool = False,
     ) -> None:
         new_name = name_edit.text().strip()
         is_valid, error_msg = validate_tag_name(new_name)
@@ -364,7 +421,10 @@ class TagCloudWidget(QWidget):
         tag["tag"] = new_name
         tag["color"] = str(color_button.property("tag_color"))
         self.changed.emit()
-        self.tag_edited.emit(original_name, dict(tag))
+        if is_new:
+            self.tag_added.emit(dict(tag))
+        else:
+            self.tag_edited.emit(original_name, dict(tag))
         self.refresh()
 
     def _choose_color(self, button: QToolButton) -> None:

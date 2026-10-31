@@ -25,10 +25,16 @@ class TagCloudSettings(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         self.cloud = TagCloudWidget(
-            editable=True, deletable=True, show_search_button=True, parent=self
+            editable=True,
+            deletable=True,
+            show_search_button=True,
+            show_add_button=True,
+            confirm_delete_at_count=10,
+            parent=self,
         )
         layout.addWidget(self.cloud)
 
+        self.cloud.tag_added.connect(self._on_tag_added)
         self.cloud.tag_edited.connect(self._on_tag_edited)
         self.cloud.tag_color_changed.connect(self._on_tag_color_changed)
         self.cloud.tag_deleted.connect(self._on_tag_deleted)
@@ -64,6 +70,14 @@ class TagCloudSettings(QWidget):
                 for tag in self.state.tags
             ]
         )
+
+    def _on_tag_added(self, new_tag: dict) -> None:
+        if self.tag_store is not None:
+            if not self.tag_store.add_catalog_tag(new_tag["tag"], new_tag["color"]):
+                self.refresh()
+            return
+        if not self.state.add_tag(new_tag["tag"], new_tag["color"]):
+            self.refresh()
 
     def _on_tag_color_changed(self, tag_name: str, color: str) -> None:
         if self.tag_store is not None:

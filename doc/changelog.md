@@ -29,6 +29,11 @@
     - new filters
       - last played date
       - qty played
+  - tags
+    - re-position tag icons
+  - filters, tags
+    - delete button disabled, hover for 2.5s to enable
+    - if more than 10 movies, show delete confirmation  
 - fixes
   - re-select prior media on app launch
   - potential support launching either system associated media player vlc or mpc-qt

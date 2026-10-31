@@ -28,6 +28,7 @@ from MyVideoExplorer.folder_filter.filter_qty_played_widget import (
 from MyVideoExplorer.tag_cloud.tag_button import TagButton
 from MyVideoExplorer.tag_cloud.tag_util import get_contrast_text_color
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.widgets.delayed_delete_button import DelayedDeleteButton
 from MyVideoExplorer.widgets.flow_layout import FlowLayout
 
 
@@ -159,7 +160,7 @@ class FilterTagCloudWidget(QWidget):
 
         for tag in self._tags:
             color, count = self.table._get_tag_info(tag)
-            btn = TagButton(self)
+            btn = TagButton(self) if self.readonly else DelayedDeleteButton(self)
             btn.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size - 6))
             if self.readonly:
                 btn.setText(f"{tag} ({count})")
@@ -167,10 +168,11 @@ class FilterTagCloudWidget(QWidget):
                 btn.setToolTip(tag)
                 btn.setCursor(Qt.CursorShape.ArrowCursor)
             else:
-                btn.setText(f"{tag} ({count})  ✕")
-                btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+                btn.setText(f"{tag} ({count})")
+                btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
                 btn.setToolTip(f"Remove tag '{tag}'")
-                btn.setCursor(Qt.CursorShape.PointingHandCursor)
+                if not self.readonly:
+                    btn.setCursor(Qt.CursorShape.ArrowCursor)
                 btn.clicked.connect(lambda _, t=tag: self.remove_tag(t))
 
             btn.setStyleSheet(
@@ -596,8 +598,7 @@ class FolderFilterTable(QTableWidget):
 
     def _set_remove_button_cell(self, row_nbr: int) -> None:
 
-        remove_btn = QToolButton(self)
-        remove_btn.setIcon(APP_THEME.icon("fa6s.trash-can", color=APP_THEME.text_color))
+        remove_btn = DelayedDeleteButton(self)
         remove_btn.setToolTip("Delete Criteria")
         remove_btn.clicked.connect(lambda: self._remove_filter_row(remove_btn))
         self.setCellWidget(row_nbr, 2, remove_btn)

@@ -55,6 +55,8 @@ class FolderList(QWidget, ThemableMixin):
         self.file_util = file_util
         self.settings = settings
         self.media_nav_search = MediaNavSearchWidget(settings, self)
+        self._saved_filter_selected = False
+        self._quick_search_active = False
         self._signals_connected = False
         self._container = QWidget(self)
         self.header = FolderListHeader(parent=self)
@@ -97,6 +99,9 @@ class FolderList(QWidget, ThemableMixin):
         self.header.forward_clicked.connect(self._on_forward_folder_clicked)
         self.header.random_clicked.connect(self._on_random_folder_clicked)
         self.media_nav_search.search_requested.connect(self.media_nav_search_requested)
+        self.media_nav_search.search_criteria_changed.connect(
+            self.set_quick_search_active
+        )
         self.media_nav_search.clear_search_requested.connect(
             self.media_nav_clear_search_requested
         )
@@ -376,7 +381,17 @@ class FolderList(QWidget, ThemableMixin):
         self.clear_filter_requested.emit()
 
     def set_clear_filter_enabled(self, enabled: bool) -> None:
-        self.header.clear_filter_button.setEnabled(enabled)
+        self._saved_filter_selected = enabled
+        self._update_clear_filter_button()
+
+    def set_quick_search_active(self, active: bool) -> None:
+        self._quick_search_active = active
+        self._update_clear_filter_button()
+
+    def _update_clear_filter_button(self) -> None:
+        self.header.clear_filter_button.setEnabled(
+            self._saved_filter_selected or self._quick_search_active
+        )
 
     def _add_to_history(self, folder_path: str) -> None:
         self.navigation_controller.add_to_history(folder_path)

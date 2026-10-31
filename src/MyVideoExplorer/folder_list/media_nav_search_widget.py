@@ -27,10 +27,10 @@ from MyVideoExplorer.folder_list.media_nav_search import (
     QTY_OPERATORS,
     MediaNavSearchCriteria,
 )
-from MyVideoExplorer.tag_cloud.tag_button import TagButton
 from MyVideoExplorer.tag_cloud.tag_picker_dialog import TagPickerDialog
 from MyVideoExplorer.tag_cloud.tag_util import get_contrast_text_color
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.widgets.delayed_delete_button import DelayedDeleteButton
 from MyVideoExplorer.widgets.flow_layout import FlowLayout
 
 _NAME_LABELS = {
@@ -499,11 +499,10 @@ class MediaNavSearchOptionsDialog(QDialog):
         *,
         color: str | None = None,
     ) -> QToolButton:
-        chip = TagButton()
-        chip.setText(f"{label}  x")
-        chip.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+        chip = DelayedDeleteButton()
+        chip.setText(label)
+        chip.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         chip.setToolTip(tooltip)
-        chip.setCursor(Qt.CursorShape.PointingHandCursor)
         if color:
             chip.setStyleSheet(
                 f"QToolButton {{ color: {get_contrast_text_color(color)}; "
@@ -522,6 +521,7 @@ class MediaNavSearchWidget(QWidget):
     search_requested = Signal(object)
     clear_search_requested = Signal()
     create_filter_requested = Signal(list)  # list of filter dicts
+    search_criteria_changed = Signal(bool)
 
     def __init__(
         self, settings: _SearchSettings, parent: QWidget | None = None
@@ -548,6 +548,7 @@ class MediaNavSearchWidget(QWidget):
         self.options_button.clicked.connect(self._show_options)
         self.tag_button.clicked.connect(self._show_tag_picker)
         self.clear_search_button.clicked.connect(self.clear_search)
+        self.media_nav_search_box.textChanged.connect(self._on_criteria_changed)
 
         self.criteria_summary = _ChipContainer(self)
         self.selected_tags_container = self.criteria_summary
@@ -592,13 +593,38 @@ class MediaNavSearchWidget(QWidget):
         self._options_dialog = MediaNavSearchOptionsDialog(self.window())
         self._options_dialog.select_tags_button.clicked.connect(self._show_tag_picker)
         self._options_dialog.tag_remove_requested.connect(self.remove_selected_tag)
-        self._options_dialog.criteria_changed.connect(self._refresh_criteria_summary)
+        self._options_dialog.criteria_changed.connect(self._on_criteria_changed)
         self._options_dialog.create_filter_requested.connect(
             self.create_filter_requested
         )
+        self._options_dialog.set_tag_colors(self._tag_colors())
         for radio in self.options_dialog.name_radios.values():
             radio.toggled.connect(self._update_search_placeholder)
         self._update_search_placeholder()
+
+    def _tag_colors(self) -> dict[str, str]:
+        tag_store = getattr(self.settings, "tag_store", None)
+        catalog = (
+            tag_store.list_tags()
+            if tag_store is not None
+            else self.settings.settings_data_model.tags
+        )
+        return {
+            item["tag"].casefold(): item.get("color", "#808080")
+            for item in catalog
+            if isinstance(item, dict) and item.get("tag")
+        }
+
+    def _on_criteria_changed(self, *_args) -> None:
+        self._refresh_criteria_summary()
+        options = self.options_dialog
+        person_field = options.selected_person_field()
+        has_criteria = bool(
+            self.media_nav_search_box.text().strip()
+            or (person_field and options.person_inputs[person_field].text().strip())
+            or options.selected_fields()
+        )
+        self.search_criteria_changed.emit(has_criteria)
 
     def _show_options(self) -> None:
         self._show_popup(self.options_dialog, self.options_button)
@@ -672,6 +698,8 @@ class MediaNavSearchWidget(QWidget):
         options = self.options_dialog
         fields = options.selected_fields()
         criteria: list[tuple[str, str, Callable[[], None]]] = []
+        tag_colors = self._tag_colors()
+        criteria_colors: dict[str, str] = {}
 
         person_field = options.selected_person_field()
         if person_field:
@@ -698,13 +726,17 @@ class MediaNavSearchWidget(QWidget):
             )
         if "tags" in fields:
             for tag in options.selected_tags:
+                label = f"Tag: {tag}"
                 criteria.append(
                     (
-                        f"Tag: {tag}",
+                        label,
                         f"Remove tag '{tag}'",
                         lambda selected=tag: self.remove_selected_tag(selected),
                     )
                 )
+                color = tag_colors.get(tag.casefold())
+                if color:
+                    criteria_colors[label] = color
         if "qty_played" in fields:
             operator, value = options.qty_criteria()
             criteria.append(
@@ -726,7 +758,9 @@ class MediaNavSearchWidget(QWidget):
             )
 
         for label, tooltip, callback in criteria:
-            chip = MediaNavSearchOptionsDialog._make_chip(label, tooltip, callback)
+            chip = MediaNavSearchOptionsDialog._make_chip(
+                label, tooltip, callback, color=criteria_colors.get(label)
+            )
             summary.flow_layout.addWidget(chip)
         has_criteria = bool(criteria)
         summary.setVisible(has_criteria)
