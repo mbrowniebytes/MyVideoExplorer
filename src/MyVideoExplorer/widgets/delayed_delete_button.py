@@ -15,7 +15,7 @@ class DelayedDeleteButton(QToolButton):
     """Delete control that unlocks after a continuous hover delay."""
 
     DEFAULT_UNLOCK_DELAY_MS = 2500
-    DEFAULT_ICON_COLOR = "#8b0000"
+    DEFAULT_ICON_COLOR = "#6b3030"
 
     def __init__(
         self,
@@ -49,7 +49,7 @@ class DelayedDeleteButton(QToolButton):
         self._unlock_timer.setInterval(unlock_delay_ms)
         self._unlock_timer.timeout.connect(self._unlock)
         self._progress_timer = QTimer(self)
-        self._progress_timer.setInterval(1000)
+        self._progress_timer.setInterval(250)
         self._progress_timer.timeout.connect(self._update_icon_progress)
         self._set_icon_color(0)
         self._update_locked_state()

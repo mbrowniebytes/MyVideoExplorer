@@ -157,34 +157,26 @@ class SettingsMediaTab(SettingsBaseTab):
 
         self._refresh_folder_nav_settings()
 
-        add_btn_layout = QHBoxLayout()
-        add_btn_layout.addStretch()
-        add_btn = QPushButton("Add Media Folder", parent=self)
-        add_btn.clicked.connect(self._add_folder)
-        add_btn_layout.addWidget(add_btn)
-        add_btn_layout.addStretch()
-
-        self.content_layout.addLayout(add_btn_layout)
-
         self.content_layout.addStretch()
 
         save_btn_container = QWidget(self)
         save_btn_layout = QHBoxLayout(save_btn_container)
         save_btn_layout.setContentsMargins(20, 15, 20, 15)
 
-        self.save_btn = QPushButton("Save Media Settings", parent=self)
-        self.save_btn.clicked.connect(self._save_media_settings)
-
         self.reset_btn = self._build_reset_button(
             "Reset Media Settings", self.reset_settings
         )
 
-        spacer = QWidget(self)
-        spacer.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        add_btn = QPushButton("Add Media Folder", parent=self)
+        add_btn.clicked.connect(self._add_folder)
+
+        self.save_btn = QPushButton("Save Media Settings", parent=self)
+        self.save_btn.clicked.connect(self._save_media_settings)
 
         save_btn_layout.addWidget(self.reset_btn)
-        save_btn_layout.addWidget(spacer)
+        save_btn_layout.addStretch()
+        save_btn_layout.addWidget(add_btn)
+        save_btn_layout.addStretch()
         save_btn_layout.addWidget(self.save_btn)
         self.content_layout.addWidget(
             save_btn_container,

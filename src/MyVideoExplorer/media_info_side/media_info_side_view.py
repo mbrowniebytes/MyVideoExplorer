@@ -24,7 +24,7 @@ from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.utils.str_util import StrUtil
 from MyVideoExplorer.utils.ui_utils import UIUtils
-from MyVideoExplorer.widgets.label_value_widget import LabelValueWidget
+from MyVideoExplorer.widgets.labels.label_value_widget import LabelValueWidget
 
 
 class MediaInfoSideView(QWidget, ThemableMixin):

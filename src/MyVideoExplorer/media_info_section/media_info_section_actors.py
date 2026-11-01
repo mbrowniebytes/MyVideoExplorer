@@ -7,8 +7,8 @@ from PySide6.QtWidgets import QHeaderView, QSizePolicy, QVBoxLayout, QWidget
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
-from MyVideoExplorer.widgets.label_value_widget import LabelValueWidget
-from MyVideoExplorer.widgets.simple_table_widget import SimpleTableWidget
+from MyVideoExplorer.widgets.labels.label_value_widget import LabelValueWidget
+from MyVideoExplorer.widgets.simple_table.simple_table_widget import SimpleTableWidget
 
 ACTOR_TABLE_COLUMN_KEYS = ["order", "name", "role", "thumb"]
 ACTOR_TABLE_COLUMN_HEADERS = ["#", "Name", "Role", "Thumb"]

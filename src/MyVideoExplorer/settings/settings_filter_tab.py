@@ -15,9 +15,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QProgressBar,
-    QPushButton,
     QScrollArea,
-    QSizePolicy,
     QTableWidget,
     QTableWidgetItem,
     QToolButton,
@@ -25,7 +23,6 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.db.db_filters import DbFilters
 from MyVideoExplorer.folder_filter.folder_filter_table import FolderFilterTable
 from MyVideoExplorer.media_nav_search.filter_criteria_dialog import FilterCriteriaDialog
@@ -89,6 +86,7 @@ class SettingsFilterTab(SettingsBaseTab):
         self._filter_table_widget: QTableWidget | None = None
         self._search_edit: QLineEdit | None = None
         self._type_combo: QComboBox | None = None
+        self._tag_btn: QToolButton | None = None
         self._tag_filter_label: QLabel | None = None
         self._clear_tag_btn: QToolButton | None = None
         self._refresh_all_btn: QToolButton | None = None
@@ -197,12 +195,12 @@ class SettingsFilterTab(SettingsBaseTab):
         controls_row.addWidget(self._type_combo)
 
         # Tag filter button
-        tag_btn = QToolButton(self)
-        tag_btn.setIcon(APP_THEME.icon("fa6s.tag", color=APP_THEME.text_color))
-        tag_btn.setIconSize(QSize(APP_THEME.icon_size, APP_THEME.icon_size))
-        tag_btn.setToolTip("Filter by tag values")
-        tag_btn.clicked.connect(self._on_tag_filter_clicked)
-        controls_row.addWidget(tag_btn)
+        self._tag_btn = QToolButton(self)
+        self._tag_btn.setIcon(APP_THEME.icon("fa6s.tag", color=APP_THEME.text_color))
+        self._tag_btn.setIconSize(QSize(APP_THEME.icon_size, APP_THEME.icon_size))
+        self._tag_btn.setToolTip("Filter by tag values")
+        self._tag_btn.clicked.connect(self._on_tag_filter_clicked)
+        controls_row.addWidget(self._tag_btn)
 
         # Active tag filter (hidden until tags are picked)
         self._tag_filter_label = QLabel(self)
@@ -312,50 +310,8 @@ class SettingsFilterTab(SettingsBaseTab):
         self._filter_table_widget.doubleClicked.connect(self._on_double_click)
         self.content_layout.addWidget(self._filter_table_widget, 1)
 
-        # Bottom buttons: Save and Reset
-        save_btn_container = QWidget(self)
-        save_btn_layout = QHBoxLayout(save_btn_container)
-        save_btn_layout.setContentsMargins(20, 15, 20, 15)
-
-        self.save_btn = QPushButton("Save Filter Settings", parent=self)
-        self.save_btn.setFixedWidth(200)
-        self.save_btn.clicked.connect(self._save_filter_settings)
-
-        self.reset_btn = self._build_reset_button(
-            "Reset Filter Settings", self.reset_settings
-        )
-        self.reset_btn.setFixedWidth(190)
-
-        spacer = QWidget(self)
-        spacer.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-
-        save_btn_layout.addWidget(self.reset_btn)
-        save_btn_layout.addWidget(spacer)
-        save_btn_layout.addWidget(self.save_btn)
-        self.content_layout.addWidget(
-            save_btn_container,
-            alignment=Qt.AlignmentFlag.AlignBottom,
-        )
-
         # Populate the filter list
         self._refresh_filter_list()
-
-    def reset_settings(self) -> None:
-        """Reset settings for this tab."""
-        self.state.load_filters()
-        self._refresh_filter_list()
-        self.reset_save_button()
-        self.saved.emit(
-            SignalPayload(
-                data=None,
-                sender=self.__class__.__name__,
-                name="Filter Settings Reset",
-                description="Filter settings were reset to defaults.",
-                flow=SignalFlow.USER_INPUT,
-            )
-        )
-        print("Filters Settings reset")
 
     def _on_search_changed(self) -> None:
         """Handle search text or type filter change."""
@@ -397,6 +353,8 @@ class SettingsFilterTab(SettingsBaseTab):
         """Open tag picker dialog to filter the list by tag values."""
         if self._tag_store is None:
             return
+        if self._tag_btn is None:
+            return
         popup = TagPickerDialog(self.window(), allow_create=False, allow_delete=False)
         catalog_tags = self._tag_store.list_tags()
         tag_colors = {
@@ -417,16 +375,24 @@ class SettingsFilterTab(SettingsBaseTab):
         popup.tag_selected.connect(on_tag_selected)
         popup.tag_created.connect(on_tag_selected)
 
-        pos = self.mapToGlobal(self.rect().bottomLeft())
-        screen = self.screen()
+        # Position the dialog below the tag button, right edge aligned
+        anchor = self._tag_btn
+        pos = anchor.mapToGlobal(anchor.rect().bottomRight())
+        screen = anchor.screen()
         if screen is not None:
             available = screen.availableGeometry()
             popup_w = min(max(520, popup.sizeHint().width()), available.width() - 20)
             popup_h = min(max(420, popup.sizeHint().height()), available.height() - 20)
             popup.resize(popup_w, popup_h)
-            x = min(pos.x(), available.right() - popup.width() - 10)
-            y = min(pos.y(), available.bottom() - popup.height() - 10)
-            popup.move(max(x, available.left()), max(y, available.top()))
+            # Align right edge of popup near right edge of the tag button
+            x = pos.x() - popup.width()
+            y = pos.y() + 10
+            # Keep within screen bounds
+            x = max(x, available.left())
+            x = min(x, available.right() - popup.width() - 10)
+            y = max(y, available.top())
+            y = min(y, available.bottom() - popup.height() - 10)
+            popup.move(x, y)
         else:
             popup.resize(520, 420)
             popup.move(pos)
@@ -927,19 +893,3 @@ class SettingsFilterTab(SettingsBaseTab):
         font = QFont(APP_THEME.font_family, APP_THEME.font_size)
         self.setFont(font)
         self._refresh_filter_list()
-
-    def _save_filter_settings(self) -> None:
-        """Save only Filters tab settings."""
-        self.state.save_filters()
-        self._refresh_all_counts()
-        self.reset_save_button()
-        self.saved.emit(
-            SignalPayload(
-                data=None,
-                sender=self.__class__.__name__,
-                name="Filter Settings Saved",
-                description="Filter settings were saved.",
-                flow=SignalFlow.USER_INPUT,
-            )
-        )
-        print("Filters Settings saved")

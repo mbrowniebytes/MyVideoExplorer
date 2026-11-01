@@ -229,18 +229,18 @@ class FolderFilterTable(QTableWidget):
 
     FILTER_TYPES = [
         "OS",
-        "Folder",
         "File",
-        "NFO",
-        "Genre",
-        "Actor",
-        "Director",
-        "Title",
-        "Year",
+        "Folder",
         "META",
         "Last Played",
-        "Qty Played",
         "Tag",
+        "Qty Played",
+        "NFO",
+        "Actor",
+        "Director",
+        "Genre",
+        "Title",
+        "Year",
     ]
 
     # Group headers that separate sections in the table and dropdown;

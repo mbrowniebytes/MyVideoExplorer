@@ -4,8 +4,8 @@ from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.ui_utils import UIUtils
-from MyVideoExplorer.widgets.label_value_widget import LabelValueWidget
-from MyVideoExplorer.widgets.simple_table_widget import SimpleTableWidget
+from MyVideoExplorer.widgets.labels.label_value_widget import LabelValueWidget
+from MyVideoExplorer.widgets.simple_table.simple_table_widget import SimpleTableWidget
 
 
 class MediaInfoDetailsSection(QWidget, ThemableMixin):

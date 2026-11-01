@@ -56,7 +56,7 @@ class FolderFilters(QWidget, ThemableMixin):
         self._ui_utils = UIUtils()
         self.settings = settings
 
-        self.apply_button = QToolButton(self)
+        self.clear_search_button = QToolButton(self)
         self.filter_criteria_button = QToolButton(self)
         self.genre_combo = GenreComboWidget(self.GENRES, parent=self)
         self.nav_combo = QComboBox(self)
@@ -89,13 +89,13 @@ class FolderFilters(QWidget, ThemableMixin):
         self.build_nav_combo()
         self._build_saved_filters_combo()
         self._build_filter_criteria_button()
-        self._build_apply_button()
+        self._build_clear_search_button()
 
         # Add saved filters and filter controls row
         saved_filters_layout = QHBoxLayout()
         saved_filters_layout.addWidget(self.saved_filters_combo, 1)
         saved_filters_layout.addWidget(self.filter_criteria_button)
-        saved_filters_layout.addWidget(self.apply_button)
+        saved_filters_layout.addWidget(self.clear_search_button)
 
         filter_layout = QVBoxLayout(filter_container)
         filter_layout.setSpacing(4)
@@ -126,10 +126,14 @@ class FolderFilters(QWidget, ThemableMixin):
         self.nav_combo.setMinimumHeight(40)
         self.nav_combo.blockSignals(False)
 
-    def _build_apply_button(self) -> None:
-        self.apply_button = self._make_tool_button("Apply Filters", "fa6s.rotate")
-        self.apply_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
-        self.apply_button.setFixedWidth(40)
+    def _build_clear_search_button(self) -> None:
+        self.clear_search_button = self._make_tool_button("Clear Filter", "fa6s.xmark")
+        self.clear_search_button.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonIconOnly
+        )
+        self.clear_search_button.setFixedWidth(40)
+        self.clear_search_button.setEnabled(False)
+        self.clear_search_button.clicked.connect(self._clear_search)
 
     def _build_filter_criteria_button(self) -> None:
         self.filter_criteria_button = self._make_tool_button(
@@ -246,10 +250,12 @@ class FolderFilters(QWidget, ThemableMixin):
 
     def _connect_sigs(self) -> None:
         self.nav_combo.currentIndexChanged.connect(self._handle_media_selection)
-        self.apply_button.clicked.connect(self.filters_requested.emit)
         self.media_filter_widget.apply_filters.connect(self.filters_requested.emit)
         self.saved_filters_combo.currentIndexChanged.connect(self._load_saved_filter)
         self.saved_filters_combo.currentTextChanged.connect(self._handle_filter_text)
+        self.saved_filters_combo.currentTextChanged.connect(
+            self._update_clear_search_enabled
+        )
         self.genre_combo.genre_changed.connect(
             lambda payload: self.genre_changed.emit(payload)
         )
@@ -300,6 +306,17 @@ class FolderFilters(QWidget, ThemableMixin):
         self.media_filter_widget.apply_filters.connect(
             self._on_media_filter_selection_changed
         )
+
+    def _update_clear_search_enabled(self, text: str) -> None:
+        """Enable clear button only when search text exists."""
+        self.clear_search_button.setEnabled(bool(text.strip()))
+
+    def _clear_search(self) -> None:
+        """Clear the saved filters combo search text."""
+        line_edit = self.saved_filters_combo.lineEdit()
+        if line_edit is not None:
+            line_edit.clear()
+            line_edit.setFocus()
 
     def _on_media_filter_selection_changed(self) -> None:
         selected_folders = [

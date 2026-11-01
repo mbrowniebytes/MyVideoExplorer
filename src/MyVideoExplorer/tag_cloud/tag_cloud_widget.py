@@ -101,7 +101,7 @@ class TagCloudWidget(QWidget):
             self.add_tag_button = QToolButton(self)
             self.add_tag_button.setObjectName("add_tag_button")
             self.add_tag_button.setIcon(
-                APP_THEME.icon("fa6s.tag", color=APP_THEME.text_color)
+                APP_THEME.icon("fa6s.circle-plus", color=APP_THEME.text_color)
             )
             self.add_tag_button.setToolTip("Add new tag")
             self.add_tag_button.setAutoRaise(True)

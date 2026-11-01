@@ -649,7 +649,7 @@ class MediaNavSearchWidget(QWidget):
         counts = tag_store.get_tag_counts() if tag_store is not None else {}
         self._tag_picker.set_data(self._selected_tags, colors, catalog, counts)
         self.options_dialog.set_tag_colors(colors)
-        self._show_popup(self._tag_picker, self.options_dialog.select_tags_button)
+        self._show_popup(self._tag_picker, self.tag_button)
 
     @staticmethod
     def _show_popup(popup: QDialog, anchor: QWidget) -> None:

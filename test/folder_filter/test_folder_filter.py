@@ -155,7 +155,7 @@ class TestFolderNavFilters:
 
     def test_ui_initialization(self, nav_filters):
         """Verify that UI components are correctly initialized."""
-        assert nav_filters.apply_button.toolTip().strip() == "Apply Filters"
+        assert nav_filters.clear_search_button.toolTip().strip() == "Clear Filter"
         assert nav_filters.saved_filters_combo.count() >= 1
         assert (
             nav_filters.saved_filters_combo.itemText(0)
@@ -232,12 +232,25 @@ class TestFolderNavFilters:
         # No tag filters should be present
         assert not any(f["filter"] == "Tag" for f in filters)
 
-    def test_apply_filters_trigger(self, nav_filters, qtbot):
-        """Verify that clicking apply button emits signal."""
-        nav_filters.settings.settings_data_model.db_enabled.return_value = False
-        with qtbot.waitSignal(nav_filters.filters_requested) as blocker:
-            nav_filters.apply_button.click()
-        assert blocker.args is not None
+    def test_clear_search_button_clears_filter_text(self, nav_filters, qtbot):
+        """Verify that clicking clear button clears the saved filters combo search text."""
+        nav_filters.show()
+        combo = nav_filters.saved_filters_combo
+        line_edit = combo.lineEdit()
+        assert line_edit is not None
+
+        # Type some search text to enable the clear button
+        line_edit.setText("some search text")
+        qtbot.wait(50)
+
+        assert nav_filters.clear_search_button.isEnabled()
+        assert line_edit.text() == "some search text"
+
+        with qtbot.waitSignal(nav_filters.clear_search_button.clicked):
+            nav_filters.clear_search_button.click()
+
+        assert line_edit.text() == ""
+        assert not nav_filters.clear_search_button.isEnabled()
 
     def test_filter_criteria_button_opens_popup_with_criteria_table(self, nav_filters):
         assert nav_filters.filter_criteria_button.toolTip() == "View Filter Criteria"
