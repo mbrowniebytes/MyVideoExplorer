@@ -6,6 +6,7 @@ from typing import Any
 from PySide6.QtCore import QObject, Signal
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
+from MyVideoExplorer.db.db_filters import DEFAULT_FILTER_DB_PATH, DbFilters
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtils
 from MyVideoExplorer.utils.json_util import JsonUtil
@@ -36,8 +37,10 @@ class SettingsState(QObject):
     window_pos_changed = Signal(object)
     tags_changed = Signal()
     tag_counts_changed = Signal()
+    filter_counts_changed = Signal()
+    media_folder_selection_changed = Signal(object)
 
-    def __init__(self, log_util: Any) -> None:
+    def __init__(self, log_util: Any, filter_db_path: Path | str | None = None) -> None:
         super().__init__()
 
         self.log_util = log_util
@@ -55,10 +58,17 @@ class SettingsState(QObject):
         self.scan_media_timeout_seconds = DEFAULT_SCAN_MEDIA_TIMEOUT_SECONDS
 
         self.media_configs: list[dict[str, Any]] = []
+        self.selected_media_folders: list[str] = []
         self.tags: list[dict[str, str]] = []
         self._db_enabled = True
         self.saved_filters: list[dict[str, Any]] = []
         self._load_settings()
+        self.filter_store = DbFilters(
+            self,
+            self.saved_filters,
+            db_path=filter_db_path or DEFAULT_FILTER_DB_PATH,
+        )
+        self.saved_filters = self.filter_store.list_filters()
         self.log_util.debug(f"__init__ {self.__class__.__name__}")
 
     def _ensure_defaults(self) -> None:
@@ -238,17 +248,13 @@ class SettingsState(QObject):
         self.json_util.save_json(SETTINGS_MEDIA_FILE, media_settings)
 
     def save_filters(self) -> None:
-        """Save only Filters tab settings."""
+        """Persist the saved filters in the filter catalog database."""
         self._ensure_defaults()
+        self.filter_store.replace_all(self.saved_filters)
+        self.saved_filters = self.filter_store.list_filters()
+        self._emit_filters_changed()
 
-        filter_settings: dict[str, list[dict[str, Any]]] = {
-            "saved_filters": self.saved_filters,
-        }
-
-        # Backup then save
-        self.json_util.backup_file(SETTINGS_FILTER_FILE, max_backups=5)
-        self.json_util.save_json(SETTINGS_FILTER_FILE, filter_settings)
-
+    def _emit_filters_changed(self) -> None:
         self.settings_changed.emit(
             SignalPayload(
                 data=None,
@@ -370,17 +376,8 @@ class SettingsState(QObject):
                 config["path"] = FileUtils.normalize_path(str(config["path"]))
 
     def load_filters(self) -> None:
-        """Reload Filter settings from file."""
-        filter_data = self.json_util.load_json(DEFAULTS_FILTER_FILE)
-        if SETTINGS_FILTER_FILE.exists():
-            filter_data.update(self.json_util.load_json(SETTINGS_FILTER_FILE))
-        self.saved_filters = filter_data.get("saved_filters", self.saved_filters)
-        # Migration: if saved_filters is a dict, convert it to a list of dicts
-        if isinstance(self.saved_filters, dict):
-            new_filters = []
-            for name, filters in self.saved_filters.items():
-                new_filters.append({"name": name, "filters": filters})
-            self.saved_filters = new_filters
+        """Reload saved filters from the database-backed catalog."""
+        self.saved_filters = self.filter_store.list_filters()
 
     def save_filter(
         self,
@@ -397,33 +394,15 @@ class SettingsState(QObject):
             original_name: Previous name when renaming, so the existing entry is
                 replaced in place instead of a duplicate being appended.
         """
-        target = original_name or name
-        entry = {"name": name, "filters": filter_cfg}
-        new_filters: list[dict[str, Any]] = []
-        b_found = False
-        for saved_filter_cfg in self.saved_filters:
-            saved_name = saved_filter_cfg.get("name")
-            if saved_name == target and not b_found:
-                new_filters.append(entry)
-                b_found = True
-            elif saved_name == name and target != name:
-                # Renaming onto an existing name replaces that filter
-                continue
-            else:
-                new_filters.append(saved_filter_cfg)
-
-        if not b_found:
-            new_filters.append(entry)
-
-        self.saved_filters = new_filters
-        # save_filters emits settings_changed
-        self.save_filters()
+        self.filter_store.save_filter(name, filter_cfg, original_name)
+        self.saved_filters = self.filter_store.list_filters()
+        self._emit_filters_changed()
 
     def delete_filter(self, name: str) -> None:
-        """Deletes a named filter configuration."""
-        self.saved_filters = [f for f in self.saved_filters if f.get("name") != name]
-        # save_filters emits settings_changed
-        self.save_filters()
+        """Delete a named filter configuration from the catalog."""
+        self.filter_store.delete_filter(name)
+        self.saved_filters = self.filter_store.list_filters()
+        self._emit_filters_changed()
 
     @staticmethod
     def sanitize_media_label(label: Any) -> str:

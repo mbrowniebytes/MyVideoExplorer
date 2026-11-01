@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
+import duckdb
 import pytest
 from PySide6.QtCore import QPointF, Qt
 from PySide6.QtGui import QEnterEvent
-from PySide6.QtWidgets import QToolButton
+from PySide6.QtWidgets import QMessageBox, QToolButton
 
+from MyVideoExplorer.db.db_filters import DbFilters
 from MyVideoExplorer.media_nav_search.filter_criteria_dialog import FilterCriteriaDialog
 from MyVideoExplorer.settings.settings_filter_tab import SettingsFilterTab
 from MyVideoExplorer.settings.settings_state import SettingsState
@@ -64,11 +66,172 @@ def test_filter_rows_with_saved_filters_should_have_edit_left_and_delete_right(t
     assert SettingsFilterTab.COL_DELETE == table.columnCount() - 1
     assert table.wordWrap() is False
     assert table.textElideMode() == Qt.TextElideMode.ElideRight
+    assert (
+        table.horizontalHeaderItem(SettingsFilterTab.COL_COUNT).text()
+        == "Media Folder Count"
+    )
+    assert isinstance(table.cellWidget(0, SettingsFilterTab.COL_REFRESH), QToolButton)
+
+
+def test_movie_count_column_should_display_cached_count_and_be_sortable(tab, state):
+    state.saved_filters[0]["total_count"] = 12
+    state.saved_filters[1]["total_count"] = 4
+    tab._refresh_filter_list()
+
+    table = tab._filter_table_widget
+    assert table is not None
+    assert table.item(0, SettingsFilterTab.COL_COUNT).text() == "12"
+    assert table.horizontalHeader().isSortIndicatorShown()
+    tab._on_sort_changed(SettingsFilterTab.COL_COUNT, Qt.SortOrder.DescendingOrder)
+    assert table.item(0, SettingsFilterTab.COL_NAME).text() == "Alpha"
+    assert table.item(1, SettingsFilterTab.COL_NAME).text() == "Beta"
+    tab._on_sort_changed(SettingsFilterTab.COL_COUNT, Qt.SortOrder.AscendingOrder)
+    assert table.item(0, SettingsFilterTab.COL_NAME).text() == "Beta"
+
+
+def test_criteria_count_column_should_be_sortable(tab, state):
+    state.saved_filters = [
+        {"name": "Few", "filters": [{"filter": "title", "value": "one"}]},
+        {
+            "name": "Many",
+            "filters": [
+                {"filter": "title", "value": "one"},
+                {"filter": "genre", "value": "drama"},
+                {"filter": "year", "value": "2000"},
+            ],
+        },
+        {
+            "name": "Some",
+            "filters": [
+                {"filter": "title", "value": "one"},
+                {"filter": "genre", "value": "drama"},
+            ],
+        },
+    ]
+    tab._refresh_filter_list()
+
+    table = tab._filter_table_widget
+    assert table is not None
+    assert table.horizontalHeaderItem(SettingsFilterTab.COL_CRITERIA_COUNT).text() == (
+        "Criteria Count"
+    )
+    tab._on_sort_changed(
+        SettingsFilterTab.COL_CRITERIA_COUNT, Qt.SortOrder.AscendingOrder
+    )
+    assert [
+        table.item(row, SettingsFilterTab.COL_NAME).text()
+        for row in range(table.rowCount())
+    ] == ["Few", "Some", "Many"]
+    tab._on_sort_changed(
+        SettingsFilterTab.COL_CRITERIA_COUNT, Qt.SortOrder.DescendingOrder
+    )
+    assert [
+        table.item(row, SettingsFilterTab.COL_NAME).text()
+        for row in range(table.rowCount())
+    ] == ["Many", "Some", "Few"]
+
+
+def test_movie_count_column_should_reflect_selected_media_folders(qtbot, tmp_path):
+    state = MagicMock(spec=SettingsState)
+    state.media_configs = [
+        {"path": "/media/a"},
+        {"path": "/media/b"},
+    ]
+    state.selected_media_folders = ["/media/a"]
+    state.tags = []
+    store = DbFilters(
+        state,
+        [{"name": "Selected", "filters": []}],
+        tmp_path / "filters.db",
+    )
+    with duckdb.connect(store.path_utils.normalize_path(store.db_path)) as con:
+        con.execute(
+            "UPDATE media_filters SET folder_counts = map(['/media/a', '/media/b'], [3, 7]), "
+            "total_count = 10 WHERE name = 'Selected'"
+        )
+    state.filter_store = store
+    state.saved_filters = store.list_filters()
+
+    tab = SettingsFilterTab(state, MagicMock())
+    qtbot.addWidget(tab)
+
+    table = tab._filter_table_widget
+    assert table is not None
+    count_item = table.item(0, SettingsFilterTab.COL_COUNT)
+    assert count_item is not None
+    assert count_item.text() == "3"
+
+
+def test_delete_filter_with_more_than_ten_matches_should_require_confirmation(
+    qtbot, tab, state, monkeypatch
+):
+    state.saved_filters[0]["total_count"] = 11
+    answers = [QMessageBox.StandardButton.No]
+    monkeypatch.setattr(
+        "MyVideoExplorer.settings.settings_filter_tab.QMessageBox.question",
+        lambda *args, **kwargs: answers.pop(0),
+    )
+
+    tab._request_delete("Alpha")
+    assert not state.delete_filter.called
+
+    answers.append(QMessageBox.StandardButton.Yes)
+    tab._request_delete("Alpha")
+    qtbot.waitUntil(lambda: state.delete_filter.called)
+    state.delete_filter.assert_called_once_with("Alpha")
+
+
+def test_row_refresh_button_should_update_movie_count_off_gui_thread(qtbot, tmp_path):
+    media_db = tmp_path / "media.db"
+    with duckdb.connect(media_db.as_posix()) as con:
+        con.execute(
+            "CREATE TABLE media_file "
+            "(media_path TEXT, file_path TEXT, type TEXT, title TEXT)"
+        )
+        con.execute(
+            "INSERT INTO media_file VALUES "
+            "('/media', '/media/Movie/movie.mkv', 'video', 'Movie')"
+        )
+
+    state = MagicMock(spec=SettingsState)
+    state.media_configs = [{"path": "/media"}]
+    state.selected_media_folders = []
+    state.tags = []
+    state.get_db_path.side_effect = lambda _config: media_db.as_posix()
+    store = DbFilters(
+        state,
+        [{"name": "All Movies", "filters": []}],
+        tmp_path / "filters.db",
+    )
+    state.filter_store = store
+    state.saved_filters = store.list_filters()
+    state.load_filters.side_effect = lambda: setattr(
+        state, "saved_filters", store.list_filters()
+    )
+
+    tab = SettingsFilterTab(state, MagicMock())
+    qtbot.addWidget(tab)
+    table = tab._filter_table_widget
+    assert table is not None
+    refresh_button = table.cellWidget(0, SettingsFilterTab.COL_REFRESH)
+    assert isinstance(refresh_button, QToolButton)
+    qtbot.mouseClick(refresh_button, Qt.MouseButton.LeftButton)
+    qtbot.waitUntil(lambda: tab._active_count_worker is None)
+
+    refreshed = store.get_filter("All Movies")
+    assert refreshed is not None
+    assert refreshed["total_count"] == 1
+    count_item = table.item(0, SettingsFilterTab.COL_COUNT)
+    assert count_item is not None
+    assert count_item.text() == "1"
 
 
 def test_add_filter_button_should_share_row_with_search_controls(tab):
     search_edit = tab._search_edit
     assert search_edit is not None
+    refresh_button = tab._refresh_all_btn
+    assert refresh_button is not None
+    assert refresh_button.toolTip() == "Update all filter media counts"
     add_buttons = [
         b for b in tab.findChildren(QToolButton) if b.toolTip() == "Add New Filter"
     ]
@@ -76,6 +239,23 @@ def test_add_filter_button_should_share_row_with_search_controls(tab):
     add_center = add_buttons[0].mapTo(tab, add_buttons[0].rect().center())
     search_center = search_edit.mapTo(tab, search_edit.rect().center())
     assert abs(add_center.y() - search_center.y()) <= search_edit.height()
+    refresh_center = refresh_button.mapTo(tab, refresh_button.rect().center())
+    assert refresh_center.x() < add_center.x()
+    progress_bar = tab._bulk_progress_bar
+    assert progress_bar is not None
+    assert progress_bar.parentWidget() is refresh_button.parentWidget()
+    add_x_before = add_buttons[0].mapTo(tab, add_buttons[0].rect().topLeft()).x()
+    progress_bar.show()
+    button_pos = refresh_button.mapTo(tab, refresh_button.rect().topLeft())
+    progress_pos = progress_bar.mapTo(tab, progress_bar.rect().topLeft())
+    assert progress_pos.x() == button_pos.x()
+    assert (
+        progress_pos.y() + progress_bar.height()
+        == button_pos.y() + refresh_button.height()
+    )
+    assert (
+        add_buttons[0].mapTo(tab, add_buttons[0].rect().topLeft()).x() == add_x_before
+    )
 
 
 def test_edit_button_click_should_open_non_blocking_dialog(qtbot, tab):

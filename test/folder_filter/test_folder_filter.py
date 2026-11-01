@@ -1,11 +1,13 @@
 from datetime import date
 from unittest.mock import MagicMock
 
+import duckdb
 import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QComboBox, QLabel, QToolButton
 
 from MyVideoExplorer.db.db_filter import DbFilter
+from MyVideoExplorer.db.db_filters import DbFilters
 from MyVideoExplorer.folder_filter.folder_filter import FolderFilters
 from MyVideoExplorer.folder_filter.folder_filter_filter import FolderFilterFilter
 from MyVideoExplorer.folder_filter.folder_filter_table import (
@@ -157,7 +159,7 @@ class TestFolderNavFilters:
         assert nav_filters.saved_filters_combo.count() >= 1
         assert (
             nav_filters.saved_filters_combo.itemText(0)
-            == "- Showing All - Select a Filter -"
+            == "- Select a Filter (Showing All) -"
         )
         # Starts with 1 row (placeholder)
         assert nav_filters.filter_table.rowCount() == 1
@@ -189,6 +191,30 @@ class TestFolderNavFilters:
 
         combo.setEditText("Example")
         assert combo.currentIndex() == combo.findText("Example")
+
+    def test_saved_filter_combo_count_should_reflect_selected_media_folders(
+        self, nav_filters, settings_mock, tmp_path
+    ):
+        store = DbFilters(
+            settings_mock.settings_data_model,
+            [{"name": "Example", "filters": []}],
+            tmp_path / "filters.db",
+        )
+        with duckdb.connect(store.path_utils.normalize_path(store.db_path)) as con:
+            con.execute(
+                "UPDATE media_filters SET folder_counts = map(['movies', 'tv'], [3, 7]), "
+                "total_count = 10 WHERE name = 'Example'"
+            )
+        settings_mock.settings_data_model.filter_store = store
+        settings_mock.settings_data_model.saved_filters = store.list_filters()
+
+        nav_filters._refresh_saved_filters_combo()
+        combo = nav_filters.saved_filters_combo
+        assert combo.itemText(combo.findData("Example")) == "Example (10)"
+
+        nav_filters.media_filter_widget.media_button_group[0].setChecked(True)
+        nav_filters._refresh_saved_filters_combo()
+        assert combo.itemText(combo.findData("Example")) == "Example (3)"
 
     def test_collect_filters(self, nav_filters):
         """Verify that filters are collected without tag filters."""
@@ -417,7 +443,10 @@ class TestFolderNavFilters:
         assert name_item.text() == "Action Only"
         count_item = table.item(0, SettingsFilterTab.COL_COUNT)
         assert count_item is not None
-        assert count_item.text() == "1"
+        assert count_item.text() == "-"
+        criteria_count_item = table.item(0, SettingsFilterTab.COL_CRITERIA_COUNT)
+        assert criteria_count_item is not None
+        assert criteria_count_item.text() == "1"
         types_item = table.item(0, SettingsFilterTab.COL_TYPES)
         assert types_item is not None
         assert types_item.text() == "Tag"
@@ -454,7 +483,10 @@ class TestFolderNavFilters:
         assert table.rowCount() == 1
         count_item = table.item(0, SettingsFilterTab.COL_COUNT)
         assert count_item is not None
-        assert count_item.text() == "2"
+        assert count_item.text() == "-"
+        criteria_count_item = table.item(0, SettingsFilterTab.COL_CRITERIA_COUNT)
+        assert criteria_count_item is not None
+        assert criteria_count_item.text() == "2"
         types_item = table.item(0, SettingsFilterTab.COL_TYPES)
         assert types_item is not None
         assert types_item.text() == "Tag"

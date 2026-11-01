@@ -7,11 +7,14 @@ from PySide6.QtCore import QModelIndex, QSize, Qt, QTimer
 from PySide6.QtGui import QFont, QStandardItemModel
 from PySide6.QtWidgets import (
     QComboBox,
+    QGridLayout,
     QGroupBox,
     QHBoxLayout,
     QHeaderView,
     QLabel,
     QLineEdit,
+    QMessageBox,
+    QProgressBar,
     QPushButton,
     QScrollArea,
     QSizePolicy,
@@ -23,8 +26,10 @@ from PySide6.QtWidgets import (
 )
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
+from MyVideoExplorer.db.db_filters import DbFilters
 from MyVideoExplorer.folder_filter.folder_filter_table import FolderFilterTable
 from MyVideoExplorer.media_nav_search.filter_criteria_dialog import FilterCriteriaDialog
+from MyVideoExplorer.settings.filter_count_worker import FilterCountWorker
 from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
 from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.tag_cloud.tag_picker_dialog import TagPickerDialog
@@ -55,9 +60,11 @@ class SettingsFilterTab(SettingsBaseTab):
     COL_EDIT = 0
     COL_NAME = 1
     COL_COUNT = 2
-    COL_TYPES = 3
-    COL_DELETE = 4
-    COLUMN_COUNT = 5
+    COL_REFRESH = 3
+    COL_CRITERIA_COUNT = 4
+    COL_TYPES = 5
+    COL_DELETE = 6
+    COLUMN_COUNT = 7
 
     def __init__(
         self,
@@ -69,6 +76,10 @@ class SettingsFilterTab(SettingsBaseTab):
         super().__init__(log_util, parent)
         self.state = state
         self._tag_store: DbTags | None = tag_store
+        self.state.filter_counts_changed.connect(self._refresh_filter_list)
+        self.state.media_folder_selection_changed.connect(
+            self._on_media_folder_selection_changed
+        )
 
         # Search/filter state
         self._search_text = ""
@@ -80,6 +91,13 @@ class SettingsFilterTab(SettingsBaseTab):
         self._type_combo: QComboBox | None = None
         self._tag_filter_label: QLabel | None = None
         self._clear_tag_btn: QToolButton | None = None
+        self._refresh_all_btn: QToolButton | None = None
+        self._bulk_progress_bar: QProgressBar | None = None
+        self._active_count_worker: FilterCountWorker | None = None
+        self._worker_is_bulk = False
+        self._progress_index = 0
+        self._busy_filter_name: str | None = None
+        self._count_errors: list[str] = []
         self._filtered_filters: list[dict[str, Any]] = []
         # Keeps the non-blocking dialog alive while it is open
         self._active_dialog: FilterCriteriaDialog | None = None
@@ -134,6 +152,16 @@ class SettingsFilterTab(SettingsBaseTab):
         self._search_edit.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
         self._search_edit.textChanged.connect(self._on_search_changed)
         controls_row.addWidget(self._search_edit, 1)
+
+        self._refresh_all_btn = QToolButton(self)
+        self._refresh_all_btn.setIcon(
+            APP_THEME.icon("fa6s.arrows-rotate", color=APP_THEME.text_color)
+        )
+        self._refresh_all_btn.setIconSize(
+            QSize(APP_THEME.icon_size, APP_THEME.icon_size)
+        )
+        self._refresh_all_btn.setToolTip("Update all filter media counts")
+        self._refresh_all_btn.clicked.connect(self._refresh_all_counts)
 
         # Filter by criteria type
         type_label = QLabel("Type:", self)
@@ -194,6 +222,32 @@ class SettingsFilterTab(SettingsBaseTab):
         controls_row.addWidget(self._clear_tag_btn)
         self._update_tag_filter_label()
 
+        refresh_controls = QWidget(self)
+        refresh_controls.setFixedSize(36, 32)
+        refresh_layout = QGridLayout(refresh_controls)
+        refresh_layout.setContentsMargins(0, 0, 0, 0)
+        refresh_layout.setSpacing(0)
+        self._refresh_all_btn.setFixedSize(36, 32)
+        refresh_layout.addWidget(self._refresh_all_btn, 0, 0)
+        self._bulk_progress_bar = QProgressBar(self)
+        self._bulk_progress_bar.setTextVisible(False)
+        self._bulk_progress_bar.setFixedSize(36, 4)
+        self._bulk_progress_bar.setStyleSheet(
+            "QProgressBar { background: transparent; border: none; }"
+            "QProgressBar::chunk { background: palette(highlight); }"
+        )
+        self._bulk_progress_bar.setAttribute(
+            Qt.WidgetAttribute.WA_TransparentForMouseEvents
+        )
+        self._bulk_progress_bar.hide()
+        refresh_layout.addWidget(
+            self._bulk_progress_bar,
+            0,
+            0,
+            alignment=Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom,
+        )
+        controls_row.addWidget(refresh_controls)
+
         # Add filter button, on the same row as the search controls
         add_btn = QToolButton(self)
         add_btn.setIcon(APP_THEME.icon("fa6s.circle-plus", color=APP_THEME.text_color))
@@ -210,7 +264,15 @@ class SettingsFilterTab(SettingsBaseTab):
         self._filter_table_widget = QTableWidget(self)
         self._filter_table_widget.setColumnCount(self.COLUMN_COUNT)
         self._filter_table_widget.setHorizontalHeaderLabels(
-            ["", "Filter Name", "Criteria Count", "Criteria Types", ""]
+            [
+                "",
+                "Filter Name",
+                "Media Folder Count",
+                "",
+                "Criteria Count",
+                "Criteria Types",
+                "",
+            ]
         )
         self._filter_table_widget.verticalHeader().setVisible(False)
         # One line per filter; long text is elided with "..."
@@ -232,12 +294,17 @@ class SettingsFilterTab(SettingsBaseTab):
         header.setSectionResizeMode(
             self.COL_COUNT, QHeaderView.ResizeMode.ResizeToContents
         )
+        header.setSectionResizeMode(self.COL_REFRESH, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(
+            self.COL_CRITERIA_COUNT, QHeaderView.ResizeMode.ResizeToContents
+        )
         header.setSectionResizeMode(self.COL_TYPES, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(self.COL_DELETE, QHeaderView.ResizeMode.Fixed)
         self._filter_table_widget.setColumnWidth(self.COL_EDIT, 36)
+        self._filter_table_widget.setColumnWidth(self.COL_REFRESH, 32)
         self._filter_table_widget.setColumnWidth(self.COL_DELETE, 36)
 
-        # Enable clickable sorting on Name and Count columns
+        # Enable clickable sorting on name and count columns
         header.setSortIndicatorShown(True)
         header.setSortIndicator(self._sort_column, self._sort_order)
         header.sortIndicatorChanged.connect(self._on_sort_changed)
@@ -300,8 +367,8 @@ class SettingsFilterTab(SettingsBaseTab):
 
     def _on_sort_changed(self, column: int, order: Qt.SortOrder) -> None:
         """Handle column header click to sort the filter list."""
-        # Only allow sorting on Name and Count columns
-        if column not in (self.COL_NAME, self.COL_COUNT):
+        # Only allow sorting on name and count columns
+        if column not in (self.COL_NAME, self.COL_COUNT, self.COL_CRITERIA_COUNT):
             if self._filter_table_widget is not None:
                 header = self._filter_table_widget.horizontalHeader()
                 header.setSortIndicator(self._sort_column, self._sort_order)
@@ -422,7 +489,12 @@ class SettingsFilterTab(SettingsBaseTab):
             )
         elif self._sort_column == self.COL_COUNT:
             filtered.sort(
-                key=lambda f: len(f.get("filters", [])),
+                key=lambda f: self._sort_count_key(f),
+                reverse=self._sort_order == Qt.SortOrder.DescendingOrder,
+            )
+        elif self._sort_column == self.COL_CRITERIA_COUNT:
+            filtered.sort(
+                key=self._criteria_count_key,
                 reverse=self._sort_order == Qt.SortOrder.DescendingOrder,
             )
 
@@ -445,16 +517,44 @@ class SettingsFilterTab(SettingsBaseTab):
                 ),
             )
 
+            match_count = self._display_count(filter_cfg)
+            count_item = QTableWidgetItem(
+                str(match_count) if match_count is not None else "-"
+            )
+            count_item.setData(
+                Qt.ItemDataRole.UserRole,
+                int(match_count) if match_count is not None else -1,
+            )
+            count_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            count_item.setFont(cell_font)
+            table.setItem(row_idx, self.COL_COUNT, count_item)
+
+            refresh_button = self._make_row_button(
+                "fa6s.arrows-rotate",
+                f"Refresh filtered media-folder count for '{name}'",
+                partial(self._refresh_one_count, name),
+            )
+            if self._active_count_worker is not None:
+                refresh_button.setEnabled(False)
+                if self._busy_filter_name == name:
+                    refresh_button.setIcon(
+                        APP_THEME.icon("fa6s.spinner", color=APP_THEME.text_color)
+                    )
+                    refresh_button.setToolTip(
+                        f"Refreshing filtered media-folder count for '{name}'"
+                    )
+            table.setCellWidget(row_idx, self.COL_REFRESH, refresh_button)
+
             # Name cell (elided with "..." when too long)
             name_item = QTableWidgetItem(name)
             name_item.setToolTip(name)
             name_item.setFont(cell_font)
             table.setItem(row_idx, self.COL_NAME, name_item)
 
-            count_item = QTableWidgetItem(str(criteria_count))
-            count_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            count_item.setFont(cell_font)
-            table.setItem(row_idx, self.COL_COUNT, count_item)
+            criteria_count_item = QTableWidgetItem(str(criteria_count))
+            criteria_count_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            criteria_count_item.setFont(cell_font)
+            table.setItem(row_idx, self.COL_CRITERIA_COUNT, criteria_count_item)
 
             types_item = QTableWidgetItem(types_str)
             types_item.setToolTip(types_str)
@@ -488,6 +588,199 @@ class SettingsFilterTab(SettingsBaseTab):
         # Ignore the bool argument of clicked
         btn.clicked.connect(lambda _checked=False: slot())
         return btn
+
+    def _filter_store(self) -> DbFilters | None:
+        store = getattr(self.state, "filter_store", None)
+        return store if isinstance(store, DbFilters) else None
+
+    def _display_count(self, filter_cfg: dict[str, Any]) -> int | None:
+        store = self._filter_store()
+        if store is None:
+            count = filter_cfg.get("total_count")
+            return int(count) if count is not None else None
+        return store.get_display_count(
+            str(filter_cfg.get("name", "")),
+            getattr(self.state, "selected_media_folders", []),
+        )
+
+    def _sort_count_key(self, filter_cfg: dict[str, Any]) -> tuple[bool, int]:
+        count = self._display_count(filter_cfg)
+        return count is not None, count or 0
+
+    @staticmethod
+    def _criteria_count_key(filter_cfg: dict[str, Any]) -> int:
+        return len(filter_cfg.get("filters", []))
+
+    def _on_media_folder_selection_changed(self, _folders: object = None) -> None:
+        self._refresh_filter_list()
+
+    def _ordered_saved_filters(self) -> list[dict[str, Any]]:
+        filters = list(self.state.saved_filters)
+        if self._sort_column == self.COL_NAME:
+            filters.sort(
+                key=lambda item: str(item.get("name", "")).casefold(),
+                reverse=self._sort_order == Qt.SortOrder.DescendingOrder,
+            )
+        elif self._sort_column == self.COL_COUNT:
+            filters.sort(
+                key=self._sort_count_key,
+                reverse=self._sort_order == Qt.SortOrder.DescendingOrder,
+            )
+        elif self._sort_column == self.COL_CRITERIA_COUNT:
+            filters.sort(
+                key=self._criteria_count_key,
+                reverse=self._sort_order == Qt.SortOrder.DescendingOrder,
+            )
+        return filters
+
+    def _refresh_one_count(self, name: str) -> None:
+        self._start_count_refresh([name], is_bulk=False)
+
+    def _refresh_all_counts(self) -> None:
+        self._start_count_refresh(
+            [str(item.get("name", "")) for item in self._ordered_saved_filters()],
+            is_bulk=True,
+        )
+
+    def _start_count_refresh(self, names: list[str], is_bulk: bool) -> None:
+        store = self._filter_store()
+        names = [name for name in names if name]
+        if store is None or not names or self._active_count_worker is not None:
+            return
+
+        self._worker_is_bulk = is_bulk
+        self._progress_index = 0
+        self._busy_filter_name = None
+        self._count_errors = []
+        if self._refresh_all_btn is not None:
+            self._refresh_all_btn.setEnabled(False)
+            if is_bulk:
+                self._refresh_all_btn.setIcon(
+                    APP_THEME.icon("fa6s.spinner", color=APP_THEME.text_color)
+                )
+                self._refresh_all_btn.setToolTip("Updating filter media counts")
+        table = self._filter_table_widget
+        if table is not None:
+            for row in range(table.rowCount()):
+                button = table.cellWidget(row, self.COL_REFRESH)
+                if isinstance(button, QToolButton):
+                    button.setEnabled(False)
+        if is_bulk:
+            if self._bulk_progress_bar is not None:
+                self._bulk_progress_bar.setRange(0, len(names))
+                self._bulk_progress_bar.setValue(0)
+                self._bulk_progress_bar.show()
+        worker = FilterCountWorker(store, names)
+        self._active_count_worker = worker
+        worker.progress.connect(self._on_count_progress)
+        worker.updated.connect(self._on_count_updated)
+        worker.failed.connect(self._on_count_failed)
+        worker.finished.connect(self._on_count_refresh_finished)
+        worker.start()
+
+    def _on_count_progress(self, index: int, total: int, name: str) -> None:
+        if self._busy_filter_name:
+            self._set_refresh_button_busy(self._busy_filter_name, False)
+        self._busy_filter_name = name
+        self._progress_index = index
+        if self._worker_is_bulk:
+            if self._bulk_progress_bar is not None:
+                self._bulk_progress_bar.setValue(index - 1)
+            table = self._filter_table_widget
+            if table is not None:
+                for row, item in enumerate(self._filtered_filters):
+                    if item.get("name") == name:
+                        name_cell = table.item(row, self.COL_NAME)
+                        if name_cell is not None:
+                            table.scrollToItem(
+                                name_cell, QTableWidget.ScrollHint.PositionAtCenter
+                            )
+                        break
+        self._set_refresh_button_busy(name, True)
+
+    def _on_count_updated(self, name: str) -> None:
+        self.state.load_filters()
+        self.state.filter_counts_changed.emit()
+        self._update_count_row(name)
+
+    def _on_count_failed(self, name: str, error: str) -> None:
+        self._count_errors.append(f"{name}: {error}")
+
+    def _update_count_row(self, name: str) -> None:
+        latest = next(
+            (item for item in self.state.saved_filters if item.get("name") == name),
+            None,
+        )
+        if latest is None:
+            return
+        table = self._filter_table_widget
+        for row, item in enumerate(self._filtered_filters):
+            if item.get("name") != name:
+                continue
+            self._filtered_filters[row] = latest
+            count = self._display_count(latest)
+            count_item = table.item(row, self.COL_COUNT) if table is not None else None
+            if count_item is not None:
+                count_item.setText(str(count) if count is not None else "-")
+                count_item.setData(
+                    Qt.ItemDataRole.UserRole, int(count) if count is not None else -1
+                )
+            break
+
+    def _set_refresh_button_busy(self, name: str, busy: bool) -> None:
+        table = self._filter_table_widget
+        if table is None:
+            return
+        for row, item in enumerate(self._filtered_filters):
+            if item.get("name") != name:
+                continue
+            button = table.cellWidget(row, self.COL_REFRESH)
+            if isinstance(button, QToolButton):
+                icon = "fa6s.spinner" if busy else "fa6s.arrows-rotate"
+                button.setIcon(APP_THEME.icon(icon, color=APP_THEME.text_color))
+                button.setEnabled(not busy and self._active_count_worker is None)
+                button.setToolTip(
+                    f"Refreshing filtered media-folder count for '{name}'"
+                    if busy
+                    else f"Refresh filtered media-folder count for '{name}'"
+                )
+            break
+
+    def _on_count_refresh_finished(self) -> None:
+        worker = self._active_count_worker
+        self._active_count_worker = None
+        if worker is not None:
+            worker.deleteLater()
+
+        if self._worker_is_bulk:
+            if self._bulk_progress_bar is not None:
+                self._bulk_progress_bar.setValue(self._bulk_progress_bar.maximum())
+                self._bulk_progress_bar.hide()
+            if self._refresh_all_btn is not None:
+                self._refresh_all_btn.setEnabled(True)
+        if self._refresh_all_btn is not None:
+            self._refresh_all_btn.setIcon(
+                APP_THEME.icon("fa6s.arrows-rotate", color=APP_THEME.text_color)
+            )
+            self._refresh_all_btn.setToolTip("Update all filter media counts")
+            self._refresh_all_btn.setEnabled(True)
+        table = self._filter_table_widget
+        if table is not None:
+            for row in range(table.rowCount()):
+                button = table.cellWidget(row, self.COL_REFRESH)
+                if isinstance(button, QToolButton):
+                    button.setEnabled(True)
+        for item in self._filtered_filters:
+            self._set_refresh_button_busy(str(item.get("name", "")), False)
+        self._refresh_filter_list()
+
+        if self._count_errors:
+            QMessageBox.warning(
+                self,
+                "Media-Folder Count Refresh Failed",
+                "Some filter media-folder counts could not be refreshed:\n"
+                + "\n".join(self._count_errors),
+            )
 
     def _show_placeholder(self, table: QTableWidget, text: str) -> None:
         """Show a placeholder message when no filters are present."""
@@ -599,6 +892,7 @@ class SettingsFilterTab(SettingsBaseTab):
     ) -> None:
         self.state.save_filter(name, filters, original_name=original_name or None)
         self._refresh_filter_list()
+        self._refresh_all_counts()
 
     def _on_dialog_delete(self, name: str) -> None:
         """Defer persistence until the dialog has fully closed."""
@@ -607,6 +901,21 @@ class SettingsFilterTab(SettingsBaseTab):
     def _request_delete(self, name: str) -> None:
         if not name:
             return
+        filter_cfg = next(
+            (item for item in self.state.saved_filters if item.get("name") == name),
+            None,
+        )
+        count = self._display_count(filter_cfg) if filter_cfg else None
+        if count is not None and int(count) > 10:
+            answer = QMessageBox.question(
+                self,
+                "Delete Filter",
+                f"'{name}' matches {count} movies. Delete this filter?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                return
         QTimer.singleShot(0, partial(self._persist_delete, name))
 
     def _persist_delete(self, name: str) -> None:
@@ -622,6 +931,7 @@ class SettingsFilterTab(SettingsBaseTab):
     def _save_filter_settings(self) -> None:
         """Save only Filters tab settings."""
         self.state.save_filters()
+        self._refresh_all_counts()
         self.reset_save_button()
         self.saved.emit(
             SignalPayload(

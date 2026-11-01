@@ -9,6 +9,7 @@
     - filter select box is now a combobox
     - move filter criteria from an inline table to filter criteria dialog
     - quick edit filter button in filter criteria dialog
+    - display counts of filtered media folders
   - add clear filter button
   - add quick search
     - similar criteria as filter 

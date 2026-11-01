@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.db.db_filter import DbFilter
+from MyVideoExplorer.db.db_filters import DbFilters
 from MyVideoExplorer.folder_filter.folder_filter_filter import FolderFilterFilter
 from MyVideoExplorer.folder_filter.folder_filter_genre_combo_widget import (
     GenreComboWidget,
@@ -28,7 +29,7 @@ from MyVideoExplorer.utils.file_util import FileUtil, FileUtils
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.ui_utils import UIUtils
 
-_SHOW_ALL_FILTER_LABEL = "- Showing All - Select a Filter -"
+_SHOW_ALL_FILTER_LABEL = "- Select a Filter (Showing All) -"
 
 
 class FolderFilters(QWidget, ThemableMixin):
@@ -155,16 +156,38 @@ class FolderFilters(QWidget, ThemableMixin):
         self.saved_filters_combo.setMinimumHeight(35)
 
     def _refresh_saved_filters_combo(self) -> None:
+        selected_name = (
+            self.saved_filters_combo.currentData()
+            if self.saved_filters_combo.currentIndex() > 0
+            else None
+        )
         self.saved_filters_combo.blockSignals(True)
         self.saved_filters_combo.clear()
-        self.saved_filters_combo.addItem(_SHOW_ALL_FILTER_LABEL)
-        filter_names = [
-            f.get("name", "")
-            for f in self.settings.settings_data_model.saved_filters
-            if f.get("name")
+        self.saved_filters_combo.addItem(_SHOW_ALL_FILTER_LABEL, userData="")
+        selected_folders = [
+            str(path)
+            for media_filter in self.media_filter_widget.collect_filters()
+            for path in media_filter.get("value", [])
         ]
-        for name in sorted(filter_names):
-            self.saved_filters_combo.addItem(name)
+        saved = sorted(
+            self.settings.settings_data_model.saved_filters,
+            key=lambda item: str(item.get("name", "")).casefold(),
+        )
+        for filter_cfg in saved:
+            name = str(filter_cfg.get("name", ""))
+            if not name:
+                continue
+            store = getattr(self.settings.settings_data_model, "filter_store", None)
+            if isinstance(store, DbFilters):
+                count = store.get_display_count(name, selected_folders)
+            else:
+                count = filter_cfg.get("total_count")
+            label = f"{name} ({count})" if count is not None else name
+            self.saved_filters_combo.addItem(label, userData=name)
+        if selected_name:
+            selected_index = self.saved_filters_combo.findData(selected_name)
+            if selected_index > 0:
+                self.saved_filters_combo.setCurrentIndex(selected_index)
         self.saved_filters_combo.blockSignals(False)
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
@@ -193,7 +216,7 @@ class FolderFilters(QWidget, ThemableMixin):
         prefix_index = -1
         prefix_matches = 0
         for index in range(combo.count()):
-            name = combo.itemText(index).casefold()
+            name = str(combo.itemData(index) or combo.itemText(index)).casefold()
             if name == wanted:
                 return index
             if name.startswith(wanted):
@@ -239,14 +262,26 @@ class FolderFilters(QWidget, ThemableMixin):
 
         def refresh_all():
             self.build_nav_combo()
+            selected_folders = set(
+                self.settings.settings_data_model.selected_media_folders
+            )
+            for button in self.media_filter_widget.media_button_group:
+                button_paths = button.property("media_paths") or []
+                button.setChecked(
+                    any(path in selected_folders for path in button_paths)
+                )
+            self._on_media_filter_selection_changed()
             # Preserve the currently selected filter name before rebuilding the combo
             current_filter_name = ""
             if self.saved_filters_combo.currentIndex() > 0:
-                current_filter_name = self.saved_filters_combo.currentText()
+                current_filter_name = str(
+                    self.saved_filters_combo.currentData()
+                    or self.saved_filters_combo.currentText()
+                )
             self._refresh_saved_filters_combo()
             # Restore the selected filter if it still exists
             if current_filter_name:
-                restored_index = self.saved_filters_combo.findText(current_filter_name)
+                restored_index = self.saved_filters_combo.findData(current_filter_name)
                 if restored_index > 0:
                     self.saved_filters_combo.setCurrentIndex(restored_index)
                     self._load_saved_filter(restored_index)
@@ -259,6 +294,23 @@ class FolderFilters(QWidget, ThemableMixin):
             self.filters_requested.emit()
 
         self.settings.settings_data_model.settings_changed.connect(refresh_all)
+        self.settings.settings_data_model.filter_counts_changed.connect(
+            self._refresh_saved_filters_combo
+        )
+        self.media_filter_widget.apply_filters.connect(
+            self._on_media_filter_selection_changed
+        )
+
+    def _on_media_filter_selection_changed(self) -> None:
+        selected_folders = [
+            str(path)
+            for media_filter in self.media_filter_widget.collect_filters()
+            for path in media_filter.get("value", [])
+        ]
+        state = self.settings.settings_data_model
+        state.selected_media_folders = selected_folders
+        state.media_folder_selection_changed.emit(selected_folders)
+        self._refresh_saved_filters_combo()
 
     def _handle_media_selection(self, index: int) -> None:
         if index < 0:
@@ -288,7 +340,10 @@ class FolderFilters(QWidget, ThemableMixin):
             self.filters_requested.emit()
             return
 
-        name = self.saved_filters_combo.itemText(index)
+        name = str(
+            self.saved_filters_combo.itemData(index)
+            or self.saved_filters_combo.itemText(index)
+        )
         filters = None
         for f in self.settings.settings_data_model.saved_filters:
             if f.get("name") == name:
@@ -345,7 +400,10 @@ class FolderFilters(QWidget, ThemableMixin):
         filter_name = ""
         filters: list[dict[str, str]] = []
         if index > 0:
-            filter_name = self.saved_filters_combo.itemText(index)
+            filter_name = str(
+                self.saved_filters_combo.itemData(index)
+                or self.saved_filters_combo.itemText(index)
+            )
             for f in self.settings.settings_data_model.saved_filters:
                 if f.get("name") == filter_name:
                     filters = f.get("filters", [])
@@ -360,7 +418,10 @@ class FolderFilters(QWidget, ThemableMixin):
         filter_name = ""
         filters: list[dict[str, str]] = []
         if index > 0:
-            filter_name = self.saved_filters_combo.itemText(index)
+            filter_name = str(
+                self.saved_filters_combo.itemData(index)
+                or self.saved_filters_combo.itemText(index)
+            )
             for f in self.settings.settings_data_model.saved_filters:
                 if f.get("name") == filter_name:
                     filters = f.get("filters", [])

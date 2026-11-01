@@ -284,6 +284,81 @@ class DbFilter:
 
         return sql, parameters
 
+    def count_filtered_media_folders(
+        self, filters: list[dict[str, Any]]
+    ) -> dict[str, int]:
+        """Count filtered folder rows independently in each configured media DB."""
+        media_filters: set[str] = set()
+        criteria = []
+        for filter_item in filters:
+            if str(filter_item.get("filter", "")).strip().casefold() != "media":
+                criteria.append(filter_item)
+                continue
+            value = filter_item.get("value")
+            values = value if isinstance(value, (list, tuple, set)) else [value]
+            media_filters.update(
+                self._normalize_path(str(path))
+                for path in values
+                if path and str(path).strip()
+            )
+
+        match_sql, match_params = self.build_query(criteria)
+        counts: dict[str, int] = {}
+
+        for config in getattr(self.settings_state, "media_configs", []) or []:
+            configured_root = str(config.get("path", ""))
+            root = self._normalize_path(configured_root)
+            if not root:
+                continue
+            counts[root] = 0
+
+            if media_filters and not any(
+                self._is_same_or_descendant(root, media_root)
+                or self._is_same_or_descendant(media_root, root)
+                for media_root in media_filters
+            ):
+                continue
+
+            db_path = self.settings_state.get_db_path(config)
+            normalized_db_path = self.path_utils.normalize_path(db_path)
+            if not Path(normalized_db_path).is_file():
+                continue
+
+            connection = duckdb.connect(normalized_db_path, read_only=True)
+            try:
+                rows = connection.execute(match_sql, match_params).fetchall()
+            except Exception:
+                logger.exception(
+                    "DbFilter media-folder count query failed on %s",
+                    normalized_db_path,
+                )
+                raise
+            finally:
+                connection.close()
+
+            matched_folders: set[str] = set()
+            for (file_path,) in rows:
+                if not file_path:
+                    continue
+                normalized_file_path = self.path_utils.normalize_path(file_path)
+                normalized_file_fold = self._normalize_path(normalized_file_path)
+                if not self._is_same_or_descendant(normalized_file_fold, root):
+                    continue
+                if media_filters and not any(
+                    self._is_same_or_descendant(normalized_file_fold, media_root)
+                    for media_root in media_filters
+                ):
+                    continue
+                matched_folders.update(
+                    folder.full_path.casefold()
+                    for folder in build_folder_rows(
+                        normalized_file_path, configured_root
+                    )
+                )
+            counts[root] = len(matched_folders)
+
+        return counts
+
     def filter(
         self,
         filters: list[dict[str, Any]],
