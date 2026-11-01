@@ -1,9 +1,11 @@
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
-    QFormLayout,
+    QFrame,
+    QGridLayout,
     QGroupBox,
     QHBoxLayout,
+    QLabel,
     QPushButton,
     QSizePolicy,
     QVBoxLayout,
@@ -42,9 +44,28 @@ class SettingsAppTab(SettingsBaseTab):
     def _build_ui(self) -> None:
         # App Settings group
         app_group = QGroupBox("App Settings")
-        app_layout = QFormLayout(app_group)
+        app_layout = QGridLayout()
+        app_layout.setSpacing(5)
 
-        # App start prior folder selection combo box
+        row = 0
+        # --- Group 1: On App Launch ---
+        launch_label = QLabel("On App Launch")
+        launch_label.setStyleSheet(APP_THEME.label_qss("group_row"))
+        launch_label.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size + 1))
+        app_layout.addWidget(launch_label, row, 0, 1, 1)
+
+        # Separator line between groups
+        separator = QFrame()
+        separator.setFrameShape(QFrame.Shape.HLine)
+        separator.setFrameShadow(QFrame.Shadow.Sunken)
+        separator.setFixedHeight(1)
+        separator.setStyleSheet(
+            f"background-color: {APP_THEME.border_color}; margin-left: 150px;"
+        )
+        app_layout.addWidget(separator, row, 0, 1, 2)
+        row += 1
+
+        # Auto select folder combo box
         self.app_start_select_prior_combo = SelectComboBox(self)
         self.app_start_select_prior_combo.addItem(
             "First Folder", "auto_select_first_folder"
@@ -60,13 +81,17 @@ class SettingsAppTab(SettingsBaseTab):
         if index >= 0:
             self.app_start_select_prior_combo.setCurrentIndex(index)
 
-        app_layout.addRow("Auto Select Folder", self.app_start_select_prior_combo)
+        auto_select_label = QLabel("Auto select folder")
+        auto_select_label.setStyleSheet(APP_THEME.label_qss("nested"))
+        app_layout.addWidget(auto_select_label, row, 0)
+        app_layout.addWidget(self.app_start_select_prior_combo, row, 1)
+        row += 1
 
         self.app_start_select_prior_combo.setToolTip(
             "When Folder Nav list refreshes, either select the First Folder, or the Prior Folder"
         )
 
-        # Launch App Size
+        # App size combo box
         self.launch_app_size_combo = SelectComboBox(self)
         self.launch_app_size_combo.addItem("Last Window Size", "app_size_last")
         self.launch_app_size_combo.addItem("Maximized", "app_size_maximized")
@@ -91,9 +116,13 @@ class SettingsAppTab(SettingsBaseTab):
         )
         self.launch_app_size_combo.currentIndexChanged.connect(self._on_setting_changed)
 
-        app_layout.addRow("Launch App Size", self.launch_app_size_combo)
+        app_size_label = QLabel("App size")
+        app_size_label.setStyleSheet(APP_THEME.label_qss("nested"))
+        app_layout.addWidget(app_size_label, row, 0)
+        app_layout.addWidget(self.launch_app_size_combo, row, 1)
+        row += 1
 
-        # Launch App Position
+        # App position combo box
         self.launch_app_pos_combo = SelectComboBox(self)
         self.launch_app_pos_combo.addItem("Last Position", "app_pos_last")
         self.launch_app_pos_combo.addItem("Center Center", "app_pos_center_center")
@@ -112,12 +141,16 @@ class SettingsAppTab(SettingsBaseTab):
         )
         self.launch_app_pos_combo.currentIndexChanged.connect(self._on_setting_changed)
 
-        app_layout.addRow("Launch App Position", self.launch_app_pos_combo)
+        app_pos_label = QLabel("App position")
+        app_pos_label.setStyleSheet(APP_THEME.label_qss("nested"))
+        app_layout.addWidget(app_pos_label, row, 0)
+        app_layout.addWidget(self.launch_app_pos_combo, row, 1)
+        row += 1
 
-        # Show Loading Screen
+        # Loading screen combo box
         self.show_loading_screen_combo = SelectComboBox(self)
-        self.show_loading_screen_combo.addItem("Yes", True)
-        self.show_loading_screen_combo.addItem("No", False)
+        self.show_loading_screen_combo.addItem("Hide", False)
+        self.show_loading_screen_combo.addItem("Show", True)
 
         show_loading = getattr(self.state, "show_loading_screen", True)
         index = self.show_loading_screen_combo.findData(show_loading)
@@ -130,8 +163,29 @@ class SettingsAppTab(SettingsBaseTab):
         self.show_loading_screen_combo.currentIndexChanged.connect(
             self._on_setting_changed
         )
-        app_layout.addRow("Show Loading Screen", self.show_loading_screen_combo)
+        loading_screen_label = QLabel("Loading screen")
+        loading_screen_label.setStyleSheet(APP_THEME.label_qss("nested"))
+        app_layout.addWidget(loading_screen_label, row, 0)
+        app_layout.addWidget(self.show_loading_screen_combo, row, 1)
+        row += 1
 
+        # --- Group 2: Media ---
+        media_label = QLabel("Media")
+        media_label.setStyleSheet(APP_THEME.label_qss("group_row"))
+        app_layout.addWidget(media_label, row, 0, 1, 1)
+
+        # Separator line between groups
+        separator = QFrame()
+        separator.setFrameShape(QFrame.Shape.HLine)
+        separator.setFrameShadow(QFrame.Shadow.Sunken)
+        separator.setFixedHeight(1)
+        separator.setStyleSheet(
+            f"background-color: {APP_THEME.border_color}; margin-left: 150px;"
+        )
+        app_layout.addWidget(separator, row, 0, 1, 2)
+        row += 1
+
+        # Scan media timeout combo box
         self.scan_media_timeout_combo = SelectComboBox(self)
         for timeout in SCAN_MEDIA_TIMEOUT_OPTIONS:
             self.scan_media_timeout_combo.addItem(f"{timeout}s", timeout)
@@ -149,7 +203,77 @@ class SettingsAppTab(SettingsBaseTab):
         self.scan_media_timeout_combo.currentIndexChanged.connect(
             self._on_setting_changed
         )
-        app_layout.addRow("Scan Media Timeout", self.scan_media_timeout_combo)
+        scan_timeout_label = QLabel("Scan Media timeout")
+        scan_timeout_label.setStyleSheet(APP_THEME.label_qss("nested"))
+        app_layout.addWidget(scan_timeout_label, row, 0)
+        app_layout.addWidget(self.scan_media_timeout_combo, row, 1)
+        row += 1
+
+        # NFO collapsed by default combo box
+        self.nfo_collapsed_default_combo = SelectComboBox(self)
+        self.nfo_collapsed_default_combo.addItem("Collapsed", True)
+        self.nfo_collapsed_default_combo.addItem("Expanded", False)
+
+        nfo_collapsed = getattr(self.state, "nfo_collapsed_by_default", False)
+        index = self.nfo_collapsed_default_combo.findData(nfo_collapsed)
+        if index >= 0:
+            self.nfo_collapsed_default_combo.setCurrentIndex(index)
+
+        self.nfo_collapsed_default_combo.setToolTip(
+            "Whether the NFO column starts collapsed or expanded by default"
+        )
+        self.nfo_collapsed_default_combo.currentIndexChanged.connect(
+            self._on_nfo_collapsed_default_changed
+        )
+        self.nfo_collapsed_default_combo.currentIndexChanged.connect(
+            self._on_setting_changed
+        )
+        nfo_label = QLabel("NFO default state")
+        nfo_label.setStyleSheet(APP_THEME.label_qss("nested"))
+        app_layout.addWidget(nfo_label, row, 0)
+        app_layout.addWidget(self.nfo_collapsed_default_combo, row, 1)
+        row += 1
+
+        # Meta collapsed by default combo box
+        self.meta_collapsed_default_combo = SelectComboBox(self)
+        self.meta_collapsed_default_combo.addItem("Collapsed", True)
+        self.meta_collapsed_default_combo.addItem("Expanded", False)
+
+        meta_collapsed = getattr(self.state, "meta_collapsed_by_default", False)
+        index = self.meta_collapsed_default_combo.findData(meta_collapsed)
+        if index >= 0:
+            self.meta_collapsed_default_combo.setCurrentIndex(index)
+
+        self.meta_collapsed_default_combo.setToolTip(
+            "Whether the Meta column starts collapsed or expanded by default"
+        )
+        self.meta_collapsed_default_combo.currentIndexChanged.connect(
+            self._on_meta_collapsed_default_changed
+        )
+        self.meta_collapsed_default_combo.currentIndexChanged.connect(
+            self._on_setting_changed
+        )
+        meta_label = QLabel("Meta default state")
+        meta_label.setStyleSheet(APP_THEME.label_qss("nested"))
+        app_layout.addWidget(meta_label, row, 0)
+        app_layout.addWidget(self.meta_collapsed_default_combo, row, 1)
+        row += 1
+
+        # --- Group 3: App ---
+        app_label = QLabel("App")
+        app_label.setStyleSheet(APP_THEME.label_qss("group_row"))
+        app_layout.addWidget(app_label, row, 0, 1, 1)
+
+        # Separator line between groups
+        separator = QFrame()
+        separator.setFrameShape(QFrame.Shape.HLine)
+        separator.setFrameShadow(QFrame.Shadow.Sunken)
+        separator.setFixedHeight(1)
+        separator.setStyleSheet(
+            f"background-color: {APP_THEME.border_color}; margin-left: 150px;"
+        )
+        app_layout.addWidget(separator, row, 0, 1, 2)
+        row += 1
 
         # Logging level combo box - populated from LogUtil.LEVEL_MAP
         self.logging_level_combo = SelectComboBox(self)
@@ -165,8 +289,12 @@ class SettingsAppTab(SettingsBaseTab):
             self.logging_level_combo.setCurrentIndex(index)
 
         self.logging_level_combo.setToolTip("Verbosity of App info logged to log/")
-        app_layout.addRow("Logging Level", self.logging_level_combo)
+        logging_label = QLabel("Logging level")
+        logging_label.setStyleSheet(APP_THEME.label_qss("nested"))
+        app_layout.addWidget(logging_label, row, 0)
+        app_layout.addWidget(self.logging_level_combo, row, 1)
 
+        app_group.setLayout(app_layout)
         self.internal_layout.addWidget(app_group)
 
         # Add stretch to push save button to bottom
@@ -280,6 +408,36 @@ class SettingsAppTab(SettingsBaseTab):
             )
         )
 
+    def _on_nfo_collapsed_default_changed(self, index: int) -> None:
+        value = self.nfo_collapsed_default_combo.itemData(
+            index, role=Qt.ItemDataRole.UserRole
+        )
+        self.state.nfo_collapsed_by_default = value
+        self.state.settings_changed.emit(
+            SignalPayload(
+                data=value,
+                sender=self.__class__.__name__,
+                name="Settings Changed",
+                description="NFO default collapse setting was changed.",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
+
+    def _on_meta_collapsed_default_changed(self, index: int) -> None:
+        value = self.meta_collapsed_default_combo.itemData(
+            index, role=Qt.ItemDataRole.UserRole
+        )
+        self.state.meta_collapsed_by_default = value
+        self.state.settings_changed.emit(
+            SignalPayload(
+                data=value,
+                sender=self.__class__.__name__,
+                name="Settings Changed",
+                description="Meta default collapse setting was changed.",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
+
     def reset_settings(self) -> None:
         """Reset settings for this tab."""
         self.state.load_app()
@@ -322,6 +480,18 @@ class SettingsAppTab(SettingsBaseTab):
         )
         if index >= 0:
             self.scan_media_timeout_combo.setCurrentIndex(index)
+
+        # Update NFO collapsed default combo
+        nfo_collapsed = getattr(self.state, "nfo_collapsed_by_default", False)
+        index = self.nfo_collapsed_default_combo.findData(nfo_collapsed)
+        if index >= 0:
+            self.nfo_collapsed_default_combo.setCurrentIndex(index)
+
+        # Update Meta collapsed default combo
+        meta_collapsed = getattr(self.state, "meta_collapsed_by_default", False)
+        index = self.meta_collapsed_default_combo.findData(meta_collapsed)
+        if index >= 0:
+            self.meta_collapsed_default_combo.setCurrentIndex(index)
 
         self.reset_save_button()
         self.saved.emit(
@@ -373,6 +543,20 @@ class SettingsAppTab(SettingsBaseTab):
         if current_index >= 0:
             self.state.launch_app_pos = self.launch_app_pos_combo.itemData(
                 current_index
+            )
+
+        # Save NFO collapsed default setting
+        current_index = self.nfo_collapsed_default_combo.currentIndex()
+        if current_index >= 0:
+            self.state.nfo_collapsed_by_default = (
+                self.nfo_collapsed_default_combo.itemData(current_index)
+            )
+
+        # Save Meta collapsed default setting
+        current_index = self.meta_collapsed_default_combo.currentIndex()
+        if current_index >= 0:
+            self.state.meta_collapsed_by_default = (
+                self.meta_collapsed_default_combo.itemData(current_index)
             )
 
         self.state.save_app()

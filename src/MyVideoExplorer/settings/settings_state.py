@@ -56,6 +56,8 @@ class SettingsState(QObject):
         self.launch_app_pos = "app_pos_center_center"
         self.show_loading_screen = True
         self.scan_media_timeout_seconds = DEFAULT_SCAN_MEDIA_TIMEOUT_SECONDS
+        self.nfo_collapsed_by_default = False
+        self.meta_collapsed_by_default = False
 
         self.media_configs: list[dict[str, Any]] = []
         self.selected_media_folders: list[str] = []
@@ -89,10 +91,13 @@ class SettingsState(QObject):
             "launch_app_pos": self.launch_app_pos,
             "show_loading_screen": self.show_loading_screen,
             "scan_media_timeout_seconds": self.scan_media_timeout_seconds,
+            "nfo_collapsed_by_default": self.nfo_collapsed_by_default,
+            "meta_collapsed_by_default": self.meta_collapsed_by_default,
         }
         ui_defaults: dict[str, int | str] = {
             "font_size": 18,
             "app_font": "Lato",
+            "indent_indicator": "・",
         }
         media_defaults: dict[str, Any] = {
             "media_configs": self.media_configs,
@@ -153,6 +158,10 @@ class SettingsState(QObject):
                 "scan_media_timeout_seconds", DEFAULT_SCAN_MEDIA_TIMEOUT_SECONDS
             )
         )
+        self.nfo_collapsed_by_default = app_data.get("nfo_collapsed_by_default", False)
+        self.meta_collapsed_by_default = app_data.get(
+            "meta_collapsed_by_default", False
+        )
 
         # Load UI Settings
         ui_data = self.json_util.load_json(DEFAULTS_UI_FILE)
@@ -161,6 +170,9 @@ class SettingsState(QObject):
 
         APP_THEME.font_size = ui_data.get("font_size", APP_THEME.font_size)
         APP_THEME.font_family = ui_data.get("app_font", APP_THEME.font_family)
+        APP_THEME.indent_indicator = ui_data.get(
+            "indent_indicator", APP_THEME.indent_indicator
+        )
 
         # Load Media Settings
         media_data = self.json_util.load_json(DEFAULTS_MEDIA_FILE)
@@ -213,6 +225,8 @@ class SettingsState(QObject):
             "launch_app_pos": self.launch_app_pos,
             "show_loading_screen": self.show_loading_screen,
             "scan_media_timeout_seconds": self.scan_media_timeout_seconds,
+            "nfo_collapsed_by_default": self.nfo_collapsed_by_default,
+            "meta_collapsed_by_default": self.meta_collapsed_by_default,
         }
 
         # Backup then save
@@ -226,6 +240,7 @@ class SettingsState(QObject):
         settings_data = {
             "font_size": APP_THEME.font_size,
             "app_font": APP_THEME.font_family,
+            "indent_indicator": APP_THEME.indent_indicator,
         }
 
         # Backup then save
@@ -317,6 +332,9 @@ class SettingsState(QObject):
 
         APP_THEME.font_size = ui_data.get("font_size", APP_THEME.font_size)
         APP_THEME.font_family = ui_data.get("app_font", APP_THEME.font_family)
+        APP_THEME.indent_indicator = ui_data.get(
+            "indent_indicator", APP_THEME.indent_indicator
+        )
 
     def load_app(self) -> None:
         """Reload App settings from file."""
@@ -342,6 +360,10 @@ class SettingsState(QObject):
             app_data.get(
                 "scan_media_timeout_seconds", DEFAULT_SCAN_MEDIA_TIMEOUT_SECONDS
             )
+        )
+        self.nfo_collapsed_by_default = app_data.get("nfo_collapsed_by_default", False)
+        self.meta_collapsed_by_default = app_data.get(
+            "meta_collapsed_by_default", False
         )
 
     @staticmethod

@@ -24,6 +24,7 @@
     - add Scan All button
   - app
     - add Scan Media Timeout
+    - on App launch, META and NFO can be Collapsed/Expanded
   - filters
     - sortable list of filters
     - editing filter criteria is now a dialog

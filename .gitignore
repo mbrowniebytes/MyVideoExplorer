@@ -17,6 +17,7 @@ sdist/
 var/
 wheels/
 *.egg-info/
+src/*.egg-info/
 .installed.cfg
 
 # Virtual environments
@@ -44,7 +45,12 @@ test/db/*
 test/tmp/*
 
 # ai
-.junie/memory/
+.junie/*
+!.junie/skills/
+
+# ci/cd
+.github/*
+!.github/workflows/ci.yaml
 
 # local
 todo.txt

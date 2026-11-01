@@ -22,6 +22,7 @@ from MyVideoExplorer.media_info_side.media_info_side_facts_widget import (
 from MyVideoExplorer.media_info_side.media_info_side_header_widget import (
     MediaInfoSideHeaderWidget,
 )
+from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.tag_cloud.tag_cloud_media import TagCloudMedia, TagStateProtocol
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
@@ -80,9 +81,11 @@ class MediaInfoSideContentWidget(QWidget, ThemableMixin):
         parent: QWidget | None = None,
         tag_state: TagStateProtocol | None = None,
         tag_store: DbTags | None = None,
+        settings_state: SettingsState | None = None,
     ) -> None:
         super().__init__(parent)
         self.log_util = log_util or LogUtil()
+        self._settings_state = settings_state
 
         self.setObjectName("side_media_info")
 
@@ -200,6 +203,13 @@ class MediaInfoSideContentWidget(QWidget, ThemableMixin):
             lambda played_date: self.last_played_changed.emit(played_date)
         )
 
+        # Apply default collapse states from settings
+        if self._settings_state is not None:
+            self.apply_default_collapse_states(
+                self._settings_state.nfo_collapsed_by_default,
+                self._settings_state.meta_collapsed_by_default,
+            )
+
         self.apply_theme()
 
     def update_from_movie_info(self, movie_info: dict) -> None:
@@ -210,6 +220,22 @@ class MediaInfoSideContentWidget(QWidget, ThemableMixin):
         self.nfo_body_widget.setVisible(
             available and not self.header_widget.collapse_button.isChecked()
         )
+
+    def apply_default_collapse_states(
+        self, nfo_collapsed: bool, meta_collapsed: bool
+    ) -> None:
+        """Apply default collapse states from settings."""
+        self.header_widget.collapse_button.blockSignals(True)
+        self.header_widget.collapse_button.setChecked(nfo_collapsed)
+        self.header_widget.collapse_button.blockSignals(False)
+        self.header_widget._update_collapse_button(nfo_collapsed)
+        self._set_nfo_collapsed(nfo_collapsed)
+
+        self.meta_collapse_button.blockSignals(True)
+        self.meta_collapse_button.setChecked(meta_collapsed)
+        self.meta_collapse_button.blockSignals(False)
+        self._update_meta_collapse_button(meta_collapsed)
+        self._set_meta_collapsed(meta_collapsed)
 
     def apply_theme(self) -> None:
         self._resize_meta_column()

@@ -14,6 +14,10 @@ class ThemeConfig:
     font_family_default: str = "Lato"
     font_size_base: int = 18
 
+    # Folder indentation indicator character
+    # Options: "_" "." "-" " " (space) "・" (middle dot) or FA6 icon names
+    indent_indicator: str = "・"
+
     # Color Palette - Backgrounds
     color_background_main: str = "#111111"
     color_background_section: str = "#161616"

@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont, QFontDatabase
+from PySide6.QtGui import QFont, QFontDatabase, QStandardItemModel
 from PySide6.QtWidgets import (
     QFormLayout,
     QGroupBox,
@@ -19,6 +19,7 @@ from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.log_util import LogUtil
+from MyVideoExplorer.widgets.combo_box_delegate import GroupedComboBoxDelegate
 from MyVideoExplorer.widgets.combo_boxes.select_combo_box import SelectComboBox
 
 
@@ -110,6 +111,72 @@ class SettingsUITab(SettingsBaseTab):
 
         display_layout.addRow("App Font", self.font_family_combo)
 
+        # Indentation Indicator
+        self.indent_indicator_combo = SelectComboBox(self)
+        indent_groups = [
+            (
+                "Dots",
+                [
+                    ("•", "Bullet (•)"),
+                    ("・", "Middle dot (・)"),
+                    (".", "Period (.)"),
+                    ("▪", "Small square (▪)"),
+                ],
+            ),
+            (
+                "Lines",
+                [
+                    ("-", "Hyphen (-)"),
+                    (" ", "Space"),
+                    ("─", "Line separator (─)"),
+                    ("├", "Tree branch (├)"),
+                    ("_", "Underscore (_)"),
+                    ("│", "Vertical bar (│)"),
+                ],
+            ),
+            (
+                "Arrows",
+                [
+                    ("→", "Arrow (→)"),
+                    ("◂", "Left triangle (◂)"),
+                    ("▸", "Right triangle (▸)"),
+                    ("▹", "Right triangle small (▹)"),
+                ],
+            ),
+        ]
+        indent_group_headers = [group[0] for group in indent_groups]
+        current_index = 0
+        index = 0
+        for group_name, options in indent_groups:
+            # Add group header as a disabled item
+            self.indent_indicator_combo.addItem(group_name)
+            header_index = self.indent_indicator_combo.count() - 1
+            model = self.indent_indicator_combo.model()
+            if model is not None and isinstance(model, QStandardItemModel):
+                item = model.item(header_index)
+                if item is not None:
+                    item.setEnabled(False)
+            index += 1
+            for value, label in options:
+                if value == APP_THEME.indent_indicator:
+                    current_index = index
+                self.indent_indicator_combo.addItem("    " + label, value)
+                index += 1
+        self.indent_indicator_combo.setCurrentIndex(current_index)
+        # Apply grouped delegate for extra height on group headers
+        self.indent_indicator_combo.setItemDelegate(
+            GroupedComboBoxDelegate(indent_group_headers, self.indent_indicator_combo)
+        )
+
+        self.indent_indicator_combo.currentIndexChanged.connect(
+            self._on_indent_indicator_changed
+        )
+        self.indent_indicator_combo.currentIndexChanged.connect(
+            self._on_setting_changed
+        )
+
+        display_layout.addRow("Folder Indentation", self.indent_indicator_combo)
+
         self.content_layout.addWidget(display_group)
 
         # Add stretch to push save button to bottom even when content is short
@@ -155,6 +222,12 @@ class SettingsUITab(SettingsBaseTab):
         for i in range(self.font_family_combo.count()):
             if self.font_family_combo.itemText(i) == main_current_family:
                 self.font_family_combo.setCurrentIndex(i)
+                break
+
+        # Update indent indicator combo
+        for i in range(self.indent_indicator_combo.count()):
+            if self.indent_indicator_combo.itemData(i) == APP_THEME.indent_indicator:
+                self.indent_indicator_combo.setCurrentIndex(i)
                 break
 
         APP_THEME.refresh_theme()
@@ -224,6 +297,27 @@ class SettingsUITab(SettingsBaseTab):
         #         flow=SignalFlow.USER_INPUT,
         #     )
         # )
+        self._on_setting_changed()
+
+    def _on_indent_indicator_changed(self, index: int) -> None:
+        value = self.indent_indicator_combo.itemData(
+            index, role=Qt.ItemDataRole.UserRole
+        )
+        if value is None:
+            return
+        if value == APP_THEME.indent_indicator:
+            return
+
+        APP_THEME.indent_indicator = value
+        self.state.settings_changed.emit(
+            SignalPayload(
+                data=value,
+                sender=self.__class__.__name__,
+                name="Settings Changed",
+                description="Indentation indicator was changed.",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
         self._on_setting_changed()
 
     def _save_ui_settings(self) -> None:

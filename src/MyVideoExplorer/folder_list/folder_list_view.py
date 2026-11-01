@@ -101,12 +101,7 @@ class FolderListView(QListWidget):
         icon_name = item.icon_name or icon_name
         prefix = "  " * item.depth
         if item.depth > 0:
-            # prefix += "└─ "
-            # prefix += "⤷ "
-            # prefix += "." * item.depth
-            # prefix += "―" * item.depth
-            # prefix += "→"
-            prefix += "・" * item.depth
+            prefix += APP_THEME.indent_indicator * item.depth
         prefix += " "
 
         icon = APP_THEME.icon(icon_name, color=APP_THEME.text_color)

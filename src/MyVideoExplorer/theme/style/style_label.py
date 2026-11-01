@@ -7,6 +7,7 @@ class StyleLabel:
         color = c.color_text_primary
         weight = "normal"
         padding = "0px"
+        margin = "0px"
         extra_label = ""
         extra_qss = ""
 
@@ -28,14 +29,20 @@ class StyleLabel:
             font_size_qss = f"font-size: {c.font_size_base + 10}px;"
             weight = "700"
             padding = "0px"
+            margin = "0 0 3px 0"
             extra_label = f"""
-                margin: 0 0 3px 0;
                 border-radius: 7px;
                 border-bottom: 2px solid {c.color_border_default};
             """
         elif variant == "app_loading":
             font_size_qss = f"font-size: {c.font_size_base + 10}px;"
             weight = "700"
+        elif variant == "group_row":
+            font_size_qss = f"font-size: {c.font_size_base}px;"
+            weight = "100"
+        elif variant == "nested":
+            font_size_qss = f"font-size: {c.font_size_base - 1}px;"
+            margin = "0 0 0 20px"
         elif variant == "help_icon":
             font_size_qss = f"font-size: {c.font_size_base - 2}px;"
             extra_label = f"""
@@ -58,6 +65,7 @@ class StyleLabel:
                  {font_size_qss}
                  font-weight: {weight};
                  padding: {padding};
+                 margin: {margin};
                  {font_qss}
                  {extra_label}
              }}

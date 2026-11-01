@@ -18,6 +18,7 @@ from MyVideoExplorer.media_info_section.media_info_section_plot import (
 from MyVideoExplorer.media_info_side.media_info_side_content_widget import (
     MediaInfoSideContentWidget,
 )
+from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.tag_cloud.tag_cloud_media import TagStateProtocol
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
@@ -42,6 +43,7 @@ class MediaInfoSideView(QWidget, ThemableMixin):
         play_history: DbPlayHistory | None = None,
         tag_store: DbTags | None = None,
         tag_state: TagStateProtocol | None = None,
+        settings_state: SettingsState | None = None,
     ) -> None:
         super().__init__()
         self.log_util = log_util
@@ -52,6 +54,7 @@ class MediaInfoSideView(QWidget, ThemableMixin):
         self.play_history = play_history
         self.tag_store = tag_store
         self.tag_state = tag_state
+        self.settings_state = settings_state
         self.media_file_path = ""
 
         self.current_movie_info: dict | None = None
@@ -63,6 +66,7 @@ class MediaInfoSideView(QWidget, ThemableMixin):
             parent=self,
             tag_state=tag_state,
             tag_store=tag_store,
+            settings_state=settings_state,
         )
         self.side_content_widget.hide()
         self.side_content_widget.column_widths_changed.connect(self.setFixedWidth)

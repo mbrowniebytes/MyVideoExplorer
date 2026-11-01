@@ -65,7 +65,7 @@ class MediaInfoSideHeaderWidget(QWidget, ThemableMixin):
         self.collapse_button.setIcon(
             APP_THEME.icon(icon_name, color=APP_THEME.text_color)
         )
-        self.collapse_button.setText("I" if collapsed else "")
+        self.collapse_button.setText("N" if collapsed else "")
         self.collapse_button.setFixedSize(40, 28)
         self.collapse_button.setToolTip(f"{label} NFO column")
         self.collapse_button.setAccessibleName(f"{label} NFO column")

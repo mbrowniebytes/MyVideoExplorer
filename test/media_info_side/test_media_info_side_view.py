@@ -109,7 +109,7 @@ class TestMediaInfoSideView:
 
         assert content.nfo_body_widget.isHidden()
         assert content.header_widget.title_label.isHidden()
-        assert content.header_widget.collapse_button.text() == "I"
+        assert content.header_widget.collapse_button.text() == "N"
         assert not content.header_widget.collapse_button.icon().isNull()
         assert content.meta_title.isHidden()
         assert content.meta_collapse_button.text() == "M"
