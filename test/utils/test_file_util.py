@@ -4,14 +4,21 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from MyVideoExplorer.utils.file_util import FileUtil, FileUtils
-from MyVideoExplorer.utils.file_util_model import FileUtilModel
 
 
-class MockDirEntry(FileUtilModel):
-    def is_file(self, follow_symlinks=False):
+class MockDirEntry:
+    """Mock os.DirEntry for testing purposes."""
+
+    def __init__(self, type: str, name: str, full_path: str, depth: int = 0):
+        self.type = type
+        self.name = name
+        self.full_path = full_path
+        self.depth = depth
+
+    def is_file(self, follow_symlinks=False):  # type: ignore[empty-body]
         return self.type == "file"
 
-    def is_dir(self, follow_symlinks=False):
+    def is_dir(self, follow_symlinks=False):  # type: ignore[empty-body]
         return self.type == "dir"
 
     @property
