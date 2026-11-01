@@ -1,8 +1,9 @@
-from PySide6.QtCore import QSize, Qt, Signal
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QToolButton, QWidget
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QWidget
 
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.widgets.buttons.action_button import ActionButton
 
 
 class FolderListHeader(QWidget, ThemableMixin):
@@ -40,35 +41,33 @@ class FolderListHeader(QWidget, ThemableMixin):
         layout.addWidget(self.forward_folder_button)
         layout.addWidget(self.random_folder_button)
 
-    def _create_clear_filter_button(self) -> QToolButton:
-        button = QToolButton(self)
+    def _create_clear_filter_button(self) -> ActionButton:
+        button = ActionButton(
+            self,
+            icon_name="fa6s.filter-circle-xmark",
+            tooltip="Clear Filter and Search",
+        )
         button.setFixedSize(30, 30)
-        button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
-        button.setIcon(APP_THEME.icon("fa6s.filter-circle-xmark"))
-        button.setIconSize(QSize(APP_THEME.icon_size, APP_THEME.icon_size))
-        button.setToolTip("Clear Filter and Search")
-        button.setStyleSheet(APP_THEME.button_qss())
         button.setEnabled(False)
         button.clicked.connect(self.clear_filter_clicked)
         return button
 
-    def _create_nav_folder_button(self, direction: str) -> QToolButton:
-        button = QToolButton(self)
+    def _create_nav_folder_button(self, direction: str) -> ActionButton:
+        button = ActionButton(self, icon_size=APP_THEME.icon_size)
         button.setFixedSize(30, 30)
-        button.setStyleSheet(APP_THEME.button_qss())
         button.setEnabled(False)
 
         if direction == "backward":
-            button.setIcon(APP_THEME.icon("fa6s.reply"))  # fa6s.arrow-left
-            button.setToolTip("Backward")
+            button.set_action_icon("fa6s.reply")
+            button.setToolTip("Previous folder")
             button.clicked.connect(self.backward_clicked)
         elif direction == "forward":
-            button.setIcon(APP_THEME.icon("fa6s.share"))  # fa6s.arrow-right
-            button.setToolTip("Forward")
+            button.set_action_icon("fa6s.share")
+            button.setToolTip("Next folder")
             button.clicked.connect(self.forward_clicked)
         elif direction == "random":
-            button.setIcon(APP_THEME.icon("fa6s.dice"))
-            button.setToolTip("Random")
+            button.set_action_icon("fa6s.dice")
+            button.setToolTip("Random folder")
             button.clicked.connect(self.random_clicked)
 
         return button
@@ -76,7 +75,3 @@ class FolderListHeader(QWidget, ThemableMixin):
     def apply_theme(self):
         self.title_label.setStyleSheet(APP_THEME.label_qss())
         self.help_icon.setStyleSheet(APP_THEME.help_icon_label_qss())
-        self.backward_folder_button.setStyleSheet(APP_THEME.button_qss())
-        self.clear_filter_button.setStyleSheet(APP_THEME.button_qss())
-        self.forward_folder_button.setStyleSheet(APP_THEME.button_qss())
-        self.random_folder_button.setStyleSheet(APP_THEME.button_qss())

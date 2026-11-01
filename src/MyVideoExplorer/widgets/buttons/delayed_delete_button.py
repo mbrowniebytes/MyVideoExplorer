@@ -2,16 +2,13 @@ from __future__ import annotations
 
 from PySide6.QtCore import QElapsedTimer, QEvent, Qt, QTimer
 from PySide6.QtGui import QColor, QEnterEvent, QHideEvent, QKeyEvent, QMouseEvent
-from PySide6.QtWidgets import (
-    QMessageBox,
-    QToolButton,
-    QWidget,
-)
+from PySide6.QtWidgets import QMessageBox, QWidget
 
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.widgets.buttons.action_button import ActionButton
 
 
-class DelayedDeleteButton(QToolButton):
+class DelayedDeleteButton(ActionButton):
     """Delete control that unlocks after a continuous hover delay."""
 
     DEFAULT_UNLOCK_DELAY_MS = 2500
@@ -27,7 +24,6 @@ class DelayedDeleteButton(QToolButton):
         confirmation_title: str | None = None,
         confirmation_message: str | None = None,
     ) -> None:
-        super().__init__(parent)
         if unlock_delay_ms is None:
             unlock_delay_ms = self.DEFAULT_UNLOCK_DELAY_MS
         if unlock_delay_ms < 0:
@@ -41,6 +37,11 @@ class DelayedDeleteButton(QToolButton):
         self.icon_color = icon_color
         self.confirmation_title = confirmation_title
         self.confirmation_message = confirmation_message
+        super().__init__(
+            parent,
+            icon_name=icon_name,
+            icon_color=APP_THEME.config.color_text_muted,
+        )
         self._armed = False
         self._hover_elapsed = QElapsedTimer()
 

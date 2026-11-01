@@ -177,6 +177,11 @@ class ThemeManager:
         if isinstance(widget, (QPushButton, QToolButton)):
             if widget.property("preserve_custom_style"):
                 return
+            if widget.property("action_button"):
+                action_style_sheet = getattr(widget, "action_style_sheet", None)
+                if callable(action_style_sheet):
+                    widget.setStyleSheet(action_style_sheet(self.config))
+                return
             object_name = widget.objectName()
             if object_name in ("meta_column_toggle", "nfo_column_toggle"):
                 widget.setStyleSheet(

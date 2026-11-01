@@ -28,7 +28,9 @@ from MyVideoExplorer.folder_filter.filter_qty_played_widget import (
 from MyVideoExplorer.tag_cloud.tag_button import TagButton
 from MyVideoExplorer.tag_cloud.tag_util import get_contrast_text_color
 from MyVideoExplorer.theme.theme import APP_THEME
-from MyVideoExplorer.widgets.delayed_delete_button import DelayedDeleteButton
+from MyVideoExplorer.widgets.buttons.action_button import ActionButton
+from MyVideoExplorer.widgets.buttons.delayed_delete_button import DelayedDeleteButton
+from MyVideoExplorer.widgets.combo_boxes.select_combo_box import SelectComboBox
 from MyVideoExplorer.widgets.flow_layout import FlowLayout
 
 
@@ -183,27 +185,13 @@ class FilterTagCloudWidget(QWidget):
             self._layout.addWidget(btn)
 
         if not self.readonly:
-            add_btn = QToolButton(self)
-            add_btn.setIcon(APP_THEME.icon("fa6s.tag", color=APP_THEME.text_color))
-            add_btn.setIconSize(QSize(12, 12))
-            add_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
-            add_btn.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size - 6))
-            add_btn.setToolTip("Add Tag to filter")
-            add_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            add_btn.setProperty("preserve_custom_style", True)
-            add_btn.setStyleSheet(
-                f"QToolButton {{ "
-                f"color: {APP_THEME.text_color}; "
-                f"background-color: {APP_THEME.surface_color}; "
-                f"border: 1px solid {APP_THEME.border_color}; "
-                f"border-radius: 4px; "
-                f"padding: 2px 6px; "
-                f"}} "
-                f"QToolButton:hover {{ "
-                f"background-color: {APP_THEME.config.color_interaction_hover}; "
-                f"border: 1px solid {APP_THEME.config.color_interaction_selected}; "
-                f"}}"
+            add_btn = ActionButton(
+                self,
+                icon_name="fa6s.tag",
+                tooltip="Add Tag to filter",
+                icon_size=12,
             )
+            add_btn.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size - 6))
             add_btn.clicked.connect(self.open_picker)
             add_btn.show()
             self._layout.addWidget(add_btn)
@@ -525,20 +513,19 @@ class FolderFilterTable(QTableWidget):
 
         if clean_type == "genre":
             # For Genre, we use a new combo box
-            combo = QComboBox(self)
+            combo = SelectComboBox(self)
             combo.addItem("-none-")
             for genre in self.genres:
                 combo.addItem(genre)
             if filter_value:
                 combo.setCurrentText(filter_value)
-            APP_THEME.setup_combo_box(combo)
             combo.currentTextChanged.connect(self._on_genre_changed)
             self.setCellWidget(row_nbr, 1, combo)
             return
 
         if clean_type == "media":
             # For Media, we use a new combo box
-            combo = QComboBox(self)
+            combo = SelectComboBox(self)
             combo.addItem("- Select Folder -", userData="")
             for config in self.media_configs:
                 combo.addItem(config["label"], userData=config["path"])

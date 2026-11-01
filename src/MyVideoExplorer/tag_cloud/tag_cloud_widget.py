@@ -7,7 +7,6 @@ from PySide6.QtCore import QRect, QSize, Qt, Signal
 from PySide6.QtGui import QColor, QFont
 from PySide6.QtWidgets import (
     QColorDialog,
-    QComboBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -24,7 +23,9 @@ from MyVideoExplorer.tag_cloud.tag_util import (
     validate_tag_name,
 )
 from MyVideoExplorer.theme.theme import APP_THEME
-from MyVideoExplorer.widgets.delayed_delete_button import DelayedDeleteButton
+from MyVideoExplorer.widgets.buttons.action_button import ActionButton
+from MyVideoExplorer.widgets.buttons.delayed_delete_button import DelayedDeleteButton
+from MyVideoExplorer.widgets.combo_boxes.select_combo_box import SelectComboBox
 from MyVideoExplorer.widgets.flow_layout import FlowLayout
 
 _TAG_CLOUD_SORT_MODE = "Name"
@@ -88,7 +89,7 @@ class TagCloudWidget(QWidget):
         controls = QHBoxLayout()
         self.filter_edit = QLineEdit(self)
         self.filter_edit.setPlaceholderText("Search tags")
-        self.sort_combo = QComboBox(self)
+        self.sort_combo = SelectComboBox(self)
         self.sort_combo.addItem("A-Z", self.SORT_NAME)
         self.sort_combo.addItem("0-9", self.SORT_QUANTITY)
         self.sort_combo.setCurrentIndex(
@@ -98,14 +99,10 @@ class TagCloudWidget(QWidget):
         controls.addWidget(QLabel("Sort:", self))
         controls.addWidget(self.sort_combo)
         if self.show_add_button:
-            self.add_tag_button = QToolButton(self)
-            self.add_tag_button.setObjectName("add_tag_button")
-            self.add_tag_button.setIcon(
-                APP_THEME.icon("fa6s.circle-plus", color=APP_THEME.text_color)
+            self.add_tag_button = ActionButton(
+                self, icon_name="fa6s.circle-plus", tooltip="Add new tag"
             )
-            self.add_tag_button.setToolTip("Add new tag")
-            self.add_tag_button.setAutoRaise(True)
-            self.add_tag_button.setCursor(Qt.CursorShape.PointingHandCursor)
+            self.add_tag_button.setObjectName("add_tag_button")
             self.add_tag_button.clicked.connect(self._begin_add_tag)
             controls.addWidget(self.add_tag_button)
         layout.addLayout(controls)
@@ -239,17 +236,15 @@ class TagCloudWidget(QWidget):
         layout.addWidget(label)
 
         if self.color_editable and not self.editable:
-            color_button = QToolButton(chip)
-            color_button.setProperty("tag_color", tag["color"])
-            color_button.setIcon(
-                APP_THEME.icon(
-                    "fa6s.palette",
-                    color=self._text_color(tag["color"]),
-                )
+            color_button = ActionButton(
+                chip,
+                icon_name="fa6s.palette",
+                icon_color=self._text_color(tag["color"]),
+                tooltip=f"Change {tag['tag']} color",
+                icon_size=14,
             )
-            color_button.setToolTip(f"Change {tag['tag']} color")
+            color_button.setProperty("tag_color", tag["color"])
             color_button.setFixedSize(24, 24)
-            color_button.setCursor(Qt.CursorShape.PointingHandCursor)
             self._style_painter_button(color_button, tag["color"])
             color_button.clicked.connect(
                 lambda checked=False, button=color_button, tag_data=tag: (
@@ -259,19 +254,16 @@ class TagCloudWidget(QWidget):
             layout.addWidget(color_button)
 
         if self.editable:
-            edit_color_button = QToolButton(chip)
+            edit_color_button = ActionButton(
+                chip,
+                icon_name="fa6s.palette",
+                icon_color=self._text_color(tag["color"]),
+                tooltip=f"Change {tag['tag']} color",
+                icon_size=14,
+            )
             edit_color_button.setProperty("tag_color", tag["color"])
             edit_color_button.setObjectName("edit_tag_color")
-            edit_color_button.setIcon(
-                APP_THEME.icon(
-                    "fa6s.palette",
-                    color=self._text_color(tag["color"]),
-                )
-            )
-            edit_color_button.setAutoRaise(True)
             self._style_painter_button(edit_color_button, tag["color"])
-            edit_color_button.setToolTip(f"Change {tag['tag']} color")
-            edit_color_button.setCursor(Qt.CursorShape.PointingHandCursor)
             edit_color_button.clicked.connect(
                 lambda checked=False, button=edit_color_button, tag_data=tag: (
                     self._choose_tag_color(button, tag_data)
@@ -280,20 +272,18 @@ class TagCloudWidget(QWidget):
             layout.addWidget(edit_color_button)
 
         if self.show_search_button:
-            search_button = QToolButton(chip)
+            search_button = ActionButton(
+                chip,
+                icon_name="fa6s.magnifying-glass",
+                tooltip=f"Search for {tag['tag']}",
+                icon_size=14,
+            )
             search_button.setObjectName("search_tag")
-            search_button.setIcon(
-                APP_THEME.icon("fa6s.magnifying-glass", color=APP_THEME.text_color)
-            )
             search_button.setProperty("preserve_custom_style", True)
-            search_button.setIconSize(QSize(14, 14))
             search_button.setFixedSize(22, 22)
-            search_button.setAutoRaise(True)
             search_button.setStyleSheet(
-                "QToolButton { background: transparent; border: 0; padding: 2px; }"
+                "QToolButton { background: transparent; border: 1px solid transparent; padding: 2px; }"
             )
-            search_button.setCursor(Qt.CursorShape.PointingHandCursor)
-            search_button.setToolTip(f"Search for {tag['tag']}")
             search_button.clicked.connect(
                 lambda checked=False, name=tag["tag"]: self.tag_search_requested.emit(
                     name
@@ -349,34 +339,28 @@ class TagCloudWidget(QWidget):
         name_edit = QLineEdit(tag["tag"], chip)
         name_edit.setObjectName("edit_tag_name")
         name_edit.setMinimumWidth(100)
-        color_button = QToolButton(chip)
+        color_button = ActionButton(
+            chip,
+            icon_name="fa6s.palette",
+            icon_color=self._text_color(tag["color"]),
+            tooltip="Choose tag color",
+            icon_size=14,
+        )
         color_button.setProperty("tag_color", tag["color"])
         color_button.setObjectName("edit_tag_color_inline")
         color_button.setFixedSize(22, 22)
-        color_button.setToolTip("Choose tag color")
-        color_button.setIcon(
-            APP_THEME.icon(
-                "fa6s.palette",
-                color=self._text_color(tag["color"]),
-            )
-        )
         self._style_painter_button(color_button, tag["color"])
         color_button.clicked.connect(
             lambda checked=False, button=color_button: self._choose_color(button)
         )
-        save_button = QToolButton(chip)
-        save_button.setIcon(
-            APP_THEME.icon("fa6s.floppy-disk", color=APP_THEME.text_color)
+        save_button = ActionButton(
+            chip, icon_name="fa6s.floppy-disk", tooltip="Save tag", icon_size=14
         )
-        save_button.setToolTip("Save tag")
         save_button.setObjectName("save_tag_edit")
-        save_button.setAutoRaise(True)
-        save_button.setCursor(Qt.CursorShape.PointingHandCursor)
         save_button.setEnabled(bool(name_edit.text().strip()))
-        cancel_button = QToolButton(chip)
-        cancel_button.setIcon(APP_THEME.icon("fa6s.xmark", color=APP_THEME.text_color))
-        cancel_button.setToolTip("Cancel editing")
-        cancel_button.setAutoRaise(True)
+        cancel_button = ActionButton(
+            chip, icon_name="fa6s.xmark", tooltip="Cancel editing", icon_size=14
+        )
 
         layout.addWidget(name_edit)
         layout.addWidget(color_button)

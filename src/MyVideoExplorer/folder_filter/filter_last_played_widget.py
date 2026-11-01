@@ -4,18 +4,19 @@ from datetime import UTC, datetime, timedelta
 from random import choice
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QDate, QSize, Qt
+from PySide6.QtCore import QDate, Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QComboBox,
     QDateEdit,
     QHBoxLayout,
     QSizePolicy,
-    QToolButton,
     QWidget,
 )
 
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.widgets.buttons.action_button import ActionButton
+from MyVideoExplorer.widgets.combo_boxes.select_combo_box import SelectComboBox
 
 if TYPE_CHECKING:
     from MyVideoExplorer.folder_filter.folder_filter_table import FolderFilterTable
@@ -59,7 +60,7 @@ class FilterLastPlayedWidget(QWidget):
         self._custom_layout: QHBoxLayout | None = None
         self._op_combo: QComboBox | None = None
         self._date_edit: QDateEdit | None = None
-        self._random_btn: QToolButton | None = None
+        self._random_btn: ActionButton | None = None
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(4, 2, 4, 2)
@@ -73,7 +74,7 @@ class FilterLastPlayedWidget(QWidget):
         assert isinstance(layout, QHBoxLayout)
 
         # Preset combo box
-        self._preset_combo = QComboBox(self)
+        self._preset_combo = SelectComboBox(self)
         self._preset_combo.setFont(
             QFont(APP_THEME.font_family, APP_THEME.font_size - 6)
         )
@@ -89,7 +90,7 @@ class FilterLastPlayedWidget(QWidget):
         self._custom_layout = QHBoxLayout()
         self._custom_layout.setSpacing(4)
 
-        self._op_combo = QComboBox(self)
+        self._op_combo = SelectComboBox(self)
         self._op_combo.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size - 6))
         for operator, tooltip in (
             ("<", "Before the selected date"),
@@ -121,12 +122,12 @@ class FilterLastPlayedWidget(QWidget):
             break  # only add once
 
         # Random button
-        self._random_btn = QToolButton(self)
-        self._random_btn.setIcon(
-            APP_THEME.icon("fa6s.dice", color=APP_THEME.text_color)
+        self._random_btn = ActionButton(
+            self,
+            icon_name="fa6s.dice",
+            tooltip="Randomize selection",
+            icon_size=14,
         )
-        self._random_btn.setIconSize(QSize(14, 14))
-        self._random_btn.setToolTip("Randomize selection")
         self._random_btn.clicked.connect(self._on_random)
         if self.readonly:
             self._random_btn.setVisible(False)

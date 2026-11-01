@@ -5,14 +5,12 @@ from typing import Any
 
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
-    QComboBox,
     QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QMessageBox,
     QProgressBar,
-    QPushButton,
     QVBoxLayout,
     QWidget,
 )
@@ -24,7 +22,9 @@ from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
-from MyVideoExplorer.widgets.delayed_delete_button import DelayedDeleteButton
+from MyVideoExplorer.widgets.buttons.action_button import ActionButton
+from MyVideoExplorer.widgets.buttons.delayed_delete_button import DelayedDeleteButton
+from MyVideoExplorer.widgets.combo_boxes.select_combo_box import SelectComboBox
 from MyVideoExplorer.widgets.folder_picker_widget import FolderPickerWidget
 
 
@@ -81,7 +81,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         )
         row1_layout.addWidget(self.label_edit)
 
-        self.type_combo = QComboBox(self)
+        self.type_combo = SelectComboBox(self)
         self.type_combo.addItem("Movie", "movie")
         self.type_combo.addItem("Series", "series")
         current_type = self.media_config.get("media_type", "movie")
@@ -97,7 +97,6 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
 
         # Delete button
         self.remove_btn = DelayedDeleteButton(parent=self)
-        self.remove_btn.setStyleSheet(APP_THEME.button_qss())
         self.remove_btn.setFixedWidth(30)
         self.remove_btn.setToolTip("Remove media folder configuration")
         self.remove_btn.clicked.connect(
@@ -143,7 +142,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             "fa6s.tag",
             "fa6s.tags",
         ]
-        self.icon_combo = QComboBox(self)
+        self.icon_combo = SelectComboBox(self)
         for icon_name in standard_icons:
             self.icon_combo.addItem(APP_THEME.icon(icon_name), "", icon_name)
 
@@ -176,7 +175,11 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             )
         )
 
-        browse_btn = QPushButton("Browse", parent=self)
+        browse_btn = ActionButton(
+            self,
+            icon_name="fa6s.folder-open",
+            tooltip="Browse for media folder",
+        )
         browse_btn.clicked.connect(self.folder_picker.pick_folder)
 
         row2_layout = QHBoxLayout()
@@ -279,9 +282,9 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         self.progress_bar.setTextVisible(False)
         self.progress_bar.setStyleSheet(APP_THEME.progress_bar_qss(active=False))
 
-        self.scan_btn = QPushButton("Scan", parent=self)
-        self.scan_btn.setIcon(APP_THEME.icon("fa6s.rotate"))
-        self.scan_btn.setStyleSheet(APP_THEME.button_qss())
+        self.scan_btn = ActionButton(
+            self, icon_name="fa6s.rotate", tooltip="Scan media folder", text="Scan"
+        )
         self.scan_btn.setFixedWidth(self.scan_btn.sizeHint().width() + 20)
         self.scan_btn.setEnabled(False)
 
@@ -496,7 +499,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
     def _start_scan(
         self,
         media_config: dict[str, Any],
-        scan_btn: QPushButton,
+        scan_btn: ActionButton,
         progress_bar: QProgressBar,
     ) -> bool:
         self.apply_changes()
@@ -560,7 +563,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
 
     def _on_scan_finished(
         self,
-        scan_btn: QPushButton,
+        scan_btn: ActionButton,
         progress_bar: QProgressBar,
         media_config: dict[str, Any],
     ) -> None:

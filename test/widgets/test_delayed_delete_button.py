@@ -2,7 +2,7 @@ from PySide6.QtCore import QEvent, QPointF, Qt
 from PySide6.QtGui import QEnterEvent
 from PySide6.QtWidgets import QHBoxLayout, QMessageBox, QPushButton, QWidget
 
-from MyVideoExplorer.widgets.delayed_delete_button import DelayedDeleteButton
+from MyVideoExplorer.widgets.buttons.delayed_delete_button import DelayedDeleteButton
 
 
 def _send_hover_event(button, event_type: QEvent.Type) -> None:
@@ -68,7 +68,7 @@ def test_delete_button_confirmation_is_optional_and_can_cancel(qtbot, monkeypatc
         ]
     )
     monkeypatch.setattr(
-        "MyVideoExplorer.widgets.delayed_delete_button.QMessageBox.question",
+        "MyVideoExplorer.widgets.buttons.delayed_delete_button.QMessageBox.question",
         lambda *_args, **_kwargs: next(responses),
     )
 

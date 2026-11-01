@@ -13,15 +13,16 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QScrollArea,
-    QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
 from MyVideoExplorer.folder_filter.folder_filter_table import FolderFilterTable
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.widgets.buttons.action_button import ActionButton
+from MyVideoExplorer.widgets.buttons.delayed_delete_button import DelayedDeleteButton
 from MyVideoExplorer.widgets.combo_box_delegate import GroupedComboBoxDelegate
-from MyVideoExplorer.widgets.delayed_delete_button import DelayedDeleteButton
+from MyVideoExplorer.widgets.combo_boxes.select_combo_box import SelectComboBox
 
 if TYPE_CHECKING:
     from MyVideoExplorer.db.db_tags import DbTags
@@ -125,12 +126,10 @@ class FilterCriteriaDialog(QDialog):
         header_layout.addWidget(title_label)
         header_layout.addStretch(1)
 
-        close_button = QToolButton(self)
-        close_button.setIcon(APP_THEME.icon("fa6s.xmark", color=APP_THEME.text_color))
-        close_button.setIconSize(QSize(14, 14))
+        close_button = ActionButton(
+            self, icon_name="fa6s.xmark", tooltip="Close", icon_size=14
+        )
         close_button.setFixedSize(22, 22)
-        close_button.setAutoRaise(True)
-        close_button.setToolTip("Close")
         close_button.clicked.connect(self.reject)
         header_layout.addWidget(close_button)
         layout.addLayout(header_layout)
@@ -174,21 +173,11 @@ class FilterCriteriaDialog(QDialog):
         button_layout.setSpacing(8)
 
         if not self._readonly:
-            save_button = QToolButton(self)
-            save_button.setIcon(
-                APP_THEME.icon("fa6s.check", color=APP_THEME.text_color)
-            )
-            save_button.setIconSize(QSize(APP_THEME.icon_size, APP_THEME.icon_size))
-            save_button.setToolTip("Save")
+            save_button = ActionButton(self, icon_name="fa6s.check", tooltip="Save")
             save_button.clicked.connect(self._on_save)
             button_layout.addWidget(save_button)
 
-            cancel_button = QToolButton(self)
-            cancel_button.setIcon(
-                APP_THEME.icon("fa6s.xmark", color=APP_THEME.text_color)
-            )
-            cancel_button.setIconSize(QSize(APP_THEME.icon_size, APP_THEME.icon_size))
-            cancel_button.setToolTip("Cancel")
+            cancel_button = ActionButton(self, icon_name="fa6s.xmark", tooltip="Cancel")
             cancel_button.clicked.connect(self.reject)
             button_layout.addWidget(cancel_button)
 
@@ -205,13 +194,9 @@ class FilterCriteriaDialog(QDialog):
         else:
             # Readonly mode: show Edit button at bottom-right
             button_layout.addStretch(1)
-            edit_btn = QToolButton(self)
-            edit_btn.setIcon(
-                APP_THEME.icon("fa6s.pen-to-square", color=APP_THEME.text_color)
+            edit_btn = ActionButton(
+                self, icon_name="fa6s.pen-to-square", tooltip="Edit Filter"
             )
-            edit_btn.setIconSize(QSize(APP_THEME.icon_size, APP_THEME.icon_size))
-            edit_btn.setToolTip("Edit Filter")
-            edit_btn.setAutoRaise(True)
             edit_btn.clicked.connect(
                 lambda: self.edit_requested.emit(self._filter_name)
             )
@@ -228,7 +213,7 @@ class FilterCriteriaDialog(QDialog):
         criteria_label.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
         add_layout.addWidget(criteria_label)
 
-        self._criteria_type_combo = QComboBox(self)
+        self._criteria_type_combo = SelectComboBox(self)
         self._criteria_type_combo.setFont(
             QFont(APP_THEME.font_family, APP_THEME.font_size)
         )
@@ -257,12 +242,9 @@ class FilterCriteriaDialog(QDialog):
         APP_THEME.setup_combo_box(self._criteria_type_combo)
         add_layout.addWidget(self._criteria_type_combo)
 
-        add_criteria_button = QToolButton(self)
-        add_criteria_button.setIcon(
-            APP_THEME.icon("fa6s.circle-plus", color=APP_THEME.text_color)
+        add_criteria_button = ActionButton(
+            self, icon_name="fa6s.circle-plus", tooltip="Add Criteria"
         )
-        add_criteria_button.setIconSize(QSize(APP_THEME.icon_size, APP_THEME.icon_size))
-        add_criteria_button.setToolTip("Add Criteria")
         add_criteria_button.clicked.connect(self._on_add_criteria)
         add_layout.addWidget(add_criteria_button)
         add_layout.addStretch(1)

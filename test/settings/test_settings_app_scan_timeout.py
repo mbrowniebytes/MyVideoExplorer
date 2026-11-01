@@ -12,7 +12,7 @@ def test_scan_media_timeout_options_update_and_save_state(qtbot):
     assert [
         tab.scan_media_timeout_combo.itemText(index)
         for index in range(tab.scan_media_timeout_combo.count())
-    ] == ["30s", "60s", "120s", "300s"]
+    ] == ["30s", "60s", "120s", "300s", "600s"]
 
     tab.scan_media_timeout_combo.setCurrentIndex(
         tab.scan_media_timeout_combo.findData(300)

@@ -5,14 +5,12 @@ from typing import TYPE_CHECKING, Any
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QColorDialog,
-    QComboBox,
     QHBoxLayout,
     QLabel,
     QLayout,
     QLineEdit,
     QMainWindow,
     QTabWidget,
-    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -34,6 +32,8 @@ from MyVideoExplorer.tag_cloud.tag_util import (
     validate_tag_name,
 )
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.widgets.buttons.action_button import ActionButton
+from MyVideoExplorer.widgets.combo_boxes.select_combo_box import SelectComboBox
 
 __all__ = ["QColorDialog", "TagCloudMedia", "TagPickerDialog", "TagStateProtocol"]
 
@@ -62,7 +62,7 @@ class TagCloudMedia(QWidget):
 
         self.title_label = QLabel("Tags", self)
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignRight)
-        self.sort_combo = QComboBox(self)
+        self.sort_combo = SelectComboBox(self)
         self.sort_combo.addItem("A-Z", TagCloudWidget.SORT_NAME)
         self.sort_combo.addItem("0-9", TagCloudWidget.SORT_QUANTITY)
         self.sort_combo.setCurrentIndex(
@@ -70,12 +70,9 @@ class TagCloudMedia(QWidget):
         )
         self.sort_combo.setToolTip("Sort tags by name or size")
         self.sort_combo.currentIndexChanged.connect(self._on_media_sort_changed)
-        self.add_button = QToolButton(self)
+        self.add_button = ActionButton(self, icon_name="fa6s.tag", tooltip="Add a tag")
         self.add_button.setObjectName("add_media_tag")
-        self.add_button.setIcon(APP_THEME.icon("fa6s.tag", color=APP_THEME.text_color))
-        self.add_button.setToolTip("Add a tag")
         self.add_button.setAccessibleName("Add a tag")
-        self.add_button.setAutoRaise(True)
         self.add_button.clicked.connect(self._show_tag_cloud)
 
         self.tags_container = QWidget(self)

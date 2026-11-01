@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QToolButton
 
 from MyVideoExplorer.tag_cloud.tag_button import TagButton
 from MyVideoExplorer.tag_cloud.tag_picker_dialog import TagPickerDialog
-from MyVideoExplorer.widgets.delayed_delete_button import DelayedDeleteButton
+from MyVideoExplorer.widgets.buttons.delayed_delete_button import DelayedDeleteButton
 
 
 def test_tag_picker_dialog_set_data_and_signals(qtbot, monkeypatch):

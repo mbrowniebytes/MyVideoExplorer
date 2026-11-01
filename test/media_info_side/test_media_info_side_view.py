@@ -12,7 +12,7 @@ from MyVideoExplorer.db.models.play_history import PlayHistory
 from MyVideoExplorer.media_info_side.media_info_side_view import MediaInfoSideView
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.utils.str_util import StrUtil
-from MyVideoExplorer.widgets.delayed_delete_button import DelayedDeleteButton
+from MyVideoExplorer.widgets.buttons.delayed_delete_button import DelayedDeleteButton
 
 
 class TestMediaInfoSideView:

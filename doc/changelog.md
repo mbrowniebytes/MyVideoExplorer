@@ -20,7 +20,7 @@
   - reselect folder nav media on search or filter, if possible
 - settings 
   - media
-    - scan media speed and save to db greatly increased
+    - performance! scan media speed and save to db greatly increased
     - add Scan All button
   - app
     - add Scan Media Timeout
@@ -38,6 +38,7 @@
 - fixes
   - re-select prior media on app launch
   - potential support launching either system associated media player vlc or mpc-qt
+  - minor ui consistencies, button icons, button positions, dialog positions
 - internal:
   - optimize filter and scan sql 
   - parse and store media Year in db

@@ -1,14 +1,8 @@
 from pathlib import Path
 
-from PySide6.QtCore import QSize, Qt, QUrl, Signal
+from PySide6.QtCore import Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QFont
-from PySide6.QtWidgets import (
-    QHBoxLayout,
-    QLabel,
-    QToolButton,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from MyVideoExplorer.app.app_signals_model import SignalPayload
 from MyVideoExplorer.file_list.file_list_view import FileListView
@@ -16,6 +10,7 @@ from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.log_util import LogUtil
+from MyVideoExplorer.widgets.buttons.action_button import ActionButton
 
 
 class FileList(QWidget, ThemableMixin):
@@ -40,16 +35,9 @@ class FileList(QWidget, ThemableMixin):
         )
         self.help_icon.setToolTip(tooltip)
 
-        self.explorer_button = QToolButton(self)
-        self.explorer_button.setText("Open Folder")
-        self.explorer_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
-        self.explorer_button.setIcon(
-            APP_THEME.icon("fa6s.folder", color=APP_THEME.text_color)
+        self.explorer_button = ActionButton(
+            self, icon_name="fa6s.folder", tooltip="Open Folder"
         )
-        self.explorer_button.setIconSize(
-            QSize(APP_THEME.icon_size, APP_THEME.icon_size)
-        )
-        self.explorer_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.explorer_button.clicked.connect(self._on_open_folder_clicked)
         self.explorer_button.setVisible(False)
 

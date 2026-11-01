@@ -29,7 +29,8 @@ from MyVideoExplorer.tag_cloud.tag_util import (
     validate_tag_name,
 )
 from MyVideoExplorer.theme.theme import APP_THEME
-from MyVideoExplorer.widgets.delayed_delete_button import DelayedDeleteButton
+from MyVideoExplorer.widgets.buttons.action_button import ActionButton
+from MyVideoExplorer.widgets.buttons.delayed_delete_button import DelayedDeleteButton
 from MyVideoExplorer.widgets.flow_layout import FlowLayout
 
 
@@ -118,19 +119,14 @@ class TagPickerDialog(QDialog):
         header_layout.addWidget(QLabel("Current tags", self))
         header_layout.addStretch(1)
 
-        self.close_button = QToolButton(self)
-        self.close_button.setIcon(
-            APP_THEME.icon("fa6s.xmark", color=APP_THEME.text_color)
+        self.close_button = ActionButton(
+            self, icon_name="fa6s.xmark", tooltip="Close", icon_size=14
         )
         self.close_button.setProperty("preserve_custom_style", True)
-        self.close_button.setIconSize(QSize(14, 14))
         self.close_button.setFixedSize(22, 22)
-        self.close_button.setAutoRaise(True)
         self.close_button.setStyleSheet(
-            "QToolButton { background: transparent; border: 0; padding: 2px; }"
+            "QToolButton { background: transparent; border: 1px solid transparent; padding: 2px; }"
         )
-        self.close_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.close_button.setToolTip("Close")
         self.close_button.clicked.connect(self.close)
         header_layout.addWidget(self.close_button)
         layout.addLayout(header_layout)
@@ -222,21 +218,19 @@ class TagPickerDialog(QDialog):
             )
             row.addWidget(label)
 
-            color_button = QToolButton(row_widget)
-            color_button.setProperty("preserve_custom_style", True)
-            color_button.setIcon(
-                APP_THEME.icon(
-                    "fa6s.palette",
-                    color=get_contrast_text_color(color),
-                )
+            color_button = ActionButton(
+                row_widget,
+                icon_name="fa6s.palette",
+                icon_color=get_contrast_text_color(color),
+                tooltip=f"Change color for {tag}",
+                icon_size=14,
             )
+            color_button.setProperty("preserve_custom_style", True)
             color_button.setStyleSheet(
                 f"QToolButton {{ background-color: {color}; "
-                "border: 1px solid palette(mid); border-radius: 3px; padding: 2px; }"
+                f"border: 1px solid {color}; border-radius: 3px; padding: 2px; }}"
             )
             color_button.setFixedSize(24, 24)
-            color_button.setCursor(Qt.CursorShape.PointingHandCursor)
-            color_button.setToolTip(f"Change color for {tag}")
             color_button.clicked.connect(
                 lambda checked=False, name=tag, current=color: (
                     self._choose_assigned_color(name, current)
@@ -286,39 +280,34 @@ class TagPickerDialog(QDialog):
         name_edit.setObjectName("edit_popup_assigned_tag_name")
         name_edit.setMinimumWidth(100)
         current_color = self._tag_colors.get(tag.casefold(), "#808080")
-        color_button = QToolButton(row_widget)
+        color_button = ActionButton(
+            row_widget,
+            icon_name="fa6s.palette",
+            icon_color=get_contrast_text_color(current_color),
+            tooltip="Choose tag color",
+            icon_size=14,
+        )
         color_button.setProperty("preserve_custom_style", True)
         color_button.setObjectName("edit_popup_assigned_tag_color")
         color_button.setProperty("tag_color", current_color)
-        color_button.setIcon(
-            APP_THEME.icon(
-                "fa6s.palette",
-                color=get_contrast_text_color(current_color),
-            )
-        )
         color_button.setStyleSheet(
             f"QToolButton {{ background-color: {current_color}; "
-            "border: 1px solid palette(mid); border-radius: 3px; padding: 2px; }"
+            f"border: 1px solid {current_color}; border-radius: 3px; padding: 2px; }}"
         )
         color_button.setFixedSize(24, 24)
-        color_button.setToolTip("Choose tag color")
         color_button.clicked.connect(
             lambda checked=False, button=color_button: self._choose_popup_tag_color(
                 button
             )
         )
 
-        save_button = QToolButton(row_widget)
-        save_button.setObjectName("save_popup_assigned_tag")
-        save_button.setIcon(
-            APP_THEME.icon("fa6s.floppy-disk", color=APP_THEME.text_color)
+        save_button = ActionButton(
+            row_widget, icon_name="fa6s.floppy-disk", tooltip="Save tag", icon_size=14
         )
-        save_button.setToolTip("Save tag")
-        save_button.setAutoRaise(True)
-        cancel_button = QToolButton(row_widget)
-        cancel_button.setIcon(APP_THEME.icon("fa6s.xmark", color=APP_THEME.text_color))
-        cancel_button.setToolTip("Cancel editing")
-        cancel_button.setAutoRaise(True)
+        save_button.setObjectName("save_popup_assigned_tag")
+        cancel_button = ActionButton(
+            row_widget, icon_name="fa6s.xmark", tooltip="Cancel editing", icon_size=14
+        )
         row.addWidget(name_edit)
         row.addWidget(color_button)
         row.addWidget(save_button)
@@ -347,7 +336,7 @@ class TagPickerDialog(QDialog):
         )
         button.setStyleSheet(
             f"QToolButton {{ background-color: {color_value}; "
-            "border: 1px solid palette(mid); border-radius: 3px; padding: 2px; }"
+            f"border: 1px solid {color_value}; border-radius: 3px; padding: 2px; }}"
         )
 
     def _choose_assigned_color(self, tag: str, current_color: str) -> None:

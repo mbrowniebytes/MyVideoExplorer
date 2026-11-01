@@ -32,8 +32,10 @@ from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.tag_cloud.tag_picker_dialog import TagPickerDialog
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
+from MyVideoExplorer.widgets.buttons.action_button import ActionButton
+from MyVideoExplorer.widgets.buttons.delayed_delete_button import DelayedDeleteButton
 from MyVideoExplorer.widgets.combo_box_delegate import GroupedComboBoxDelegate
-from MyVideoExplorer.widgets.delayed_delete_button import DelayedDeleteButton
+from MyVideoExplorer.widgets.combo_boxes.select_combo_box import SelectComboBox
 
 if TYPE_CHECKING:
     from MyVideoExplorer.db.db_tags import DbTags
@@ -151,14 +153,12 @@ class SettingsFilterTab(SettingsBaseTab):
         self._search_edit.textChanged.connect(self._on_search_changed)
         controls_row.addWidget(self._search_edit, 1)
 
-        self._refresh_all_btn = QToolButton(self)
-        self._refresh_all_btn.setIcon(
-            APP_THEME.icon("fa6s.arrows-rotate", color=APP_THEME.text_color)
+        self._refresh_all_btn = ActionButton(
+            self,
+            text="Update Counts",
+            icon_name="fa6s.arrows-rotate",
+            tooltip="Update all Filter Media counts",
         )
-        self._refresh_all_btn.setIconSize(
-            QSize(APP_THEME.icon_size, APP_THEME.icon_size)
-        )
-        self._refresh_all_btn.setToolTip("Update all filter media counts")
         self._refresh_all_btn.clicked.connect(self._refresh_all_counts)
 
         # Filter by criteria type
@@ -166,7 +166,7 @@ class SettingsFilterTab(SettingsBaseTab):
         type_label.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
         controls_row.addWidget(type_label)
 
-        self._type_combo = QComboBox(self)
+        self._type_combo = SelectComboBox(self)
         self._type_combo.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
         self._type_combo.addItem("- All Types -", userData="")
         under_group = False
@@ -195,10 +195,9 @@ class SettingsFilterTab(SettingsBaseTab):
         controls_row.addWidget(self._type_combo)
 
         # Tag filter button
-        self._tag_btn = QToolButton(self)
-        self._tag_btn.setIcon(APP_THEME.icon("fa6s.tag", color=APP_THEME.text_color))
-        self._tag_btn.setIconSize(QSize(APP_THEME.icon_size, APP_THEME.icon_size))
-        self._tag_btn.setToolTip("Filter by tag values")
+        self._tag_btn = ActionButton(
+            self, icon_name="fa6s.tag", tooltip="Filter by tag values"
+        )
         self._tag_btn.clicked.connect(self._on_tag_filter_clicked)
         controls_row.addWidget(self._tag_btn)
 
@@ -209,30 +208,26 @@ class SettingsFilterTab(SettingsBaseTab):
         )
         controls_row.addWidget(self._tag_filter_label)
 
-        self._clear_tag_btn = QToolButton(self)
-        self._clear_tag_btn.setIcon(
-            APP_THEME.icon("fa6s.xmark", color=APP_THEME.text_color)
+        self._clear_tag_btn = ActionButton(
+            self,
+            icon_name="fa6s.xmark",
+            tooltip="Clear tag filter",
+            icon_size=14,
         )
-        self._clear_tag_btn.setIconSize(QSize(14, 14))
-        self._clear_tag_btn.setAutoRaise(True)
-        self._clear_tag_btn.setToolTip("Clear tag filter")
         self._clear_tag_btn.clicked.connect(self._clear_tag_filter)
         controls_row.addWidget(self._clear_tag_btn)
         self._update_tag_filter_label()
 
         refresh_controls = QWidget(self)
-        refresh_controls.setFixedSize(36, 32)
         refresh_layout = QGridLayout(refresh_controls)
         refresh_layout.setContentsMargins(0, 0, 0, 0)
         refresh_layout.setSpacing(0)
-        self._refresh_all_btn.setFixedSize(36, 32)
         refresh_layout.addWidget(self._refresh_all_btn, 0, 0)
         self._bulk_progress_bar = QProgressBar(self)
         self._bulk_progress_bar.setTextVisible(False)
-        self._bulk_progress_bar.setFixedSize(36, 4)
         self._bulk_progress_bar.setStyleSheet(
-            "QProgressBar { background: transparent; border: none; }"
-            "QProgressBar::chunk { background: palette(highlight); }"
+            f"QProgressBar {{ background: transparent; border: none; }}"
+            f"QProgressBar::chunk {{ background: {APP_THEME.border_color}; }}"
         )
         self._bulk_progress_bar.setAttribute(
             Qt.WidgetAttribute.WA_TransparentForMouseEvents
@@ -247,10 +242,9 @@ class SettingsFilterTab(SettingsBaseTab):
         controls_row.addWidget(refresh_controls)
 
         # Add filter button, on the same row as the search controls
-        add_btn = QToolButton(self)
-        add_btn.setIcon(APP_THEME.icon("fa6s.circle-plus", color=APP_THEME.text_color))
-        add_btn.setIconSize(QSize(APP_THEME.icon_size, APP_THEME.icon_size))
-        add_btn.setToolTip("Add New Filter")
+        add_btn = ActionButton(
+            self, icon_name="fa6s.circle-plus", tooltip="Add New Filter"
+        )
         add_btn.clicked.connect(self.open_add_filter)
         controls_row.addWidget(add_btn)
 
@@ -544,13 +538,9 @@ class SettingsFilterTab(SettingsBaseTab):
         if icon_name == "fa6s.trash-can":
             btn = DelayedDeleteButton(self._filter_table_widget, icon_name=icon_name)
         else:
-            btn = QToolButton(self._filter_table_widget)
-            btn.setIcon(APP_THEME.icon(icon_name, color=APP_THEME.text_color))
+            btn = ActionButton(self._filter_table_widget, icon_name=icon_name)
         btn.setIconSize(QSize(14, 14))
-        btn.setAutoRaise(True)
         btn.setToolTip(tooltip)
-        if not isinstance(btn, DelayedDeleteButton):
-            btn.setCursor(Qt.CursorShape.PointingHandCursor)
         # Ignore the bool argument of clicked
         btn.clicked.connect(lambda _checked=False: slot())
         return btn
@@ -624,7 +614,7 @@ class SettingsFilterTab(SettingsBaseTab):
                 self._refresh_all_btn.setIcon(
                     APP_THEME.icon("fa6s.spinner", color=APP_THEME.text_color)
                 )
-                self._refresh_all_btn.setToolTip("Updating filter media counts")
+                self._refresh_all_btn.setToolTip("Updating Filter Media counts")
         table = self._filter_table_widget
         if table is not None:
             for row in range(table.rowCount()):
@@ -728,7 +718,7 @@ class SettingsFilterTab(SettingsBaseTab):
             self._refresh_all_btn.setIcon(
                 APP_THEME.icon("fa6s.arrows-rotate", color=APP_THEME.text_color)
             )
-            self._refresh_all_btn.setToolTip("Update all filter media counts")
+            self._refresh_all_btn.setToolTip("Update all Filter Media counts")
             self._refresh_all_btn.setEnabled(True)
         table = self._filter_table_widget
         if table is not None:

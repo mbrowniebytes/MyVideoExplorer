@@ -9,7 +9,7 @@ from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.settings.settings_tags import SettingsTagsTab
 from MyVideoExplorer.tag_cloud.tag_cloud_settings import TagCloudSettings
 from MyVideoExplorer.theme.theme import APP_THEME
-from MyVideoExplorer.widgets.delayed_delete_button import DelayedDeleteButton
+from MyVideoExplorer.widgets.buttons.delayed_delete_button import DelayedDeleteButton
 
 
 def test_tag_settings_edits_and_deletes_are_saved_immediately(

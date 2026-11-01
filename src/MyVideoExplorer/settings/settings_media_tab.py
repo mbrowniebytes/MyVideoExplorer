@@ -5,7 +5,6 @@ from typing import Any
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
-    QComboBox,
     QFormLayout,
     QFrame,
     QGroupBox,
@@ -34,6 +33,8 @@ from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil, FileUtils
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
+from MyVideoExplorer.widgets.buttons.action_button import ActionButton
+from MyVideoExplorer.widgets.combo_boxes.select_combo_box import SelectComboBox
 
 
 class SettingsMediaTab(SettingsBaseTab):
@@ -80,7 +81,7 @@ class SettingsMediaTab(SettingsBaseTab):
         db_dropdown_layout.setSpacing(5)
         lbl_db = QLabel("Use Local DB:", parent=self)
         db_dropdown_layout.addWidget(lbl_db)
-        self.db_enabled_dropdown = QComboBox(self)
+        self.db_enabled_dropdown = SelectComboBox(self)
         self.db_enabled_dropdown.addItems(["Yes", "No"])
         self.db_enabled_dropdown.setCurrentText(
             "Yes" if self.state.db_enabled() else "No"
@@ -92,11 +93,11 @@ class SettingsMediaTab(SettingsBaseTab):
         db_dropdown_layout.addWidget(self.db_enabled_dropdown)
         db_dropdown_layout.addStretch()
 
-        self.scan_all_btn = QPushButton("Scan All", parent=self)
-        self.scan_all_btn.setIcon(APP_THEME.icon("fa6s.rotate"))
-        self.scan_all_btn.setStyleSheet(APP_THEME.button_qss())
-        self.scan_all_btn.setToolTip(
-            "Scan all configured media folders into the database"
+        self.scan_all_btn = ActionButton(
+            self,
+            icon_name="fa6s.rotate",
+            tooltip="Scan all configured media folders into the database",
+            text="Scan All",
         )
         self.scan_all_btn.clicked.connect(self._on_scan_all_clicked)
         db_dropdown_layout.addWidget(self.scan_all_btn)
@@ -330,7 +331,7 @@ class SettingsMediaTab(SettingsBaseTab):
             self._scan_all_active = False
             self.scan_all_btn.setEnabled(self._has_valid_media_folders())
             self.scan_all_btn.setText("Scan All")
-            self.scan_all_btn.setIcon(APP_THEME.icon("fa6s.rotate"))
+            self.scan_all_btn.set_action_icon("fa6s.rotate")
             self._update_db_tooltip()
             return
 

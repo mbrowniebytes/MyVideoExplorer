@@ -23,7 +23,7 @@ def style_painter_button(button: QToolButton, color: str) -> None:
     button.setStyleSheet(
         "QToolButton {"
         f" background-color: {color};"
-        " border: 1px solid palette(mid); border-radius: 3px; padding: 2px;"
+        f" border: 1px solid {color}; border-radius: 3px; padding: 2px;"
         "}"
     )
 

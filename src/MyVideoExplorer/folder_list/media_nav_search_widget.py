@@ -30,7 +30,9 @@ from MyVideoExplorer.folder_list.media_nav_search import (
 from MyVideoExplorer.tag_cloud.tag_picker_dialog import TagPickerDialog
 from MyVideoExplorer.tag_cloud.tag_util import get_contrast_text_color
 from MyVideoExplorer.theme.theme import APP_THEME
-from MyVideoExplorer.widgets.delayed_delete_button import DelayedDeleteButton
+from MyVideoExplorer.widgets.buttons.action_button import ActionButton
+from MyVideoExplorer.widgets.buttons.delayed_delete_button import DelayedDeleteButton
+from MyVideoExplorer.widgets.combo_boxes.select_combo_box import SelectComboBox
 from MyVideoExplorer.widgets.flow_layout import FlowLayout
 
 _NAME_LABELS = {
@@ -183,7 +185,7 @@ class MediaNavSearchOptionsDialog(QDialog):
 
         self.year_checkbox = QCheckBox("Year", self)
         self.year_operator = self._make_operator_combo(_YEAR_OPERATORS)
-        self.year_combo = QComboBox(self)
+        self.year_combo = SelectComboBox(self)
         self.year_combo.setObjectName("search_year_combo")
         self.year_combo.addItem("- Any -", userData=None)
         year_values = list(range(QDate.currentDate().year(), 1949, -1)) + list(
@@ -312,18 +314,15 @@ class MediaNavSearchOptionsDialog(QDialog):
             control.setEnabled(checkbox.isChecked())
 
     def _make_operator_combo(self, operators: dict[str, str]) -> QComboBox:
-        combo = QComboBox(self)
+        combo = SelectComboBox(self)
         combo.addItems(list(operators))
         combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
         combo.setFixedWidth(max(combo.sizeHint().width(), 42))
         return combo
 
     @staticmethod
-    def _make_button(label: str, icon_name: str) -> QToolButton:
-        button = QToolButton()
-        button.setToolTip(label)
-        button.setIcon(APP_THEME.icon(icon_name, color=APP_THEME.text_color))
-        button.setIconSize(QSize(APP_THEME.icon_size, APP_THEME.icon_size))
+    def _make_button(label: str, icon_name: str) -> ActionButton:
+        button = ActionButton(icon_name=icon_name, tooltip=label)
         button.setFixedSize(36, 32)
         return button
 
@@ -581,11 +580,8 @@ class MediaNavSearchWidget(QWidget):
         return self._options_dialog
 
     @staticmethod
-    def _make_button(label: str, icon_name: str) -> QToolButton:
-        button = QToolButton()
-        button.setToolTip(label)
-        button.setIcon(APP_THEME.icon(icon_name, color=APP_THEME.text_color))
-        button.setIconSize(QSize(APP_THEME.icon_size, APP_THEME.icon_size))
+    def _make_button(label: str, icon_name: str) -> ActionButton:
+        button = ActionButton(icon_name=icon_name, tooltip=label)
         button.setFixedSize(36, 32)
         return button
 

@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from PySide6.QtCore import QEvent, QObject, QSize, Qt, QTimer, Signal
+from PySide6.QtCore import QEvent, QObject, Qt, QTimer, Signal
 from PySide6.QtWidgets import (
-    QComboBox,
     QHBoxLayout,
     QSizePolicy,
     QToolButton,
@@ -24,10 +23,11 @@ from MyVideoExplorer.folder_filter.folder_filter_table import FolderFilterTable
 from MyVideoExplorer.media_nav_search.filter_criteria_dialog import FilterCriteriaDialog
 from MyVideoExplorer.settings.settings import Settings
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
-from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil, FileUtils
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.ui_utils import UIUtils
+from MyVideoExplorer.widgets.buttons.action_button import ActionButton
+from MyVideoExplorer.widgets.combo_boxes.select_combo_box import SelectComboBox
 
 _SHOW_ALL_FILTER_LABEL = "- Select a Filter (Showing All) -"
 
@@ -59,8 +59,8 @@ class FolderFilters(QWidget, ThemableMixin):
         self.clear_search_button = QToolButton(self)
         self.filter_criteria_button = QToolButton(self)
         self.genre_combo = GenreComboWidget(self.GENRES, parent=self)
-        self.nav_combo = QComboBox(self)
-        self.saved_filters_combo = QComboBox(self)
+        self.nav_combo = SelectComboBox(self)
+        self.saved_filters_combo = SelectComboBox(self)
         self.genre_combo.setVisible(False)
         self.nav_combo.setVisible(False)
         self._criteria_popup: FilterCriteriaDialog | None = None
@@ -239,13 +239,8 @@ class FolderFilters(QWidget, ThemableMixin):
     def _make_tool_button(
         self, label: str, icon_name: str = "fa6s.folder"
     ) -> QToolButton:
-        btn = QToolButton(self)
-        btn.setToolTip(label)
-        btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
-        btn.setIcon(APP_THEME.icon(icon_name, color=APP_THEME.text_color))
-        btn.setIconSize(QSize(APP_THEME.icon_size, APP_THEME.icon_size))
+        btn = ActionButton(self, icon_name=icon_name, tooltip=label)
         btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        btn.setAutoRaise(True)
         return btn
 
     def _connect_sigs(self) -> None:

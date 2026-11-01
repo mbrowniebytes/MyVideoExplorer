@@ -16,7 +16,7 @@ from MyVideoExplorer.folder_list.media_nav_search import (
 from MyVideoExplorer.folder_list.media_nav_search_widget import (
     MediaNavSearchWidget,
 )
-from MyVideoExplorer.widgets.delayed_delete_button import DelayedDeleteButton
+from MyVideoExplorer.widgets.buttons.delayed_delete_button import DelayedDeleteButton
 
 
 class _SearchSettings:

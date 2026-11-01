@@ -12,7 +12,7 @@ from MyVideoExplorer.db.db_filters import DbFilters
 from MyVideoExplorer.media_nav_search.filter_criteria_dialog import FilterCriteriaDialog
 from MyVideoExplorer.settings.settings_filter_tab import SettingsFilterTab
 from MyVideoExplorer.settings.settings_state import SettingsState
-from MyVideoExplorer.widgets.delayed_delete_button import DelayedDeleteButton
+from MyVideoExplorer.widgets.buttons.delayed_delete_button import DelayedDeleteButton
 
 
 @pytest.fixture
@@ -231,7 +231,7 @@ def test_add_filter_button_should_share_row_with_search_controls(tab):
     assert search_edit is not None
     refresh_button = tab._refresh_all_btn
     assert refresh_button is not None
-    assert refresh_button.toolTip() == "Update all filter media counts"
+    assert refresh_button.toolTip() == "Update all Filter Media counts"
     add_buttons = [
         b for b in tab.findChildren(QToolButton) if b.toolTip() == "Add New Filter"
     ]
