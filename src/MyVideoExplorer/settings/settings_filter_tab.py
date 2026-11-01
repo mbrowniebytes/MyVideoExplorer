@@ -237,7 +237,7 @@ class SettingsFilterTab(SettingsBaseTab):
             self._bulk_progress_bar,
             0,
             0,
-            alignment=Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom,
+            alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom,
         )
         controls_row.addWidget(refresh_controls)
 
