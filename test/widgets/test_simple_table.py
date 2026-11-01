@@ -1,7 +1,7 @@
 import pytest
 from PySide6.QtWidgets import QHeaderView
 
-from MyVideoExplorer.widgets.simple_table_widget import SimpleTableWidget
+from MyVideoExplorer.widgets.simple_table.simple_table_widget import SimpleTableWidget
 
 
 class TestSimpleTable:

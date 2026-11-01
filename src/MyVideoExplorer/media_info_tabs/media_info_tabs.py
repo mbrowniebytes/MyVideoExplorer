@@ -45,6 +45,7 @@ class MediaInfoTabs(QWidget, ThemableMixin):
         # Parent to the tab widget so the corner placement remains correct when maximized
         self.settings_button = QToolButton(self.tab_container)
         self.settings_button.setText(self.LABEL_SETTINGS)
+        self.settings_button.setToolTip("Settings")
         self.settings_button.setAutoRaise(True)
         self.settings_button.clicked.connect(self.show_settings_tab)
 

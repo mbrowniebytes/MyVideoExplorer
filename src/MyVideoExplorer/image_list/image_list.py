@@ -14,7 +14,7 @@ from MyVideoExplorer.lang.lang_loader import LangLoader
 from MyVideoExplorer.settings.settings import Settings
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
-from MyVideoExplorer.utils.file_util import FileUtil
+from MyVideoExplorer.utils.file_util import FileUtil, FileUtils
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.utils.str_util import StrUtil
@@ -175,7 +175,7 @@ class ImageList(QWidget, ThemableMixin):
             self.clear_nfo()
             return False
 
-        folder_path = pathlib.Path(image_path).parent.as_posix()
+        folder_path = FileUtils.parent(image_path)
         images, _poster_path = self.file_util.get_images_from_folder(folder_path)
 
         if not images:

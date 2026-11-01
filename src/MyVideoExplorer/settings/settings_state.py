@@ -6,7 +6,9 @@ from typing import Any
 from PySide6.QtCore import QObject, Signal
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
+from MyVideoExplorer.db.db_filters import DEFAULT_FILTER_DB_PATH, DbFilters
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.utils.file_util import FileUtils
 from MyVideoExplorer.utils.json_util import JsonUtil
 
 # Use a package-local defaults directory so built-in defaults are versioned with
@@ -25,6 +27,8 @@ DEFAULTS_APP_FILE = PACKAGE_CFG_DIR / "defaults_app.json"
 DEFAULTS_UI_FILE = PACKAGE_CFG_DIR / "defaults_ui.json"
 DEFAULTS_MEDIA_FILE = PACKAGE_CFG_DIR / "defaults_media.json"
 DEFAULTS_FILTER_FILE = PACKAGE_CFG_DIR / "defaults_filter.json"
+SCAN_MEDIA_TIMEOUT_OPTIONS = (30, 60, 120, 300, 600)
+DEFAULT_SCAN_MEDIA_TIMEOUT_SECONDS = 120
 
 
 class SettingsState(QObject):
@@ -33,8 +37,10 @@ class SettingsState(QObject):
     window_pos_changed = Signal(object)
     tags_changed = Signal()
     tag_counts_changed = Signal()
+    filter_counts_changed = Signal()
+    media_folder_selection_changed = Signal(object)
 
-    def __init__(self, log_util: Any) -> None:
+    def __init__(self, log_util: Any, filter_db_path: Path | str | None = None) -> None:
         super().__init__()
 
         self.log_util = log_util
@@ -49,12 +55,20 @@ class SettingsState(QObject):
         self.launch_app_size = "app_size_min"
         self.launch_app_pos = "app_pos_center_center"
         self.show_loading_screen = True
+        self.scan_media_timeout_seconds = DEFAULT_SCAN_MEDIA_TIMEOUT_SECONDS
 
         self.media_configs: list[dict[str, Any]] = []
+        self.selected_media_folders: list[str] = []
         self.tags: list[dict[str, str]] = []
         self._db_enabled = True
         self.saved_filters: list[dict[str, Any]] = []
         self._load_settings()
+        self.filter_store = DbFilters(
+            self,
+            self.saved_filters,
+            db_path=filter_db_path or DEFAULT_FILTER_DB_PATH,
+        )
+        self.saved_filters = self.filter_store.list_filters()
         self.log_util.debug(f"__init__ {self.__class__.__name__}")
 
     def _ensure_defaults(self) -> None:
@@ -68,12 +82,13 @@ class SettingsState(QObject):
             "app_pos": "",
             "app_size": "",
         }
-        app_defaults: dict[str, str | bool] = {
+        app_defaults: dict[str, str | bool | int] = {
             "log_level": self.log_level,
             "auto_select_folder": self.auto_select_folder,
             "launch_app_size": self.launch_app_size,
             "launch_app_pos": self.launch_app_pos,
             "show_loading_screen": self.show_loading_screen,
+            "scan_media_timeout_seconds": self.scan_media_timeout_seconds,
         }
         ui_defaults: dict[str, int | str] = {
             "font_size": 18,
@@ -117,7 +132,7 @@ class SettingsState(QObject):
         if SETTINGS_STATE_FILE.exists():
             state_data.update(self.json_util.load_json(SETTINGS_STATE_FILE))
 
-        self.prior_folder = state_data.get("prior_folder", "")
+        self.prior_folder = FileUtils.normalize_path(state_data.get("prior_folder", ""))
         self.app_size = state_data.get("app_size", "")
         self.app_pos = state_data.get("app_pos", "")
 
@@ -133,6 +148,11 @@ class SettingsState(QObject):
         self.launch_app_size = app_data.get("launch_app_size", "app_size_min")
         self.launch_app_pos = app_data.get("launch_app_pos", "app_pos_center_center")
         self.show_loading_screen = app_data.get("show_loading_screen", True)
+        self.scan_media_timeout_seconds = self._validated_scan_media_timeout(
+            app_data.get(
+                "scan_media_timeout_seconds", DEFAULT_SCAN_MEDIA_TIMEOUT_SECONDS
+            )
+        )
 
         # Load UI Settings
         ui_data = self.json_util.load_json(DEFAULTS_UI_FILE)
@@ -147,6 +167,7 @@ class SettingsState(QObject):
         if SETTINGS_MEDIA_FILE.exists():
             media_data.update(self.json_util.load_json(SETTINGS_MEDIA_FILE))
         self.media_configs = media_data.get("media_configs", self.media_configs)
+        self._normalize_media_config_paths()
         self._db_enabled = media_data.get("db_enabled", False)
 
         # Ensure each folder config has an icon
@@ -172,7 +193,7 @@ class SettingsState(QObject):
         self._ensure_defaults()
 
         state_settings: dict[str, str] = {
-            "prior_folder": settings.get("prior_folder", ""),
+            "prior_folder": FileUtils.normalize_path(settings.get("prior_folder", "")),
             "app_size": settings.get("app_size", ""),
             "app_pos": settings.get("app_pos", ""),
         }
@@ -185,12 +206,13 @@ class SettingsState(QObject):
         """Save only App tab settings."""
         self._ensure_defaults()
 
-        app_settings: dict[str, str | bool] = {
+        app_settings: dict[str, str | bool | int] = {
             "log_level": self.log_level,
             "auto_select_folder": self.auto_select_folder,
             "launch_app_size": self.launch_app_size,
             "launch_app_pos": self.launch_app_pos,
             "show_loading_screen": self.show_loading_screen,
+            "scan_media_timeout_seconds": self.scan_media_timeout_seconds,
         }
 
         # Backup then save
@@ -213,6 +235,7 @@ class SettingsState(QObject):
     def save_media(self) -> None:
         """Save only Media tab settings."""
         self._ensure_defaults()
+        self._normalize_media_config_paths()
 
         media_settings: dict[str, Any] = {
             "media_configs": self.media_configs,
@@ -225,17 +248,13 @@ class SettingsState(QObject):
         self.json_util.save_json(SETTINGS_MEDIA_FILE, media_settings)
 
     def save_filters(self) -> None:
-        """Save only Filters tab settings."""
+        """Persist the saved filters in the filter catalog database."""
         self._ensure_defaults()
+        self.filter_store.replace_all(self.saved_filters)
+        self.saved_filters = self.filter_store.list_filters()
+        self._emit_filters_changed()
 
-        filter_settings: dict[str, list[dict[str, Any]]] = {
-            "saved_filters": self.saved_filters,
-        }
-
-        # Backup then save
-        self.json_util.backup_file(SETTINGS_FILTER_FILE, max_backups=5)
-        self.json_util.save_json(SETTINGS_FILTER_FILE, filter_settings)
-
+    def _emit_filters_changed(self) -> None:
         self.settings_changed.emit(
             SignalPayload(
                 data=None,
@@ -319,6 +338,23 @@ class SettingsState(QObject):
         self.launch_app_size = app_data.get("launch_app_size", "app_size_min")
         self.launch_app_pos = app_data.get("launch_app_pos", "app_pos_last")
         self.show_loading_screen = app_data.get("show_loading_screen", True)
+        self.scan_media_timeout_seconds = self._validated_scan_media_timeout(
+            app_data.get(
+                "scan_media_timeout_seconds", DEFAULT_SCAN_MEDIA_TIMEOUT_SECONDS
+            )
+        )
+
+    @staticmethod
+    def _validated_scan_media_timeout(value: Any) -> int:
+        try:
+            timeout = int(value)
+        except TypeError, ValueError:
+            return DEFAULT_SCAN_MEDIA_TIMEOUT_SECONDS
+        return (
+            timeout
+            if timeout in SCAN_MEDIA_TIMEOUT_OPTIONS
+            else DEFAULT_SCAN_MEDIA_TIMEOUT_SECONDS
+        )
 
     def load_media(self) -> None:
         """Reload Media settings from file."""
@@ -326,6 +362,7 @@ class SettingsState(QObject):
         if SETTINGS_MEDIA_FILE.exists():
             media_data.update(self.json_util.load_json(SETTINGS_MEDIA_FILE))
         self.media_configs = media_data.get("media_configs", self.media_configs)
+        self._normalize_media_config_paths()
         self.log_util.info(f"Loaded media_configs: {self.media_configs}")
         self._db_enabled = media_data.get("db_enabled", True)
         # Ensure each folder config has an icon
@@ -333,56 +370,39 @@ class SettingsState(QObject):
             if "icon" not in config:
                 config["icon"] = "fa6s.folder"
 
+    def _normalize_media_config_paths(self) -> None:
+        for config in self.media_configs:
+            if isinstance(config, dict) and config.get("path"):
+                config["path"] = FileUtils.normalize_path(str(config["path"]))
+
     def load_filters(self) -> None:
-        """Reload Filter settings from file."""
-        filter_data = self.json_util.load_json(DEFAULTS_FILTER_FILE)
-        if SETTINGS_FILTER_FILE.exists():
-            filter_data.update(self.json_util.load_json(SETTINGS_FILTER_FILE))
-        self.saved_filters = filter_data.get("saved_filters", self.saved_filters)
-        # Migration: if saved_filters is a dict, convert it to a list of dicts
-        if isinstance(self.saved_filters, dict):
-            new_filters = []
-            for name, filters in self.saved_filters.items():
-                new_filters.append({"name": name, "filters": filters})
-            self.saved_filters = new_filters
+        """Reload saved filters from the database-backed catalog."""
+        self.saved_filters = self.filter_store.list_filters()
 
-    def save_filter(self, name: str, filter_cfg: list[dict[str, Any]]) -> None:
-        """Saves a named filter configuration."""
-        # Check if filter with this name already exists
-        b_found = False
-        for i, saved_filter_cfg in enumerate(self.saved_filters):
-            if saved_filter_cfg.get("name") == name:
-                self.saved_filters[i] = {"name": name, "filters": filter_cfg}
-                b_found = True
-                break
+    def save_filter(
+        self,
+        name: str,
+        filter_cfg: list[dict[str, Any]],
+        original_name: str | None = None,
+    ) -> None:
+        """
+        Saves a named filter configuration.
 
-        if not b_found:
-            self.saved_filters.append({"name": name, "filters": filter_cfg})
-
-        self.save_filters()
-        self.settings_changed.emit(
-            SignalPayload(
-                data=None,
-                sender=self.__class__.__name__,
-                name="Settings Changed",
-                description="Filter settings were changed.",
-                flow=SignalFlow.COMPONENT_INTERACTION,
-            )
-        )
+        Args:
+            name: Filter name to store.
+            filter_cfg: Filter criteria list.
+            original_name: Previous name when renaming, so the existing entry is
+                replaced in place instead of a duplicate being appended.
+        """
+        self.filter_store.save_filter(name, filter_cfg, original_name)
+        self.saved_filters = self.filter_store.list_filters()
+        self._emit_filters_changed()
 
     def delete_filter(self, name: str) -> None:
-        """Deletes a named filter configuration."""
-        self.saved_filters = [f for f in self.saved_filters if f.get("name") != name]
-        self.save_filters()
-        self.settings_changed.emit(
-            SignalPayload(
-                data=None,
-                sender=self.__class__.__name__,
-                name="Settings Changed",
-                description="Filter settings were deleted.",
-                flow=SignalFlow.COMPONENT_INTERACTION,
-            )
-        )
+        """Delete a named filter configuration from the catalog."""
+        self.filter_store.delete_filter(name)
+        self.saved_filters = self.filter_store.list_filters()
+        self._emit_filters_changed()
 
     @staticmethod
     def sanitize_media_label(label: Any) -> str:
@@ -408,7 +428,7 @@ class SettingsState(QObject):
         if label in {".", ".."}:
             label = "media"
         # Store DB path using POSIX separator to keep file naming consistent across platforms
-        return f"db/{label}.db"
+        return f"db/media_{label}.db"
 
     def validate_media_configs(self, media_configs: list[dict[str, Any]]) -> list[str]:
         errors: list[str] = []

@@ -2,6 +2,51 @@
 
 ---
 
+### 2026-11-00
+
+- folder nav
+  - filters
+    - filter select box is now a combobox
+    - move filter criteria from an inline table to filter criteria dialog
+    - quick edit filter button in filter criteria dialog
+    - display counts of filtered media folders
+  - add clear filter button
+  - add quick search
+    - similar criteria as filter 
+    - able to save as a filter
+    - from media or settings -> tags, when click a tag, quick search by that tag
+  - show media ancestor even if empty
+  - restore tooltip info
+  - reselect folder nav media on search or filter, if possible
+- settings 
+  - media
+    - performance! scan media speed and save to db greatly increased
+    - add Scan All button
+  - app
+    - add Scan Media Timeout
+  - filters
+    - sortable list of filters
+    - editing filter criteria is now a dialog
+    - new filters
+      - last played date
+      - qty played
+  - tags
+    - re-position tag icons
+  - filters, tags
+    - delete button disabled, hover for 2.5s to enable
+    - if more than 10 movies, show delete confirmation  
+- fixes
+  - re-select prior media on app launch
+  - potential support launching either system associated media player vlc or mpc-qt
+  - minor ui consistencies, button icons, button positions, dialog positions
+- internal:
+  - optimize filter and scan sql 
+  - parse and store media Year in db
+  - normalize all paths as posix and consolidate to file_utils
+  - update ai docs in doc/ and .junie/
+
+release - [MyVideoExplorer-20261100-0.008](https://github.com/mbrowniebytes/MyVideoExplorer/releases/tag/20261100-0.008)
+
 ### 2026-10-06
 
 - movie info

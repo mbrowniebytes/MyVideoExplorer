@@ -24,7 +24,7 @@ from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.utils.str_util import StrUtil
 from MyVideoExplorer.utils.ui_utils import UIUtils
-from MyVideoExplorer.widgets.label_value_widget import LabelValueWidget
+from MyVideoExplorer.widgets.labels.label_value_widget import LabelValueWidget
 
 
 class MediaInfoSideView(QWidget, ThemableMixin):
@@ -168,9 +168,7 @@ class MediaInfoSideView(QWidget, ThemableMixin):
         )
         self.side_content_widget.tag_cloud_widget.set_tags(tags)
         self.side_content_widget.tag_cloud_widget.set_enabled(
-            self.tag_store is not None
-            and bool(self.media_file_path)
-            and tags is not None
+            self.tag_store is not None and bool(self.media_file_path)
         )
 
     def refresh_play_history(self) -> None:

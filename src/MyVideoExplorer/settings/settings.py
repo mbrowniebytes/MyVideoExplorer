@@ -32,7 +32,7 @@ class Settings(QWidget, ThemableMixin):
 
         # Data Model (State Management)
         self.settings_data_model = SettingsState(self.log_util)
-        self.tag_store: DbTags | None = None
+        self._tag_store: DbTags | None = None
 
         # View Components (Settings Tabs) - Initialized in _build_ui
         self.managed_tabs: list[SettingsBaseTab] = []
@@ -82,6 +82,21 @@ class Settings(QWidget, ThemableMixin):
         assert self._tags_settings_tab is not None
         return self._tags_settings_tab
 
+    @property
+    def tag_store(self) -> DbTags | None:
+        return self._tag_store
+
+    @tag_store.setter
+    def tag_store(self, value: DbTags | None) -> None:
+        self._tag_store = value
+        if self._tags_settings_tab is not None:
+            self._tags_settings_tab.tag_store = value
+            if hasattr(self._tags_settings_tab, "tag_cloud_settings"):
+                self._tags_settings_tab.tag_cloud_settings.tag_store = value
+                self._tags_settings_tab.tag_cloud_settings.refresh()
+        if self._filter_settings_tab is not None:
+            self._filter_settings_tab.tag_store = value
+
     def _build_ui(self) -> None:
         """Constructs the settings UI layout and registers tabs."""
         if self.layout() is not None:
@@ -99,7 +114,10 @@ class Settings(QWidget, ThemableMixin):
                 self.settings_data_model, self.log_util, self.file_util, parent=self
             )
             self._filter_settings_tab = SettingsFilterTab(
-                self.settings_data_model, self.log_util, parent=self
+                self.settings_data_model,
+                self.log_util,
+                tag_store=self.tag_store,
+                parent=self,
             )
             self._tags_settings_tab = SettingsTagsTab(
                 self.settings_data_model,

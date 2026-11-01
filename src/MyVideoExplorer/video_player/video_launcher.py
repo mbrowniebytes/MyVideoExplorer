@@ -2,8 +2,8 @@ import asyncio
 import os
 import subprocess
 import sys
-from pathlib import Path
 
+from MyVideoExplorer.utils.file_util import FileUtils
 from MyVideoExplorer.utils.log_util import LogUtil
 
 
@@ -19,7 +19,7 @@ class VideoLauncher:
         # test async
         # await asyncio.sleep(5)
 
-        normalized_path = Path(video_path).as_posix()
+        normalized_path = FileUtils.normalize_path(video_path)
 
         try:
             if os.name == "nt":  # Windows
@@ -27,9 +27,25 @@ class VideoLauncher:
                 # await asyncio.to_thread(os.startfile, normalized_path)
 
                 # works with mpc-qt, vlc
+                # await asyncio.to_thread(
+                #     subprocess.Popen,
+                #     ["explorer.exe", normalized_path],
+                # )
+
+                # maybe works with both
+                clean_env = {
+                    key: value
+                    for key, value in os.environ.items()
+                    if not key.upper().startswith(("QT_", "QML_"))
+                }
                 await asyncio.to_thread(
                     subprocess.Popen,
-                    ["explorer.exe", os.path.normpath(video_path)],
+                    [
+                        "rundll32.exe",
+                        "url.dll,FileProtocolHandler",
+                        normalized_path,
+                    ],
+                    env=clean_env,
                 )
             elif sys.platform == "darwin":  # macOS
                 await asyncio.create_subprocess_exec("open", normalized_path)

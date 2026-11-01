@@ -1,11 +1,11 @@
 from collections.abc import Callable
-from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QListWidget, QListWidgetItem
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.utils.file_util import FileUtils
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.log_util import LogUtil
 
@@ -42,6 +42,21 @@ class FolderListView(QListWidget):
             )
             self.folder_selected.emit(payload)
 
+    def clear_items(self) -> None:
+        """
+        Remove all items through Python instead of ``QListWidget.clear()``.
+
+        ``clear()`` deletes the items inside Qt, which under PySide 6.11 can
+        leave stale item wrappers behind and crashed the app with an access
+        violation when the list was rebuilt repeatedly (e.g. on filter save).
+        ``takeItem`` hands each item back to Python so shiboken deletes it and
+        invalidates its wrapper in one step.
+        """
+        self.setCurrentRow(-1)
+        while self.count():
+            item = self.takeItem(self.count() - 1)
+            del item
+
     def show_loading_state(self, folders: list[str] | None = None) -> None:
         self.setUpdatesEnabled(False)
         try:
@@ -51,7 +66,7 @@ class FolderListView(QListWidget):
             loading_item = QListWidgetItem(f"\n\n\n {text}")
             loading_item.setFlags(Qt.ItemFlag.NoItemFlags)
             loading_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.clear()
+            self.clear_items()
             self.addItem(loading_item)
         finally:
             self.setUpdatesEnabled(True)
@@ -64,11 +79,11 @@ class FolderListView(QListWidget):
         """
         self.setUpdatesEnabled(False)
         try:
-            self.clear()
+            self.clear_items()
             if message:
                 text = message
             elif root_path:
-                root_label = Path(root_path).as_posix()
+                root_label = FileUtils.normalize_path(root_path)
                 text = f"No folders found under\n{root_label}"
             else:
                 text = "No folders found."
@@ -83,6 +98,7 @@ class FolderListView(QListWidget):
     def add_folder_item(
         self, item: FileUtilModel, icon_name: str = "fa6s.folder"
     ) -> None:
+        icon_name = item.icon_name or icon_name
         prefix = "  " * item.depth
         if item.depth > 0:
             # prefix += "└─ "
@@ -97,6 +113,7 @@ class FolderListView(QListWidget):
         list_item = QListWidgetItem(icon, f"{prefix}{item.name}")
         list_item.setData(Qt.ItemDataRole.UserRole, item.full_path)
         list_item.setData(Qt.ItemDataRole.UserRole + 1, icon_name)
+        list_item.setData(Qt.ItemDataRole.UserRole + 2, item.icon_name)
         self.addItem(list_item)
 
     def refresh_icons(self, get_icon_func) -> None:
@@ -106,7 +123,9 @@ class FolderListView(QListWidget):
             if not path:
                 continue
 
-            new_icon_name = get_icon_func(path)
+            new_icon_name = item.data(Qt.ItemDataRole.UserRole + 2) or get_icon_func(
+                path
+            )
             old_icon_name = item.data(Qt.ItemDataRole.UserRole + 1)
 
             if new_icon_name != old_icon_name:
@@ -142,41 +161,11 @@ class FolderListView(QListWidget):
         self.setUpdatesEnabled(False)
         try:
             folder_items = [item for item in items if item.is_dir]
+            folder_items.sort(
+                key=lambda item: FileUtils.normalize_path(item.full_path).casefold()
+            )
 
-            if folder_items:
-                # Build parent map
-                last_at_depth = {}
-                # children_map: id(parent) -> list of children
-                children_map = {id(None): []}
-
-                for item in folder_items:
-                    parent = (
-                        last_at_depth.get(item.depth - 1) if item.depth > 0 else None
-                    )
-                    parent_id = id(parent)
-                    if parent_id not in children_map:
-                        children_map[parent_id] = []
-                    children_map[parent_id].append(item)
-                    last_at_depth[item.depth] = item
-
-                # Sort children
-                for parent_id, children in children_map.items():
-                    children.sort(key=lambda x: x.name.lower())
-
-                # Reconstruct
-                sorted_items = []
-
-                def add_sorted_children(parent):
-                    parent_id = id(parent)
-                    if parent_id in children_map:
-                        for child in children_map[parent_id]:
-                            sorted_items.append(child)
-                            add_sorted_children(child)
-
-                add_sorted_children(None)
-                folder_items = sorted_items
-
-            self.clear()
+            self.clear_items()
             if not folder_items:
                 self.show_empty_state()
             else:

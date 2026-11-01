@@ -1,17 +1,16 @@
 import re
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
-    QComboBox,
     QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QMessageBox,
     QProgressBar,
-    QPushButton,
     QVBoxLayout,
     QWidget,
 )
@@ -23,12 +22,18 @@ from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
+from MyVideoExplorer.widgets.buttons.action_button import ActionButton
+from MyVideoExplorer.widgets.buttons.delayed_delete_button import DelayedDeleteButton
+from MyVideoExplorer.widgets.combo_boxes.select_combo_box import SelectComboBox
 from MyVideoExplorer.widgets.folder_picker_widget import FolderPickerWidget
 
 
 class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
     config_changed = Signal(dict, str, Any)
     remove_requested = Signal(dict)
+    scan_finished = Signal()
+    scan_stalled = Signal()
+    SCAN_STALL_TIMEOUT_MS = 120_000
 
     def __init__(
         self,
@@ -37,6 +42,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         file_util: FileUtil,
         nfo_util: NfoParseUtil,
         parent: QWidget | None = None,
+        scan_timeout_seconds: Callable[[], int] | None = None,
     ) -> None:
         super().__init__(parent)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
@@ -44,8 +50,15 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         self.get_db_path_callback = get_db_path_callback
         self.file_util = file_util
         self.nfo_util = nfo_util
+        self.scan_timeout_seconds = scan_timeout_seconds or (
+            lambda: self.SCAN_STALL_TIMEOUT_MS // 1000
+        )
         self.lang = LangLoader.get_lang("en")
         self.worker = None
+        self._scan_stall_timer = QTimer(self)
+        self._scan_stall_timer.setSingleShot(True)
+        self._scan_stall_timer.setInterval(self.SCAN_STALL_TIMEOUT_MS)
+        self._scan_stall_timer.timeout.connect(self._on_scan_stalled)
 
         self._build_ui()
         self.apply_theme()
@@ -68,7 +81,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         )
         row1_layout.addWidget(self.label_edit)
 
-        self.type_combo = QComboBox(self)
+        self.type_combo = SelectComboBox(self)
         self.type_combo.addItem("Movie", "movie")
         self.type_combo.addItem("Series", "series")
         current_type = self.media_config.get("media_type", "movie")
@@ -83,10 +96,9 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         row1_layout.addWidget(self.type_combo)
 
         # Delete button
-        self.remove_btn = QPushButton(parent=self)
-        self.remove_btn.setIcon(APP_THEME.icon("fa6s.xmark"))
-        self.remove_btn.setStyleSheet(APP_THEME.button_qss())
+        self.remove_btn = DelayedDeleteButton(parent=self)
         self.remove_btn.setFixedWidth(30)
+        self.remove_btn.setToolTip("Remove media folder configuration")
         self.remove_btn.clicked.connect(
             lambda: self.remove_requested.emit(self.media_config)
         )
@@ -130,7 +142,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             "fa6s.tag",
             "fa6s.tags",
         ]
-        self.icon_combo = QComboBox(self)
+        self.icon_combo = SelectComboBox(self)
         for icon_name in standard_icons:
             self.icon_combo.addItem(APP_THEME.icon(icon_name), "", icon_name)
 
@@ -163,7 +175,11 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             )
         )
 
-        browse_btn = QPushButton("Browse", parent=self)
+        browse_btn = ActionButton(
+            self,
+            icon_name="fa6s.folder-open",
+            tooltip="Browse for media folder",
+        )
         browse_btn.clicked.connect(self.folder_picker.pick_folder)
 
         row2_layout = QHBoxLayout()
@@ -266,8 +282,9 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         self.progress_bar.setTextVisible(False)
         self.progress_bar.setStyleSheet(APP_THEME.progress_bar_qss(active=False))
 
-        self.scan_btn = QPushButton("Scan", parent=self)
-        self.scan_btn.setStyleSheet(APP_THEME.button_qss())
+        self.scan_btn = ActionButton(
+            self, icon_name="fa6s.rotate", tooltip="Scan media folder", text="Scan"
+        )
         self.scan_btn.setFixedWidth(self.scan_btn.sizeHint().width() + 20)
         self.scan_btn.setEnabled(False)
 
@@ -307,8 +324,8 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             media_config["_previous_label"] = current_label
             return
 
-        previous_db = f"db/{self._safe_db_label(previous_label)}.db"
-        current_db = f"db/{self._safe_db_label(current_label)}.db"
+        previous_db = f"db/media_{self._safe_db_label(previous_label)}.db"
+        current_db = f"db/media_{self._safe_db_label(current_label)}.db"
 
         if previous_db == current_db:
             media_config["_previous_label"] = current_label
@@ -455,12 +472,36 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             if icon_lbl and i == 6:
                 icon_lbl.setToolTip(f"Last Scanned: {last_scanned_full}")
 
+    def _reset_scan_stall_timeout(self, _progress: int | None = None) -> None:
+        if self.worker is not None and self.worker.isRunning():
+            self._scan_stall_timer.start()
+
+    def _on_scan_stalled(self) -> None:
+        worker = self.worker
+        if worker is None or not worker.isRunning():
+            return
+        self._scan_error = True
+        self.scan_btn.setText("Stopping...")
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(100)
+        self.progress_bar.setTextVisible(True)
+        timeout_seconds = self.SCAN_STALL_TIMEOUT_MS // 1000
+        self.progress_bar.setFormat(
+            f"Stalled for {timeout_seconds} seconds; stopping scan"
+        )
+        self.progress_bar.setStyleSheet(
+            "QProgressBar { color: #f5d0d0; background: #2f1f1f; border: 1px solid #8b3b3b; } "
+            "QProgressBar::chunk { background: #b3261e; }"
+        )
+        self.scan_stalled.emit()
+        worker.requestInterruption()
+
     def _start_scan(
         self,
         media_config: dict[str, Any],
-        scan_btn: QPushButton,
+        scan_btn: ActionButton,
         progress_bar: QProgressBar,
-    ) -> None:
+    ) -> bool:
         self.apply_changes()
         label = str(media_config.get("label", "")).strip()
         folder = str(media_config.get("path", "")).strip()
@@ -471,7 +512,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
                 "Please enter both a media name and a media folder before scanning.",
             )
             self._refresh_scan_button_state()
-            return
+            return False
 
         try:
             self._rename_db_file_if_needed(media_config)
@@ -481,11 +522,11 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
                 "Invalid Media Name",
                 str(exc),
             )
-            return
+            return False
 
         self._scan_error = False
+        self.scan_btn.setText("Scan")
         scan_btn.setEnabled(False)
-        scan_btn.setText("Scan")
 
         progress_bar.setRange(0, 100)
         progress_bar.setValue(0)
@@ -498,6 +539,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         self.worker = ScanWorker(media_config, self.file_util, self.nfo_util)
         self.worker.progress_init.connect(lambda _val: progress_bar.setRange(0, 100))
         self.worker.progress_updated.connect(progress_bar.setValue)
+        self.worker.progress_updated.connect(self._reset_scan_stall_timeout)
         stage_state = {"stage": self.lang.scan_progress["scanning_media_subfolders"]}
         self.worker.progress_stage.connect(
             lambda stage: stage_state.__setitem__("stage", stage)
@@ -514,26 +556,46 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             lambda: self._on_scan_finished(scan_btn, progress_bar, media_config)
         )
         self.worker.start()
+        timeout_seconds = self.scan_timeout_seconds()
+        self._scan_stall_timer.setInterval(timeout_seconds * 1000)
+        self._scan_stall_timer.start()
+        return True
 
     def _on_scan_finished(
         self,
-        scan_btn: QPushButton,
+        scan_btn: ActionButton,
         progress_bar: QProgressBar,
         media_config: dict[str, Any],
     ) -> None:
-        if getattr(self, "_scan_error", False):
+        self._scan_stall_timer.stop()
+        try:
+            if getattr(self, "_scan_error", False):
+                scan_btn.setText("Scan")
+                self._refresh_scan_button_state()
+                return
+
+            progress_bar.setValue(100)
+            progress_bar.setRange(0, 100)
+            progress_bar.setFormat(f"{self.lang.scan_progress['done']} 100%")
+            progress_bar.setTextVisible(False)
+            progress_bar.setStyleSheet(APP_THEME.progress_bar_qss(active=False))
+            scan_btn.setText("Scan")
             self._refresh_scan_button_state()
-            return
 
-        progress_bar.setValue(100)
-        progress_bar.setRange(0, 100)
-        progress_bar.setFormat(f"{self.lang.scan_progress['done']} 100%")
-        progress_bar.setTextVisible(False)
-        progress_bar.setStyleSheet(APP_THEME.progress_bar_qss(active=False))
-        scan_btn.setText("Scan")
-        self._refresh_scan_button_state()
+            self._refresh_stats_labels(media_config)
+        finally:
+            self.scan_finished.emit()
 
-        self._refresh_stats_labels(media_config)
+    def start_scan(self) -> bool:
+        """Programmatically trigger a scan on this media folder section."""
+        label = str(self.media_config.get("label", "")).strip()
+        folder = str(self.media_config.get("path", "")).strip()
+        if not label or not folder:
+            return False
+        worker = getattr(self, "worker", None)
+        if worker is not None and worker.isRunning():
+            return False
+        return self._start_scan(self.media_config, self.scan_btn, self.progress_bar)
 
     def _on_folder_selected(self, path: str) -> None:
         self.folder_edit.setText(path)

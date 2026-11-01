@@ -11,6 +11,10 @@ from MyVideoExplorer.file_list.file_list import FileList
 from MyVideoExplorer.folder_filter.folder_filter import FolderFilters
 from MyVideoExplorer.folder_filter.folder_filter_filter import FolderFilterFilter
 from MyVideoExplorer.folder_list.folder_list import FolderList
+from MyVideoExplorer.folder_list.media_nav_search import (
+    MediaNavSearch,
+    MediaNavSearchCriteria,
+)
 from MyVideoExplorer.folder_nav.folder_nav import FolderNav
 from MyVideoExplorer.image_list.image_list import ImageList
 from MyVideoExplorer.image_list.image_list_view import ImageListView
@@ -20,7 +24,7 @@ from MyVideoExplorer.media_info_side.media_info_side_view import MediaInfoSideVi
 from MyVideoExplorer.media_info_tabs.media_info_tabs import MediaInfoTabs
 from MyVideoExplorer.settings.settings import Settings
 from MyVideoExplorer.settings.settings_state import DEFAULTS_APP_FILE, SETTINGS_APP_FILE
-from MyVideoExplorer.utils.file_util import FileUtil
+from MyVideoExplorer.utils.file_util import FileUtil, FileUtils
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.font_util import FontUtil
 from MyVideoExplorer.utils.json_util import JsonUtil
@@ -67,7 +71,8 @@ class AppContainer:
             raise
 
         try:
-            self.file_util = FileUtil(self.log_util)
+            self.path_utils = FileUtils()
+            self.file_util = FileUtil(self.log_util, self.path_utils)
             self.settings = Settings(self.log_util, self.file_util)
         except Exception as e:
             self.log_util.error(f"Error initializing Settings: {e}")
@@ -78,8 +83,12 @@ class AppContainer:
             self.nfo_parse_util = NfoParseUtil(self.file_util, self.log_util)
             self.str_util = StrUtil(self.log_util)
             self.font_util = FontUtil(self.log_util, self.file_util)
-            self.db_play_history = DbPlayHistory(self.settings.settings_data_model)
-            self.db_tags = DbTags(self.settings.settings_data_model)
+            self.db_play_history = DbPlayHistory(
+                self.settings.settings_data_model, self.path_utils
+            )
+            self.db_tags = DbTags(
+                self.settings.settings_data_model, path_utils=self.path_utils
+            )
             self.settings.tag_store = self.db_tags
 
             self.signals = SignalRegistry()
@@ -89,6 +98,10 @@ class AppContainer:
                 self.nfo_parse_util,
                 self.settings.settings_data_model,
                 self.log_util,
+                self.path_utils,
+            )
+            self.media_nav_search_service = MediaNavSearch(
+                self.settings.settings_data_model, self.path_utils
             )
             self.folder_list = FolderList(self.file_util, self.settings, self.log_util)
             self.folder_list.setParent(self.window)
@@ -234,14 +247,7 @@ class AppContainer:
         )
         self._connect(
             self.signals.file_changed,
-            lambda p: self.file_list.set_selected_file(p.data),
-        )
-        self._connect(
-            self.signals.file_changed, lambda p: self.media_info.set_image_path(p.data)
-        )
-        self._connect(
-            self.signals.file_changed,
-            lambda p: self.image_list.update_image_from_item(p.data),
+            lambda p: self._on_file_changed(p.data),
         )
         self._connect(
             self.signals.image_changed,
@@ -294,6 +300,67 @@ class AppContainer:
             self.folder_nav.filtered_items_updated,
             lambda p: self._on_filtered_items(p.data),
         )
+        self._connect(
+            self.folder_list.clear_filter_requested, self.folder_nav.clear_saved_filter
+        )
+        self._connect(
+            self.folder_nav_filters.saved_filter_selection_changed,
+            self.folder_list.set_clear_filter_enabled,
+        )
+        self._connect(
+            self.folder_list.media_nav_search_requested,
+            self._on_media_nav_search_requested,
+        )
+        self._connect(
+            self.folder_list.media_nav_clear_search_requested,
+            self.folder_nav.apply_filters,
+        )
+        self._connect(
+            self.media_info_side_view.side_content_widget.tag_cloud_widget.tag_clicked,
+            self._on_tag_clicked_for_filter,
+        )
+        self._connect(
+            self.settings.tags_settings_tab.tag_cloud_settings.tag_search_requested,
+            self._on_tag_search_requested,
+        )
+        self._connect(
+            self.folder_list.media_nav_search.create_filter_requested,
+            self._on_create_filter_from_search,
+        )
+
+    def _on_tag_clicked_for_filter(self, tag: str) -> None:
+        """Handle tag click from media info panel: clear search, add tag, and submit search."""
+        self.folder_nav.clear_saved_filter()
+        self.folder_list.media_nav_search_box.clear()
+        self.folder_list.media_nav_search._selected_tags.clear()
+        self.folder_list.media_nav_search.add_selected_tag(tag)
+        self.folder_list.media_nav_search.submit_search()
+
+    def _on_tag_search_requested(self, tag: str) -> None:
+        """Handle search button click from Settings Tags: add tag to search criteria and refresh."""
+        self.folder_list.media_nav_search.add_selected_tag(tag)
+        self.folder_list.media_nav_search.submit_search()
+
+    def _on_create_filter_from_search(self, filters: list[dict[str, str]]) -> None:
+        """Handle Create Filter from Search: switch to Settings → Filters and open add dialog."""
+        # Switch to the Settings tab
+        self.media_info_tabs.show_settings_tab()
+        # Switch to the Filters sub-tab (index 3: spacer=0, App=1, UI=2, Media=3, Filters=4)
+        self.settings.settings_tabs_container.setCurrentIndex(4)
+        # Open the add filter dialog pre-filled with the search criteria
+        self.settings.filter_settings_tab.open_add_filter(filters)
+
+    def _on_media_nav_search_requested(self, criteria: MediaNavSearchCriteria) -> None:
+        try:
+            items = self.media_nav_search_service.search(criteria)
+        except Exception as error:
+            self.log_util.error(
+                f"Media navigation search failed: {error}",
+                extra_info={"criteria": criteria},
+            )
+            self.folder_list.media_nav_search.show_error(f"Search failed: {error}")
+            return
+        self._on_filtered_items(items)
 
     def _on_tab_changed(self, tab_index: int) -> None:
         """Bridge: translate controller signal to component method."""
@@ -311,27 +378,48 @@ class AppContainer:
             self.media_info_side_view.refresh_play_history()
 
     def _on_filtered_items(self, items: list[FileUtilModel]) -> None:
+        current_folder = self.controller.state.current_folder
+        folder_paths = sorted(
+            (item.full_path for item in items if item.is_dir),
+            key=lambda path: FileUtils.normalize_path(path).casefold(),
+        )
         self.folder_list.populate_view(items)
 
-        if items:
-            first_item = items[0]
-            auto_select_folder = self.settings.settings_data_model.auto_select_folder
-            prior_folder = self.settings.settings_data_model.prior_folder
+        if folder_paths:
+            current_folder_key = FileUtils.normalize_path(current_folder).casefold()
+            selected_folder = next(
+                (
+                    path
+                    for path in folder_paths
+                    if FileUtils.normalize_path(path).casefold() == current_folder_key
+                ),
+                folder_paths[0],
+            )
             self.log_util.debug(
-                "Auto-selecting folder after filters change",
+                "Selecting folder after filters change",
                 extra_info={
-                    "auto_select_folder": auto_select_folder,
-                    "prior_folder": prior_folder,
-                    "first_item": first_item,
+                    "current_folder": current_folder,
+                    "selected_folder": selected_folder,
                 },
             )
-
-            if auto_select_folder == "auto_select_prior_folder" and prior_folder:
-                self.controller.set_current_folder(prior_folder, force=True)
-            else:
-                self.controller.set_current_folder(first_item.full_path, force=True)
+            self.folder_list.set_selected_folder(selected_folder)
+            if (
+                FileUtils.normalize_path(selected_folder).casefold()
+                != current_folder_key
+            ):
+                self.controller.set_current_folder(selected_folder, force=True)
+            # Refresh media content for the selected folder
+            self.file_list.refresh(selected_folder)
+            self.image_list.refresh(selected_folder)
         else:
             self.image_list.update_image_from_folder("")
+
+    def _on_file_changed(self, file_path: str) -> None:
+        self.file_list.set_selected_file(file_path)
+        self.media_info.set_image_path(file_path)
+        self.image_list.update_image_from_item(file_path)
+        video_path = self.video_player.video_finder.find_associated_video(file_path)
+        self.media_info_side_view.set_media_file_path(video_path or file_path)
 
     def _on_folder_selected(self, folder_path: str) -> None:
         if (

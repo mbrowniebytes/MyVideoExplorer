@@ -23,9 +23,9 @@ class DbQuery:
 
         SELECT_METADATA = "SELECT title, year, plot, score, rated, runtime, tags, genres, actors, directors FROM media_file WHERE file_path = ?"
 
-        DELETE_BY_DIR_NOT_IN = "DELETE FROM media_file WHERE media_path LIKE ? AND file_path NOT IN (SELECT unnest(?::VARCHAR[]))"
+        DELETE_BY_DIR_NOT_IN = "DELETE FROM media_file WHERE media_path = ? AND file_path NOT IN (SELECT unnest(?::VARCHAR[]))"
 
-        DELETE_ALL_BY_DIR = "DELETE FROM media_file WHERE media_path LIKE ?"
+        DELETE_ALL_BY_DIR = "DELETE FROM media_file WHERE media_path = ?"
 
     class MediaPathStats:
         INSERT = """

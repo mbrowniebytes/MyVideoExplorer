@@ -19,7 +19,7 @@ $ErrorActionPreference = 'Stop'
 Set-Location -Path $PSScriptRoot
 
 # --- configuration ---------------------------------------------------------------
-$PyLock    = $env:PYLOCK
+$PyLock = $env:PYLOCK
 if (-not $PyLock) { $PyLock = 'pylock.toml' }
 $GroupArgs = @('--group', 'dev')
 
@@ -34,7 +34,13 @@ function Write-Step {
     Write-Host "==> $Message" -ForegroundColor Blue
 }
 
-function Fail {
+function Write-Success {
+    param([string]$Message)
+    Write-Host ""
+    Write-Host "==> $Message" -ForegroundColor Green
+}
+
+function Write-Fail {
     param([string]$Message)
     Write-Host "FAILED: $Message" -ForegroundColor Red
     exit 1
@@ -51,7 +57,7 @@ if (-not (Test-Path -LiteralPath '.venv' -PathType Container)) {
     # Honor PYTHON env var, mirroring ${PYTHON:-python3}
     $Python = if ($env:PYTHON) { $env:PYTHON } else { 'python3' }
     & $Python -m venv .venv
-    if ($LASTEXITCODE -ne 0) { Fail 'venv creation failed' }
+    if ($LASTEXITCODE -ne 0) { Write-Fail 'venv creation Write-Failed' }
 }
 
 # Pick the venv interpreter
@@ -62,7 +68,7 @@ elseif (Test-Path -LiteralPath '.venv/bin/python') {
     $Script:Py = '.venv/bin/python'
 }
 else {
-    Fail 'venv exists but no interpreter found (.venv incomplete?)'
+    Write-Fail 'venv exists but no interpreter found (.venv incomplete?)'
 }
 
 # --- install ----------------------------------------------------------------------
@@ -78,24 +84,24 @@ function Install-Deps {
     else {
         & $Script:Py -m pip install @Script:GroupArgs -e .
     }
-    if ($LASTEXITCODE -ne 0) { Fail 'pip install failed' }
+    if ($LASTEXITCODE -ne 0) { Write-Fail 'pip install Write-Failed' }
 }
 
 # --- checks -----------------------------------------------------------------------
 function Invoke-Lint {
     Write-Step 'Ruff lint'
     & $Script:Py -m ruff check .
-    if ($LASTEXITCODE -ne 0) { Fail 'ruff check' }
+    if ($LASTEXITCODE -ne 0) { Write-Fail 'ruff check' }
 
     Write-Step 'Ruff format'
     & $Script:Py -m ruff format --check .
-    if ($LASTEXITCODE -ne 0) { Fail 'ruff format' }
+    if ($LASTEXITCODE -ne 0) { Write-Fail 'ruff format' }
 }
 
 function Invoke-Typecheck {
     Write-Step 'Type check (ty)'
     & $Script:Py -m ty check
-    if ($LASTEXITCODE -ne 0) { Fail 'ty check' }
+    if ($LASTEXITCODE -ne 0) { Write-Fail 'ty check' }
 }
 
 function Invoke-Tests {
@@ -103,7 +109,7 @@ function Invoke-Tests {
     # No xvfb on Windows; use offscreen Qt platform directly.
     $env:QT_QPA_PLATFORM = 'offscreen'
     & $Script:Py -m pytest
-    if ($LASTEXITCODE -ne 0) { Fail 'pytest' }
+    if ($LASTEXITCODE -ne 0) { Write-Fail 'pytest' }
 }
 
 # --- main -------------------------------------------------------------------------
@@ -113,7 +119,7 @@ switch ($Mode) {
         Invoke-Lint
         Invoke-Typecheck
         Invoke-Tests
-        Write-Step 'All checks passed ✔'
+        Write-Success 'All checks passed [OK]'
     }
     default {
         & (Get-Item "Function:Invoke-$Mode").ScriptBlock

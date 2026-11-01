@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor
+from PySide6.QtCore import QPointF, Qt
+from PySide6.QtGui import QColor, QEnterEvent
 from PySide6.QtWidgets import QLineEdit, QToolButton
 
 from MyVideoExplorer.db.db_tags import DbTags
@@ -9,6 +9,7 @@ from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.settings.settings_tags import SettingsTagsTab
 from MyVideoExplorer.tag_cloud.tag_cloud_settings import TagCloudSettings
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.widgets.buttons.delayed_delete_button import DelayedDeleteButton
 
 
 def test_tag_settings_edits_and_deletes_are_saved_immediately(
@@ -70,6 +71,12 @@ def test_tag_settings_edits_and_deletes_are_saved_immediately(
     initial_style = initial_label.styleSheet()
     APP_THEME.apply_standard_widget_styles(initial_label)
     assert initial_label.styleSheet() == initial_style
+    color_icon = initial_chip.findChild(QToolButton, "edit_tag_color")
+    search_icon = initial_chip.findChild(QToolButton, "search_tag")
+    initial_layout = initial_chip.layout()
+    assert color_icon is not None and search_icon is not None
+    assert initial_layout is not None
+    assert initial_layout.indexOf(color_icon) < initial_layout.indexOf(search_icon)
 
     favorite_chip = next(
         chip for tag, chip in widget.cloud._tag_widgets if tag["tag"] == "Favorite"
@@ -100,13 +107,16 @@ def test_tag_settings_edits_and_deletes_are_saved_immediately(
     )
     delete_button = next(
         button
-        for button in comedy_chip.findChildren(QToolButton)
-        if button.toolTip() == "Delete Comedy"
+        for button in comedy_chip.findChildren(DelayedDeleteButton)
+        if button.toolTip().startswith("Delete Comedy")
     )
     assert not delete_button.icon().isNull()
     assert delete_button.iconSize().width() == 14
     assert delete_button.property("preserve_custom_style")
     assert "border: 0" in delete_button.styleSheet()
+    widget.show()
+    delete_button.enterEvent(QEnterEvent(QPointF(1, 1), QPointF(1, 1), QPointF(1, 1)))
+    qtbot.waitUntil(lambda: delete_button.is_armed, timeout=3000)
     delete_button.click()
 
     assert store.list_tags() == [{"tag": "MustWatch", "color": "#112233"}]
@@ -161,6 +171,31 @@ def test_tag_cloud_filter_and_sort(qtbot):
     assert cloud.selected_tags == ["Drama"]
 
 
+def test_tag_cloud_confirms_only_tags_with_counts_at_least_ten(qtbot):
+    from MyVideoExplorer.tag_cloud.tag_cloud_widget import TagCloudWidget
+
+    cloud = TagCloudWidget(
+        [
+            {"tag": "Small", "qty": 9},
+            {"tag": "Large", "qty": 10},
+        ],
+        deletable=True,
+        confirm_delete_at_count=10,
+    )
+    qtbot.addWidget(cloud)
+
+    buttons = {
+        tag["tag"]: chip.findChild(DelayedDeleteButton)
+        for tag, chip in cloud._tag_widgets
+    }
+    assert buttons["Small"] is not None
+    assert buttons["Small"].confirmation_message is None
+    assert buttons["Large"] is not None
+    confirmation_message = buttons["Large"].confirmation_message
+    assert confirmation_message is not None
+    assert "used by 10 media items" in confirmation_message
+
+
 def test_settings_tags_can_create_tag(qtbot, tmp_path, monkeypatch):
     cfg_dir = tmp_path / "cfg"
     cfg_dir.mkdir()
@@ -195,9 +230,31 @@ def test_settings_tags_can_create_tag(qtbot, tmp_path, monkeypatch):
     store = DbTags(state, tmp_path / "tag_catalog.db")
     settings_tab = SettingsTagsTab(state, MagicMock(), store)
     qtbot.addWidget(settings_tab)
+    settings_tab.show()
+    qtbot.wait(10)
 
-    settings_tab.new_tag_edit.setText("NewTag")
-    settings_tab.add_tag_button.click()
+    cloud = settings_tab.tag_cloud_settings.cloud
+    add_button = cloud.findChild(QToolButton, "add_tag_button")
+    assert add_button is not None and not add_button.icon().isNull()
+    cloud_layout = cloud.layout()
+    assert cloud_layout is not None
+    controls_item = cloud_layout.itemAt(0)
+    assert controls_item is not None
+    controls = controls_item.layout()
+    assert controls is not None
+    assert controls.indexOf(add_button) == controls.indexOf(cloud.sort_combo) + 1
+    add_button.click()
+
+    draft_chip = cloud._tag_widgets[-1][1]
+    name_edit = draft_chip.findChild(QLineEdit, "edit_tag_name")
+    save_button = draft_chip.findChild(QToolButton, "save_tag_edit")
+    assert name_edit is not None and save_button is not None
+    # Focus may not be set immediately in headless Qt; force it for the test
+    name_edit.setFocus()
+    assert not save_button.isEnabled()
+    name_edit.setText("NewTag")
+    assert save_button.isEnabled()
+    save_button.click()
 
     assert store.list_tags() == [{"tag": "NewTag", "color": "#808080"}]
     assert settings_tab.save_btn is None
@@ -242,29 +299,30 @@ def test_tag_name_must_be_alphanumeric(qtbot, tmp_path, monkeypatch):
     store = DbTags(state, tmp_path / "tag_catalog.db")
     settings_tab = SettingsTagsTab(state, MagicMock(), store)
     qtbot.addWidget(settings_tab)
+    cloud = settings_tab.tag_cloud_settings.cloud
+    add_button = cloud.findChild(QToolButton, "add_tag_button")
+    assert add_button is not None
+    add_button.click()
+    draft_chip = cloud._tag_widgets[-1][1]
+    name_edit = draft_chip.findChild(QLineEdit, "edit_tag_name")
+    save_button = draft_chip.findChild(QToolButton, "save_tag_edit")
+    assert name_edit is not None and save_button is not None
+    assert not save_button.isEnabled()
 
-    # Valid alphanumeric tag should be accepted
-    settings_tab.new_tag_edit.setText("Action")
-    settings_tab.add_tag_button.click()
+    name_edit.setText("Action")
+    save_button.click()
     assert store.list_tags() == [{"tag": "Action", "color": "#808080"}]
 
-    # Tag with space should be rejected
-    settings_tab.new_tag_edit.setText("Action Comedy")
-    settings_tab.add_tag_button.click()
-    assert store.list_tags() == [{"tag": "Action", "color": "#808080"}]
-    assert settings_tab.new_tag_edit.toolTip() == "Tag names must be alphanumeric only."
-
-    # Tag with punctuation should be rejected
-    settings_tab.new_tag_edit.setText("Sci-Fi")
-    settings_tab.add_tag_button.click()
-    assert store.list_tags() == [{"tag": "Action", "color": "#808080"}]
-    assert settings_tab.new_tag_edit.toolTip() == "Tag names must be alphanumeric only."
-
-    # Tag with underscore should be rejected
-    settings_tab.new_tag_edit.setText("Sci_Fi")
-    settings_tab.add_tag_button.click()
-    assert store.list_tags() == [{"tag": "Action", "color": "#808080"}]
-    assert settings_tab.new_tag_edit.toolTip() == "Tag names must be alphanumeric only."
+    for invalid_tag in ("Action Comedy", "Sci-Fi", "Sci_Fi"):
+        add_button.click()
+        draft_chip = cloud._tag_widgets[-1][1]
+        name_edit = draft_chip.findChild(QLineEdit, "edit_tag_name")
+        save_button = draft_chip.findChild(QToolButton, "save_tag_edit")
+        assert name_edit is not None and save_button is not None
+        name_edit.setText(invalid_tag)
+        save_button.click()
+        assert store.list_tags() == [{"tag": "Action", "color": "#808080"}]
+        assert name_edit.toolTip() == "Tag names must be alphanumeric only."
 
 
 def test_normalize_tags_rejects_non_alphanumeric():

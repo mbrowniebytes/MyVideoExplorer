@@ -1,21 +1,22 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QColorDialog,
-    QComboBox,
     QHBoxLayout,
     QLabel,
     QLayout,
     QLineEdit,
     QMainWindow,
     QTabWidget,
-    QToolButton,
     QVBoxLayout,
     QWidget,
 )
+
+if TYPE_CHECKING:
+    from MyVideoExplorer.widgets.flow_layout import FlowLayout
 
 from MyVideoExplorer.db.db_tags import DbTags
 from MyVideoExplorer.db.models.tag_item import TagStateProtocol
@@ -31,6 +32,8 @@ from MyVideoExplorer.tag_cloud.tag_util import (
     validate_tag_name,
 )
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.widgets.buttons.action_button import ActionButton
+from MyVideoExplorer.widgets.combo_boxes.select_combo_box import SelectComboBox
 
 __all__ = ["QColorDialog", "TagCloudMedia", "TagPickerDialog", "TagStateProtocol"]
 
@@ -38,6 +41,7 @@ __all__ = ["QColorDialog", "TagCloudMedia", "TagPickerDialog", "TagStateProtocol
 class TagCloudMedia(QWidget):
     tag_added = Signal(str)
     tag_removed = Signal(str)
+    tag_clicked = Signal(str)
 
     def __init__(
         self,
@@ -58,7 +62,7 @@ class TagCloudMedia(QWidget):
 
         self.title_label = QLabel("Tags", self)
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignRight)
-        self.sort_combo = QComboBox(self)
+        self.sort_combo = SelectComboBox(self)
         self.sort_combo.addItem("A-Z", TagCloudWidget.SORT_NAME)
         self.sort_combo.addItem("0-9", TagCloudWidget.SORT_QUANTITY)
         self.sort_combo.setCurrentIndex(
@@ -66,12 +70,9 @@ class TagCloudMedia(QWidget):
         )
         self.sort_combo.setToolTip("Sort tags by name or size")
         self.sort_combo.currentIndexChanged.connect(self._on_media_sort_changed)
-        self.add_button = QToolButton(self)
+        self.add_button = ActionButton(self, icon_name="fa6s.tag", tooltip="Add a tag")
         self.add_button.setObjectName("add_media_tag")
-        self.add_button.setIcon(APP_THEME.icon("fa6s.tag", color=APP_THEME.text_color))
-        self.add_button.setToolTip("Add a tag")
         self.add_button.setAccessibleName("Add a tag")
-        self.add_button.setAutoRaise(True)
         self.add_button.clicked.connect(self._show_tag_cloud)
 
         self.tags_container = QWidget(self)
@@ -109,7 +110,7 @@ class TagCloudMedia(QWidget):
         return self._popup.new_tag_edit if self._popup is not None else None
 
     @property
-    def _popup_assigned_layout(self) -> QHBoxLayout | None:
+    def _popup_assigned_layout(self) -> FlowLayout | None:
         return self._popup.assigned_layout if self._popup is not None else None
 
     @property
@@ -142,7 +143,7 @@ class TagCloudMedia(QWidget):
             self._popup.setStyleSheet(APP_THEME.container_qss())
 
     def _show_tag_cloud(self) -> None:
-        if self.state is None:
+        if self.state is None and self.tag_store is None:
             return
         if self._popup is None:
             self._build_popup()
@@ -234,6 +235,7 @@ class TagCloudMedia(QWidget):
             label.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
             label.setToolTip(tag)
             label.setCursor(Qt.CursorShape.PointingHandCursor)
+            label.clicked.connect(lambda _, t=tag: self.tag_clicked.emit(t))
             label.setStyleSheet(
                 f"QToolButton {{ color: {get_contrast_text_color(color)}; "
                 f"background-color: {color}; border-radius: 4px; padding: 2px 4px; }}"
@@ -253,6 +255,8 @@ class TagCloudMedia(QWidget):
             item = layout.takeAt(0)
             widget = item.widget() if item else None
             if widget is not None:
+                widget.hide()
+                widget.setParent(None)
                 widget.deleteLater()
 
     def _remove_tag(self, tag: str) -> None:
@@ -303,7 +307,7 @@ class TagCloudMedia(QWidget):
             return
         is_valid, _ = validate_tag_name(tag)
         if not is_valid:
-            if self._popup is not None:
+            if self._popup is not None and self._popup.new_tag_edit is not None:
                 self._popup.new_tag_edit.setToolTip(
                     "Tag names must be alphanumeric only."
                 )
@@ -323,12 +327,12 @@ class TagCloudMedia(QWidget):
                 if self._popup is not None:
                     self._popup.hide()
             else:
-                if self._popup is not None:
+                if self._popup is not None and self._popup.new_tag_edit is not None:
                     self._popup.new_tag_edit.setToolTip(
                         "A tag with this name already exists."
                     )
             return
-        if self._popup is not None:
+        if self._popup is not None and self._popup.new_tag_edit is not None:
             self._popup.new_tag_edit.clear()
         self.tag_added.emit(tag)
         self._sync_popup_data()

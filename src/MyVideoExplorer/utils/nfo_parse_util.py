@@ -27,6 +27,7 @@ class NfoParseUtil:
         "genres": [],
         "directors": [],
         "actors": [],
+        "tags": [],
     }
 
     def __init__(self, file_util: FileUtil, log_util: Any = None) -> None:
@@ -154,6 +155,7 @@ class NfoParseUtil:
         self._parse_stream_details(root, movie_info)
         self._parse_directors(root, movie_info)
         self._parse_actors(root, movie_info)
+        self._parse_tags(root, movie_info)
 
         return movie_info
 
@@ -242,6 +244,15 @@ class NfoParseUtil:
             value = self._clean_text(genre.text)
             if value and value not in movie_info["genres"]:
                 movie_info["genres"].append(value)
+
+    # --- Tag parsing ---
+
+    def _parse_tags(self, root: ET.Element, movie_info: dict) -> None:
+        """Parse tags from NFO root."""
+        for tag in root.findall("tag"):
+            value = self._clean_text(tag.text)
+            if value and value not in movie_info.setdefault("tags", []):
+                movie_info["tags"].append(value)
 
     # --- Source parsing ---
 
@@ -392,7 +403,7 @@ class NfoParseUtil:
             original_list = movie_info.get(key, [])
             movie_info[key] = self._dedupe_dict_list(original_list)
 
-        for key in ["genres", "directors"]:
+        for key in ["genres", "directors", "tags"]:
             original_list = movie_info.get(key, [])
             movie_info[key] = self._dedupe_str_list(original_list)
 

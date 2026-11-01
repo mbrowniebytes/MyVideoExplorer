@@ -92,6 +92,10 @@ class FolderNav(QWidget, ThemableMixin):
         # self._timer.timeout.connect(lambda: self.folder_filter_widget.apply_filters_requested(on_complete=self._on_filters_applied))
         # self._timer.start(150)
 
+    def clear_saved_filter(self) -> None:
+        self.folder_filter_widget.clear_saved_filter()
+        self.apply_filters()
+
     def _on_filters_applied(self, filtered_items: list[FileUtilModel]) -> None:
         payload = SignalPayload(
             data=filtered_items,

@@ -3,7 +3,6 @@ from pathlib import Path
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont, QFontDatabase
 from PySide6.QtWidgets import (
-    QComboBox,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
@@ -20,6 +19,7 @@ from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.log_util import LogUtil
+from MyVideoExplorer.widgets.combo_boxes.select_combo_box import SelectComboBox
 
 
 class SettingsUITab(SettingsBaseTab):
@@ -53,16 +53,12 @@ class SettingsUITab(SettingsBaseTab):
         scroll.setWidget(self.main_widget)
         self._layout.addWidget(scroll)
 
-    @property
-    def layout(self) -> QVBoxLayout:
-        return self._layout
-
     def _build_ui(self) -> None:
         display_group = QGroupBox("UI Settings")
         display_layout = QFormLayout(display_group)
 
         # Font size
-        self.font_size_combo = QComboBox(self)
+        self.font_size_combo = SelectComboBox(self)
         current_index = 0
         for index, font_size in enumerate(range(15, 26)):
             if font_size == APP_THEME.font_size:
@@ -76,7 +72,7 @@ class SettingsUITab(SettingsBaseTab):
         display_layout.addRow("Font Size:", self.font_size_combo)
 
         # App Font
-        self.font_family_combo = QComboBox(self)
+        self.font_family_combo = SelectComboBox(self)
 
         path_to_fonts = self.file_util.get_resource_path("asset/fonts")
         fonts_dir = Path(path_to_fonts)

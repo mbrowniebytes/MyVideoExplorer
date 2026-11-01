@@ -3,20 +3,27 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from MyVideoExplorer.utils.file_util import FileUtil
-from MyVideoExplorer.utils.file_util_model import FileUtilModel
+from MyVideoExplorer.utils.file_util import FileUtil, FileUtils
 
 
-class MockDirEntry(FileUtilModel):
-    def is_file(self, follow_symlinks=False):
-        return self.is_file
+class MockDirEntry:
+    """Mock os.DirEntry for testing purposes."""
+
+    def __init__(self, type: str, name: str, full_path: str, depth: int = 0):
+        self.type = type
+        self.name = name
+        self.full_path = full_path
+        self.depth = depth
+
+    def is_file(self, follow_symlinks=False):  # type: ignore[empty-body]
+        return self.type == "file"
+
+    def is_dir(self, follow_symlinks=False):  # type: ignore[empty-body]
+        return self.type == "dir"
 
     @property
     def path(self):
         return self.full_path
-
-    def is_dir(self, follow_symlinks=False):
-        return self.is_dir
 
 
 class TestFileUtil:
@@ -38,6 +45,16 @@ class TestFileUtil:
     def test_is_video_file(self, file_util):
         assert file_util.is_video_file("test.mkv") is True
         assert file_util.is_video_file("test.txt") is False
+
+    def test_normalize_path_converts_windows_separators_to_posix(self):
+        assert FileUtils.normalize_path(r"D:\Media\Films\Movie.mkv") == (
+            "D:/Media/Films/Movie.mkv"
+        )
+
+    def test_is_same_or_descendant_respects_path_boundaries(self):
+        assert FileUtils.is_same_or_descendant("/media/films/movie.mkv", "/media")
+        assert FileUtils.is_same_or_descendant("/media", "/media")
+        assert not FileUtils.is_same_or_descendant("/media2/movie.mkv", "/media")
 
     def test_build_file_item_normalizes_to_posix(self, file_util, tmp_path):
         target = tmp_path / "movie.mp4"

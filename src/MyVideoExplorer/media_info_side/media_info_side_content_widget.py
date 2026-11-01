@@ -160,7 +160,7 @@ class MediaInfoSideContentWidget(QWidget, ThemableMixin):
         date_text_width = self.last_played_date_edit.fontMetrics().horizontalAdvance(
             "0000-00-00"
         )
-        self.last_played_date_edit.setFixedWidth(date_text_width + 44)
+        self.last_played_date_edit.setFixedWidth(date_text_width + 49)
         self.tag_cloud_widget = TagCloudMedia(tag_state, tag_store, self.meta_widget)
         self.meta_body_layout.addWidget(self.played_label)
         self.meta_body_layout.addWidget(
@@ -231,7 +231,7 @@ class MediaInfoSideContentWidget(QWidget, ThemableMixin):
         date_text_width = self.last_played_date_edit.fontMetrics().horizontalAdvance(
             "0000-00-00"
         )
-        date_edit_width = date_text_width + 44
+        date_edit_width = date_text_width + 49
         self.last_played_date_edit.setFixedWidth(date_edit_width)
         self._meta_expanded_width = date_edit_width
         if hasattr(self, "_nfo_expanded_width"):

@@ -2,8 +2,8 @@ from datetime import date
 from unittest.mock import MagicMock, patch
 
 import pytest
-from PySide6.QtCore import QDate, QEvent, QObject, Qt, Signal
-from PySide6.QtGui import QColor
+from PySide6.QtCore import QDate, QEvent, QObject, QPointF, Qt, Signal
+from PySide6.QtGui import QColor, QEnterEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QLineEdit, QPushButton, QToolButton
 
@@ -12,6 +12,7 @@ from MyVideoExplorer.db.models.play_history import PlayHistory
 from MyVideoExplorer.media_info_side.media_info_side_view import MediaInfoSideView
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.utils.str_util import StrUtil
+from MyVideoExplorer.widgets.buttons.delayed_delete_button import DelayedDeleteButton
 
 
 class TestMediaInfoSideView:
@@ -42,6 +43,17 @@ class TestMediaInfoSideView:
 
     def test_initialization(self, media_info_side_view):
         assert media_info_side_view.nfo_parse_util is not None
+
+    def test_last_played_date_edit_includes_calendar_control_width(
+        self, media_info_side_view
+    ):
+        content = media_info_side_view.side_content_widget
+        date_edit = content.last_played_date_edit
+        expected_width = date_edit.fontMetrics().horizontalAdvance("0000-00-00") + 49
+
+        assert date_edit.width() == expected_width
+        content._resize_meta_column()
+        assert date_edit.width() == expected_width
 
     def test_refresh_calls_nfo_parse(self, media_info_side_view, mock_nfo_data):
         media_info_side_view.nfo_parse_util.parse_nfo.return_value = mock_nfo_data
@@ -307,7 +319,7 @@ class TestMediaInfoSideView:
         assert len(tag_count_refreshes) == 1
         assert any(
             "Remove Comedy" in button.toolTip()
-            for button in popup.findChildren(QToolButton)
+            for button in popup.findChildren(DelayedDeleteButton)
         )
         assigned_color_button = next(
             button
@@ -323,10 +335,14 @@ class TestMediaInfoSideView:
 
         remove_button = next(
             button
-            for button in popup.findChildren(QToolButton)
+            for button in popup.findChildren(DelayedDeleteButton)
             if "Remove Comedy" in button.toolTip()
         )
         assert not remove_button.icon().isNull()
+        remove_button.enterEvent(
+            QEnterEvent(QPointF(1, 1), QPointF(1, 1), QPointF(1, 1))
+        )
+        qtbot.waitUntil(lambda: remove_button.is_armed, timeout=3000)
         remove_button.click()
         assert tag_store.set_tags.call_args.args == (
             "C:/movies/film.mkv",
@@ -417,3 +433,32 @@ class TestMediaInfoSideView:
         date_edit.eventFilter(calendar, QEvent(QEvent.Type.Show))
         QTest.qWait(10)
         assert calendar.selectedDate() == selected_date
+
+    def test_tag_button_enabled_when_media_selected_without_tags(self, qtbot):
+        tag_store = MagicMock()
+        tag_store.get_tags.return_value = None
+        tag_store.list_tags.return_value = []
+        tag_store.get_tag_counts.return_value = {}
+
+        tag_state = MagicMock()
+        tag_state.tags = []
+
+        view = MediaInfoSideView(
+            MagicMock(spec=NfoParseUtil),
+            MagicMock(spec=StrUtil),
+            MagicMock(),
+            tag_store=tag_store,
+            tag_state=tag_state,
+        )
+        qtbot.addWidget(view)
+
+        tag_widget = view.side_content_widget.tag_cloud_widget
+        assert not tag_widget.add_button.isEnabled()
+
+        # When media file is selected with no existing tags
+        view.set_media_file_path("C:/movies/untagged.mkv")
+        assert tag_widget.add_button.isEnabled()
+
+        # When selection is cleared
+        view.set_media_file_path(None)
+        assert not tag_widget.add_button.isEnabled()

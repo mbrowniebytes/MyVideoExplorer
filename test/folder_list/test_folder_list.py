@@ -33,6 +33,47 @@ class TestFolderList:
         assert folder_list.folder_list_view.count() == 1
         # Check if title label exists in layout (indirectly via build)
         assert folder_list._container.objectName() == "folderListContainer"
+        assert folder_list._container.layout().itemAt(0).widget() is (
+            folder_list.media_nav_search
+        )
+        assert folder_list._container.layout().itemAt(1).widget() is folder_list.header
+        assert folder_list.media_nav_search_box.objectName() == "media_nav_search_box"
+
+    def test_quick_search_enables_and_clearing_disables_clear_button(self, folder_list):
+        assert not folder_list.clear_filter_button.isEnabled()
+
+        folder_list.media_nav_search_box.setText("Alpha")
+        assert folder_list.clear_filter_button.isEnabled()
+
+        folder_list.media_nav_search.clear_search()
+        assert not folder_list.clear_filter_button.isEnabled()
+
+        options = folder_list.media_nav_search.options_dialog
+        options.year_checkbox.setChecked(True)
+        options.year_combo.setCurrentIndex(1)
+        assert folder_list.clear_filter_button.isEnabled()
+
+        folder_list.media_nav_search.clear_search()
+        assert not folder_list.clear_filter_button.isEnabled()
+
+    def test_clear_button_stays_enabled_until_saved_filter_is_cleared(
+        self, folder_list
+    ):
+        folder_list.set_clear_filter_enabled(True)
+        folder_list.media_nav_search_box.setText("Alpha")
+
+        folder_list.media_nav_search.clear_search()
+        assert folder_list.clear_filter_button.isEnabled()
+
+        folder_list.set_clear_filter_enabled(False)
+        assert not folder_list.clear_filter_button.isEnabled()
+
+    def test_folder_help_tooltip_shows_usage_and_settings(self, folder_list):
+        tooltip = folder_list.help_icon.toolTip()
+
+        assert "Click a folder to view its contents" in tooltip
+        assert "Use the folder picker to browse other directories" in tooltip
+        assert "Loading from:" in tooltip
 
     def test_show_loading_state(self, folder_list):
         """Verify loading state displays correct text."""
@@ -150,6 +191,53 @@ class TestFolderList:
         assert folder_list.folder_list_view.item(0).text() == " Root"
         # Subfolder (depth 1)
         assert folder_list.folder_list_view.item(1).text() == "  ・ Subfolder"
+
+    def test_path_depths_for_database_and_search_results(self, folder_list):
+        """Keep hierarchy depths derived by database and search result builders."""
+        folder_list.settings.settings_data_model.media_configs = [{"path": "/path/to"}]
+        items = [
+            FileUtilModel(
+                type="dir",
+                name="Season 1",
+                full_path="/path/to/TV/Season 1",
+                depth=1,
+            ),
+            FileUtilModel(
+                type="dir",
+                name="TV",
+                full_path="/path/to/TV",
+                depth=0,
+            ),
+            FileUtilModel(
+                type="dir",
+                name="Movies",
+                full_path="/path/to/Movies",
+                depth=0,
+            ),
+        ]
+
+        folder_list.update_folder_list_by_items(items)
+
+        assert [
+            folder_list.folder_list_view.item(row).text()
+            for row in range(folder_list.folder_list_view.count())
+        ] == [" Movies", " TV", "  ・ Season 1"]
+
+    def test_derived_ancestor_icon_survives_icon_refresh(self, folder_list):
+        item = FileUtilModel(
+            type="dir",
+            name="TV",
+            full_path="/path/to/TV",
+            icon_name="fa6s.folder-open",
+        )
+
+        folder_list.update_folder_list_by_items([item])
+        folder_list.folder_list_view.refresh_icons(lambda _: "fa6s.star")
+
+        assert (
+            folder_list.folder_list_view.item(0).data(Qt.ItemDataRole.UserRole + 1)
+            == "fa6s.folder-open"
+        )
 
     def test_refresh_asynchronous(self, folder_list, qtbot):
         """Verify refresh method triggers update via timer."""

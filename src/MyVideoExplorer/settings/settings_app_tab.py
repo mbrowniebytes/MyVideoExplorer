@@ -1,7 +1,6 @@
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
-    QComboBox,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
@@ -13,9 +12,13 @@ from PySide6.QtWidgets import (
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
-from MyVideoExplorer.settings.settings_state import SettingsState
+from MyVideoExplorer.settings.settings_state import (
+    SCAN_MEDIA_TIMEOUT_OPTIONS,
+    SettingsState,
+)
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
+from MyVideoExplorer.widgets.combo_boxes.select_combo_box import SelectComboBox
 
 
 class SettingsAppTab(SettingsBaseTab):
@@ -42,7 +45,7 @@ class SettingsAppTab(SettingsBaseTab):
         app_layout = QFormLayout(app_group)
 
         # App start prior folder selection combo box
-        self.app_start_select_prior_combo = QComboBox(self)
+        self.app_start_select_prior_combo = SelectComboBox(self)
         self.app_start_select_prior_combo.addItem(
             "First Folder", "auto_select_first_folder"
         )
@@ -64,7 +67,7 @@ class SettingsAppTab(SettingsBaseTab):
         )
 
         # Launch App Size
-        self.launch_app_size_combo = QComboBox(self)
+        self.launch_app_size_combo = SelectComboBox(self)
         self.launch_app_size_combo.addItem("Last Window Size", "app_size_last")
         self.launch_app_size_combo.addItem("Maximized", "app_size_maximized")
         self.launch_app_size_combo.addItem("2560x1440", "app_size_2560x1440")
@@ -91,7 +94,7 @@ class SettingsAppTab(SettingsBaseTab):
         app_layout.addRow("Launch App Size", self.launch_app_size_combo)
 
         # Launch App Position
-        self.launch_app_pos_combo = QComboBox(self)
+        self.launch_app_pos_combo = SelectComboBox(self)
         self.launch_app_pos_combo.addItem("Last Position", "app_pos_last")
         self.launch_app_pos_combo.addItem("Center Center", "app_pos_center_center")
         self.launch_app_pos_combo.addItem("Center Bottom", "app_pos_center_bottom")
@@ -112,7 +115,7 @@ class SettingsAppTab(SettingsBaseTab):
         app_layout.addRow("Launch App Position", self.launch_app_pos_combo)
 
         # Show Loading Screen
-        self.show_loading_screen_combo = QComboBox(self)
+        self.show_loading_screen_combo = SelectComboBox(self)
         self.show_loading_screen_combo.addItem("Yes", True)
         self.show_loading_screen_combo.addItem("No", False)
 
@@ -129,8 +132,27 @@ class SettingsAppTab(SettingsBaseTab):
         )
         app_layout.addRow("Show Loading Screen", self.show_loading_screen_combo)
 
+        self.scan_media_timeout_combo = SelectComboBox(self)
+        for timeout in SCAN_MEDIA_TIMEOUT_OPTIONS:
+            self.scan_media_timeout_combo.addItem(f"{timeout}s", timeout)
+        current_timeout = getattr(self.state, "scan_media_timeout_seconds", 120)
+        index = self.scan_media_timeout_combo.findData(current_timeout)
+        if index < 0:
+            index = self.scan_media_timeout_combo.findData(120)
+        self.scan_media_timeout_combo.setCurrentIndex(index)
+        self.scan_media_timeout_combo.setToolTip(
+            "Time without scan progress before a media scan is stopped."
+        )
+        self.scan_media_timeout_combo.currentIndexChanged.connect(
+            self._on_scan_media_timeout_changed
+        )
+        self.scan_media_timeout_combo.currentIndexChanged.connect(
+            self._on_setting_changed
+        )
+        app_layout.addRow("Scan Media Timeout", self.scan_media_timeout_combo)
+
         # Logging level combo box - populated from LogUtil.LEVEL_MAP
-        self.logging_level_combo = QComboBox(self)
+        self.logging_level_combo = SelectComboBox(self)
         for label in LogUtil.LEVEL_MAP:
             # Use capitalized display label matching the original format
             display_label = label.capitalize()
@@ -229,7 +251,6 @@ class SettingsAppTab(SettingsBaseTab):
         value = self.show_loading_screen_combo.itemData(
             index, role=Qt.ItemDataRole.UserRole
         )
-
         self.state.show_loading_screen = value
 
         self.state.settings_changed.emit(
@@ -238,6 +259,23 @@ class SettingsAppTab(SettingsBaseTab):
                 sender=self.__class__.__name__,
                 name="Settings Changed",
                 description="Show loading screen setting was changed.",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
+
+    def _on_scan_media_timeout_changed(self, index: int) -> None:
+        value = self.scan_media_timeout_combo.itemData(
+            index, role=Qt.ItemDataRole.UserRole
+        )
+        if value not in SCAN_MEDIA_TIMEOUT_OPTIONS:
+            return
+        self.state.scan_media_timeout_seconds = value
+        self.state.settings_changed.emit(
+            SignalPayload(
+                data=value,
+                sender=self.__class__.__name__,
+                name="Settings Changed",
+                description="Scan media timeout setting was changed.",
                 flow=SignalFlow.USER_INPUT,
             )
         )
@@ -279,6 +317,12 @@ class SettingsAppTab(SettingsBaseTab):
         if index >= 0:
             self.show_loading_screen_combo.setCurrentIndex(index)
 
+        index = self.scan_media_timeout_combo.findData(
+            self.state.scan_media_timeout_seconds
+        )
+        if index >= 0:
+            self.scan_media_timeout_combo.setCurrentIndex(index)
+
         self.reset_save_button()
         self.saved.emit(
             SignalPayload(
@@ -298,6 +342,12 @@ class SettingsAppTab(SettingsBaseTab):
         if current_index >= 0:
             self.state.show_loading_screen = self.show_loading_screen_combo.itemData(
                 current_index
+            )
+
+        current_index = self.scan_media_timeout_combo.currentIndex()
+        if current_index >= 0:
+            self.state.scan_media_timeout_seconds = (
+                self.scan_media_timeout_combo.itemData(current_index)
             )
 
         # Get current logging level

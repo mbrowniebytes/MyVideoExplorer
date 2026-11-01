@@ -7,7 +7,7 @@ from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.str_util import StrUtil
 from MyVideoExplorer.utils.ui_utils import UIUtils
-from MyVideoExplorer.widgets.label_value_widget import LabelValueWidget
+from MyVideoExplorer.widgets.labels.label_value_widget import LabelValueWidget
 
 type MediaInfoField = tuple[str, object]
 type MediaInfoFieldRow = list[MediaInfoField]
@@ -28,10 +28,6 @@ class MediaInfoCommonSection(QWidget, ThemableMixin):
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(4)
         self.str_util = str_util
-
-    @property
-    def layout(self) -> QVBoxLayout:
-        return self._layout
 
     def apply_theme(self) -> None:
         super().apply_theme()
@@ -78,8 +74,8 @@ class MediaInfoCommonSection(QWidget, ThemableMixin):
 
         # Use existing widgets if possible
         existing_widgets = []
-        for i in range(self.layout.count()):
-            item = self.layout.itemAt(i)
+        for i in range(self._layout.count()):
+            item = self._layout.itemAt(i)
             if item is not None and item.layout() is not None:
                 item_layout = item.layout()
                 if item_layout is not None:
@@ -103,7 +99,7 @@ class MediaInfoCommonSection(QWidget, ThemableMixin):
 
         # Structure changed, rebuild
         # Clear existing rows
-        self._ui_utils.clear_layout(self.layout)
+        self._ui_utils.clear_layout(self._layout)
 
         col_layout = QVBoxLayout()
         col_layout.setContentsMargins(0, 0, 0, 0)
@@ -115,6 +111,6 @@ class MediaInfoCommonSection(QWidget, ThemableMixin):
                 lvw = LabelValueWidget(name=label, value=value, parent=self)
                 row_layout.addWidget(lvw)
             col_layout.addLayout(row_layout)
-        self.layout.addLayout(col_layout)
+        self._layout.addLayout(col_layout)
 
     # Removed _clear_layout in favor of UIUtils.clear_layout

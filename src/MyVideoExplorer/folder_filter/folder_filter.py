@@ -1,12 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from pathlib import Path
 
-import duckdb
-from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtCore import QEvent, QObject, Qt, QTimer, Signal
 from PySide6.QtWidgets import (
-    QComboBox,
     QHBoxLayout,
     QSizePolicy,
     QToolButton,
@@ -15,26 +12,33 @@ from PySide6.QtWidgets import (
 )
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
-from MyVideoExplorer.db import db_query
+from MyVideoExplorer.db.db_filter import DbFilter
+from MyVideoExplorer.db.db_filters import DbFilters
 from MyVideoExplorer.folder_filter.folder_filter_filter import FolderFilterFilter
 from MyVideoExplorer.folder_filter.folder_filter_genre_combo_widget import (
     GenreComboWidget,
 )
 from MyVideoExplorer.folder_filter.folder_filter_media import FolderFilterMedia
 from MyVideoExplorer.folder_filter.folder_filter_table import FolderFilterTable
+from MyVideoExplorer.media_nav_search.filter_criteria_dialog import FilterCriteriaDialog
 from MyVideoExplorer.settings.settings import Settings
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
-from MyVideoExplorer.theme.theme import APP_THEME
-from MyVideoExplorer.utils.file_util import FileUtil
+from MyVideoExplorer.utils.file_util import FileUtil, FileUtils
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.ui_utils import UIUtils
+from MyVideoExplorer.widgets.buttons.action_button import ActionButton
+from MyVideoExplorer.widgets.combo_boxes.select_combo_box import SelectComboBox
+
+_SHOW_ALL_FILTER_LABEL = "- Select a Filter (Showing All) -"
 
 
 class FolderFilters(QWidget, ThemableMixin):
     filters_requested = Signal()
+    saved_filter_selection_changed = Signal(bool)
     genre_changed = Signal(object)
     root_folder = Signal(object)
     loading_started = Signal(object)
+    edit_filter_requested = Signal(str)
 
     GENRES = sorted(
         ["Action", "Comedy", "Sci-Fi", "Mystery", "Thriller", "Drama", "Adventure"]
@@ -51,73 +55,56 @@ class FolderFilters(QWidget, ThemableMixin):
         self.log_util = log_util
         self._ui_utils = UIUtils()
         self.settings = settings
-        # Create child widgets with explicit parent to avoid becoming top-level windows
-        # TODO: these are rebuilt using _make_tool_button, declare instead of init
-        self.apply_button = QToolButton(self)
-        self.add_filter_button = QToolButton(self)
-        self.filter_type_combo = QComboBox(self)
+
+        self.clear_search_button = QToolButton(self)
+        self.filter_criteria_button = QToolButton(self)
         self.genre_combo = GenreComboWidget(self.GENRES, parent=self)
-        self.nav_combo = QComboBox(self)
-        self.saved_filters_combo = QComboBox(self)
-        self.save_filter_button = QToolButton(self)
-        # These are helper controls kept for signal plumbing / future reuse. They
-        # are intentionally hidden because the actual filter editors live inside the
-        # table rows and should not duplicate at the top-left of the app.
+        self.nav_combo = SelectComboBox(self)
+        self.saved_filters_combo = SelectComboBox(self)
         self.genre_combo.setVisible(False)
         self.nav_combo.setVisible(False)
-        # self.saved_filters_combo.setVisible(False)
-        self.save_filter_button.setVisible(False)
-        # self.filter_type_combo.setVisible(False)
-        self.add_filter_button.setVisible(False)
-        self.apply_button.setVisible(False)
-        # self.delete_filter_button = QToolButton(self)
+        self._criteria_popup: FilterCriteriaDialog | None = None
+
         self.media_filter_widget = FolderFilterMedia(self.settings, log_util, self)
         self.filter_table = FolderFilterTable(
-            self.GENRES, self.settings.settings_data_model.media_configs
+            self.GENRES,
+            self.settings.settings_data_model.media_configs,
+            state=self.settings.settings_data_model,
+            tag_store=getattr(self.settings, "tag_store", None),
+            readonly=True,
         )
-        # support multiple roots
+        self.filter_table.setParent(self)
+
         self.root_folders: list[str] = []
         self.folder_nav_filters_filter = filter_engine_engine
         self.file_util = file_util
+        self.db_filter = DbFilter(
+            self.settings.settings_data_model,
+            getattr(self.file_util, "path_utils", None) or FileUtils(),
+        )
 
     def build(self) -> QWidget:
         filter_container = QWidget(self)
 
         self.build_nav_combo()
-        self._build_filter_type_combo()
-        self._build_apply_button()
-        self._build_add_filter_button()
         self._build_saved_filters_combo()
-        self._build_save_filter_button()
-        # self._build_delete_filter_button()
+        self._build_filter_criteria_button()
+        self._build_clear_search_button()
 
-        self.filter_table = FolderFilterTable(
-            self.GENRES, self.settings.settings_data_model.media_configs
-        )
-
-        # Add filter controls row
-        add_filter_layout = QHBoxLayout()
-        add_filter_layout.addWidget(self.filter_type_combo)
-        add_filter_layout.addWidget(self.add_filter_button)
-        add_filter_layout.addWidget(self.apply_button)
-
-        # Add saved filters row
+        # Add saved filters and filter controls row
         saved_filters_layout = QHBoxLayout()
-        saved_filters_layout.addWidget(self.saved_filters_combo)
-        saved_filters_layout.addWidget(self.save_filter_button)
-        # saved_filters_layout.addWidget(self.delete_filter_button)
+        saved_filters_layout.addWidget(self.saved_filters_combo, 1)
+        saved_filters_layout.addWidget(self.filter_criteria_button)
+        saved_filters_layout.addWidget(self.clear_search_button)
 
         filter_layout = QVBoxLayout(filter_container)
-        filter_layout.setSpacing(0)
+        filter_layout.setSpacing(4)
         filter_layout.setContentsMargins(2, 0, 2, 0)
         filter_layout.addWidget(self.media_filter_widget)
         filter_layout.addLayout(saved_filters_layout)
-        filter_layout.addLayout(add_filter_layout)
-        filter_layout.addWidget(self.filter_table)
 
         left_layout = QVBoxLayout(self)
         left_layout.addWidget(filter_container)
-        # for debug, move filters down 2, 30, 2, 0
         left_layout.setContentsMargins(2, 0, 2, 0)
 
         self._connect_sigs()
@@ -139,97 +126,131 @@ class FolderFilters(QWidget, ThemableMixin):
         self.nav_combo.setMinimumHeight(40)
         self.nav_combo.blockSignals(False)
 
-    def _build_filter_type_combo(self) -> None:
-        # self.filter_type_combo = QComboBox(self)
-        self.filter_type_combo.setEditable(True)
-        index = 0
-        for filter_type in FolderFilterTable.FILTER_TYPES:
-            clean_type = filter_type.casefold().strip()
-            if clean_type in ("os", "nfo"):
-                self.filter_type_combo.insertSeparator(index)
-                label_text = filter_type
-                self.filter_type_combo.addItem(label_text)
-                # Disable OS and NFO so they act as headers
-                model = self.filter_type_combo.model()
-                model_index = model.index(index + 1, 0)
-                model.setData(model_index, 0, Qt.ItemDataRole.UserRole - 1)
-                index += 1
-            else:
-                label_text = f"  {filter_type}"
-                self.filter_type_combo.addItem(label_text)
-            index += 1
-        self.filter_type_combo.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+    def _build_clear_search_button(self) -> None:
+        self.clear_search_button = self._make_tool_button("Clear Filter", "fa6s.xmark")
+        self.clear_search_button.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonIconOnly
         )
+        self.clear_search_button.setFixedWidth(40)
+        self.clear_search_button.setEnabled(False)
+        self.clear_search_button.clicked.connect(self._clear_search)
 
-    def _build_apply_button(self) -> None:
-        self.apply_button = self._make_tool_button("Apply Filters", "fa6s.rotate")
-        self.apply_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
-        self.apply_button.setFixedWidth(50)
-
-    def _build_add_filter_button(self) -> None:
-        self.add_filter_button = self._make_tool_button(
-            "Add Filter", "fa6s.circle-plus"
+    def _build_filter_criteria_button(self) -> None:
+        self.filter_criteria_button = self._make_tool_button(
+            "View Filter Criteria", "fa6s.filter"
         )
-        self.add_filter_button.setFixedWidth(50)
+        self.filter_criteria_button.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonIconOnly
+        )
+        self.filter_criteria_button.setFixedWidth(40)
+        self.filter_criteria_button.setEnabled(False)
+        self.filter_criteria_button.clicked.connect(self._show_filter_criteria)
 
     def _build_saved_filters_combo(self) -> None:
-        # self.saved_filters_combo = QComboBox(self)
         self.saved_filters_combo.setEditable(True)
+        self.saved_filters_combo.setToolTip("Select a saved filter (type to search)")
+        self.saved_filters_combo.installEventFilter(self)
         line_edit = self.saved_filters_combo.lineEdit()
         if line_edit is not None:
-            line_edit.setPlaceholderText("- Select Saved Filters -")
+            line_edit.installEventFilter(self)
         self._refresh_saved_filters_combo()
         self.saved_filters_combo.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
         )
-        self.saved_filters_combo.setMinimumHeight(40)
+        self.saved_filters_combo.setMinimumHeight(35)
 
     def _refresh_saved_filters_combo(self) -> None:
-        self.saved_filters_combo.clear()
-        self.saved_filters_combo.addItem("")
-        filter_names = [
-            f.get("name", "") for f in self.settings.settings_data_model.saved_filters
-        ]
-        for name in sorted(filter_names):
-            self.saved_filters_combo.addItem(name)
-
-    def _build_save_filter_button(self) -> None:
-        self.save_filter_button = self._make_tool_button(
-            "Save Filter", "fa6s.floppy-disk"
+        selected_name = (
+            self.saved_filters_combo.currentData()
+            if self.saved_filters_combo.currentIndex() > 0
+            else None
         )
-        self.save_filter_button.setFixedWidth(50)
+        self.saved_filters_combo.blockSignals(True)
+        self.saved_filters_combo.clear()
+        self.saved_filters_combo.addItem(_SHOW_ALL_FILTER_LABEL, userData="")
+        selected_folders = [
+            str(path)
+            for media_filter in self.media_filter_widget.collect_filters()
+            for path in media_filter.get("value", [])
+        ]
+        saved = sorted(
+            self.settings.settings_data_model.saved_filters,
+            key=lambda item: str(item.get("name", "")).casefold(),
+        )
+        for filter_cfg in saved:
+            name = str(filter_cfg.get("name", ""))
+            if not name:
+                continue
+            store = getattr(self.settings.settings_data_model, "filter_store", None)
+            if isinstance(store, DbFilters):
+                count = store.get_display_count(name, selected_folders)
+            else:
+                count = filter_cfg.get("total_count")
+            label = f"{name} ({count})" if count is not None else name
+            self.saved_filters_combo.addItem(label, userData=name)
+        if selected_name:
+            selected_index = self.saved_filters_combo.findData(selected_name)
+            if selected_index > 0:
+                self.saved_filters_combo.setCurrentIndex(selected_index)
+        self.saved_filters_combo.blockSignals(False)
 
-    def _build_delete_filter_button(self) -> None:
-        pass
-        # self.delete_filter_button = self._make_tool_button(
-        #     "Delete Filter", "edit-delete"
-        # )
-        # self.delete_filter_button.setFixedWidth(60)
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+        combo = self.saved_filters_combo
+        if (
+            watched in (combo, combo.lineEdit())
+            and event.type() == QEvent.Type.MouseButtonPress
+            and combo.currentIndex() == 0
+            and combo.currentText() == _SHOW_ALL_FILTER_LABEL
+        ):
+            combo.setEditText("")
+            QTimer.singleShot(0, combo.showPopup)
+        return super().eventFilter(watched, event)
+
+    def _resolve_filter_text(self, text: str) -> int:
+        """Map typed combo text to a saved-filter item index (-1 when unknown).
+
+        Prefers an exact case-insensitive match; otherwise accepts a unique
+        prefix match so typing progressively selects the intended filter.
+        """
+        wanted = text.strip().casefold()
+        if not wanted:
+            return -1
+
+        combo = self.saved_filters_combo
+        prefix_index = -1
+        prefix_matches = 0
+        for index in range(combo.count()):
+            name = str(combo.itemData(index) or combo.itemText(index)).casefold()
+            if name == wanted:
+                return index
+            if name.startswith(wanted):
+                prefix_index = index
+                prefix_matches += 1
+
+        return prefix_index if prefix_matches == 1 else -1
+
+    def _handle_filter_text(self, text: str) -> None:
+        """Resolve typed filter names into a selection of the saved-filter combo."""
+        index = self._resolve_filter_text(text)
+        if index < 0 or index == self.saved_filters_combo.currentIndex():
+            return
+        self.saved_filters_combo.setCurrentIndex(index)
 
     def _make_tool_button(
         self, label: str, icon_name: str = "fa6s.folder"
     ) -> QToolButton:
-        btn = QToolButton(self)
-        btn.setToolTip(label)
-        # btn.setText(label)
-        # btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-        btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
-        btn.setIcon(APP_THEME.icon(icon_name, color=APP_THEME.text_color))
-        btn.setIconSize(QSize(APP_THEME.icon_size, APP_THEME.icon_size))
-        # btn.setText(f"  {label}")
-        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        btn.setMaximumWidth(300)
+        btn = ActionButton(self, icon_name=icon_name, tooltip=label)
+        btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         return btn
 
     def _connect_sigs(self) -> None:
         self.nav_combo.currentIndexChanged.connect(self._handle_media_selection)
-        self.apply_button.clicked.connect(self.filters_requested.emit)
         self.media_filter_widget.apply_filters.connect(self.filters_requested.emit)
-        self.add_filter_button.clicked.connect(self._add_filter_clicked)
-        self.save_filter_button.clicked.connect(self._save_filter_clicked)
-        # self.delete_filter_button.clicked.connect(self._delete_filter_clicked)
         self.saved_filters_combo.currentIndexChanged.connect(self._load_saved_filter)
+        self.saved_filters_combo.currentTextChanged.connect(self._handle_filter_text)
+        self.saved_filters_combo.currentTextChanged.connect(
+            self._update_clear_search_enabled
+        )
         self.genre_combo.genre_changed.connect(
             lambda payload: self.genre_changed.emit(payload)
         )
@@ -242,12 +263,66 @@ class FolderFilters(QWidget, ThemableMixin):
 
         def refresh_all():
             self.build_nav_combo()
+            selected_folders = set(
+                self.settings.settings_data_model.selected_media_folders
+            )
+            for button in self.media_filter_widget.media_button_group:
+                button_paths = button.property("media_paths") or []
+                button.setChecked(
+                    any(path in selected_folders for path in button_paths)
+                )
+            self._on_media_filter_selection_changed()
+            # Preserve the currently selected filter name before rebuilding the combo
+            current_filter_name = ""
+            if self.saved_filters_combo.currentIndex() > 0:
+                current_filter_name = str(
+                    self.saved_filters_combo.currentData()
+                    or self.saved_filters_combo.currentText()
+                )
             self._refresh_saved_filters_combo()
-            self._load_saved_filter(self.saved_filters_combo.currentIndex())
+            # Restore the selected filter if it still exists
+            if current_filter_name:
+                restored_index = self.saved_filters_combo.findData(current_filter_name)
+                if restored_index > 0:
+                    self.saved_filters_combo.setCurrentIndex(restored_index)
+                    self._load_saved_filter(restored_index)
+                else:
+                    # Filter was deleted; clear selection
+                    self._load_saved_filter(0)
+            else:
+                self._load_saved_filter(self.saved_filters_combo.currentIndex())
             self.apply_filters()
             self.filters_requested.emit()
 
         self.settings.settings_data_model.settings_changed.connect(refresh_all)
+        self.settings.settings_data_model.filter_counts_changed.connect(
+            self._refresh_saved_filters_combo
+        )
+        self.media_filter_widget.apply_filters.connect(
+            self._on_media_filter_selection_changed
+        )
+
+    def _update_clear_search_enabled(self, text: str) -> None:
+        """Enable clear button only when search text exists."""
+        self.clear_search_button.setEnabled(bool(text.strip()))
+
+    def _clear_search(self) -> None:
+        """Clear the saved filters combo search text."""
+        line_edit = self.saved_filters_combo.lineEdit()
+        if line_edit is not None:
+            line_edit.clear()
+            line_edit.setFocus()
+
+    def _on_media_filter_selection_changed(self) -> None:
+        selected_folders = [
+            str(path)
+            for media_filter in self.media_filter_widget.collect_filters()
+            for path in media_filter.get("value", [])
+        ]
+        state = self.settings.settings_data_model
+        state.selected_media_folders = selected_folders
+        state.media_folder_selection_changed.emit(selected_folders)
+        self._refresh_saved_filters_combo()
 
     def _handle_media_selection(self, index: int) -> None:
         if index < 0:
@@ -266,57 +341,121 @@ class FolderFilters(QWidget, ThemableMixin):
         )
         self.root_folder.emit(payload)
 
-    def _add_filter_clicked(self) -> None:
-        filter_type = self.filter_type_combo.currentText().strip()
-        if filter_type.upper() in ("", "OS", "NFO"):
-            return
-
-        self.filter_table.add_filter(filter_type)
-
-        filter_name = self.saved_filters_combo.currentText().strip()
-        if filter_name == "":
-            line_edit = self.saved_filters_combo.lineEdit()
-            if line_edit:
-                line_edit.setPlaceholderText("Name This Filter")
-
-    def _save_filter_clicked(self) -> None:
-        filters = self.filter_table.collect_filters()
-        if not filters:
-            return
-
-        name = self.saved_filters_combo.currentText()
-        if name and name != "":
-            self.settings.save_filter(name, filters)
-
-    def _delete_filter_clicked(self) -> None:
-        index = self.saved_filters_combo.currentIndex()
-        if index <= 0:
-            line_edit = self.saved_filters_combo.lineEdit()
-            if line_edit is not None:
-                line_edit.setPlaceholderText("- Select Saved Filters -")
-            return
-
-        name = self.saved_filters_combo.currentText()
-        self.settings.delete_filter(name)
-
     def _load_saved_filter(self, index: int) -> None:
-        if index <= 0:
+        has_filter = index > 0
+        self.saved_filter_selection_changed.emit(has_filter)
+        # Enable/disable View Filter Criteria button based on selection
+        self.filter_criteria_button.setEnabled(has_filter)
+        if not has_filter:
+            self.filter_table.setRowCount(0)
+            self.filter_table._check_empty_state()
+            self.filters_requested.emit()
             return
 
-        name = self.saved_filters_combo.itemText(index)
+        name = str(
+            self.saved_filters_combo.itemData(index)
+            or self.saved_filters_combo.itemText(index)
+        )
         filters = None
         for f in self.settings.settings_data_model.saved_filters:
             if f.get("name") == name:
                 filters = f.get("filters")
                 break
 
-        if not filters:
+        self.filter_table.setRowCount(0)
+        if filters:
+            for filter_item in filters:
+                self.filter_table.add_filter(
+                    filter_item["filter"], filter_item["value"]
+                )
+        self.filter_table._check_empty_state()
+        # Auto-apply the filter when selected
+        self.filters_requested.emit()
+
+    def clear_saved_filter(self) -> None:
+        if self.saved_filters_combo.currentIndex() > 0:
+            self.saved_filters_combo.setCurrentIndex(0)
+
+    def _show_filter_criteria(self) -> None:
+        if self._criteria_popup is None:
+            self._build_filter_criteria_popup()
+        if self._criteria_popup is None:
             return
 
-        self.filter_table.setRowCount(0)
-        self.filter_table._check_empty_state()
-        for filter_item in filters:
-            self.filter_table.add_filter(filter_item["filter"], filter_item["value"])
+        # Refresh the dialog with current filter data
+        self._refresh_criteria_dialog()
+
+        pos = self.filter_criteria_button.mapToGlobal(
+            self.filter_criteria_button.rect().bottomLeft()
+        )
+        screen = self.screen()
+        if screen is not None:
+            available = screen.availableGeometry()
+            popup_w = min(520, available.width() - 20)
+            popup_h = min(420, available.height() - 20)
+            self._criteria_popup.resize(popup_w, popup_h)
+            x = min(pos.x(), available.right() - popup_w - 10)
+            y = min(pos.y(), available.bottom() - popup_h - 10)
+            self._criteria_popup.move(max(x, available.left()), max(y, available.top()))
+        else:
+            self._criteria_popup.resize(520, 420)
+            self._criteria_popup.move(pos)
+        self._criteria_popup.show()
+        self._criteria_popup.raise_()
+        self._criteria_popup.activateWindow()
+
+    def _refresh_criteria_dialog(self) -> None:
+        """Update the criteria dialog with the currently selected filter's data."""
+        if self._criteria_popup is None:
+            return
+        index = self.saved_filters_combo.currentIndex()
+        filter_name = ""
+        filters: list[dict[str, str]] = []
+        if index > 0:
+            filter_name = str(
+                self.saved_filters_combo.itemData(index)
+                or self.saved_filters_combo.itemText(index)
+            )
+            for f in self.settings.settings_data_model.saved_filters:
+                if f.get("name") == filter_name:
+                    filters = f.get("filters", [])
+                    break
+        self._criteria_popup.set_filter_data(filter_name, filters)
+        # Refresh theme after data change
+        self._criteria_popup.apply_theme()
+
+    def _build_filter_criteria_popup(self) -> None:
+        # Determine current filter name and criteria
+        index = self.saved_filters_combo.currentIndex()
+        filter_name = ""
+        filters: list[dict[str, str]] = []
+        if index > 0:
+            filter_name = str(
+                self.saved_filters_combo.itemData(index)
+                or self.saved_filters_combo.itemText(index)
+            )
+            for f in self.settings.settings_data_model.saved_filters:
+                if f.get("name") == filter_name:
+                    filters = f.get("filters", [])
+                    break
+
+        dialog = FilterCriteriaDialog(
+            genres=self.GENRES,
+            media_configs=self.settings.settings_data_model.media_configs,
+            tags=self.settings.settings_data_model.tags,
+            tag_store=getattr(self.settings, "tag_store", None),
+            state=self.settings.settings_data_model,
+            filter_name=filter_name,
+            filters=filters,
+            edit_mode=False,
+            readonly=True,
+            parent=self.window(),
+        )
+        # Use Popup window type to match original behavior
+        dialog.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.WindowStaysOnTopHint)
+        # Wire the dialog's edit_requested signal to emit our edit_filter_requested
+        dialog.edit_requested.connect(self.edit_filter_requested.emit)
+        self._criteria_popup = dialog
 
     def apply_filters(
         self,
@@ -338,38 +477,19 @@ class FolderFilters(QWidget, ThemableMixin):
             ]
 
         if self.settings.settings_data_model.db_enabled():
-            # Use database
+            # Use fast vectorized database filtering
             for folder_path in folder_paths:
                 self.loading_started.emit([folder_path])
-                # Find folder config
-                db_path = None
-                for config in self.settings.settings_data_model.media_configs:
-                    if config["path"] == folder_path:
-                        db_path = self.settings.settings_data_model.get_db_path(config)
-                        break
 
-                if db_path and Path(db_path).exists():
-                    db_path_str = Path(db_path).as_posix()
-                    con = duckdb.connect(db_path_str)
-                    res = con.execute(
-                        db_query.DbQuery.MediaFile.SELECT_ALL_PATHS
-                    ).fetchall()
-                    con.close()
+            filters = self.filter_table.collect_filters()
+            filters.extend(self.media_filter_widget.collect_filters())
 
-                    # 1. Add files and their parent directories
-                    paths = [r[0] for r in res]
-                    # Sort by parent folder then filename to mimic filesystem scan order
-                    paths.sort(
-                        key=lambda p: (
-                            str(Path(p).parent).lower(),
-                            Path(p).name.lower(),
-                        )
-                    )
-                    h = self.file_util.build_hierarchy_from_paths(paths, folder_path)
-                    items.extend(h)
-
+            results = self.db_filter.filter(
+                filters=filters,
+                selected_folders=folder_paths,
+            )
             if on_complete:
-                on_complete(self._apply_filters_internal(items))
+                on_complete(results)
             return
 
         # Sequential processing helper

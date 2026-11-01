@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtCore import QRect, QSize, Qt, Signal
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QColorDialog,
@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QPushButton,
     QScrollArea,
+    QSizePolicy,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -28,6 +29,56 @@ from MyVideoExplorer.tag_cloud.tag_util import (
     validate_tag_name,
 )
 from MyVideoExplorer.theme.theme import APP_THEME
+from MyVideoExplorer.widgets.buttons.action_button import ActionButton
+from MyVideoExplorer.widgets.buttons.delayed_delete_button import DelayedDeleteButton
+from MyVideoExplorer.widgets.flow_layout import FlowLayout
+
+
+class AssignedTagsContainer(QWidget):
+    """Container for assigned tags that wraps items in a flow layout and dynamically expands in height."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.flow_layout = FlowLayout(self, spacing=4)
+        self.flow_layout.setContentsMargins(0, 0, 0, 0)
+        self.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Minimum,
+        )
+
+    def hasHeightForWidth(self) -> bool:
+        return True
+
+    def heightForWidth(self, width: int) -> int:
+        return max(self.flow_layout.heightForWidth(width), 24)
+
+    def sizeHint(self) -> QSize:
+        w = self.width()
+        parent = self.parentWidget()
+        if w <= 50 and parent is not None:
+            w = parent.width() - 20
+        if w <= 50:
+            w = 400
+        h = self.flow_layout.heightForWidth(w)
+        return QSize(w, max(h, 24))
+
+    def minimumSizeHint(self) -> QSize:
+        return self.sizeHint()
+
+    def relayout(self) -> None:
+        w = self.width()
+        parent = self.parentWidget()
+        if w <= 50 and parent is not None:
+            w = parent.width() - 20
+        if w <= 50:
+            w = 400
+        h = self.flow_layout.heightForWidth(w)
+        self.flow_layout.setGeometry(QRect(0, 0, max(w, 50), max(h, 24)))
+        self.updateGeometry()
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self.flow_layout.setGeometry(self.rect())
 
 
 class TagPickerDialog(QDialog):
@@ -39,12 +90,24 @@ class TagPickerDialog(QDialog):
     tag_color_changed = Signal(str, str)
     tag_edited = Signal(str, object)
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        allow_create: bool = True,
+        allow_delete: bool = True,
+        allow_remove: bool | None = None,
+    ) -> None:
         super().__init__(parent)
         self.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.WindowStaysOnTopHint)
         self.setWindowTitle("Select Tags")
         self.setStyleSheet(APP_THEME.container_qss())
+        self.resize(520, 420)
+        self.setMinimumSize(450, 350)
 
+        self.allow_create = allow_create
+        self.allow_delete = allow_delete if allow_remove is None else allow_remove
+        self.allow_remove = self.allow_delete
         self._tags: list[str] = []
         self._tag_colors: dict[str, str] = {}
         self._tag_counts: dict[str, int] = {}
@@ -56,27 +119,20 @@ class TagPickerDialog(QDialog):
         header_layout.addWidget(QLabel("Current tags", self))
         header_layout.addStretch(1)
 
-        self.close_button = QToolButton(self)
-        self.close_button.setIcon(
-            APP_THEME.icon("fa6s.xmark", color=APP_THEME.text_color)
+        self.close_button = ActionButton(
+            self, icon_name="fa6s.xmark", tooltip="Close", icon_size=14
         )
         self.close_button.setProperty("preserve_custom_style", True)
-        self.close_button.setIconSize(QSize(14, 14))
         self.close_button.setFixedSize(22, 22)
-        self.close_button.setAutoRaise(True)
         self.close_button.setStyleSheet(
-            "QToolButton { background: transparent; border: 0; padding: 2px; }"
+            "QToolButton { background: transparent; border: 1px solid transparent; padding: 2px; }"
         )
-        self.close_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.close_button.setToolTip("Close")
         self.close_button.clicked.connect(self.close)
         header_layout.addWidget(self.close_button)
         layout.addLayout(header_layout)
 
-        self.assigned_container = QWidget(self)
-        self.assigned_layout = QHBoxLayout(self.assigned_container)
-        self.assigned_layout.setContentsMargins(0, 0, 0, 0)
-        self.assigned_layout.setSpacing(4)
+        self.assigned_container = AssignedTagsContainer(self)
+        self.assigned_layout = self.assigned_container.flow_layout
         layout.addWidget(self.assigned_container)
 
         layout.addWidget(QLabel("Available tags", self))
@@ -92,17 +148,23 @@ class TagPickerDialog(QDialog):
         scroll.setWidget(self.cloud)
         layout.addWidget(scroll, 1)
 
-        create_row = QHBoxLayout()
-        self.new_tag_edit = QLineEdit(self)
-        self.new_tag_edit.setPlaceholderText("Create a new tag")
-        self.create_button = QPushButton("Create and Add", self)
-        self.create_button.clicked.connect(self._on_create_and_add)
-        self.new_tag_edit.returnPressed.connect(self._on_create_and_add)
-        create_row.addWidget(self.new_tag_edit, 1)
-        create_row.addWidget(self.create_button)
-        layout.addLayout(create_row)
+        self.new_tag_edit: QLineEdit | None = None
+        self.create_button: QPushButton | None = None
+        if self.allow_create:
+            create_row = QHBoxLayout()
+            self.new_tag_edit = QLineEdit(self)
+            self.new_tag_edit.setPlaceholderText("Create a new tag")
+            self.create_button = QPushButton("Create and Add", self)
+            self.create_button.clicked.connect(self._on_create_and_add)
+            self.new_tag_edit.returnPressed.connect(self._on_create_and_add)
+            create_row.addWidget(self.new_tag_edit, 1)
+            create_row.addWidget(self.create_button)
+            layout.addLayout(create_row)
 
         self._render_assigned_tags()
+
+    def sizeHint(self) -> QSize:
+        return QSize(520, 420)
 
     def set_data(
         self,
@@ -156,21 +218,19 @@ class TagPickerDialog(QDialog):
             )
             row.addWidget(label)
 
-            color_button = QToolButton(row_widget)
-            color_button.setProperty("preserve_custom_style", True)
-            color_button.setIcon(
-                APP_THEME.icon(
-                    "fa6s.palette",
-                    color=get_contrast_text_color(color),
-                )
+            color_button = ActionButton(
+                row_widget,
+                icon_name="fa6s.palette",
+                icon_color=get_contrast_text_color(color),
+                tooltip=f"Change color for {tag}",
+                icon_size=14,
             )
+            color_button.setProperty("preserve_custom_style", True)
             color_button.setStyleSheet(
                 f"QToolButton {{ background-color: {color}; "
-                "border: 1px solid palette(mid); border-radius: 3px; padding: 2px; }"
+                f"border: 1px solid {color}; border-radius: 3px; padding: 2px; }}"
             )
             color_button.setFixedSize(24, 24)
-            color_button.setCursor(Qt.CursorShape.PointingHandCursor)
-            color_button.setToolTip(f"Change color for {tag}")
             color_button.clicked.connect(
                 lambda checked=False, name=tag, current=color: (
                     self._choose_assigned_color(name, current)
@@ -178,26 +238,31 @@ class TagPickerDialog(QDialog):
             )
             row.addWidget(color_button)
 
-            remove_button = QToolButton(row_widget)
-            remove_button.setIcon(
-                APP_THEME.icon("fa6s.trash-can", color=APP_THEME.text_color)
-            )
-            remove_button.setProperty("preserve_custom_style", True)
-            remove_button.setIconSize(QSize(14, 14))
-            remove_button.setFixedSize(22, 22)
-            remove_button.setAutoRaise(True)
-            remove_button.setStyleSheet(
-                "QToolButton { background: transparent; border: 0; padding: 2px; }"
-            )
-            remove_button.setCursor(Qt.CursorShape.PointingHandCursor)
-            remove_button.setToolTip(f"Remove {tag} from this media")
-            remove_button.clicked.connect(
-                lambda checked=False, name=tag: self.tag_removed.emit(name)
-            )
-            row.addWidget(remove_button)
+            if self.allow_delete:
+                remove_button = DelayedDeleteButton(row_widget)
+                remove_button.setProperty("preserve_custom_style", True)
+                remove_button.setIconSize(QSize(14, 14))
+                remove_button.setFixedSize(22, 22)
+                remove_button.setAutoRaise(True)
+                remove_button.setStyleSheet(
+                    "QToolButton { background: transparent; border: 0; padding: 2px; }"
+                )
+                remove_button.setToolTip(f"Remove {tag} from this media")
+                remove_button.clicked.connect(
+                    lambda checked=False, name=tag: self.tag_removed.emit(name)
+                )
+                row.addWidget(remove_button)
 
+            row_widget.show()
             self.assigned_layout.addWidget(row_widget)
-        self.assigned_layout.addStretch(1)
+        self.assigned_container.relayout()
+        layout = self.layout()
+        if layout is not None:
+            layout.activate()
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self.assigned_container.updateGeometry()
 
     def _edit_assigned_tag(self, tag: str, row_widget: QWidget) -> None:
         row = row_widget.layout()
@@ -207,45 +272,42 @@ class TagPickerDialog(QDialog):
             item = row.takeAt(0)
             widget = item.widget() if item else None
             if widget is not None:
+                widget.hide()
+                widget.setParent(None)
                 widget.deleteLater()
 
         name_edit = QLineEdit(tag, row_widget)
         name_edit.setObjectName("edit_popup_assigned_tag_name")
         name_edit.setMinimumWidth(100)
         current_color = self._tag_colors.get(tag.casefold(), "#808080")
-        color_button = QToolButton(row_widget)
+        color_button = ActionButton(
+            row_widget,
+            icon_name="fa6s.palette",
+            icon_color=get_contrast_text_color(current_color),
+            tooltip="Choose tag color",
+            icon_size=14,
+        )
         color_button.setProperty("preserve_custom_style", True)
         color_button.setObjectName("edit_popup_assigned_tag_color")
         color_button.setProperty("tag_color", current_color)
-        color_button.setIcon(
-            APP_THEME.icon(
-                "fa6s.palette",
-                color=get_contrast_text_color(current_color),
-            )
-        )
         color_button.setStyleSheet(
             f"QToolButton {{ background-color: {current_color}; "
-            "border: 1px solid palette(mid); border-radius: 3px; padding: 2px; }"
+            f"border: 1px solid {current_color}; border-radius: 3px; padding: 2px; }}"
         )
         color_button.setFixedSize(24, 24)
-        color_button.setToolTip("Choose tag color")
         color_button.clicked.connect(
             lambda checked=False, button=color_button: self._choose_popup_tag_color(
                 button
             )
         )
 
-        save_button = QToolButton(row_widget)
-        save_button.setObjectName("save_popup_assigned_tag")
-        save_button.setIcon(
-            APP_THEME.icon("fa6s.floppy-disk", color=APP_THEME.text_color)
+        save_button = ActionButton(
+            row_widget, icon_name="fa6s.floppy-disk", tooltip="Save tag", icon_size=14
         )
-        save_button.setToolTip("Save tag")
-        save_button.setAutoRaise(True)
-        cancel_button = QToolButton(row_widget)
-        cancel_button.setIcon(APP_THEME.icon("fa6s.xmark", color=APP_THEME.text_color))
-        cancel_button.setToolTip("Cancel editing")
-        cancel_button.setAutoRaise(True)
+        save_button.setObjectName("save_popup_assigned_tag")
+        cancel_button = ActionButton(
+            row_widget, icon_name="fa6s.xmark", tooltip="Cancel editing", icon_size=14
+        )
         row.addWidget(name_edit)
         row.addWidget(color_button)
         row.addWidget(save_button)
@@ -274,7 +336,7 @@ class TagPickerDialog(QDialog):
         )
         button.setStyleSheet(
             f"QToolButton {{ background-color: {color_value}; "
-            "border: 1px solid palette(mid); border-radius: 3px; padding: 2px; }"
+            f"border: 1px solid {color_value}; border-radius: 3px; padding: 2px; }}"
         )
 
     def _choose_assigned_color(self, tag: str, current_color: str) -> None:
@@ -326,6 +388,8 @@ class TagPickerDialog(QDialog):
         self.tag_edited.emit(old_tag, new_tag)
 
     def _on_create_and_add(self) -> None:
+        if self.new_tag_edit is None:
+            return
         tag = self.new_tag_edit.text().strip()
         is_valid, error_msg = validate_tag_name(tag)
         if not is_valid:
@@ -339,4 +403,6 @@ class TagPickerDialog(QDialog):
             item = layout.takeAt(0)
             widget = item.widget() if item else None
             if widget is not None:
+                widget.hide()
+                widget.setParent(None)
                 widget.deleteLater()

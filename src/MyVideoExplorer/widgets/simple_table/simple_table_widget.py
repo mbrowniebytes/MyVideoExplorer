@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
 )
 
 from MyVideoExplorer.theme.theme import APP_THEME
-from MyVideoExplorer.widgets.simple_table_model import SimpleTableModel
+from MyVideoExplorer.widgets.simple_table.simple_table_model import SimpleTableModel
 
 
 class SimpleTableWidget(QWidget):

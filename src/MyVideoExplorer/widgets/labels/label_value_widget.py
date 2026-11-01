@@ -3,7 +3,6 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
-    QLayout,
     QSizePolicy,
     QVBoxLayout,
     QWidget,
@@ -79,10 +78,6 @@ class LabelValueWidget(QWidget, ThemableMixin):
         self._layout.addWidget(self.label_name)
         self._layout.addWidget(self.label_value)
         self.apply_theme()
-
-    @property
-    def layout(self) -> QLayout:
-        return self._layout
 
     def apply_theme(self) -> None:
         if not APP_THEME.is_refreshing:

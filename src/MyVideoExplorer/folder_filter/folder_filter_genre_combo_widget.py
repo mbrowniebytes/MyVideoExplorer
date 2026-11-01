@@ -1,10 +1,10 @@
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QComboBox
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
+from MyVideoExplorer.widgets.combo_boxes.select_combo_box import SelectComboBox
 
 
-class GenreComboWidget(QComboBox):
+class GenreComboWidget(SelectComboBox):
     genre_changed = Signal(object)
 
     def __init__(self, genres: list[str], parent=None):

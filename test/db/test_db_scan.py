@@ -60,3 +60,25 @@ class TestDbScanUtil:
         assert data[0][0] == "/test/path/video1.mp4"
         assert data[0][1] == "Movie 1"
         con.close()
+
+    def test_save_media_cleanup_does_not_remove_sibling_roots(self, db_util, db_path):
+        db_util.save_media(
+            [{"file_path": "/media/movie.mp4", "metadata": {"title": "Movie"}}],
+            "/media",
+        )
+        db_util.save_media(
+            [{"file_path": "/media2/movie.mp4", "metadata": {"title": "Sibling"}}],
+            "/media2",
+        )
+
+        db_util.save_media(
+            [{"file_path": "/media/movie.mp4", "metadata": {"title": "Movie"}}],
+            "/media",
+        )
+
+        with duckdb.connect(db_path) as con:
+            paths = {
+                row[0]
+                for row in con.execute("SELECT file_path FROM media_file").fetchall()
+            }
+        assert paths == {"/media/movie.mp4", "/media2/movie.mp4"}
