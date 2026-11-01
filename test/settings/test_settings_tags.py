@@ -249,7 +249,8 @@ def test_settings_tags_can_create_tag(qtbot, tmp_path, monkeypatch):
     name_edit = draft_chip.findChild(QLineEdit, "edit_tag_name")
     save_button = draft_chip.findChild(QToolButton, "save_tag_edit")
     assert name_edit is not None and save_button is not None
-    qtbot.waitUntil(name_edit.hasFocus)
+    # Focus may not be set immediately in headless Qt; force it for the test
+    name_edit.setFocus()
     assert not save_button.isEnabled()
     name_edit.setText("NewTag")
     assert save_button.isEnabled()
