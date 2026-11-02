@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 from MyVideoExplorer.utils.file_util import FileUtils
@@ -12,6 +13,32 @@ class VideoFinder:
 
     def __init__(self, log_util: LogUtil) -> None:
         self.log_util = log_util
+
+    def find_videos_in_folder(self, folder_path: str | None) -> list[str]:
+        """Return videos directly inside a folder in natural filename order."""
+        folder = Path(folder_path) if folder_path else None
+        if folder is None or not folder.is_dir():
+            return []
+
+        try:
+            videos = [
+                item
+                for item in folder.iterdir()
+                if item.is_file() and item.suffix.lower() in self.VIDEO_EXTS
+            ]
+        except OSError as error:
+            self.log_util.error(f"Error listing videos in {folder_path}: {error}")
+            return []
+
+        videos.sort(key=lambda item: self._natural_sort_key(item.name))
+        return [FileUtils.normalize_path(video) for video in videos]
+
+    @staticmethod
+    def _natural_sort_key(filename: str) -> list[tuple[int, int | str]]:
+        return [
+            (0, int(part)) if part.isdigit() else (1, part.casefold())
+            for part in re.split(r"(\d+)", filename)
+        ]
 
     def find_associated_video(self, folder_path: str | None) -> str | None:
         """

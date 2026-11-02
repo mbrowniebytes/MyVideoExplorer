@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QHBoxLayout, QPushButton, QWidget
 
@@ -27,6 +27,7 @@ class FolderFilterMedia(QWidget, ThemableMixin):
         self.all_none_button.setObjectName("folder_filter_media_nav_button")
         self.all_none_button.setCheckable(True)
         self.all_none_button.setChecked(False)
+        self.all_none_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.all_none_button.setMinimumHeight(32)
         self.all_none_button.setFixedWidth(32)
 
@@ -89,6 +90,7 @@ class FolderFilterMedia(QWidget, ThemableMixin):
             btn.setObjectName("folder_filter_media_nav_button")
             btn.setToolTip(label)
             btn.setCheckable(True)
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
             # No longer manually applying small_button_qss; ThemeManager will apply it based on objectName
 
             qicon = APP_THEME.icon(display_icon_name or "fa6s.folder")

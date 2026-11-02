@@ -44,6 +44,10 @@ class TestMediaInfoSideView:
     def test_initialization(self, media_info_side_view):
         assert media_info_side_view.nfo_parse_util is not None
 
+    def test_nfo_header_does_not_show_player_buttons(self, media_info_side_view):
+        header = media_info_side_view.side_content_widget.header_widget
+        assert not header.findChildren(QToolButton, "play_os_default_button")
+
     def test_last_played_date_edit_includes_calendar_control_width(
         self, media_info_side_view
     ):

@@ -63,6 +63,60 @@ class VideoPlayer(QObject):
 
         return True
 
+    def play_folder_with_external_app(self, folder_path: str | None) -> bool:
+        """Open all videos in a folder as one OS-default playlist."""
+        video_paths = self.video_finder.find_videos_in_folder(folder_path)
+        if not video_paths:
+            self.log_util.warning(f"No video files found in folder: {folder_path}")
+            return False
+
+        asyncio.create_task(
+            self.video_launcher.play_videos_via_external_app(video_paths)
+        )
+        self.video_played.emit(video_paths[0])
+        return True
+
+    def play_video_with_player(
+        self, executable: str, source_path: str, arguments: str = ""
+    ) -> bool:
+        """Find the selected media's video and launch it with a configured player."""
+        target_video_path = self.video_finder.find_associated_video(source_path)
+        if not target_video_path:
+            self.log_util.warning("No video file found to play.")
+            return False
+
+        self.log_util.info(
+            f"Launching video playback with {executable}: {target_video_path}"
+        )
+        asyncio.create_task(
+            self.video_launcher.play_via_player(
+                executable, target_video_path, arguments
+            )
+        )
+        self.video_played.emit(target_video_path)
+        return True
+
+    def play_folder_with_player(
+        self, executable: str, folder_path: str, arguments: str = ""
+    ) -> bool:
+        """Launch every video directly in a folder with a configured player."""
+        video_paths = self.video_finder.find_videos_in_folder(folder_path)
+        if not video_paths:
+            self.log_util.warning(f"No video files found in folder: {folder_path}")
+            return False
+
+        self.log_util.info(
+            f"Launching {len(video_paths)} video(s) with {executable} from "
+            f"{folder_path}"
+        )
+        asyncio.create_task(
+            self.video_launcher.play_videos_via_player(
+                executable, video_paths, arguments
+            )
+        )
+        self.video_played.emit(video_paths[0])
+        return True
+
     def stop_video(self) -> None:
         """Stops the current internal playback session."""
         if self.internal_playback_engine:

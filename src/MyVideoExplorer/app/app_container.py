@@ -285,7 +285,7 @@ class AppContainer:
         )
         self._connect(
             self.image_list.double_click_requested,
-            lambda p: self._play_video_from_current_folder(),
+            lambda p: self._play_video_with_default_player(),
         )
         self._connect(
             self.image_list_view.play_video_requested,
@@ -295,6 +295,18 @@ class AppContainer:
         self._connect(
             self.media_info.play_video_requested,
             lambda p: self._play_video_from_current_folder(),
+        )
+        title_widget = self.image_list_view.title_widget
+        title_widget.set_video_players(
+            self.settings.settings_data_model.video_player_configs
+        )
+        self._connect(
+            title_widget.video_player_requested,
+            self._play_video_with_configured_player,
+        )
+        self._connect(
+            self.settings.player_settings_tab.player_configurations_changed,
+            lambda p: title_widget.set_video_players(p),
         )
         self._connect(
             self.folder_nav.filtered_items_updated,
@@ -367,8 +379,48 @@ class AppContainer:
         self.media_info.refresh(self.controller.state.current_folder, tab_index)
 
     def _play_video_from_current_folder(self) -> None:
-        self.video_player.set_folder_path(self.controller.state.current_folder)
-        self.video_player.play_video()
+        self.video_player.play_folder_with_external_app(
+            self.controller.state.current_folder
+        )
+
+    def _play_video_with_default_player(self) -> None:
+        config = next(
+            (
+                player
+                for player in self.settings.settings_data_model.video_player_configs
+                if player["is_default"]
+            ),
+            None,
+        )
+        if config is None or config["id"] == "os_default":
+            self._play_video_from_current_folder()
+            return
+        self._play_video_with_configured_player(config["id"])
+
+    def _play_video_with_configured_player(self, player_id: str) -> None:
+        if player_id == "os_default":
+            self._play_video_from_current_folder()
+            return
+
+        config = next(
+            (
+                player
+                for player in self.settings.settings_data_model.video_player_configs
+                if player["id"] == player_id
+            ),
+            None,
+        )
+        if config is None or not config["executable"]:
+            self.log_util.warning(
+                f"No executable configured for video player '{player_id}'."
+            )
+            return
+
+        self.video_player.play_folder_with_player(
+            config["executable"],
+            self.controller.state.current_folder,
+            config.get("arguments", ""),
+        )
 
     def _record_video_playback(self, file_path: str) -> None:
         if not self.db_play_history.record_playback(file_path):

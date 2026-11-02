@@ -36,6 +36,10 @@
   - filters, tags
     - delete button disabled, hover for 2.5s to enable
     - if more than 10 movies, show delete confirmation  
+  - video player, new settings
+    - in addition to system associated player, options to add custom player
+    - add additional play buttons on media
+    - handle multiple videos in folder eg tv episodes
 - fixes
   - re-select prior media on app launch
   - potential support launching either system associated media player vlc or mpc-qt

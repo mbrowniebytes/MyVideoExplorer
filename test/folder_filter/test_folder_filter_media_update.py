@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock, patch
 
+from PySide6.QtCore import Qt
+
 from MyVideoExplorer.folder_filter.folder_filter_media import FolderFilterMedia
 from MyVideoExplorer.settings.settings_state import SettingsState
 
@@ -22,6 +24,14 @@ def test_refresh_on_signal(qtbot):
 
             # Check initial button label
             assert folder_filter.media_button_group[0].text() == "Medi"  # 4 chars
+            assert (
+                folder_filter.media_button_group[0].cursor().shape()
+                == Qt.CursorShape.PointingHandCursor
+            )
+            assert (
+                folder_filter.all_none_button.cursor().shape()
+                == Qt.CursorShape.PointingHandCursor
+            )
 
             # Update label
             state.media_configs[0]["label"] = "NewMedia"

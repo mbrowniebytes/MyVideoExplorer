@@ -1,3 +1,4 @@
+import asyncio
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -24,6 +25,87 @@ class TestVideoPlayer:
             ".mpeg",
             ".m4v",
         }
+
+    def test_find_videos_in_folder_uses_natural_order_and_does_not_recurse(
+        self, video_player, tmp_path
+    ):
+        (tmp_path / "Episode 10.mkv").touch()
+        (tmp_path / "Episode 2.mp4").touch()
+        (tmp_path / "featurette.avi").touch()
+        subfolder = tmp_path / "extras"
+        subfolder.mkdir()
+        (subfolder / "Episode 1.mkv").touch()
+
+        assert video_player.video_finder.find_videos_in_folder(str(tmp_path)) == [
+            (tmp_path / "Episode 2.mp4").as_posix(),
+            (tmp_path / "Episode 10.mkv").as_posix(),
+            (tmp_path / "featurette.avi").as_posix(),
+        ]
+
+    @pytest.mark.asyncio
+    async def test_configured_player_receives_associated_video_and_arguments(
+        self, video_player
+    ):
+        video_player.video_finder.find_associated_video = MagicMock(
+            return_value="/media/movie.mp4"
+        )
+
+        with patch.object(
+            video_player.video_launcher, "play_via_player", new_callable=AsyncMock
+        ) as mock_play:
+            assert video_player.play_video_with_player(
+                "/players/custom.exe", "/media/movie.jpg", "--fullscreen"
+            )
+            await asyncio.sleep(0)
+
+        mock_play.assert_awaited_once_with(
+            "/players/custom.exe", "/media/movie.mp4", "--fullscreen"
+        )
+
+    @pytest.mark.asyncio
+    async def test_folder_player_receives_all_videos_and_records_first(
+        self, video_player
+    ):
+        video_player.video_finder.find_videos_in_folder = MagicMock(
+            return_value=["/media/Episode 1.mkv", "/media/Episode 2.mkv"]
+        )
+        video_played = MagicMock()
+        video_player.video_played.connect(video_played)
+
+        with patch.object(
+            video_player.video_launcher,
+            "play_videos_via_player",
+            new_callable=AsyncMock,
+        ) as mock_play:
+            assert video_player.play_folder_with_player(
+                "/players/vlc.exe", "/media/show", "--fullscreen"
+            )
+            await asyncio.sleep(0)
+
+        mock_play.assert_awaited_once_with(
+            "/players/vlc.exe",
+            ["/media/Episode 1.mkv", "/media/Episode 2.mkv"],
+            "--fullscreen",
+        )
+        video_played.assert_called_once_with("/media/Episode 1.mkv")
+
+    @pytest.mark.asyncio
+    async def test_external_folder_playback_queues_all_videos(self, video_player):
+        video_player.video_finder.find_videos_in_folder = MagicMock(
+            return_value=["/media/Episode 1.mkv", "/media/Episode 2.mkv"]
+        )
+
+        with patch.object(
+            video_player.video_launcher,
+            "play_videos_via_external_app",
+            new_callable=AsyncMock,
+        ) as mock_play:
+            assert video_player.play_folder_with_external_app("/media/show")
+            await asyncio.sleep(0)
+
+        mock_play.assert_awaited_once_with(
+            ["/media/Episode 1.mkv", "/media/Episode 2.mkv"]
+        )
 
     @pytest.mark.asyncio
     @patch("os.listdir")

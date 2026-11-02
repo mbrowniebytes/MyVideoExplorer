@@ -1,0 +1,45 @@
+{
+    "video_player_configs": [
+        {
+            "id": "os_default",
+            "label": "OS default",
+            "executable": "",
+            "arguments": "",
+            "is_default": true,
+            "show_icon": true
+        },
+        {
+            "id": "vlc",
+            "label": "VLC",
+            "executable": "C:/Program Files/VideoLAN/VLC/vlc.exe",
+            "arguments": "",
+            "is_default": false,
+            "show_icon": false
+        },
+        {
+            "id": "potplayer",
+            "label": "PotPlayer",
+            "executable": "C:/Program Files/DAUM/PotPlayer/PotPlayerMini64.exe",
+            "arguments": "",
+            "is_default": false,
+            "show_icon": false
+        },
+        {
+            "id": "mpc_qt",
+            "label": "MPC-QT",
+            "executable": "C:/Program Files/MPC-QT/mpc-qt.exe",
+            "arguments": "",
+            "is_default": false,
+            "show_icon": false
+        },
+        {
+            "id": "custom",
+            "label": "Custom",
+            "executable": "",
+            "arguments": "",
+            "is_default": false,
+            "show_icon": false,
+            "arguments": ""
+        }
+    ]
+}

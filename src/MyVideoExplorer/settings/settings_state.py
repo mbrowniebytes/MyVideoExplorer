@@ -18,17 +18,27 @@ PACKAGE_CFG_DIR = Path(__file__).resolve().parent / "cfg"
 CFG_DIR = Path("cfg")
 SETTINGS_STATE_FILE = CFG_DIR / "settings_state.json"
 SETTINGS_APP_FILE = CFG_DIR / "settings_app.json"
+SETTINGS_PLAYER_FILE = CFG_DIR / "settings_player.json"
 SETTINGS_UI_FILE = CFG_DIR / "settings_ui.json"
 SETTINGS_MEDIA_FILE = CFG_DIR / "settings_media.json"
 SETTINGS_FILTER_FILE = CFG_DIR / "settings_filter.json"
 
 DEFAULTS_STATE_FILE = PACKAGE_CFG_DIR / "defaults_state.json"
 DEFAULTS_APP_FILE = PACKAGE_CFG_DIR / "defaults_app.json"
+DEFAULTS_PLAYER_FILE = PACKAGE_CFG_DIR / "defaults_player.json"
 DEFAULTS_UI_FILE = PACKAGE_CFG_DIR / "defaults_ui.json"
 DEFAULTS_MEDIA_FILE = PACKAGE_CFG_DIR / "defaults_media.json"
 DEFAULTS_FILTER_FILE = PACKAGE_CFG_DIR / "defaults_filter.json"
 SCAN_MEDIA_TIMEOUT_OPTIONS = (30, 60, 120, 300, 600)
 DEFAULT_SCAN_MEDIA_TIMEOUT_SECONDS = 120
+
+VIDEO_PLAYER_DEFAULTS: tuple[tuple[str, str, bool], ...] = (
+    ("os_default", "OS default", True),
+    ("vlc", "VLC", False),
+    ("potplayer", "PotPlayer", False),
+    ("mpc_qt", "MPC-QT", False),
+    ("custom", "Custom", False),
+)
 
 
 class SettingsState(QObject):
@@ -58,6 +68,7 @@ class SettingsState(QObject):
         self.scan_media_timeout_seconds = DEFAULT_SCAN_MEDIA_TIMEOUT_SECONDS
         self.nfo_collapsed_by_default = False
         self.meta_collapsed_by_default = False
+        self.video_player_configs = self._default_video_player_configs()
 
         self.media_configs: list[dict[str, Any]] = []
         self.selected_media_folders: list[str] = []
@@ -84,7 +95,7 @@ class SettingsState(QObject):
             "app_pos": "",
             "app_size": "",
         }
-        app_defaults: dict[str, str | bool | int] = {
+        app_defaults: dict[str, Any] = {
             "log_level": self.log_level,
             "auto_select_folder": self.auto_select_folder,
             "launch_app_size": self.launch_app_size,
@@ -111,6 +122,10 @@ class SettingsState(QObject):
             PACKAGE_CFG_DIR, DEFAULTS_STATE_FILE, state_defaults
         )
         self.json_util.ensure_defaults(PACKAGE_CFG_DIR, DEFAULTS_APP_FILE, app_defaults)
+        player_defaults = {"video_player_configs": self.video_player_configs}
+        self.json_util.ensure_defaults(
+            PACKAGE_CFG_DIR, DEFAULTS_PLAYER_FILE, player_defaults
+        )
         self.json_util.ensure_defaults(PACKAGE_CFG_DIR, DEFAULTS_UI_FILE, ui_defaults)
         self.json_util.ensure_defaults(
             PACKAGE_CFG_DIR, DEFAULTS_MEDIA_FILE, media_defaults
@@ -162,6 +177,7 @@ class SettingsState(QObject):
         self.meta_collapsed_by_default = app_data.get(
             "meta_collapsed_by_default", False
         )
+        self._load_player_settings(app_data)
 
         # Load UI Settings
         ui_data = self.json_util.load_json(DEFAULTS_UI_FILE)
@@ -218,7 +234,7 @@ class SettingsState(QObject):
         """Save only App tab settings."""
         self._ensure_defaults()
 
-        app_settings: dict[str, str | bool | int] = {
+        app_settings: dict[str, Any] = {
             "log_level": self.log_level,
             "auto_select_folder": self.auto_select_folder,
             "launch_app_size": self.launch_app_size,
@@ -232,6 +248,15 @@ class SettingsState(QObject):
         # Backup then save
         self.json_util.backup_file(SETTINGS_APP_FILE, max_backups=5)
         self.json_util.save_json(SETTINGS_APP_FILE, app_settings)
+
+    def save_player(self) -> None:
+        """Persist configured video-player settings separately from app settings."""
+        self._ensure_defaults()
+        self.json_util.backup_file(SETTINGS_PLAYER_FILE, max_backups=5)
+        self.json_util.save_json(
+            SETTINGS_PLAYER_FILE,
+            {"video_player_configs": self.video_player_configs},
+        )
 
     def save_ui(self) -> None:
         """Persist UI settings to file."""
@@ -365,6 +390,87 @@ class SettingsState(QObject):
         self.meta_collapsed_by_default = app_data.get(
             "meta_collapsed_by_default", False
         )
+
+    def load_player(self) -> None:
+        """Reload configured video players from their settings file."""
+        self._ensure_defaults()
+        app_data = self.json_util.load_json(DEFAULTS_APP_FILE)
+        if SETTINGS_APP_FILE.exists():
+            app_data.update(self.json_util.load_json(SETTINGS_APP_FILE))
+        self._load_player_settings(app_data)
+
+    def _load_player_settings(self, legacy_app_data: dict[str, Any]) -> None:
+        player_data = self.json_util.load_json(DEFAULTS_PLAYER_FILE)
+        if SETTINGS_PLAYER_FILE.exists():
+            player_data.update(self.json_util.load_json(SETTINGS_PLAYER_FILE))
+        legacy_configs = legacy_app_data.get("video_player_configs")
+        if not SETTINGS_PLAYER_FILE.exists() and legacy_configs is not None:
+            player_data["video_player_configs"] = legacy_configs
+        self.video_player_configs = self._normalize_video_player_configs(
+            player_data.get("video_player_configs")
+        )
+
+    @staticmethod
+    def _default_video_player_configs() -> list[dict[str, Any]]:
+        return [
+            {
+                "id": player_id,
+                "label": label,
+                "executable": {
+                    "vlc": "C:/Program Files/VideoLAN/VLC/vlc.exe",
+                    "potplayer": "C:/Program Files/DAUM/PotPlayer/PotPlayerMini64.exe",
+                    "mpc_qt": "C:/Program Files/MPC-QT/mpc-qt.exe",
+                }.get(player_id, ""),
+                "arguments": "",
+                "is_default": is_default,
+                "show_icon": is_default,
+            }
+            for player_id, label, is_default in VIDEO_PLAYER_DEFAULTS
+        ]
+
+    @classmethod
+    def _normalize_video_player_configs(cls, value: Any) -> list[dict[str, Any]]:
+        stored = (
+            {
+                entry.get("id"): entry
+                for entry in value
+                if isinstance(entry, dict) and isinstance(entry.get("id"), str)
+            }
+            if isinstance(value, list)
+            else {}
+        )
+        selected_id = next(
+            (
+                entry["id"]
+                for entry in (value if isinstance(value, list) else [])
+                if isinstance(entry, dict)
+                and isinstance(entry.get("id"), str)
+                and entry.get("is_default") is True
+            ),
+            None,
+        )
+        configs = cls._default_video_player_configs()
+        for config in configs:
+            saved = stored.get(config["id"], {})
+            executable = saved.get("executable", config["executable"])
+            if isinstance(executable, str):
+                config["executable"] = executable
+            arguments = saved.get("arguments", config["arguments"])
+            if isinstance(arguments, str):
+                config["arguments"] = arguments
+            config["show_icon"] = (
+                True
+                if config["id"] == "os_default"
+                else bool(saved.get("show_icon", config["show_icon"]))
+            )
+            config["is_default"] = (
+                config["id"] == selected_id
+                if selected_id is not None
+                else bool(saved.get("is_default", config["is_default"]))
+            )
+        if not any(config["is_default"] for config in configs):
+            configs[0]["is_default"] = True
+        return configs
 
     @staticmethod
     def _validated_scan_media_timeout(value: Any) -> int:
@@ -536,6 +642,7 @@ class SettingsState(QObject):
     def save_settings(self) -> None:
         """Save all tabs' settings"""
         self.save_app()
+        self.save_player()
         self.save_ui()
         self.save_media()
         self.save_filters()
