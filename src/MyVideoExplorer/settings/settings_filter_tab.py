@@ -848,7 +848,7 @@ class SettingsFilterTab(SettingsBaseTab):
     ) -> None:
         self.state.save_filter(name, filters, original_name=original_name or None)
         self._refresh_filter_list()
-        self._refresh_all_counts()
+        self._refresh_one_count(name)
 
     def _on_dialog_delete(self, name: str) -> None:
         """Defer persistence until the dialog has fully closed."""

@@ -5,6 +5,7 @@ from typing import Any
 
 import duckdb
 
+from MyVideoExplorer.db.db_backup import backup_database
 from MyVideoExplorer.db.db_migrations import DbMigrations
 from MyVideoExplorer.utils.file_util import FileUtils
 
@@ -76,6 +77,7 @@ class DbTags:
         return [dict(item) for item in self._tags_cache]
 
     def add_catalog_tag(self, tag: str, color: str = "#808080") -> bool:
+        backup_database(str(self.db_path))
         normalized = self.settings_state.normalize_tags([{"tag": tag, "color": color}])
         if not normalized:
             return False
@@ -95,6 +97,7 @@ class DbTags:
         return True
 
     def set_tag_color(self, tag: str, color: str) -> bool:
+        backup_database(str(self.db_path))
         normalized = self.settings_state.normalize_tags([{"tag": tag, "color": color}])
         if not normalized:
             return False
@@ -115,6 +118,7 @@ class DbTags:
         new_tag: str,
         color: str,
     ) -> bool:
+        backup_database(str(self.db_path))
         existing_tags = self.list_tags()
         matching = next(
             (
@@ -152,6 +156,7 @@ class DbTags:
         return True
 
     def delete_catalog_tag(self, tag: str) -> bool:
+        backup_database(str(self.db_path))
         matching = next(
             (
                 item
@@ -176,6 +181,7 @@ class DbTags:
         renamed: dict[str, str],
         deleted: list[str],
     ) -> None:
+        backup_database(str(self.db_path))
         normalized = self.settings_state.normalize_tags(tags)
         if len(normalized) != len([tag for tag in tags if tag.get("tag", "").strip()]):
             raise ValueError("Tag names must be unique and colors must be valid.")

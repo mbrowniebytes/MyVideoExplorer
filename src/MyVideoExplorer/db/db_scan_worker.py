@@ -1,7 +1,6 @@
 import datetime
 import os
 import re
-import shutil
 from pathlib import Path
 from time import sleep
 from typing import Any
@@ -9,6 +8,7 @@ from typing import Any
 from PySide6.QtCore import QThread, Signal
 
 from MyVideoExplorer.app.app_environment import IS_DEVELOPMENT
+from MyVideoExplorer.db.db_backup import backup_database
 from MyVideoExplorer.db.db_scan import DbScanUtil
 from MyVideoExplorer.lang.lang_loader import LangLoader
 from MyVideoExplorer.utils.file_util import FileUtil
@@ -54,42 +54,8 @@ class ScanWorker(QThread):
             f"Please check the media name, folder path, and database permissions. Details: {cleaned}"
         )
 
-    def _backup_db(self, db_path: str):
-        if not Path(db_path).exists():
-            return
-
-        db_path_obj = Path(db_path)
-        backup_dir = db_path_obj.parent / "backups"
-        backup_dir.mkdir(parents=True, exist_ok=True)
-
-        # backup path: db/backups/[media]_[YYYY-MM-DD].db
-        today_str = (
-            datetime.datetime.now(datetime.UTC).astimezone().strftime("%Y-%m-%d")
-        )
-        backup_name = f"{db_path_obj.stem}_{today_str}{db_path_obj.suffix}"
-        backup_path = backup_dir / backup_name
-
-        # Only create one backup per day
-        if not backup_path.exists():
-            try:
-                shutil.copy2(db_path, backup_path)
-            except OSError:
-                return
-
-        # Keep 5 most recent backups
-        backup_pattern = f"{db_path_obj.stem}_*{db_path_obj.suffix}"
-        backups = sorted(
-            backup_dir.glob(backup_pattern),
-            reverse=True,
-            key=lambda p: p.stat().st_mtime,
-        )
-
-        max_backups = 5
-        for old_backup in backups[max_backups:]:
-            try:
-                old_backup.unlink()
-            except OSError:
-                pass
+    def _backup_db(self, db_path: str) -> None:
+        backup_database(db_path)
 
     def run(self):
         try:

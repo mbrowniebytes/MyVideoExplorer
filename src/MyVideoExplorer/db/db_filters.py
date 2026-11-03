@@ -7,6 +7,7 @@ from typing import Any
 
 import duckdb
 
+from MyVideoExplorer.db.db_backup import backup_database
 from MyVideoExplorer.db.db_filter import DbFilter
 from MyVideoExplorer.tag_cloud.tag_util import validate_name
 from MyVideoExplorer.utils.file_util import FileUtils
@@ -167,6 +168,7 @@ class DbFilters:
         ]
 
     def replace_all(self, records: list[dict[str, Any]]) -> None:
+        backup_database(str(self.db_path))
         with self._connect() as con:
             con.begin()
             try:
@@ -182,6 +184,7 @@ class DbFilters:
         criteria: list[dict[str, Any]],
         original_name: str | None = None,
     ) -> None:
+        backup_database(str(self.db_path))
         name = name.strip()
         if not name:
             raise ValueError("A saved filter name cannot be empty.")
@@ -262,6 +265,7 @@ class DbFilters:
                 raise
 
     def delete_filter(self, name: str) -> None:
+        backup_database(str(self.db_path))
         with self._connect() as con:
             deleted = con.execute(
                 "DELETE FROM media_filters WHERE name = ? RETURNING name", (name,)
