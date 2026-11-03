@@ -9,9 +9,11 @@ if TYPE_CHECKING:
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QComboBox,
+    QDateEdit,
     QLabel,
     QPushButton,
     QSizePolicy,
+    QSpinBox,
     QTableWidget,
     QTableWidgetItem,
     QToolButton,
@@ -379,6 +381,7 @@ class FolderFilterTable(QTableWidget):
         self._set_filter_type_cell(row_nbr, filter_type)
         self._set_filter_value_cell(row_nbr, filter_type, filter_value)
         if not self.readonly:
+            self._wire_value_change(row_nbr)
             self._set_remove_button_cell(row_nbr)
         self.resizeColumnToContents(0)
         self._update_height()
@@ -386,6 +389,24 @@ class FolderFilterTable(QTableWidget):
             widget = self.cellWidget(row_nbr, 1)
             if isinstance(widget, FilterTagCloudWidget):
                 widget.open_picker()
+
+    def _wire_value_change(self, row: int) -> None:
+        widget = self.cellWidget(row, 1)
+        if widget is None:
+            return
+
+        def changed(*_args) -> None:
+            self.cellChanged.emit(row, 1)
+
+        if isinstance(widget, QComboBox):
+            widget.currentIndexChanged.connect(changed)
+            return
+        for child in widget.findChildren(QComboBox):
+            child.currentIndexChanged.connect(changed)
+        for child in widget.findChildren(QSpinBox):
+            child.valueChanged.connect(changed)
+        for child in widget.findChildren(QDateEdit):
+            child.dateChanged.connect(changed)
 
     def _set_filter_type_cell(self, row_nbr: int, filter_type: str) -> None:
         clean_type = filter_type.casefold().strip()

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import Any
 
 from PySide6.QtCore import QEvent, QObject, Qt, QTimer, Signal
 from PySide6.QtWidgets import (
@@ -35,6 +36,7 @@ _SHOW_ALL_FILTER_LABEL = "- Select a Filter (Showing All) -"
 class FolderFilters(QWidget, ThemableMixin):
     filters_requested = Signal()
     saved_filter_selection_changed = Signal(bool)
+    filter_sort_label_changed = Signal(str)
     genre_changed = Signal(object)
     root_folder = Signal(object)
     loading_started = Signal(object)
@@ -76,6 +78,7 @@ class FolderFilters(QWidget, ThemableMixin):
         self.filter_table.setParent(self)
 
         self.root_folders: list[str] = []
+        self.folder_sort_option = "default"
         self.folder_nav_filters_filter = filter_engine_engine
         self.file_util = file_util
         self.db_filter = DbFilter(
@@ -347,6 +350,7 @@ class FolderFilters(QWidget, ThemableMixin):
         # Enable/disable View Filter Criteria button based on selection
         self.filter_criteria_button.setEnabled(has_filter)
         if not has_filter:
+            self.filter_sort_label_changed.emit("Default")
             self.filter_table.setRowCount(0)
             self.filter_table._check_empty_state()
             self.filters_requested.emit()
@@ -357,11 +361,14 @@ class FolderFilters(QWidget, ThemableMixin):
             or self.saved_filters_combo.itemText(index)
         )
         filters = None
+        sort_option = "default"
         for f in self.settings.settings_data_model.saved_filters:
             if f.get("name") == name:
                 filters = f.get("filters")
+                sort_option = str(f.get("sort_option", "default"))
                 break
 
+        self.filter_sort_label_changed.emit(self._sort_option_label(sort_option))
         self.filter_table.setRowCount(0)
         if filters:
             for filter_item in filters:
@@ -370,6 +377,102 @@ class FolderFilters(QWidget, ThemableMixin):
                 )
         self.filter_table._check_empty_state()
         # Auto-apply the filter when selected
+        self.filters_requested.emit()
+
+    def _apply_saved_filter_sort(
+        self, results: list[FileUtilModel], filters: list[dict[str, Any]]
+    ) -> list[FileUtilModel]:
+        if self.folder_sort_option == "default":
+            return results
+
+        index = self.saved_filters_combo.currentIndex()
+        name = ""
+        filter_cfg = None
+        if index > 0:
+            name = str(
+                self.saved_filters_combo.itemData(index)
+                or self.saved_filters_combo.itemText(index)
+            )
+            filter_cfg = next(
+                (
+                    item
+                    for item in self.settings.settings_data_model.saved_filters
+                    if item.get("name") == name
+                ),
+                None,
+            )
+        sort_option = (
+            str((filter_cfg or {}).get("sort_option", "default"))
+            if self.folder_sort_option == "filter_sort"
+            else self.folder_sort_option
+        )
+        if sort_option == "default":
+            return results
+
+        store = getattr(self.settings.settings_data_model, "filter_store", None)
+        matching_videos = self.db_filter.matching_videos(
+            filters,
+            sort_option=sort_option if sort_option != "manual" else "default",
+        )
+        if sort_option == "manual" and store is not None:
+            manual_items = store.get_manual_items(name)
+            manual_order = {
+                (str(item["media_folder"]).casefold(), int(item["media_id"])): index
+                for index, item in enumerate(manual_items)
+            }
+            matching_videos.sort(
+                key=lambda item: manual_order.get(
+                    (str(item["media_folder"]).casefold(), int(item["media_id"])),
+                    len(manual_order),
+                )
+            )
+
+        ranks = {
+            self.db_filter.path_utils.normalize_path(str(video["file_path"]))
+            .casefold()
+            .rstrip("/"): index
+            for index, video in enumerate(matching_videos)
+        }
+        for folder in results:
+            folder_path = (
+                self.db_filter.path_utils.normalize_path(folder.full_path)
+                .casefold()
+                .rstrip("/")
+            )
+            matching_ranks = [
+                rank
+                for file_path, rank in ranks.items()
+                if file_path == folder_path or file_path.startswith(folder_path + "/")
+            ]
+            folder.sort_index = min(matching_ranks) if matching_ranks else None
+        return results
+
+    @staticmethod
+    def _sort_option_label(sort_option: str) -> str:
+        return {
+            "default": "Default",
+            "a_z": "A-Z",
+            "z_a": "Z-A",
+            "last_played": "Last Played",
+            "qty_played": "Qty Played",
+            "manual": "Manual",
+        }.get(sort_option, "Default")
+
+    def set_folder_sort_option(self, sort_option: str) -> None:
+        if (
+            sort_option
+            not in {
+                "default",
+                "filter_sort",
+                "a_z",
+                "z_a",
+                "last_played",
+                "qty_played",
+            }
+            or sort_option == self.folder_sort_option
+        ):
+            return
+        self.folder_sort_option = sort_option
         self.filters_requested.emit()
 
     def clear_saved_filter(self) -> None:
@@ -411,6 +514,7 @@ class FolderFilters(QWidget, ThemableMixin):
         index = self.saved_filters_combo.currentIndex()
         filter_name = ""
         filters: list[dict[str, str]] = []
+        sort_option = "default"
         if index > 0:
             filter_name = str(
                 self.saved_filters_combo.itemData(index)
@@ -419,8 +523,9 @@ class FolderFilters(QWidget, ThemableMixin):
             for f in self.settings.settings_data_model.saved_filters:
                 if f.get("name") == filter_name:
                     filters = f.get("filters", [])
+                    sort_option = str(f.get("sort_option", "default"))
                     break
-        self._criteria_popup.set_filter_data(filter_name, filters)
+        self._criteria_popup.set_filter_data(filter_name, filters, sort_option)
         # Refresh theme after data change
         self._criteria_popup.apply_theme()
 
@@ -429,6 +534,7 @@ class FolderFilters(QWidget, ThemableMixin):
         index = self.saved_filters_combo.currentIndex()
         filter_name = ""
         filters: list[dict[str, str]] = []
+        sort_option = "default"
         if index > 0:
             filter_name = str(
                 self.saved_filters_combo.itemData(index)
@@ -437,6 +543,7 @@ class FolderFilters(QWidget, ThemableMixin):
             for f in self.settings.settings_data_model.saved_filters:
                 if f.get("name") == filter_name:
                     filters = f.get("filters", [])
+                    sort_option = str(f.get("sort_option", "default"))
                     break
 
         dialog = FilterCriteriaDialog(
@@ -447,6 +554,7 @@ class FolderFilters(QWidget, ThemableMixin):
             state=self.settings.settings_data_model,
             filter_name=filter_name,
             filters=filters,
+            sort_option=sort_option,
             edit_mode=False,
             readonly=True,
             parent=self.window(),
@@ -488,6 +596,7 @@ class FolderFilters(QWidget, ThemableMixin):
                 filters=filters,
                 selected_folders=folder_paths,
             )
+            results = self._apply_saved_filter_sort(results, filters)
             if on_complete:
                 on_complete(results)
             return
@@ -496,7 +605,10 @@ class FolderFilters(QWidget, ThemableMixin):
         def run_scan(index: int):
             if index >= len(folder_paths):
                 if on_complete:
-                    on_complete(self._apply_filters_internal(items))
+                    results = self._apply_filters_internal(items)
+                    filters = self.filter_table.collect_filters()
+                    filters.extend(self.media_filter_widget.collect_filters())
+                    on_complete(self._apply_saved_filter_sort(results, filters))
                 return
 
             folder_path = folder_paths[index]

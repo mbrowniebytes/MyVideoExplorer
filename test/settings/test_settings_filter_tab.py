@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import duckdb
 import pytest
 from PySide6.QtCore import QPointF, Qt
 from PySide6.QtGui import QEnterEvent
-from PySide6.QtWidgets import QMessageBox, QToolButton
+from PySide6.QtWidgets import QMessageBox, QPushButton, QSpinBox, QToolButton, QWidget
 
 from MyVideoExplorer.db.db_filters import DbFilters
 from MyVideoExplorer.media_nav_search.filter_criteria_dialog import FilterCriteriaDialog
@@ -215,7 +216,7 @@ def test_row_refresh_button_should_update_movie_count_off_gui_thread(qtbot, tmp_
     refresh_button = table.cellWidget(0, SettingsFilterTab.COL_REFRESH)
     assert isinstance(refresh_button, QToolButton)
     qtbot.mouseClick(refresh_button, Qt.MouseButton.LeftButton)
-    qtbot.waitUntil(lambda: tab._active_count_worker is None)
+    qtbot.waitUntil(lambda: tab._active_refresh_worker is None)
 
     refreshed = store.get_filter("All Movies")
     assert refreshed is not None
@@ -230,7 +231,7 @@ def test_add_filter_button_should_share_row_with_search_controls(tab):
     assert search_edit is not None
     refresh_button = tab._refresh_all_btn
     assert refresh_button is not None
-    assert refresh_button.toolTip() == "Update all Filter Media counts"
+    assert refresh_button.toolTip() == "Refresh all saved filters"
     add_buttons = [
         b for b in tab.findChildren(QToolButton) if b.toolTip() == "Add New Filter"
     ]
@@ -290,6 +291,8 @@ def test_dialog_save_after_rename_should_persist_with_original_name(qtbot, tab, 
         "Alpha Renamed",
         [{"filter": "Folder", "value": "abc"}],
         original_name="Alpha",
+        sort_option="default",
+        manual_items=None,
     )
 
 
@@ -346,8 +349,106 @@ def test_add_mode_save_should_create_new_filter_with_added_criteria(qtbot, tab, 
 
     qtbot.waitUntil(lambda: state.save_filter.called)
     state.save_filter.assert_called_once_with(
-        "New One", [{"filter": "Folder", "value": "movies"}], original_name=None
+        "New One",
+        [{"filter": "Folder", "value": "movies"}],
+        original_name=None,
+        sort_option="default",
+        manual_items=None,
     )
+
+
+def test_manual_sort_editor_displays_video_order_controls(qtbot, tab, state):
+    results = [
+        {
+            "media_folder": "/media",
+            "media_id": 1,
+            "rel_path": "A/one.mp4",
+            "file_path": "/media/A/one.mp4",
+            "title": "One",
+            "status": "exists",
+        },
+        {
+            "media_folder": "/media",
+            "media_id": 2,
+            "rel_path": "B/two.mp4",
+            "file_path": "/media/B/two.mp4",
+            "title": "Two",
+            "status": "exists",
+        },
+    ]
+    state.filter_store = SimpleNamespace(
+        db_filter=SimpleNamespace(
+            matching_videos=lambda _filters, sort_option: list(results)
+        )
+    )
+    tab.open_add_filter()
+    dialog = _active_dialog(tab)
+    tree = dialog._results_tree
+    sort_combo = dialog._sort_combo
+    assert tree is not None
+    assert sort_combo is not None
+    assert tree.topLevelItemCount() == 2
+    assert tree.isColumnHidden(1)
+
+    first_group = tree.topLevelItem(0)
+    assert first_group is not None
+    first_video = first_group.child(0)
+    assert first_video is not None
+    assert tree.itemWidget(first_video, 1) is None
+
+    sort_combo.setCurrentIndex(sort_combo.findData("manual"))
+    assert not tree.isColumnHidden(1)
+    first_group = tree.topLevelItem(0)
+    assert first_group is not None
+    first_video = first_group.child(0)
+    assert first_video is not None
+    controls = tree.itemWidget(first_video, 1)
+    assert isinstance(controls, QWidget)
+    first_position = controls.findChild(QSpinBox)
+    assert isinstance(first_position, QSpinBox)
+    assert first_position.isEnabled()
+    buttons = controls.findChildren(QPushButton)
+    assert [button.toolTip() for button in buttons] == ["Move up", "Move down"]
+    first_position.setValue(2)
+    assert [item["media_id"] for item in dialog._result_items] == [2, 1]
+    reordered_positions = []
+    for index in range(tree.topLevelItemCount()):
+        group = tree.topLevelItem(index)
+        assert group is not None
+        video = group.child(0)
+        assert video is not None
+        row_controls = tree.itemWidget(video, 1)
+        assert isinstance(row_controls, QWidget)
+        position = row_controls.findChild(QSpinBox)
+        assert isinstance(position, QSpinBox)
+        reordered_positions.append(position.value())
+    assert reordered_positions == [1, 2]
+
+    saved = []
+    assert dialog._name_edit is not None
+    dialog._name_edit.setText("Manual test")
+    dialog.saved.connect(lambda *args: saved.append(args))
+    dialog._on_save()
+    assert [item["media_id"] for item in saved[0][3]] == [2, 1]
+
+
+def test_rebuild_needed_manual_filter_should_show_warning_icon(tab, state):
+    state.saved_filters = [
+        {
+            "name": "Needs Rebuild",
+            "filters": [],
+            "sort_option": "manual",
+            "needs_rebuild": True,
+        }
+    ]
+    tab._refresh_filter_list()
+
+    table = tab._filter_table_widget
+    assert table is not None
+    name_item = table.item(0, SettingsFilterTab.COL_NAME)
+    assert name_item is not None
+    assert "needs refresh" in name_item.toolTip().casefold()
+    assert not name_item.icon().isNull()
 
 
 def test_save_with_empty_name_should_keep_dialog_open(qtbot, tab, state):

@@ -129,6 +129,9 @@ class Settings(QWidget, ThemableMixin):
                 tag_store=self.tag_store,
                 parent=self,
             )
+            self._media_settings_tab.library_scan_succeeded.connect(
+                self._filter_settings_tab.validate_manual_items_after_scan
+            )
             self._tags_settings_tab = SettingsTagsTab(
                 self.settings_data_model,
                 self.log_util,

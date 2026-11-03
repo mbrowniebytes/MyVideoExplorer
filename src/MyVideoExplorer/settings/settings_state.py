@@ -513,6 +513,8 @@ class SettingsState(QObject):
         name: str,
         filter_cfg: list[dict[str, Any]],
         original_name: str | None = None,
+        sort_option: str = "default",
+        manual_items: list[dict[str, Any]] | None = None,
     ) -> None:
         """
         Saves a named filter configuration.
@@ -522,8 +524,16 @@ class SettingsState(QObject):
             filter_cfg: Filter criteria list.
             original_name: Previous name when renaming, so the existing entry is
                 replaced in place instead of a duplicate being appended.
+            sort_option: Result ordering mode for this saved filter.
+            manual_items: Ordered video identities to persist when Manual is selected.
         """
-        self.filter_store.save_filter(name, filter_cfg, original_name)
+        self.filter_store.save_filter(
+            name,
+            filter_cfg,
+            original_name,
+            sort_option=sort_option,
+            manual_items=manual_items,
+        )
         self.saved_filters = self.filter_store.list_filters()
         self._emit_filters_changed()
 

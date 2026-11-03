@@ -22,6 +22,63 @@ from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 
 
 class TestFolderNavFilters:
+    def test_saved_filter_live_sort_sets_folder_navigation_order(
+        self, nav_filters, settings_mock
+    ):
+        settings_mock.settings_data_model.saved_filters = [
+            {"name": "Newest first", "filters": [], "sort_option": "z_a"}
+        ]
+        nav_filters._refresh_saved_filters_combo()
+        sort_labels: list[str] = []
+        nav_filters.filter_sort_label_changed.connect(sort_labels.append)
+        nav_filters.saved_filters_combo.setCurrentIndex(
+            nav_filters.saved_filters_combo.findData("Newest first")
+        )
+        nav_filters.db_filter.matching_videos = MagicMock(
+            return_value=[
+                {"file_path": "/movies/Zulu/movie.mkv"},
+                {"file_path": "/movies/Alpha/movie.mkv"},
+            ]
+        )
+        nav_filters.folder_sort_option = "filter_sort"
+        folders = [
+            FileUtilModel(type="dir", name="Alpha", full_path="/movies/Alpha", depth=0),
+            FileUtilModel(type="dir", name="Zulu", full_path="/movies/Zulu", depth=0),
+        ]
+
+        nav_filters._apply_saved_filter_sort(folders, [])
+
+        assert sort_labels[-1] == "Z-A"
+        assert [folder.sort_index for folder in folders] == [1, 0]
+
+    def test_explicit_folder_sort_should_override_saved_filter_sort(
+        self, nav_filters, settings_mock
+    ):
+        settings_mock.settings_data_model.saved_filters = [
+            {"name": "Newest first", "filters": [], "sort_option": "z_a"}
+        ]
+        nav_filters._refresh_saved_filters_combo()
+        nav_filters.saved_filters_combo.setCurrentIndex(
+            nav_filters.saved_filters_combo.findData("Newest first")
+        )
+        nav_filters.folder_sort_option = "last_played"
+        nav_filters.db_filter.matching_videos = MagicMock(
+            return_value=[{"file_path": "/movies/Alpha/movie.mkv"}]
+        )
+
+        nav_filters._apply_saved_filter_sort(
+            [
+                FileUtilModel(
+                    type="dir", name="Alpha", full_path="/movies/Alpha", depth=0
+                )
+            ],
+            [],
+        )
+
+        nav_filters.db_filter.matching_videos.assert_called_once_with(
+            [], sort_option="last_played"
+        )
+
     def test_play_history_query_preserves_metadata_field_count(
         self, monkeypatch, tmp_path
     ):

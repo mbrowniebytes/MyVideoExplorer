@@ -124,6 +124,11 @@ class FileUtils:
         )
         return normalized_path.startswith(prefix)
 
+    @staticmethod
+    def is_dir_accessible(path: str | os.PathLike[str]) -> bool:
+        directory = Path(path)
+        return directory.is_dir() and os.access(directory, os.R_OK | os.X_OK)
+
 
 class FileUtil:
     """Utility class for filesystem traversal, classification, and metadata extraction."""

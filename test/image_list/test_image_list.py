@@ -34,18 +34,35 @@ class TestImageList:
         assert image_list.selected_image_index == -1
         assert image_list.images == []
 
-    def test_update_image_from_folder(self, image_list):
+    def test_update_image_from_folder(self, image_list, tmp_path):
         image_list.file_util.get_images_from_folder.return_value = (
             ["img1.jpg", "img2.jpg"],
             "img1.jpg",
         )
 
-        image_list.update_image_from_folder("/test/folder")
+        image_list.update_image_from_folder(str(tmp_path))
 
         assert image_list.images == ["img1.jpg", "img2.jpg"]
         assert image_list.selected_image_path == "img1.jpg"
         image_list.image_list_view.load_pixmap.assert_called_with("img1.jpg")
-        image_list.nfo_parse_util.parse_nfo_folder.assert_called_with("/test/folder")
+        image_list.nfo_parse_util.parse_nfo_folder.assert_called_with(str(tmp_path))
+
+    def test_update_image_from_missing_folder_should_show_rescan_message(
+        self, image_list, monkeypatch
+    ):
+        monkeypatch.setattr("pathlib.Path.is_dir", lambda _path: False)
+        image_list.image_list_view.show_empty_state.reset_mock()
+
+        image_list.update_image_from_folder("/missing/movie")
+
+        image_list.image_list_view.show_empty_state.assert_called_once()
+        message = image_list.image_list_view.show_empty_state.call_args.args[0]
+        assert "missing or inaccessible" in message
+        assert "Settings → Media" in message
+        image_list.file_util.get_images_from_folder.assert_not_called()
+        image_list.nfo_parse_util.parse_nfo_folder.assert_not_called()
+        assert image_list.selected_image_path == ""
+        assert image_list.images == []
 
     def test_request_next_image(self, image_list, qtbot):
         image_list.images = ["img1.jpg", "img2.jpg"]

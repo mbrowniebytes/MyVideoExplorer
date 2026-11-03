@@ -9,8 +9,8 @@ from MyVideoExplorer.db.db_filters import DbFilters
 logger = logging.getLogger(__name__)
 
 
-class FilterCountWorker(QThread):
-    """Refresh saved-filter counts without blocking the GUI thread."""
+class FilterRefreshWorker(QThread):
+    """Refresh saved filters without blocking the GUI thread."""
 
     progress = Signal(int, int, str)
     updated = Signal(str)
@@ -26,9 +26,9 @@ class FilterCountWorker(QThread):
         for index, name in enumerate(self.names, start=1):
             self.progress.emit(index, total, name)
             try:
-                self.filter_store.refresh_filter_counts(name)
+                self.filter_store.refresh_filter(name)
             except Exception as error:
-                logger.exception("Failed refreshing movie count for filter %s", name)
+                logger.exception("Failed refreshing saved filter %s", name)
                 self.failed.emit(name, str(error))
             else:
                 self.updated.emit(name)

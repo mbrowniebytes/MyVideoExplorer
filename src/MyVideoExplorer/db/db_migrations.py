@@ -12,6 +12,7 @@ POSIX_PATH_MIGRATION = "20261027_normalize_posix_paths.sql"
 SNOWFLAKE_ID_MIGRATION = "20261101_snowflake_ids.sql"
 
 FILTER_SNOWFLAKE_MIGRATION = "20261102_filter_snowflake_ids.sql"
+MANUAL_FILTER_LISTS_MIGRATION = "20261103_manual_filter_lists.sql"
 
 DbType = Literal["media", "filter_catalog", "tag_catalog"]
 
@@ -42,11 +43,16 @@ class DbMigrations:
                     "20261101_create_filter_catalog",
                     "20261101_create_tag_catalog",
                     "20261102_filter_snowflake_ids",
+                    "20261103_manual_filter_lists",
                 )
             )
         if self.db_type == "filter_catalog":
             return migration_name.startswith(
-                ("20261101_create_filter_catalog", "20261102_filter_snowflake_ids")
+                (
+                    "20261101_create_filter_catalog",
+                    "20261102_filter_snowflake_ids",
+                    "20261103_manual_filter_lists",
+                )
             )
         return migration_name.startswith(self._migration_prefix())
 

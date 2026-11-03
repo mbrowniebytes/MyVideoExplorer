@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from functools import partial
 from typing import TYPE_CHECKING, Any
 
@@ -25,7 +26,8 @@ from PySide6.QtWidgets import (
 from MyVideoExplorer.db.db_filters import DbFilters
 from MyVideoExplorer.folder_filter.folder_filter_table import FolderFilterTable
 from MyVideoExplorer.media_nav_search.filter_criteria_dialog import FilterCriteriaDialog
-from MyVideoExplorer.settings.filter_count_worker import FilterCountWorker
+from MyVideoExplorer.settings.filter_refresh_worker import FilterRefreshWorker
+from MyVideoExplorer.settings.filter_scan_worker import FilterScanWorker
 from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
 from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.tag_cloud.tag_picker_dialog import TagPickerDialog
@@ -45,6 +47,7 @@ if TYPE_CHECKING:
 GENRES = sorted(
     ["Action", "Comedy", "Sci-Fi", "Mystery", "Thriller", "Drama", "Adventure"]
 )
+logger = logging.getLogger(__name__)
 
 
 class SettingsFilterTab(SettingsBaseTab):
@@ -94,11 +97,12 @@ class SettingsFilterTab(SettingsBaseTab):
         self._clear_tag_btn: QToolButton | None = None
         self._refresh_all_btn: QToolButton | None = None
         self._bulk_progress_bar: QProgressBar | None = None
-        self._active_count_worker: FilterCountWorker | None = None
+        self._active_refresh_worker: FilterRefreshWorker | None = None
+        self._scan_workers: set[FilterScanWorker] = set()
         self._worker_is_bulk = False
         self._progress_index = 0
         self._busy_filter_name: str | None = None
-        self._count_errors: list[str] = []
+        self._refresh_errors: list[str] = []
         self._filtered_filters: list[dict[str, Any]] = []
         # Keeps the non-blocking dialog alive while it is open
         self._active_dialog: FilterCriteriaDialog | None = None
@@ -155,11 +159,11 @@ class SettingsFilterTab(SettingsBaseTab):
 
         self._refresh_all_btn = ActionButton(
             self,
-            text="Update Counts",
+            text="Refresh Filters",
             icon_name="fa6s.arrows-rotate",
-            tooltip="Update all Filter Media counts",
+            tooltip="Refresh all saved filters",
         )
-        self._refresh_all_btn.clicked.connect(self._refresh_all_counts)
+        self._refresh_all_btn.clicked.connect(self._refresh_all_filters)
 
         refresh_controls = QWidget(self)
         refresh_layout = QGridLayout(refresh_controls)
@@ -565,23 +569,33 @@ class SettingsFilterTab(SettingsBaseTab):
 
             refresh_button = self._make_row_button(
                 "fa6s.arrows-rotate",
-                f"Refresh filtered media-folder count for '{name}'",
-                partial(self._refresh_one_count, name),
+                f"Refresh filter '{name}'",
+                partial(self._refresh_one_filter, name),
             )
-            if self._active_count_worker is not None:
+            if self._active_refresh_worker is not None:
                 refresh_button.setEnabled(False)
                 if self._busy_filter_name == name:
                     refresh_button.setIcon(
                         APP_THEME.icon("fa6s.spinner", color=APP_THEME.text_color)
                     )
-                    refresh_button.setToolTip(
-                        f"Refreshing filtered media-folder count for '{name}'"
-                    )
+                    refresh_button.setToolTip(f"Refreshing filter '{name}'")
             table.setCellWidget(row_idx, self.COL_REFRESH, refresh_button)
 
             # Name cell (elided with "..." when too long)
             name_item = QTableWidgetItem(name)
             name_item.setToolTip(name)
+            if filter_cfg.get("sort_option") == "manual" and filter_cfg.get(
+                "needs_rebuild"
+            ):
+                name_item.setIcon(
+                    APP_THEME.icon(
+                        "fa6s.triangle-exclamation",
+                        color=APP_THEME.config.color_text_muted,
+                    )
+                )
+                name_item.setToolTip(
+                    f"{name}\nManual list needs refresh to rebuild stale entries."
+                )
             name_item.setFont(cell_font)
             table.setItem(row_idx, self.COL_NAME, name_item)
 
@@ -607,6 +621,37 @@ class SettingsFilterTab(SettingsBaseTab):
 
         # Store the filtered list for row lookup
         self._filtered_filters = filtered
+
+    def validate_manual_items_after_scan(self, media_config: dict[str, Any]) -> None:
+        store = self._filter_store()
+        media_folder = str(media_config.get("path", "")).strip()
+        if store is None or not media_folder:
+            return
+        worker = FilterScanWorker(store, media_folder)
+        worker.setParent(self)
+        self._scan_workers.add(worker)
+        worker.updated.connect(self._on_scan_filter_validation_updated)
+        worker.failed.connect(self._on_scan_filter_validation_failed)
+        worker.finished.connect(lambda: self._finish_scan_worker(worker))
+        worker.start()
+
+    def _on_scan_filter_validation_updated(self, names: list[str]) -> None:
+        if not names:
+            return
+        self.state.load_filters()
+        self._refresh_filter_list()
+
+    def _on_scan_filter_validation_failed(self, error: str) -> None:
+        logger.error("Manual-filter scan validation failed: %s", error)
+        QMessageBox.warning(
+            self,
+            "Manual Filter Scan Check Failed",
+            f"Manual filter entries could not be checked after the scan:\n{error}",
+        )
+
+    def _finish_scan_worker(self, worker: FilterScanWorker) -> None:
+        self._scan_workers.discard(worker)
+        worker.deleteLater()
 
     def _make_row_button(self, icon_name: str, tooltip: str, slot: Any) -> QToolButton:
         if icon_name == "fa6s.trash-can":
@@ -663,32 +708,32 @@ class SettingsFilterTab(SettingsBaseTab):
             )
         return filters
 
-    def _refresh_one_count(self, name: str) -> None:
-        self._start_count_refresh([name], is_bulk=False)
+    def _refresh_one_filter(self, name: str) -> None:
+        self._start_filter_refresh([name], is_bulk=False)
 
-    def _refresh_all_counts(self) -> None:
-        self._start_count_refresh(
+    def _refresh_all_filters(self) -> None:
+        self._start_filter_refresh(
             [str(item.get("name", "")) for item in self._ordered_saved_filters()],
             is_bulk=True,
         )
 
-    def _start_count_refresh(self, names: list[str], is_bulk: bool) -> None:
+    def _start_filter_refresh(self, names: list[str], is_bulk: bool) -> None:
         store = self._filter_store()
         names = [name for name in names if name]
-        if store is None or not names or self._active_count_worker is not None:
+        if store is None or not names or self._active_refresh_worker is not None:
             return
 
         self._worker_is_bulk = is_bulk
         self._progress_index = 0
         self._busy_filter_name = None
-        self._count_errors = []
+        self._refresh_errors = []
         if self._refresh_all_btn is not None:
             self._refresh_all_btn.setEnabled(False)
             if is_bulk:
                 self._refresh_all_btn.setIcon(
                     APP_THEME.icon("fa6s.spinner", color=APP_THEME.text_color)
                 )
-                self._refresh_all_btn.setToolTip("Updating Filter Media counts")
+                self._refresh_all_btn.setToolTip("Refreshing saved filters")
         table = self._filter_table_widget
         if table is not None:
             for row in range(table.rowCount()):
@@ -700,15 +745,15 @@ class SettingsFilterTab(SettingsBaseTab):
                 self._bulk_progress_bar.setRange(0, len(names))
                 self._bulk_progress_bar.setValue(0)
                 self._bulk_progress_bar.show()
-        worker = FilterCountWorker(store, names)
-        self._active_count_worker = worker
-        worker.progress.connect(self._on_count_progress)
-        worker.updated.connect(self._on_count_updated)
-        worker.failed.connect(self._on_count_failed)
-        worker.finished.connect(self._on_count_refresh_finished)
+        worker = FilterRefreshWorker(store, names)
+        self._active_refresh_worker = worker
+        worker.progress.connect(self._on_filter_refresh_progress)
+        worker.updated.connect(self._on_filter_refreshed)
+        worker.failed.connect(self._on_filter_refresh_failed)
+        worker.finished.connect(self._on_filter_refresh_finished)
         worker.start()
 
-    def _on_count_progress(self, index: int, total: int, name: str) -> None:
+    def _on_filter_refresh_progress(self, index: int, total: int, name: str) -> None:
         if self._busy_filter_name:
             self._set_refresh_button_busy(self._busy_filter_name, False)
         self._busy_filter_name = name
@@ -728,13 +773,13 @@ class SettingsFilterTab(SettingsBaseTab):
                         break
         self._set_refresh_button_busy(name, True)
 
-    def _on_count_updated(self, name: str) -> None:
+    def _on_filter_refreshed(self, name: str) -> None:
         self.state.load_filters()
         self.state.filter_counts_changed.emit()
         self._update_count_row(name)
 
-    def _on_count_failed(self, name: str, error: str) -> None:
-        self._count_errors.append(f"{name}: {error}")
+    def _on_filter_refresh_failed(self, name: str, error: str) -> None:
+        self._refresh_errors.append(f"{name}: {error}")
 
     def _update_count_row(self, name: str) -> None:
         latest = next(
@@ -768,17 +813,17 @@ class SettingsFilterTab(SettingsBaseTab):
             if isinstance(button, QToolButton):
                 icon = "fa6s.spinner" if busy else "fa6s.arrows-rotate"
                 button.setIcon(APP_THEME.icon(icon, color=APP_THEME.text_color))
-                button.setEnabled(not busy and self._active_count_worker is None)
+                button.setEnabled(not busy and self._active_refresh_worker is None)
                 button.setToolTip(
-                    f"Refreshing filtered media-folder count for '{name}'"
+                    f"Refreshing filter '{name}'"
                     if busy
-                    else f"Refresh filtered media-folder count for '{name}'"
+                    else f"Refresh filter '{name}'"
                 )
             break
 
-    def _on_count_refresh_finished(self) -> None:
-        worker = self._active_count_worker
-        self._active_count_worker = None
+    def _on_filter_refresh_finished(self) -> None:
+        worker = self._active_refresh_worker
+        self._active_refresh_worker = None
         if worker is not None:
             worker.deleteLater()
 
@@ -792,7 +837,7 @@ class SettingsFilterTab(SettingsBaseTab):
             self._refresh_all_btn.setIcon(
                 APP_THEME.icon("fa6s.arrows-rotate", color=APP_THEME.text_color)
             )
-            self._refresh_all_btn.setToolTip("Update all Filter Media counts")
+            self._refresh_all_btn.setToolTip("Refresh all saved filters")
             self._refresh_all_btn.setEnabled(True)
         table = self._filter_table_widget
         if table is not None:
@@ -804,12 +849,12 @@ class SettingsFilterTab(SettingsBaseTab):
             self._set_refresh_button_busy(str(item.get("name", "")), False)
         self._refresh_filter_list()
 
-        if self._count_errors:
+        if self._refresh_errors:
             QMessageBox.warning(
                 self,
-                "Media-Folder Count Refresh Failed",
-                "Some filter media-folder counts could not be refreshed:\n"
-                + "\n".join(self._count_errors),
+                "Filter Refresh Failed",
+                "Some saved filters could not be refreshed:\n"
+                + "\n".join(self._refresh_errors),
             )
 
     def _show_placeholder(self, table: QTableWidget, text: str) -> None:
@@ -835,9 +880,14 @@ class SettingsFilterTab(SettingsBaseTab):
 
     def open_edit_dialog(self, filter_cfg: dict[str, Any]) -> None:
         original_name = str(filter_cfg.get("name", ""))
+        store = self._filter_store()
         dialog = self._make_dialog(
             filter_name=original_name,
             filters=list(filter_cfg.get("filters", [])),
+            sort_option=str(filter_cfg.get("sort_option", "default")),
+            manual_items=(
+                store.get_manual_items(original_name) if store is not None else []
+            ),
             edit_mode=True,
         )
         dialog.saved.connect(partial(self._on_dialog_save, original_name))
@@ -853,7 +903,12 @@ class SettingsFilterTab(SettingsBaseTab):
         self._show_dialog(dialog)
 
     def _make_dialog(
-        self, filter_name: str, filters: list[dict[str, str]], edit_mode: bool
+        self,
+        filter_name: str,
+        filters: list[dict[str, str]],
+        edit_mode: bool,
+        sort_option: str = "default",
+        manual_items: list[dict[str, Any]] | None = None,
     ) -> FilterCriteriaDialog:
         return FilterCriteriaDialog(
             genres=GENRES,
@@ -863,6 +918,8 @@ class SettingsFilterTab(SettingsBaseTab):
             state=self.state,
             filter_name=filter_name,
             filters=filters,
+            sort_option=sort_option,
+            manual_items=manual_items,
             edit_mode=edit_mode,
             readonly=False,
             parent=self.window(),
@@ -882,28 +939,36 @@ class SettingsFilterTab(SettingsBaseTab):
         dialog.finished.connect(lambda _result: self._on_dialog_finished(dialog))
         self._active_dialog = dialog
 
-        # Position the dialog near the filter list table so the folder nav is still visible
+        # Keep the enlarged editor inside the application window.
         table = self._filter_table_widget
         if table is not None:
-            dialog.resize(600, 480)
-            # Map the table's bottom-right corner to global coordinates
-            bottom_right = table.mapToGlobal(table.rect().bottomRight())
+            parent_window = self.window()
+            parent_geometry = parent_window.frameGeometry()
             screen = self.screen()
             if screen is not None:
                 available = screen.availableGeometry()
-                dialog_w = dialog.width()
-                dialog_h = dialog.height()
-                # Position to the left of the table, aligned with its top
-                x = bottom_right.x() - dialog_w - 10
-                y = table.mapToGlobal(table.rect().topLeft()).y()
-                # Keep within screen bounds
-                x = max(x, available.left())
-                y = max(y, available.top())
-                # If x is still off-screen (dialog wider than available space), align right
-                if x + dialog_w > available.right():
-                    x = bottom_right.x() + 10
-                    x = min(x, available.right() - dialog_w)
-                y = min(y, available.bottom() - dialog_h)
+                max_width = min(
+                    850, parent_geometry.width() - 20, available.width() - 20
+                )
+                max_height = min(
+                    700, parent_geometry.height() - 20, available.height() - 20
+                )
+                dialog.setMinimumSize(min(600, max_width), min(500, max_height))
+                dialog.resize(max_width, max_height)
+                table_top = table.mapToGlobal(table.rect().topLeft())
+                candidate_x = (
+                    table.mapToGlobal(table.rect().bottomRight()).x()
+                    - dialog.width()
+                    - 10
+                )
+                x = max(
+                    parent_geometry.left() + 10,
+                    min(candidate_x, parent_geometry.right() - dialog.width() - 10),
+                )
+                y = max(
+                    parent_geometry.top() + 10,
+                    min(table_top.y(), parent_geometry.bottom() - dialog.height() - 10),
+                )
                 dialog.move(x, y)
         dialog.open()
 
@@ -912,17 +977,43 @@ class SettingsFilterTab(SettingsBaseTab):
             self._active_dialog = None
 
     def _on_dialog_save(
-        self, original_name: str, name: str, filters: list[dict[str, str]]
+        self,
+        original_name: str,
+        name: str,
+        filters: list[dict[str, str]],
+        sort_option: str,
+        manual_items: list[dict[str, Any]],
     ) -> None:
         """Defer persistence until the dialog has fully closed."""
-        QTimer.singleShot(0, partial(self._persist_save, original_name, name, filters))
+        QTimer.singleShot(
+            0,
+            partial(
+                self._persist_save,
+                original_name,
+                name,
+                filters,
+                sort_option,
+                manual_items,
+            ),
+        )
 
     def _persist_save(
-        self, original_name: str, name: str, filters: list[dict[str, str]]
+        self,
+        original_name: str,
+        name: str,
+        filters: list[dict[str, str]],
+        sort_option: str,
+        manual_items: list[dict[str, Any]],
     ) -> None:
-        self.state.save_filter(name, filters, original_name=original_name or None)
+        self.state.save_filter(
+            name,
+            filters,
+            original_name=original_name or None,
+            sort_option=sort_option,
+            manual_items=manual_items if sort_option == "manual" else None,
+        )
         self._refresh_filter_list()
-        self._refresh_one_count(name)
+        self._refresh_one_filter(name)
 
     def _on_dialog_delete(self, name: str) -> None:
         """Defer persistence until the dialog has fully closed."""

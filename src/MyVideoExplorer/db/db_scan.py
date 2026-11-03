@@ -143,18 +143,17 @@ class DbScanUtil:
         try:
             # 1. Delete records for the scanned folder that are no longer present
             def _cleanup(con):
-                if media_list:
+                con.execute(
+                    db_query.DbQuery.MediaFile.DELETE_BY_DIR_NOT_IN,
+                    (normalized_media_path, normalized_file_paths),
+                )
+                if not media_list:
                     con.execute(
-                        db_query.DbQuery.MediaFile.DELETE_BY_DIR_NOT_IN,
-                        (normalized_media_path, normalized_file_paths),
+                        db_query.DbQuery.MediaPathStats.DELETE,
+                        (normalized_media_path,),
                     )
-                else:
-                    self.delete_stats(media_path)
 
-            if media_list:
-                self._run_in_transaction(_cleanup)
-            else:
-                self.delete_stats(media_path)
+            self._run_in_transaction(_cleanup)
 
             if not media_list:
                 if progress_callback is not None:

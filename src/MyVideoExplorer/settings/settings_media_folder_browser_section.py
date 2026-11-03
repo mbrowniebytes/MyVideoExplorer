@@ -33,6 +33,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
     config_changed = Signal(dict, str, Any)
     remove_requested = Signal(dict)
     scan_finished = Signal()
+    scan_succeeded = Signal(dict)
     scan_stalled = Signal()
     SCAN_STALL_TIMEOUT_MS = 120_000
 
@@ -585,6 +586,7 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
             self._refresh_scan_button_state()
 
             self._refresh_stats_labels(media_config)
+            self.scan_succeeded.emit(media_config)
         finally:
             self.scan_finished.emit()
 

@@ -38,6 +38,7 @@ class FolderList(QWidget, ThemableMixin):
     clear_filter_requested = Signal()
     media_nav_search_requested = Signal(object)
     media_nav_clear_search_requested = Signal()
+    folder_sort_changed = Signal(str)
     HISTORY_FOLDER_LENGTH = 100
 
     def __init__(
@@ -96,6 +97,7 @@ class FolderList(QWidget, ThemableMixin):
 
         self.header.backward_clicked.connect(self._on_backward_folder_clicked)
         self.header.clear_filter_clicked.connect(self._on_clear_filter)
+        self.header.sort_changed.connect(self.folder_sort_changed)
         self.header.forward_clicked.connect(self._on_forward_folder_clicked)
         self.header.random_clicked.connect(self._on_random_folder_clicked)
         self.media_nav_search.search_requested.connect(self.media_nav_search_requested)
@@ -297,6 +299,7 @@ class FolderList(QWidget, ThemableMixin):
             items,
             get_icon_func=self._get_icon_for_path,
             on_complete=_on_populate_complete,
+            sort_option=str(self.header.sort_combo.currentData() or "default"),
         )
 
     def _get_icon_for_path(self, path: str) -> str:
@@ -383,6 +386,9 @@ class FolderList(QWidget, ThemableMixin):
     def set_clear_filter_enabled(self, enabled: bool) -> None:
         self._saved_filter_selected = enabled
         self._update_clear_filter_button()
+
+    def set_filter_sort_label(self, label: str) -> None:
+        self.header.set_filter_sort_label(label)
 
     def set_quick_search_active(self, active: bool) -> None:
         self._quick_search_active = active

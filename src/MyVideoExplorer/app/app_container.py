@@ -316,6 +316,14 @@ class AppContainer:
             self.folder_list.clear_filter_requested, self.folder_nav.clear_saved_filter
         )
         self._connect(
+            self.folder_list.folder_sort_changed,
+            self.folder_nav_filters.set_folder_sort_option,
+        )
+        self._connect(
+            self.folder_nav_filters.filter_sort_label_changed,
+            self.folder_list.set_filter_sort_label,
+        )
+        self._connect(
             self.folder_nav_filters.saved_filter_selection_changed,
             self.folder_list.set_clear_filter_enabled,
         )

@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import shiboken6
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QColor
 
 from MyVideoExplorer.folder_list.folder_list_view import FolderListView
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
@@ -47,6 +48,64 @@ class TestFolderListView:
             view.populate_view(_folders(2))
 
         assert view.count() == 2
+
+    def test_populate_view_preserves_saved_filter_sort_order(self, view):
+        view.populate_view(
+            [
+                FileUtilModel(
+                    type="dir",
+                    name="Alpha",
+                    full_path="/root/Alpha",
+                    sort_index=1,
+                ),
+                FileUtilModel(
+                    type="dir",
+                    name="Zulu",
+                    full_path="/root/Zulu",
+                    sort_index=0,
+                ),
+            ],
+            sort_option="filter_sort",
+        )
+
+        assert [
+            view.item(row).data(Qt.ItemDataRole.UserRole) for row in range(view.count())
+        ] == ["/root/Zulu", "/root/Alpha"]
+
+    def test_populate_view_default_sort_should_use_a_to_z(self, view):
+        view.populate_view(
+            [
+                FileUtilModel(
+                    type="dir",
+                    name="Alpha",
+                    full_path="/root/Alpha",
+                    sort_index=1,
+                ),
+                FileUtilModel(
+                    type="dir",
+                    name="Zulu",
+                    full_path="/root/Zulu",
+                    sort_index=0,
+                ),
+            ]
+        )
+
+        assert [
+            view.item(row).data(Qt.ItemDataRole.UserRole) for row in range(view.count())
+        ] == ["/root/Alpha", "/root/Zulu"]
+
+    def test_add_folder_item_missing_path_should_be_greyed_out_with_rescan_guidance(
+        self, view
+    ):
+        missing_path = "/root/Missing"
+        view.populate_view(
+            [FileUtilModel(type="dir", name="Missing", full_path=missing_path)]
+        )
+
+        item = view.item(0)
+        assert item is not None
+        assert item.foreground().color() == QColor("gray")
+        assert "Settings → Media" in item.toolTip()
 
     def test_repeated_loading_and_populate_with_gc_should_keep_items_consistent(
         self, view

@@ -39,6 +39,7 @@ from MyVideoExplorer.widgets.combo_boxes.select_combo_box import SelectComboBox
 
 class SettingsMediaTab(SettingsBaseTab):
     root_folders_changed = Signal(object)
+    library_scan_succeeded = Signal(dict)
 
     def __init__(
         self,
@@ -271,6 +272,7 @@ class SettingsMediaTab(SettingsBaseTab):
             )
             browser.config_changed.connect(self._on_config_changed)
             browser.remove_requested.connect(self._remove_folder)
+            browser.scan_succeeded.connect(self.library_scan_succeeded.emit)
             self.folder_nav_layout.addRow(browser)
 
         self._refresh_scan_all_button_state()

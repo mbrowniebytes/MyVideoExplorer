@@ -1,6 +1,7 @@
 from collections.abc import Callable
 
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QListWidget, QListWidgetItem
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
@@ -109,6 +110,12 @@ class FolderListView(QListWidget):
         list_item.setData(Qt.ItemDataRole.UserRole, item.full_path)
         list_item.setData(Qt.ItemDataRole.UserRole + 1, icon_name)
         list_item.setData(Qt.ItemDataRole.UserRole + 2, item.icon_name)
+        if not FileUtils.is_dir_accessible(item.full_path):
+            list_item.setForeground(QColor("gray"))
+            list_item.setToolTip(
+                "This movie folder is missing or inaccessible. "
+                "Open Settings → Media and rescan your media folders."
+            )
         self.addItem(list_item)
 
     def refresh_icons(self, get_icon_func) -> None:
@@ -150,15 +157,36 @@ class FolderListView(QListWidget):
         items: list[FileUtilModel],
         get_icon_func=None,
         on_complete: Callable[[list[FileUtilModel]], None] | None = None,
+        sort_option: str = "default",
     ) -> None:
         """Sorts and populates the FolderListView."""
         print(f"FolderListView.populate_view: items={len(items)}")
         self.setUpdatesEnabled(False)
         try:
             folder_items = [item for item in items if item.is_dir]
-            folder_items.sort(
-                key=lambda item: FileUtils.normalize_path(item.full_path).casefold()
-            )
+            if sort_option in {
+                "filter_sort",
+                "a_z",
+                "z_a",
+                "last_played",
+                "qty_played",
+            } and any(item.sort_index is not None for item in folder_items):
+                folder_items.sort(
+                    key=lambda item: (
+                        item.sort_index
+                        if item.sort_index is not None
+                        else float("inf"),
+                        item.depth,
+                        FileUtils.normalize_path(item.full_path).casefold(),
+                    )
+                )
+            else:
+                folder_items.sort(
+                    key=lambda item: FileUtils.normalize_path(
+                        item.full_path
+                    ).casefold(),
+                    reverse=sort_option == "z_a",
+                )
 
             self.clear_items()
             if not folder_items:

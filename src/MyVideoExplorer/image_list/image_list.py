@@ -22,6 +22,10 @@ from MyVideoExplorer.utils.str_util import StrUtil
 _EMPTY_STATE_NO_MEDIA_FOLDERS = (
     "No media folders configured.\nOpen Settings (Gear) → Media and add a media folder."
 )
+_EMPTY_STATE_MISSING_MEDIA_FOLDER = (
+    "This movie folder is missing or inaccessible.\n"
+    "Open Settings → Media and rescan your media folders."
+)
 
 
 class ImageList(QWidget, ThemableMixin):
@@ -210,6 +214,13 @@ class ImageList(QWidget, ThemableMixin):
                 self.image_list_view.show_empty_state(_EMPTY_STATE_NO_MEDIA_FOLDERS)
             else:
                 self._clear_preview()
+            return
+
+        if not FileUtils.is_dir_accessible(folder_path):
+            self._reset_image_state()
+            self.image_list_view.load_pixmap(None)
+            self.image_list_view.show_empty_state(_EMPTY_STATE_MISSING_MEDIA_FOLDER)
+            self.clear_nfo()
             return
 
         self.image_list_view.show_loading_state()

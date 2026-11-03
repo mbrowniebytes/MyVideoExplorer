@@ -18,6 +18,7 @@
   - show media ancestor even if empty
   - restore tooltip info
   - reselect folder nav media on search or filter, if possible
+  - add additional sorting
 - settings 
   - names
     - unique per type
@@ -34,6 +35,7 @@
     - new filters
       - last played date
       - qty played
+    - add sorting, Default, Manual, A-Z, Z-A, Last Played, Qty Played
   - tags
     - re-position tag icons
   - filters, tags
