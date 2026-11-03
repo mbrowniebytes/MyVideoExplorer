@@ -26,6 +26,7 @@ from MyVideoExplorer.widgets.buttons.action_button import ActionButton
 from MyVideoExplorer.widgets.buttons.delayed_delete_button import DelayedDeleteButton
 from MyVideoExplorer.widgets.combo_boxes.select_combo_box import SelectComboBox
 from MyVideoExplorer.widgets.folder_picker_widget import FolderPickerWidget
+from MyVideoExplorer.widgets.name_widget import NameWidget
 
 
 class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
@@ -71,7 +72,8 @@ class SettingsMediaFolderBrowserSection(QFrame, ThemableMixin):
         row1_layout = QHBoxLayout()
         row1_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.label_edit = QLineEdit(self.media_config.get("label", ""), parent=self)
+        self.label_edit = NameWidget(parent=self)
+        self.label_edit.setText(self.media_config.get("label", ""))
         self.label_edit.setPlaceholderText("Media Name")
         self.label_edit.textChanged.connect(self._refresh_scan_button_state)
         self.label_edit.editingFinished.connect(

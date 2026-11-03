@@ -8,6 +8,7 @@ from typing import Any
 import duckdb
 
 from MyVideoExplorer.db.db_filter import DbFilter
+from MyVideoExplorer.tag_cloud.tag_util import validate_name
 from MyVideoExplorer.utils.file_util import FileUtils
 
 logger = logging.getLogger(__name__)
@@ -184,6 +185,12 @@ class DbFilters:
         name = name.strip()
         if not name:
             raise ValueError("A saved filter name cannot be empty.")
+
+        # Validate name characters
+        is_valid, error_msg = validate_name(name)
+        if not is_valid:
+            raise ValueError(error_msg)
+
         serialized = self._serialize_criteria(criteria)
 
         with self._connect() as con:
@@ -194,6 +201,21 @@ class DbFilters:
                     "SELECT filter_id, criteria FROM media_filters WHERE name = ?",
                     (old_name,),
                 ).fetchone()
+
+                # Check for case-insensitive duplicate names
+                existing_names = con.execute(
+                    "SELECT name FROM media_filters"
+                ).fetchall()
+                existing_lower = {row[0].casefold() for row in existing_names}
+                # Exclude the original name if this is a rename operation
+                if original_name is not None:
+                    existing_lower.discard(original_name.casefold())
+                if name.casefold() in existing_lower:
+                    raise ValueError(
+                        f"A filter with the name '{name}' already exists. "
+                        "Filter names must be unique (case-insensitive)."
+                    )
+
                 conflict = con.execute(
                     "SELECT filter_id FROM media_filters WHERE name = ?",
                     (name,),

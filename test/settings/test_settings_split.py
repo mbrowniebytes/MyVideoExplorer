@@ -209,7 +209,7 @@ class TestSettingsSplit:
         assert [f["name"] for f in state.saved_filters] == ["A", "B2", "C"]
         assert state.saved_filters[1]["filters"] == new_cfg
 
-    def test_save_filter_rename_onto_existing_name_should_not_duplicate(
+    def test_save_filter_rename_onto_existing_name_should_raise_error(
         self, setup_cfg, mock_log_util
     ):
         state = SettingsState(mock_log_util)
@@ -219,9 +219,26 @@ class TestSettingsSplit:
         ]
         state.save_filters()
 
-        state.save_filter("A", [], original_name="B")
+        with pytest.raises(ValueError, match="already exists"):
+            state.save_filter("A", [], original_name="B")
 
-        assert [f["name"] for f in state.saved_filters] == ["A"]
+        # Filters should remain unchanged
+        assert [f["name"] for f in state.saved_filters] == ["A", "B"]
+
+    def test_save_filter_rename_case_insensitive_onto_existing_should_raise(
+        self, setup_cfg, mock_log_util
+    ):
+        state = SettingsState(mock_log_util)
+        state.saved_filters = [
+            {"name": "Alpha", "filters": []},
+            {"name": "Beta", "filters": []},
+        ]
+        state.save_filters()
+
+        with pytest.raises(ValueError, match="already exists"):
+            state.save_filter("alpha", [], original_name="Beta")
+
+        assert [f["name"] for f in state.saved_filters] == ["Alpha", "Beta"]
 
     def test_save_filter_should_emit_settings_changed_once(
         self, setup_cfg, mock_log_util

@@ -12,17 +12,20 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QScrollArea,
     QVBoxLayout,
     QWidget,
 )
 
 from MyVideoExplorer.folder_filter.folder_filter_table import FolderFilterTable
+from MyVideoExplorer.tag_cloud.tag_util import validate_name
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.widgets.buttons.action_button import ActionButton
 from MyVideoExplorer.widgets.buttons.delayed_delete_button import DelayedDeleteButton
 from MyVideoExplorer.widgets.combo_box_delegate import GroupedComboBoxDelegate
 from MyVideoExplorer.widgets.combo_boxes.select_combo_box import SelectComboBox
+from MyVideoExplorer.widgets.name_widget import NameWidget
 
 if TYPE_CHECKING:
     from MyVideoExplorer.db.db_tags import DbTags
@@ -141,9 +144,9 @@ class FilterCriteriaDialog(QDialog):
         name_label.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
         name_layout.addWidget(name_label)
 
-        self._name_edit = QLineEdit(self._filter_name, self)
+        self._name_edit = NameWidget(self)
+        self._name_edit.setText(self._filter_name)
         self._name_edit.setPlaceholderText("Enter filter name")
-        self._name_edit.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
         if self._readonly:
             self._name_edit.setReadOnly(True)
         name_layout.addWidget(self._name_edit)
@@ -303,6 +306,15 @@ class FilterCriteriaDialog(QDialog):
             if self._name_edit is not None:
                 self._name_edit.setFocus()
             return
+
+        # Validate name characters
+        is_valid, error_msg = validate_name(name)
+        if not is_valid:
+            if self._name_edit is not None:
+                self._name_edit.setFocus()
+            QMessageBox.warning(self, "Invalid Filter Name", error_msg)
+            return
+
         filters = (
             self._filter_table.collect_filters()
             if self._filter_table is not None

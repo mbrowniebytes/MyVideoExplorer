@@ -27,6 +27,7 @@ from MyVideoExplorer.widgets.buttons.action_button import ActionButton
 from MyVideoExplorer.widgets.buttons.delayed_delete_button import DelayedDeleteButton
 from MyVideoExplorer.widgets.combo_boxes.select_combo_box import SelectComboBox
 from MyVideoExplorer.widgets.flow_layout import FlowLayout
+from MyVideoExplorer.widgets.name_widget import NameWidget
 
 _TAG_CLOUD_SORT_MODE = "Name"
 
@@ -336,8 +337,9 @@ class TagCloudWidget(QWidget):
                 widget.setParent(None)
                 widget.deleteLater()
 
-        name_edit = QLineEdit(tag["tag"], chip)
+        name_edit = NameWidget(chip)
         name_edit.setObjectName("edit_tag_name")
+        name_edit.setText(tag["tag"])
         name_edit.setMinimumWidth(100)
         color_button = ActionButton(
             chip,

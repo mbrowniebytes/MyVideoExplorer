@@ -307,8 +307,10 @@ class SettingsState(QObject):
 
     @staticmethod
     def is_valid_tag_name(tag: str) -> bool:
-        """Check if a tag name contains only alphanumeric characters."""
-        return bool(re.fullmatch(r"[A-Za-z0-9]+", tag))
+        """Check if a tag name matches the shared name validation pattern."""
+        from MyVideoExplorer.tag_cloud.tag_util import VALID_NAME_PATTERN
+
+        return bool(VALID_NAME_PATTERN.fullmatch(tag.strip()))
 
     @staticmethod
     def normalize_tags(tags: Any) -> list[dict[str, str]]:
@@ -534,6 +536,13 @@ class SettingsState(QObject):
 
     @staticmethod
     def sanitize_media_label(label: Any) -> str:
+        """Sanitize a media folder label for use in database file names.
+
+        This method replaces characters that are invalid for file names
+        (slashes, wildcards, etc.) and collapses whitespace. It does not
+        enforce the shared name validation pattern — use validate_name()
+        for that. The result is safe for constructing DB file paths.
+        """
         text = str(label).strip()
         if not text:
             return ""
@@ -542,6 +551,20 @@ class SettingsState(QObject):
         text = re.sub(r"\s+", " ", text).strip()
         text = text.strip(" ._-")
         return text
+
+    @staticmethod
+    def validate_media_label(label: str) -> tuple[bool, str]:
+        """Validate a media folder label using the shared name validation.
+
+        Args:
+            label: The media folder label to validate.
+
+        Returns:
+            A tuple of (is_valid, error_message). If valid, error_message is empty.
+        """
+        from MyVideoExplorer.tag_cloud.tag_util import validate_name
+
+        return validate_name(label)
 
     def get_db_path(
         self, folder_config: dict[str, Any], label_override: str | None = None
@@ -561,11 +584,20 @@ class SettingsState(QObject):
     def validate_media_configs(self, media_configs: list[dict[str, Any]]) -> list[str]:
         errors: list[str] = []
         seen_names: set[str] = set()
+        seen_paths: set[str] = set()
 
         for idx, config in enumerate(media_configs, start=1):
             label = str(config.get("label", "")).strip()
             path = str(config.get("path", "")).strip()
             safe_label = self.sanitize_media_label(label)
+
+            # Validate label characters using shared validation
+            if label:
+                is_valid, error_msg = self.validate_media_label(label)
+                if not is_valid:
+                    errors.append(
+                        f"Media config '{label}' has an invalid name. {error_msg}"
+                    )
 
             if not label:
                 errors.append(f"Media config #{idx} is missing a name.")
@@ -576,10 +608,29 @@ class SettingsState(QObject):
                 errors.append(
                     f"Media config '{label or f'#{idx}'}' is missing a folder path."
                 )
-            elif not Path(path).is_dir():
-                errors.append(
-                    f"Media config '{label or f'#{idx}'}' path does not exist: {path}"
-                )
+            else:
+                # Validate path characters
+                from MyVideoExplorer.utils.file_util import validate_path
+
+                is_valid_path, path_error = validate_path(path)
+                if not is_valid_path:
+                    errors.append(
+                        f"Media config '{label or f'#{idx}'}' has an invalid path. {path_error}"
+                    )
+                elif not Path(path).is_dir():
+                    errors.append(
+                        f"Media config '{label or f'#{idx}'}' path does not exist: {path}"
+                    )
+
+            # Check for duplicate paths (normalized and case-insensitive on Windows)
+            if path:
+                normalized_path = FileUtils.normalize_path(path).casefold()
+                if normalized_path in seen_paths:
+                    errors.append(
+                        f"Media folder path '{path}' is already registered. "
+                        "Each path must be unique."
+                    )
+                seen_paths.add(normalized_path)
 
             if safe_label:
                 normalized_name = safe_label.casefold()

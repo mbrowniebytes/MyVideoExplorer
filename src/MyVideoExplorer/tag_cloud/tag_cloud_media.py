@@ -305,12 +305,10 @@ class TagCloudMedia(QWidget):
     def _create_and_add_tag(self, tag: str) -> None:
         if not tag:
             return
-        is_valid, _ = validate_tag_name(tag)
+        is_valid, error_msg = validate_tag_name(tag)
         if not is_valid:
             if self._popup is not None and self._popup.new_tag_edit is not None:
-                self._popup.new_tag_edit.setToolTip(
-                    "Tag names must be alphanumeric only."
-                )
+                self._popup.new_tag_edit.setToolTip(error_msg)
             return
         added = (
             self.tag_store.add_catalog_tag(tag)

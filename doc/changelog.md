@@ -19,6 +19,9 @@
   - restore tooltip info
   - reselect folder nav media on search or filter, if possible
 - settings 
+  - names
+    - unique per type
+    - different rules per type normalized, enforced to regex r"^[A-Za-z0-9\-_|!@#$%^&{}\[\](),.:+~*=]+$" eg no slashes, quotes, non ascii chars
   - media
     - performance! scan media speed and save to db greatly increased
     - add Scan All button
@@ -47,6 +50,7 @@
 - internal:
   - optimize filter and scan sql 
   - parse and store media Year in db
+  - filters config moved to db to support counts
   - normalize all paths as posix and consolidate to file_utils
   - update ai docs in doc/ and .junie/
 

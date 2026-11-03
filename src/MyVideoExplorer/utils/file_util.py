@@ -28,6 +28,46 @@ class _FileUtilLogger(Protocol):
     ) -> None: ...
 
 
+# Pattern for validating media folder paths.
+# Matches printable ASCII characters only (hex 0x20–0x7E), which expands to:
+#   - Spaces (0x20)
+#   - Punctuation: ! " # $ % & ' ( ) * + , - . /
+#   - Digits: 0–9
+#   - More punctuation: : ; < = > ? @
+#   - Uppercase letters: A–Z
+#   - More punctuation: [ \ ] ^ _ `
+#   - Lowercase letters: a–z
+#   - More punctuation: { | } ~
+# In other words: letters (a-zA-Z0-9), digits, spaces, slashes (/ and \), and all
+# standard ASCII punctuation. Rejects null bytes, control characters (0x00–0x1F),
+# and non-ASCII characters (0x80+).
+VALID_PATH_PATTERN = re.compile(r"^[\x20-\x7E]+$")
+
+
+def validate_path(path: str) -> tuple[bool, str]:
+    """Validate a media folder path for OS-safe characters.
+
+    Unlike name validation, paths are allowed to contain slashes and backslashes.
+    This function rejects empty paths, paths with control characters, and paths
+    with characters outside the printable ASCII range.
+
+    Args:
+        path: The path string to validate.
+
+    Returns:
+        A tuple of (is_valid, error_message). If valid, error_message is empty.
+    """
+    cleaned = path.strip()
+    if not cleaned:
+        return False, "Path cannot be empty."
+    if not VALID_PATH_PATTERN.fullmatch(cleaned):
+        return (
+            False,
+            "Path contains invalid characters. Only printable ASCII characters are allowed.",
+        )
+    return True, ""
+
+
 class FileUtils:
     """Shared POSIX path normalization and comparison helpers."""
 

@@ -264,8 +264,8 @@ def test_settings_tags_can_create_tag(qtbot, tmp_path, monkeypatch):
     )
 
 
-def test_tag_name_must_be_alphanumeric(qtbot, tmp_path, monkeypatch):
-    """Tags should be alphanumeric only; spaces and punctuation are rejected."""
+def test_tag_name_validation(qtbot, tmp_path, monkeypatch):
+    """Tags should use the shared name validation; slashes and quotes are rejected."""
     cfg_dir = tmp_path / "cfg"
     cfg_dir.mkdir()
     for name in (
@@ -309,11 +309,32 @@ def test_tag_name_must_be_alphanumeric(qtbot, tmp_path, monkeypatch):
     assert name_edit is not None and save_button is not None
     assert not save_button.isEnabled()
 
+    # Valid tags: alphanumeric and allowed special characters
     name_edit.setText("Action")
     save_button.click()
     assert store.list_tags() == [{"tag": "Action", "color": "#808080"}]
 
-    for invalid_tag in ("Action Comedy", "Sci-Fi", "Sci_Fi"):
+    add_button.click()
+    draft_chip = cloud._tag_widgets[-1][1]
+    name_edit = draft_chip.findChild(QLineEdit, "edit_tag_name")
+    save_button = draft_chip.findChild(QToolButton, "save_tag_edit")
+    assert name_edit is not None and save_button is not None
+    name_edit.setText("Sci-Fi")
+    save_button.click()
+    assert len(store.list_tags()) == 2
+    assert store.list_tags()[1]["tag"] == "Sci-Fi"
+
+    add_button.click()
+    draft_chip = cloud._tag_widgets[-1][1]
+    name_edit = draft_chip.findChild(QLineEdit, "edit_tag_name")
+    save_button = draft_chip.findChild(QToolButton, "save_tag_edit")
+    assert name_edit is not None and save_button is not None
+    name_edit.setText("Sci_Fi")
+    save_button.click()
+    assert len(store.list_tags()) == 3
+
+    # Invalid tags: slashes and quotes should be rejected
+    for invalid_tag in ("Sci/Fi", "tag's"):
         add_button.click()
         draft_chip = cloud._tag_widgets[-1][1]
         name_edit = draft_chip.findChild(QLineEdit, "edit_tag_name")
@@ -321,12 +342,12 @@ def test_tag_name_must_be_alphanumeric(qtbot, tmp_path, monkeypatch):
         assert name_edit is not None and save_button is not None
         name_edit.setText(invalid_tag)
         save_button.click()
-        assert store.list_tags() == [{"tag": "Action", "color": "#808080"}]
-        assert name_edit.toolTip() == "Tag names must be alphanumeric only."
+        # Tag should not be added
+        assert len(store.list_tags()) == 3
 
 
-def test_normalize_tags_rejects_non_alphanumeric():
-    """normalize_tags should filter out tags with spaces or punctuation."""
+def test_normalize_tags_uses_shared_validation():
+    """normalize_tags should use the shared name validation pattern."""
     result = SettingsState.normalize_tags(
         [
             {"tag": "ValidTag", "color": "#ff0000"},
@@ -335,26 +356,36 @@ def test_normalize_tags_rejects_non_alphanumeric():
             {"tag": "Has_Underscore", "color": "#ffff00"},
             {"tag": "Has.Dot", "color": "#ff00ff"},
             {"tag": "123", "color": "#00ffff"},
+            {"tag": "Sci/Fi", "color": "#ff0000"},
+            {"tag": "Tag's", "color": "#00ff00"},
         ]
     )
     tag_names = [item["tag"] for item in result]
+    # Valid: alphanumeric, spaces, and allowed special characters
     assert "ValidTag" in tag_names
     assert "123" in tag_names
-    assert "Has Space" not in tag_names
-    assert "Has-Dash" not in tag_names
-    assert "Has_Underscore" not in tag_names
-    assert "Has.Dot" not in tag_names
+    assert "Has Space" in tag_names
+    assert "Has-Dash" in tag_names
+    assert "Has_Underscore" in tag_names
+    assert "Has.Dot" in tag_names
+    # Invalid: slashes, quotes
+    assert "Sci/Fi" not in tag_names
+    assert "Tag's" not in tag_names
 
 
 def test_is_valid_tag_name():
-    """is_valid_tag_name should accept only alphanumeric strings."""
+    """is_valid_tag_name should use the shared name validation pattern."""
+    # Valid: alphanumeric and allowed special characters
     assert SettingsState.is_valid_tag_name("Action") is True
     assert SettingsState.is_valid_tag_name("123") is True
     assert SettingsState.is_valid_tag_name("Action123") is True
     assert SettingsState.is_valid_tag_name("a") is True
+    assert SettingsState.is_valid_tag_name("Sci-Fi") is True
+    assert SettingsState.is_valid_tag_name("Sci_Fi") is True
+    assert SettingsState.is_valid_tag_name("tag!") is True
+    assert SettingsState.is_valid_tag_name("tag.") is True
+    # Invalid: empty, slashes, quotes
     assert SettingsState.is_valid_tag_name("") is False
-    assert SettingsState.is_valid_tag_name("Has Space") is False
-    assert SettingsState.is_valid_tag_name("Sci-Fi") is False
-    assert SettingsState.is_valid_tag_name("Sci_Fi") is False
-    assert SettingsState.is_valid_tag_name("tag!") is False
-    assert SettingsState.is_valid_tag_name("tag.") is False
+    assert SettingsState.is_valid_tag_name("Has Space") is True
+    assert SettingsState.is_valid_tag_name("Sci/Fi") is False
+    assert SettingsState.is_valid_tag_name("tag's") is False
