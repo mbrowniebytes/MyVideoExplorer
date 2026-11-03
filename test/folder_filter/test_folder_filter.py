@@ -197,9 +197,9 @@ class TestFolderNavFilters:
     ):
         store = DbFilters(
             settings_mock.settings_data_model,
-            [{"name": "Example", "filters": []}],
             tmp_path / "filters.db",
         )
+        store.replace_all([{"name": "Example", "filters": []}])
         with duckdb.connect(store.path_utils.normalize_path(store.db_path)) as con:
             con.execute(
                 "UPDATE media_filters SET folder_counts = map(['movies', 'tv'], [3, 7]), "

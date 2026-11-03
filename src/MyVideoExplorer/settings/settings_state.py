@@ -78,7 +78,6 @@ class SettingsState(QObject):
         self._load_settings()
         self.filter_store = DbFilters(
             self,
-            self.saved_filters,
             db_path=filter_db_path or DEFAULT_FILTER_DB_PATH,
         )
         self.saved_filters = self.filter_store.list_filters()

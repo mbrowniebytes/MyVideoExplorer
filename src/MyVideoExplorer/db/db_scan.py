@@ -6,6 +6,7 @@ from typing import Any
 import duckdb
 
 from MyVideoExplorer.db import db_migrations, db_query
+from MyVideoExplorer.db.db_snowflake_id import SnowflakeIdGenerator
 from MyVideoExplorer.db.models.media_path_stats import MediaPathStats
 from MyVideoExplorer.lang.lang_loader import LangLoader
 from MyVideoExplorer.utils.file_util import FileUtil, FileUtils
@@ -165,6 +166,7 @@ class DbScanUtil:
                 progress_callback(25, self.lang.scan_progress["preparing_media_rows"])
 
             data = []
+            id_gen = SnowflakeIdGenerator()
             for item, normalized_file_path in zip(
                 media_list, normalized_file_paths, strict=True
             ):
@@ -193,6 +195,7 @@ class DbScanUtil:
 
                 data.append(
                     (
+                        id_gen.generate(),
                         normalized_media_path,
                         normalized_file_path,
                         item.get("type"),

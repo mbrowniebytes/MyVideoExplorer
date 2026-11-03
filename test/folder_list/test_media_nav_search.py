@@ -9,6 +9,7 @@ from PySide6.QtGui import QEnterEvent
 from PySide6.QtWidgets import QToolButton
 
 from MyVideoExplorer.db.db_migrations import DbMigrations
+from MyVideoExplorer.db.db_snowflake_id import SnowflakeIdGenerator
 from MyVideoExplorer.folder_list.media_nav_search import (
     MediaNavSearch,
     MediaNavSearchCriteria,
@@ -62,6 +63,7 @@ def media_db(tmp_path):
         ),
     ]
     with duckdb.connect(str(db_path)) as connection:
+        gen = SnowflakeIdGenerator()
         for (
             file_path,
             title,
@@ -76,11 +78,12 @@ def media_db(tmp_path):
             connection.execute(
                 """
                 INSERT INTO media_file (
-                    media_path, file_path, type, title, year, directors, actors,
+                    id, media_path, file_path, type, title, year, directors, actors,
                     tags, user_tags, qty_played, last_played
-                ) VALUES (?, ?, 'video', ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, 'video', ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
+                    gen.generate(),
                     "C:/Movies",
                     file_path,
                     title,
@@ -144,8 +147,9 @@ def test_search_returns_ancestor_folders_below_media_root(media_db):
     with duckdb.connect(str(media_db)) as connection:
         connection.execute(
             """
-            INSERT INTO media_file (media_path, file_path, type, title)
+            INSERT INTO media_file (id, media_path, file_path, type, title)
             VALUES (
+                1,
                 'C:/Movies',
                 'C:/Movies/TV/Show/Season 1/episode.mkv',
                 'video',
@@ -174,10 +178,10 @@ def test_search_deduplicates_ancestor_folders_within_media_root(media_db):
     with duckdb.connect(str(media_db)) as connection:
         connection.execute(
             """
-            INSERT INTO media_file (media_path, file_path, type, title)
+            INSERT INTO media_file (id, media_path, file_path, type, title)
             VALUES
-                ('C:/Movies', 'C:/Movies/TV/Show/Season 1/one.mkv', 'video', 'First'),
-                ('C:/Movies', 'C:/Movies/TV/Show/Season 1/two.mkv', 'video', 'Second')
+                (2, 'C:/Movies', 'C:/Movies/TV/Show/Season 1/one.mkv', 'video', 'First'),
+                (3, 'C:/Movies', 'C:/Movies/TV/Show/Season 1/two.mkv', 'video', 'Second')
             """
         )
 
@@ -194,15 +198,17 @@ def test_search_uses_media_icon_when_ancestor_is_also_movie_folder(media_db):
     with duckdb.connect(str(media_db)) as connection:
         connection.execute(
             """
-            INSERT INTO media_file (media_path, file_path, type, title)
+            INSERT INTO media_file (id, media_path, file_path, type, title)
             VALUES
                 (
+                    4,
                     'C:/Movies',
                     'C:/Movies/TV/Show/A/episode.mkv',
                     'video',
                     'Match Nested'
                 ),
                 (
+                    5,
                     'C:/Movies',
                     'C:/Movies/TV/Show/Z.mkv',
                     'video',

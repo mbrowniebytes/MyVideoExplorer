@@ -132,27 +132,6 @@ class TestSettingsSplit:
         # Check if icon was added by migration/ensure logic
         assert state.media_configs[0]["icon"] == "fa6s.folder"
 
-    def test_legacy_filter_json_should_migrate_once_to_database(
-        self, setup_cfg, mock_log_util
-    ):
-        legacy = [
-            {"name": "Custom", "filters": [{"filter": "title", "value": "alpha"}]}
-        ]
-        (setup_cfg / "settings_filter.json").write_text(
-            json.dumps({"saved_filters": legacy}), encoding="utf-8"
-        )
-
-        state = SettingsState(mock_log_util)
-        assert state.saved_filters[0]["name"] == "Custom"
-        assert state.filter_store.list_filters()[0]["filters"] == legacy[0]["filters"]
-
-        state.save_filter("Updated", [], original_name="Custom")
-        reloaded = SettingsState(mock_log_util)
-
-        assert [item["name"] for item in reloaded.saved_filters] == ["Updated"]
-        with (setup_cfg / "settings_filter.json").open(encoding="utf-8") as file:
-            assert json.load(file)["saved_filters"] == legacy
-
     def test_backups_for_each_file(self, setup_cfg, mock_log_util):
         state = SettingsState(mock_log_util)
 

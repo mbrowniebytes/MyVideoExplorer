@@ -1,22 +1,54 @@
+from __future__ import annotations
+
 from pathlib import Path
+from typing import Literal
 
 import duckdb
 
+from MyVideoExplorer.db.db_snowflake_id import SnowflakeIdGenerator
 from MyVideoExplorer.utils.file_util import FileUtils
 
 POSIX_PATH_MIGRATION = "20261027_normalize_posix_paths.sql"
+SNOWFLAKE_ID_MIGRATION = "20261101_snowflake_ids.sql"
+
+FILTER_SNOWFLAKE_MIGRATION = "20261102_filter_snowflake_ids.sql"
+
+DbType = Literal["media", "filter_catalog", "tag_catalog"]
 
 
 class DbMigrations:
     _migrated_dbs: set[str] = set()
 
-    def __init__(self, db_path: str):
+    def __init__(self, db_path: str, db_type: DbType = "media"):
         self.db_path = FileUtils.normalize_path(db_path)
+        self.db_type = db_type
         self.migrations_dir = Path(__file__).parent / "migrations"
 
     @classmethod
     def clear_migrated_cache(cls) -> None:
         cls._migrated_dbs.clear()
+
+    def _migration_prefix(self) -> str:
+        if self.db_type == "filter_catalog":
+            return "20261101_create_filter_catalog"
+        if self.db_type == "tag_catalog":
+            return "20261101_create_tag_catalog"
+        return ""
+
+    def _is_migration_for_type(self, migration_name: str) -> bool:
+        if self.db_type == "media":
+            return not migration_name.startswith(
+                (
+                    "20261101_create_filter_catalog",
+                    "20261101_create_tag_catalog",
+                    "20261102_filter_snowflake_ids",
+                )
+            )
+        if self.db_type == "filter_catalog":
+            return migration_name.startswith(
+                ("20261101_create_filter_catalog", "20261102_filter_snowflake_ids")
+            )
+        return migration_name.startswith(self._migration_prefix())
 
     def run_migrations(self):
         if not str(self.db_path).strip():
@@ -52,11 +84,11 @@ class DbMigrations:
                     ).fetchall()
                 ]
 
-            # Get available migrations
+            # Get available migrations (filter by prefix for non-media DBs)
             migration_files = sorted(
                 path.name
                 for path in self.migrations_dir.iterdir()
-                if path.suffix == ".sql"
+                if path.suffix == ".sql" and self._is_migration_for_type(path.name)
             )
 
             for migration_file in migration_files:
@@ -67,6 +99,10 @@ class DbMigrations:
                         sql = f.read()
                         if migration_file == POSIX_PATH_MIGRATION:
                             self._normalize_legacy_paths(con)
+                        elif migration_file == SNOWFLAKE_ID_MIGRATION:
+                            self._reassign_to_snowflake_ids(con)
+                        elif migration_file == FILTER_SNOWFLAKE_MIGRATION:
+                            self._reassign_filter_to_snowflake_ids(con)
                         con.execute(sql)
 
                         con.execute(
@@ -188,6 +224,71 @@ class DbMigrations:
                 con.execute(
                     "INSERT INTO media_path_stats VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                     (normalized_path, *winner[1:]),
+                )
+            con.commit()
+        except Exception:
+            con.rollback()
+            raise
+
+    @staticmethod
+    def _reassign_to_snowflake_ids(con: duckdb.DuckDBPyConnection) -> None:
+        """Build an ID mapping table so the SQL migration can assign snowflake IDs.
+
+        We cannot UPDATE the old INTEGER column with BIGINT snowflake values —
+        the destination type overflows.  Instead we populate _id_mapping and let
+        the SQL migration (20261101_snowflake_ids.sql) join against it when
+        copying rows into the new BIGINT table.
+        """
+        con.begin()
+        try:
+            con.execute(
+                "CREATE TABLE IF NOT EXISTS _id_mapping "
+                "(old_id BIGINT PRIMARY KEY, new_id BIGINT)"
+            )
+            con.execute("DELETE FROM _id_mapping")
+            rows = con.execute(
+                "SELECT id FROM media_file WHERE id IS NOT NULL"
+            ).fetchall()
+            if not rows:
+                con.commit()
+                return
+            generator = SnowflakeIdGenerator()
+            for (old_id,) in rows:
+                new_id = generator.generate()
+                con.execute(
+                    "INSERT INTO _id_mapping (old_id, new_id) VALUES (?, ?)",
+                    (old_id, new_id),
+                )
+            con.commit()
+        except Exception:
+            con.rollback()
+            raise
+
+    @staticmethod
+    def _reassign_filter_to_snowflake_ids(con: duckdb.DuckDBPyConnection) -> None:
+        """Reassign existing media_filters filter_id values to snowflake BIGINT IDs.
+
+        This runs before the SQL migration that recreates the table with BIGINT PK,
+        so the placeholder 0 values in the SQL are replaced with real snowflake IDs.
+        """
+        con.begin()
+        try:
+            # Always create the mapping table so the SQL migration can reference it
+            con.execute(
+                "CREATE TABLE IF NOT EXISTS _filter_id_mapping "
+                "(name TEXT PRIMARY KEY, new_id BIGINT)"
+            )
+            con.execute("DELETE FROM _filter_id_mapping")
+            rows = con.execute("SELECT name FROM media_filters").fetchall()
+            if not rows:
+                con.commit()
+                return
+            generator = SnowflakeIdGenerator()
+            for (name,) in rows:
+                new_id = generator.generate()
+                con.execute(
+                    "INSERT INTO _filter_id_mapping (name, new_id) VALUES (?, ?)",
+                    (name, new_id),
                 )
             con.commit()
         except Exception:

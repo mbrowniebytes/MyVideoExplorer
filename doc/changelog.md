@@ -52,6 +52,7 @@
   - parse and store media Year in db
   - filters config moved to db to support counts
   - make backups of tags db and filters db
+  - db ids changed from autoincrement ids or uuids to timestamp/snowflake ids
   - normalize all paths as posix and consolidate to file_utils
   - update ai docs in doc/ and .junie/
 

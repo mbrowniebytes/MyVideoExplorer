@@ -221,6 +221,7 @@ class FilterCriteriaDialog(QDialog):
             QFont(APP_THEME.font_family, APP_THEME.font_size)
         )
         self._criteria_type_combo.setMinimumWidth(200)
+        self._criteria_type_combo.addItem("- Select a Criteria -", userData="")
         under_group = False
         for filter_type in FolderFilterTable.FILTER_TYPES:
             if filter_type in FolderFilterTable.FILTER_GROUP_HEADERS:

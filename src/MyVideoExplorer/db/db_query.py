@@ -1,9 +1,10 @@
 class DbQuery:
     class MediaFile:
         UPSERT_MEDIA = """
-            INSERT INTO media_file (media_path, file_path, type, title, year, plot, score, rated, runtime, tags, genres, actors, directors)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO media_file (id, media_path, file_path, type, title, year, plot, score, rated, runtime, tags, genres, actors, directors)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (file_path) DO UPDATE SET
+                id = EXCLUDED.id,
                 file_path = EXCLUDED.file_path,
                 type = EXCLUDED.type,
                 title = EXCLUDED.title,

@@ -9,6 +9,8 @@ import duckdb
 
 from MyVideoExplorer.db.db_backup import backup_database
 from MyVideoExplorer.db.db_filter import DbFilter
+from MyVideoExplorer.db.db_migrations import DbMigrations
+from MyVideoExplorer.db.db_snowflake_id import SnowflakeIdGenerator
 from MyVideoExplorer.tag_cloud.tag_util import validate_name
 from MyVideoExplorer.utils.file_util import FileUtils
 
@@ -23,7 +25,6 @@ class DbFilters:
     def __init__(
         self,
         settings_state: Any,
-        legacy_filters: list[dict[str, Any]],
         db_path: Path | str = DEFAULT_FILTER_DB_PATH,
         path_utils: FileUtils | None = None,
     ) -> None:
@@ -32,50 +33,13 @@ class DbFilters:
         self.path_utils = path_utils or FileUtils()
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.db_filter = DbFilter(settings_state, self.path_utils)
-        self._initialize(legacy_filters)
+        self._initialize()
 
     def _connect(self) -> duckdb.DuckDBPyConnection:
         return duckdb.connect(self.path_utils.normalize_path(self.db_path))
 
-    def _initialize(self, legacy_filters: list[dict[str, Any]]) -> None:
-        with self._connect() as con:
-            con.execute(
-                """
-                CREATE TABLE IF NOT EXISTS media_filters (
-                    filter_id UUID PRIMARY KEY DEFAULT uuid(),
-                    name TEXT NOT NULL UNIQUE,
-                    criteria JSON NOT NULL,
-                    folder_counts MAP(VARCHAR, BIGINT) NOT NULL,
-                    total_count BIGINT,
-                    sort_order INTEGER NOT NULL
-                )
-                """
-            )
-            con.execute(
-                """
-                CREATE TABLE IF NOT EXISTS filter_store_meta (
-                    key TEXT PRIMARY KEY,
-                    value TEXT NOT NULL
-                )
-                """
-            )
-            imported = con.execute(
-                "SELECT 1 FROM filter_store_meta WHERE key = 'legacy_json_imported'"
-            ).fetchone()
-            if imported:
-                return
-
-            con.begin()
-            try:
-                self._replace_all(con, legacy_filters)
-                con.execute(
-                    "INSERT INTO filter_store_meta (key, value) VALUES "
-                    "('legacy_json_imported', 'true')"
-                )
-                con.commit()
-            except Exception:
-                con.rollback()
-                raise
+    def _initialize(self) -> None:
+        DbMigrations(str(self.db_path), db_type="filter_catalog").run_migrations()
 
     @staticmethod
     def _serialize_criteria(criteria: list[dict[str, Any]]) -> str:
@@ -107,6 +71,7 @@ class DbFilters:
         }
 
         seen: set[str] = set()
+        id_gen = SnowflakeIdGenerator()
         for order, record in enumerate(records):
             name, criteria = self._normalize_record(record)
             if name in seen:
@@ -122,18 +87,21 @@ class DbFilters:
 
             keys = list(folder_counts)
             values = [int(folder_counts[key]) for key in keys]
+            filter_id = id_gen.generate()
             con.execute(
                 """
                 INSERT INTO media_filters
-                    (name, criteria, folder_counts, total_count, sort_order)
-                VALUES (?, ?::JSON, map(?::VARCHAR[], ?::BIGINT[]), ?, ?)
+                    (filter_id, name, criteria, folder_counts, total_count, sort_order)
+                VALUES (?, ?, ?::JSON, map(?::VARCHAR[], ?::BIGINT[]), ?, ?)
                 ON CONFLICT (name) DO UPDATE SET
+                    filter_id = excluded.filter_id,
                     criteria = excluded.criteria,
                     folder_counts = excluded.folder_counts,
                     total_count = excluded.total_count,
                     sort_order = excluded.sort_order
                 """,
                 (
+                    filter_id,
                     name,
                     self._serialize_criteria(criteria),
                     keys,
@@ -251,13 +219,14 @@ class DbFilters:
                     if order_row is None:
                         raise RuntimeError("Unable to determine saved-filter ordering.")
                     next_order = order_row[0]
+                    filter_id = SnowflakeIdGenerator().generate()
                     con.execute(
                         """
                         INSERT INTO media_filters
-                            (name, criteria, folder_counts, total_count, sort_order)
-                        VALUES (?, ?::JSON, map(?::VARCHAR[], ?::BIGINT[]), NULL, ?)
+                            (filter_id, name, criteria, folder_counts, total_count, sort_order)
+                        VALUES (?, ?, ?::JSON, map(?::VARCHAR[], ?::BIGINT[]), NULL, ?)
                         """,
-                        (name, serialized, [], [], next_order),
+                        (filter_id, name, serialized, [], [], next_order),
                     )
                 con.commit()
             except Exception:

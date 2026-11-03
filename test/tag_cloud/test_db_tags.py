@@ -1,6 +1,7 @@
 import duckdb
 
 from MyVideoExplorer.db.db_migrations import DbMigrations
+from MyVideoExplorer.db.db_snowflake_id import SnowflakeIdGenerator
 from MyVideoExplorer.db.db_tags import DbTags
 from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.utils.file_util import FileUtils
@@ -31,8 +32,8 @@ def test_media_tags_and_catalog_counts_across_media_databases(tmp_path):
     DbMigrations(str(db_path)).run_migrations()
     with duckdb.connect(str(db_path)) as con:
         con.execute(
-            "INSERT INTO media_file (file_path, user_tags) VALUES (?, ?)",
-            (file_path.as_posix(), []),
+            "INSERT INTO media_file (id, file_path, user_tags) VALUES (?, ?, ?)",
+            (SnowflakeIdGenerator().generate(), file_path.as_posix(), []),
         )
 
     second_root = tmp_path / "second_media"
@@ -43,8 +44,8 @@ def test_media_tags_and_catalog_counts_across_media_databases(tmp_path):
     DbMigrations(str(second_db_path)).run_migrations()
     with duckdb.connect(str(second_db_path)) as con:
         con.execute(
-            "INSERT INTO media_file (file_path, user_tags) VALUES (?, ?)",
-            (second_file.as_posix(), ["Favorite"]),
+            "INSERT INTO media_file (id, file_path, user_tags) VALUES (?, ?, ?)",
+            (SnowflakeIdGenerator().generate(), second_file.as_posix(), ["Favorite"]),
         )
 
     state = MockTagState(
@@ -91,8 +92,8 @@ def test_db_tags_caching_and_invalidation(tmp_path):
     DbMigrations(str(db_path)).run_migrations()
     with duckdb.connect(str(db_path)) as con:
         con.execute(
-            "INSERT INTO media_file (file_path, user_tags) VALUES (?, ?)",
-            (file_path.as_posix(), []),
+            "INSERT INTO media_file (id, file_path, user_tags) VALUES (?, ?, ?)",
+            (SnowflakeIdGenerator().generate(), file_path.as_posix(), []),
         )
 
     state = MockTagState(

@@ -141,9 +141,9 @@ def test_movie_count_column_should_reflect_selected_media_folders(qtbot, tmp_pat
     state.tags = []
     store = DbFilters(
         state,
-        [{"name": "Selected", "filters": []}],
         tmp_path / "filters.db",
     )
+    store.replace_all([{"name": "Selected", "filters": []}])
     with duckdb.connect(store.path_utils.normalize_path(store.db_path)) as con:
         con.execute(
             "UPDATE media_filters SET folder_counts = map(['/media/a', '/media/b'], [3, 7]), "
@@ -183,14 +183,13 @@ def test_delete_filter_with_more_than_ten_matches_should_require_confirmation(
 
 def test_row_refresh_button_should_update_movie_count_off_gui_thread(qtbot, tmp_path):
     media_db = tmp_path / "media.db"
+    from MyVideoExplorer.db.db_migrations import DbMigrations
+
+    DbMigrations(str(media_db)).run_migrations()
     with duckdb.connect(media_db.as_posix()) as con:
         con.execute(
-            "CREATE TABLE media_file "
-            "(media_path TEXT, file_path TEXT, type TEXT, title TEXT)"
-        )
-        con.execute(
-            "INSERT INTO media_file VALUES "
-            "('/media', '/media/Movie/movie.mkv', 'video', 'Movie')"
+            "INSERT INTO media_file (id, media_path, file_path, type, title) VALUES "
+            "(1, '/media', '/media/Movie/movie.mkv', 'video', 'Movie')"
         )
 
     state = MagicMock(spec=SettingsState)
@@ -200,9 +199,9 @@ def test_row_refresh_button_should_update_movie_count_off_gui_thread(qtbot, tmp_
     state.get_db_path.side_effect = lambda _config: media_db.as_posix()
     store = DbFilters(
         state,
-        [{"name": "All Movies", "filters": []}],
         tmp_path / "filters.db",
     )
+    store.replace_all([{"name": "All Movies", "filters": []}])
     state.filter_store = store
     state.saved_filters = store.list_filters()
     state.load_filters.side_effect = lambda: setattr(

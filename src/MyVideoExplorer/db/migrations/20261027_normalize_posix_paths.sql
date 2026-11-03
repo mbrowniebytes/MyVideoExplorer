@@ -1,0 +1,2 @@
+-- Normalize POSIX paths in media_file and media_path_stats tables.
+-- The actual path normalization logic runs in Python (DbMigrations._normalize_legacy_paths).

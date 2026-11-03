@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any
 from PySide6.QtCore import QModelIndex, QSize, Qt, QTimer
 from PySide6.QtGui import QFont, QStandardItemModel
 from PySide6.QtWidgets import (
-    QComboBox,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
@@ -30,6 +29,7 @@ from MyVideoExplorer.settings.filter_count_worker import FilterCountWorker
 from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
 from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.tag_cloud.tag_picker_dialog import TagPickerDialog
+from MyVideoExplorer.tag_cloud.tag_util import get_contrast_text_color
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.widgets.buttons.action_button import ActionButton
@@ -87,9 +87,10 @@ class SettingsFilterTab(SettingsBaseTab):
 
         self._filter_table_widget: QTableWidget | None = None
         self._search_edit: QLineEdit | None = None
-        self._type_combo: QComboBox | None = None
+        self._criteria_combo: SelectComboBox | None = None
         self._tag_btn: QToolButton | None = None
-        self._tag_filter_label: QLabel | None = None
+        self._tag_filter_widget: QWidget | None = None
+        self._tag_filter_layout: QHBoxLayout | None = None
         self._clear_tag_btn: QToolButton | None = None
         self._refresh_all_btn: QToolButton | None = None
         self._bulk_progress_bar: QProgressBar | None = None
@@ -138,20 +139,19 @@ class SettingsFilterTab(SettingsBaseTab):
         search_layout = QVBoxLayout(search_group)
         search_layout.setSpacing(8)
 
-        # Search controls row
-        controls_row = QHBoxLayout()
-        controls_row.setSpacing(8)
+        # --- Row 1: Search field ---
+        search_row = QHBoxLayout()
+        search_row.setSpacing(8)
 
-        # Search by name
         search_label = QLabel("Search:", self)
         search_label.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
-        controls_row.addWidget(search_label)
+        search_row.addWidget(search_label)
 
         self._search_edit = QLineEdit(self)
         self._search_edit.setPlaceholderText("Filter by name...")
         self._search_edit.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
         self._search_edit.textChanged.connect(self._on_search_changed)
-        controls_row.addWidget(self._search_edit, 1)
+        search_row.addWidget(self._search_edit, 1)
 
         self._refresh_all_btn = ActionButton(
             self,
@@ -160,63 +160,6 @@ class SettingsFilterTab(SettingsBaseTab):
             tooltip="Update all Filter Media counts",
         )
         self._refresh_all_btn.clicked.connect(self._refresh_all_counts)
-
-        # Filter by criteria type
-        type_label = QLabel("Type:", self)
-        type_label.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
-        controls_row.addWidget(type_label)
-
-        self._type_combo = SelectComboBox(self)
-        self._type_combo.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
-        self._type_combo.addItem("- All Types -", userData="")
-        under_group = False
-        for ft in FolderFilterTable.FILTER_TYPES:
-            if ft in FolderFilterTable.FILTER_GROUP_HEADERS:
-                self._type_combo.addItem(ft, userData=ft)
-                index = self._type_combo.count() - 1
-                model = self._type_combo.model()
-                if model is not None and isinstance(model, QStandardItemModel):
-                    item = model.item(index)
-                    if item is not None:
-                        item.setEnabled(False)
-                under_group = True
-            elif under_group:
-                self._type_combo.addItem("    " + ft, userData=ft)
-            else:
-                self._type_combo.addItem(ft, userData=ft)
-        # Apply grouped delegate for extra height on group headers
-        self._type_combo.setItemDelegate(
-            GroupedComboBoxDelegate(
-                FolderFilterTable.FILTER_GROUP_HEADERS, self._type_combo
-            )
-        )
-        self._type_combo.currentIndexChanged.connect(self._on_search_changed)
-        self._type_combo.setMinimumWidth(160)
-        controls_row.addWidget(self._type_combo)
-
-        # Tag filter button
-        self._tag_btn = ActionButton(
-            self, icon_name="fa6s.tag", tooltip="Filter by tag values"
-        )
-        self._tag_btn.clicked.connect(self._on_tag_filter_clicked)
-        controls_row.addWidget(self._tag_btn)
-
-        # Active tag filter (hidden until tags are picked)
-        self._tag_filter_label = QLabel(self)
-        self._tag_filter_label.setFont(
-            QFont(APP_THEME.font_family, APP_THEME.font_size - 4)
-        )
-        controls_row.addWidget(self._tag_filter_label)
-
-        self._clear_tag_btn = ActionButton(
-            self,
-            icon_name="fa6s.xmark",
-            tooltip="Clear tag filter",
-            icon_size=14,
-        )
-        self._clear_tag_btn.clicked.connect(self._clear_tag_filter)
-        controls_row.addWidget(self._clear_tag_btn)
-        self._update_tag_filter_label()
 
         refresh_controls = QWidget(self)
         refresh_layout = QGridLayout(refresh_controls)
@@ -239,16 +182,79 @@ class SettingsFilterTab(SettingsBaseTab):
             0,
             alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom,
         )
-        controls_row.addWidget(refresh_controls)
+        search_row.addWidget(refresh_controls)
 
-        # Add filter button, on the same row as the search controls
+        # Add filter button
         add_btn = ActionButton(
             self, icon_name="fa6s.circle-plus", tooltip="Add New Filter"
         )
         add_btn.clicked.connect(self.open_add_filter)
-        controls_row.addWidget(add_btn)
+        search_row.addWidget(add_btn)
 
-        search_layout.addLayout(controls_row)
+        search_layout.addLayout(search_row)
+
+        # --- Row 2: Filter controls ---
+        filter_row = QHBoxLayout()
+        filter_row.setSpacing(8)
+
+        # Filter by criteria type
+        criteria_label = QLabel("Criteria:", self)
+        criteria_label.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
+        filter_row.addWidget(criteria_label)
+
+        self._criteria_combo = SelectComboBox(self)
+        self._criteria_combo.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
+        self._criteria_combo.addItem("- Any Criteria -", userData="")
+        under_group = False
+        for ft in FolderFilterTable.FILTER_TYPES:
+            if ft in FolderFilterTable.FILTER_GROUP_HEADERS:
+                self._criteria_combo.addItem(ft, userData=ft)
+                index = self._criteria_combo.count() - 1
+                model = self._criteria_combo.model()
+                if model is not None and isinstance(model, QStandardItemModel):
+                    item = model.item(index)
+                    if item is not None:
+                        item.setEnabled(False)
+                under_group = True
+            elif under_group:
+                self._criteria_combo.addItem("    " + ft, userData=ft)
+            else:
+                self._criteria_combo.addItem(ft, userData=ft)
+        # Apply grouped delegate for extra height on group headers
+        self._criteria_combo.setItemDelegate(
+            GroupedComboBoxDelegate(
+                FolderFilterTable.FILTER_GROUP_HEADERS, self._criteria_combo
+            )
+        )
+        self._criteria_combo.currentIndexChanged.connect(self._on_search_changed)
+        self._criteria_combo.setMinimumWidth(160)
+        filter_row.addWidget(self._criteria_combo)
+
+        # Tag filter button
+        self._tag_btn = ActionButton(
+            self, icon_name="fa6s.tag", tooltip="Filter by tag values"
+        )
+        self._tag_btn.clicked.connect(self._on_tag_filter_clicked)
+        filter_row.addWidget(self._tag_btn)
+
+        # Active tag filter display area (widget with layout for tag chips)
+        self._tag_filter_widget = QWidget(self)
+        self._tag_filter_layout = QHBoxLayout(self._tag_filter_widget)
+        self._tag_filter_layout.setContentsMargins(0, 0, 0, 0)
+        self._tag_filter_layout.setSpacing(4)
+        filter_row.addWidget(self._tag_filter_widget, 1)
+
+        self._clear_tag_btn = ActionButton(
+            self,
+            icon_name="fa6s.xmark",
+            tooltip="Clear tag filter",
+            icon_size=14,
+        )
+        self._clear_tag_btn.clicked.connect(self._clear_tag_filter)
+        filter_row.addWidget(self._clear_tag_btn)
+        self._update_tag_filter_label()
+
+        search_layout.addLayout(filter_row)
 
         self.content_layout.addWidget(search_group)
 
@@ -311,8 +317,8 @@ class SettingsFilterTab(SettingsBaseTab):
         """Handle search text or type filter change."""
         if self._search_edit is not None:
             self._search_text = self._search_edit.text().strip().lower()
-        if self._type_combo is not None:
-            self._search_type = str(self._type_combo.currentData() or "")
+        if self._criteria_combo is not None:
+            self._search_type = str(self._criteria_combo.currentData() or "")
         self._refresh_filter_list()
 
     def _on_sort_changed(self, column: int, order: Qt.SortOrder) -> None:
@@ -333,15 +339,83 @@ class SettingsFilterTab(SettingsBaseTab):
         self._refresh_filter_list()
 
     def _update_tag_filter_label(self) -> None:
-        """Show the active tag filter, or hide it when no tags are picked."""
+        """Rebuild the tag chips display and show/hide the clear button."""
+        self._build_tag_chips()
         has_tags = bool(self._search_tags)
-        if self._tag_filter_label is not None:
-            self._tag_filter_label.setText(
-                f"Tags: {', '.join(self._search_tags)}" if has_tags else ""
-            )
-            self._tag_filter_label.setVisible(has_tags)
         if self._clear_tag_btn is not None:
             self._clear_tag_btn.setVisible(has_tags)
+
+    def _tag_color(self, tag: str) -> str:
+        """Look up the stored color for a tag, falling back to a default."""
+        if self._tag_store is not None:
+            catalog = self._tag_store.list_tags()
+            for item in catalog:
+                if (
+                    isinstance(item, dict)
+                    and item.get("tag", "").casefold() == tag.casefold()
+                ):
+                    c = item.get("color")
+                    if c:
+                        return c
+        return "#6c8cbf"
+
+    def _build_tag_chips(self) -> None:
+        """Rebuild the tag chips widgets from the current search tags."""
+        if self._tag_filter_layout is None:
+            return
+        # Clear existing widgets
+        while self._tag_filter_layout.count():
+            item = self._tag_filter_layout.takeAt(0)
+            if item is not None:
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+
+        for tag in self._search_tags:
+            chip = self._make_tag_chip(tag)
+            self._tag_filter_layout.addWidget(chip)
+
+    def _make_tag_chip(self, tag: str) -> QWidget:
+        """Create a styled chip widget for a single tag with a remove button."""
+        color = self._tag_color(tag)
+        text_color = get_contrast_text_color(color)
+
+        chip = QWidget(self)
+        layout = QHBoxLayout(chip)
+        layout.setContentsMargins(6, 2, 6, 2)
+        layout.setSpacing(4)
+
+        label = QToolButton(chip)
+        label.setText(tag)
+        label.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+        label.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size - 4))
+        label.setStyleSheet(
+            f"QToolButton {{ color: {text_color}; "
+            f"background-color: {color}; border: 0; border-radius: 5px; padding: 2px 4px; }}"
+        )
+        layout.addWidget(label)
+
+        remove_btn = QToolButton(chip)
+        remove_btn.setText("×")
+        remove_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+        remove_btn.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
+        remove_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        remove_btn.setStyleSheet(
+            f"QToolButton {{ color: {text_color}; background: transparent; "
+            f"border: none; font-weight: bold; padding: 0 2px; }}"
+        )
+        remove_btn.clicked.connect(lambda checked=False, t=tag: self._remove_tag(t))
+        layout.addWidget(remove_btn)
+
+        return chip
+
+    def _remove_tag(self, tag: str) -> None:
+        """Remove a single tag from the filter and refresh the list."""
+        self._search_tags = [
+            t for t in self._search_tags if t.casefold() != tag.casefold()
+        ]
+        self._update_tag_filter_label()
+        self._refresh_filter_list()
 
     def _on_tag_filter_clicked(self) -> None:
         """Open tag picker dialog to filter the list by tag values."""

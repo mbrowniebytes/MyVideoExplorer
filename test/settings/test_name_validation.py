@@ -143,7 +143,7 @@ def _make_filter_store(tmp_path: Path) -> DbFilters:
     """Create a DbFilters instance with a temp database."""
     state = MagicMock()
     state.media_configs = []
-    return DbFilters(state, [], db_path=tmp_path / "filter.db")
+    return DbFilters(state, db_path=tmp_path / "filter.db")
 
 
 def test_save_filter_rejects_invalid_name_characters(tmp_path):
