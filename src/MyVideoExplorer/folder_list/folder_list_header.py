@@ -1,6 +1,6 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QWidget
+from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
@@ -11,6 +11,7 @@ from MyVideoExplorer.widgets.combo_boxes.select_combo_box import SelectComboBox
 class FolderListHeader(QWidget, ThemableMixin):
     backward_clicked = Signal()
     clear_filter_clicked = Signal()
+    enqueue_playlist_requested = Signal()
     forward_clicked = Signal()
     random_clicked = Signal()
     sort_changed = Signal(str)
@@ -21,6 +22,7 @@ class FolderListHeader(QWidget, ThemableMixin):
         self.help_icon = QLabel("?", parent=self)
         self._sort_model = QStandardItemModel(self)
         self.sort_combo = self._create_sort_combo()
+        self.enqueue_playlist_button = self._create_enqueue_playlist_button()
         self.backward_folder_button = self._create_nav_folder_button("backward")
         self.clear_filter_button = self._create_clear_filter_button()
         self.forward_folder_button = self._create_nav_folder_button("forward")
@@ -28,8 +30,9 @@ class FolderListHeader(QWidget, ThemableMixin):
         self._build()
 
     def _build(self):
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(4)
 
         self.title_label.setStyleSheet(APP_THEME.label_qss())
 
@@ -37,15 +40,34 @@ class FolderListHeader(QWidget, ThemableMixin):
         self.help_icon.setFixedSize(16, 16)
         self.help_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        layout.addWidget(self.title_label)
-        layout.addWidget(self.help_icon)
-        layout.addStretch()
+        # Row 1: Title, help icon, stretch, nav buttons
+        row1 = QHBoxLayout()
+        row1.addWidget(self.title_label)
+        row1.addWidget(self.help_icon)
+        row1.addStretch()
+        row1.addWidget(self.clear_filter_button)
+        row1.addWidget(self.backward_folder_button)
+        row1.addWidget(self.forward_folder_button)
+        row1.addWidget(self.random_folder_button)
 
-        layout.addWidget(self.sort_combo)
-        layout.addWidget(self.clear_filter_button)
-        layout.addWidget(self.backward_folder_button)
-        layout.addWidget(self.forward_folder_button)
-        layout.addWidget(self.random_folder_button)
+        # Row 2: Sort combo, stretch, enqueue button
+        row2 = QHBoxLayout()
+        row2.addWidget(self.sort_combo)
+        row2.addStretch()
+        row2.addWidget(self.enqueue_playlist_button)
+
+        main_layout.addLayout(row1)
+        main_layout.addLayout(row2)
+
+    def _create_enqueue_playlist_button(self) -> ActionButton:
+        button = ActionButton(
+            self,
+            icon_name="fa6s.list-ordered",
+            tooltip="Enqueue playlist in default player",
+        )
+        button.setFixedSize(30, 30)
+        button.clicked.connect(self.enqueue_playlist_requested)
+        return button
 
     def _create_clear_filter_button(self) -> ActionButton:
         button = ActionButton(

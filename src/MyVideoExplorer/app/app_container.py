@@ -1,6 +1,7 @@
 import shutil
 
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QGuiApplication, QStandardItemModel
 from PySide6.QtWidgets import QMainWindow
 
 from MyVideoExplorer.app.app_controller import AppController
@@ -324,6 +325,10 @@ class AppContainer:
             self.folder_list.set_filter_sort_label,
         )
         self._connect(
+            self.folder_nav_filters.filter_sort_option_changed,
+            self._on_filter_sort_option_changed,
+        )
+        self._connect(
             self.folder_nav_filters.saved_filter_selection_changed,
             self.folder_list.set_clear_filter_enabled,
         )
@@ -347,6 +352,28 @@ class AppContainer:
             self.folder_list.media_nav_search.create_filter_requested,
             self._on_create_filter_from_search,
         )
+        self._connect(
+            self.folder_list.enqueue_playlist_requested,
+            self._enqueue_filtered_playlist,
+        )
+        self._connect(
+            self.folder_nav.enqueue_playlist_requested,
+            self._enqueue_filtered_playlist,
+        )
+
+    def _on_filter_sort_option_changed(self, sort_option: str) -> None:
+        """When a filter is selected, auto-set the folder sort to use the filter's sort setting."""
+        combo = self.folder_list.header.sort_combo
+        model = combo.model()
+        if isinstance(model, QStandardItemModel):
+            for i in range(model.rowCount()):
+                item = model.item(i)
+                if (
+                    item is not None
+                    and item.data(Qt.ItemDataRole.UserRole) == "filter_sort"
+                ):
+                    combo.setCurrentIndex(i)
+                    break
 
     def _on_tag_clicked_for_filter(self, tag: str) -> None:
         """Handle tag click from media info panel: clear search, add tag, and submit search."""
@@ -404,6 +431,53 @@ class AppContainer:
             self._play_video_from_current_folder()
             return
         self._play_video_with_configured_player(config["id"])
+
+    def _enqueue_filtered_playlist(self) -> None:
+        """Enqueue videos from every folder in the navigation list."""
+        config = next(
+            (
+                player
+                for player in self.settings.settings_data_model.video_player_configs
+                if player["is_default"]
+            ),
+            None,
+        )
+        filters = self.folder_nav_filters.filter_table.collect_filters()
+        filters.extend(self.folder_nav_filters.media_filter_widget.collect_filters())
+        matching_videos = self.folder_nav_filters.db_filter.matching_videos(filters)
+        folder_order: dict[str, int] = {}
+        for row in range(self.folder_list.folder_list_view.count()):
+            item = self.folder_list.folder_list_view.item(row)
+            folder_path = item.data(Qt.ItemDataRole.UserRole)
+            if folder_path:
+                folder_order[FileUtils.normalize_path(folder_path).casefold()] = row
+
+        def playlist_sort_key(video: dict[str, str]) -> tuple[int, str]:
+            video_path = FileUtils.normalize_path(str(video["file_path"]))
+            parent_path = FileUtils.parent(video_path).casefold()
+            matching_folder_rank = max(
+                (
+                    rank
+                    for folder_path, rank in folder_order.items()
+                    if FileUtils.is_same_or_descendant(parent_path, folder_path)
+                ),
+                default=len(folder_order),
+            )
+            return matching_folder_rank, video_path.casefold()
+
+        matching_videos.sort(key=playlist_sort_key)
+        video_paths = [video["file_path"] for video in matching_videos]
+        self.log_util.info(
+            f"Enqueue filtered playlist: {len(video_paths)} filtered videos"
+        )
+        if config is None or config["id"] == "os_default":
+            self.video_player.enqueue_video_paths(video_paths)
+            return
+        self.video_player.enqueue_video_paths(
+            video_paths,
+            config["executable"],
+            config.get("arguments", ""),
+        )
 
     def _play_video_with_configured_player(self, player_id: str) -> None:
         if player_id == "os_default":

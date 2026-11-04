@@ -20,6 +20,7 @@ class FolderNav(QWidget, ThemableMixin):
     selected_folder_changed = Signal(object)
     filtered_items_updated = Signal(object)
     genre_changed = Signal(object)
+    enqueue_playlist_requested = Signal()
 
     def __init__(self, folder_filter_widget: FolderFilters, log_util: LogUtil) -> None:
         super().__init__()
@@ -57,6 +58,9 @@ class FolderNav(QWidget, ThemableMixin):
         self.folder_filter_widget.root_folder.connect(self._handle_root_folder)
         self.folder_filter_widget.filters_requested.connect(self.apply_filters)
         self.folder_filter_widget.genre_changed.connect(self._handle_genre_changed)
+        self.folder_filter_widget.enqueue_playlist_requested.connect(
+            self.enqueue_playlist_requested
+        )
         self._signals_connected = True
 
     def set_root_folders(self, paths: list[str]) -> None:

@@ -28,19 +28,23 @@ from MyVideoExplorer.utils.file_util import FileUtil, FileUtils
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.ui_utils import UIUtils
 from MyVideoExplorer.widgets.buttons.action_button import ActionButton
+from MyVideoExplorer.widgets.combo_box_delegate import GroupedComboBoxDelegate
 from MyVideoExplorer.widgets.combo_boxes.select_combo_box import SelectComboBox
 
 _SHOW_ALL_FILTER_LABEL = "- Select a Filter (Showing All) -"
+_SHOW_ALL_GROUPS_LABEL = "- All Groups -"
 
 
 class FolderFilters(QWidget, ThemableMixin):
     filters_requested = Signal()
     saved_filter_selection_changed = Signal(bool)
     filter_sort_label_changed = Signal(str)
+    filter_sort_option_changed = Signal(str)
     genre_changed = Signal(object)
     root_folder = Signal(object)
     loading_started = Signal(object)
     edit_filter_requested = Signal(str)
+    enqueue_playlist_requested = Signal()
 
     GENRES = sorted(
         ["Action", "Comedy", "Sci-Fi", "Mystery", "Thriller", "Drama", "Adventure"]
@@ -62,7 +66,9 @@ class FolderFilters(QWidget, ThemableMixin):
         self.filter_criteria_button = QToolButton(self)
         self.genre_combo = GenreComboWidget(self.GENRES, parent=self)
         self.nav_combo = SelectComboBox(self)
+        self.filter_groups_combo = SelectComboBox(self)
         self.saved_filters_combo = SelectComboBox(self)
+        self._selected_group_id: int | None = None  # None means "All Groups"
         self.genre_combo.setVisible(False)
         self.nav_combo.setVisible(False)
         self._criteria_popup: FilterCriteriaDialog | None = None
@@ -90,15 +96,20 @@ class FolderFilters(QWidget, ThemableMixin):
         filter_container = QWidget(self)
 
         self.build_nav_combo()
+        self._build_filter_groups_combo()
         self._build_saved_filters_combo()
         self._build_filter_criteria_button()
         self._build_clear_search_button()
 
+        self.enqueue_playlist_button = self._create_enqueue_playlist_button()
+
         # Add saved filters and filter controls row
         saved_filters_layout = QHBoxLayout()
+        saved_filters_layout.addWidget(self.filter_groups_combo, 1)
         saved_filters_layout.addWidget(self.saved_filters_combo, 1)
         saved_filters_layout.addWidget(self.filter_criteria_button)
         saved_filters_layout.addWidget(self.clear_search_button)
+        saved_filters_layout.addWidget(self.enqueue_playlist_button)
 
         filter_layout = QVBoxLayout(filter_container)
         filter_layout.setSpacing(4)
@@ -111,6 +122,7 @@ class FolderFilters(QWidget, ThemableMixin):
         left_layout.setContentsMargins(2, 0, 2, 0)
 
         self._connect_sigs()
+        self.apply_theme()
         return self
 
     def build_nav_combo(self) -> None:
@@ -138,6 +150,16 @@ class FolderFilters(QWidget, ThemableMixin):
         self.clear_search_button.setEnabled(False)
         self.clear_search_button.clicked.connect(self._clear_search)
 
+    def _create_enqueue_playlist_button(self) -> ActionButton:
+        button = ActionButton(
+            self,
+            icon_name="fa6s.list-ordered",
+            tooltip="Enqueue playlist in default player",
+        )
+        button.setFixedSize(30, 30)
+        button.clicked.connect(self.enqueue_playlist_requested)
+        return button
+
     def _build_filter_criteria_button(self) -> None:
         self.filter_criteria_button = self._make_tool_button(
             "View Filter Criteria", "fa6s.filter"
@@ -148,6 +170,30 @@ class FolderFilters(QWidget, ThemableMixin):
         self.filter_criteria_button.setFixedWidth(40)
         self.filter_criteria_button.setEnabled(False)
         self.filter_criteria_button.clicked.connect(self._show_filter_criteria)
+
+    def _build_filter_groups_combo(self) -> None:
+        """Build the filter groups combobox for selecting which group's filters to show."""
+        self.filter_groups_combo.setEditable(False)
+        self.filter_groups_combo.setToolTip("Select a filter group")
+        self.filter_groups_combo.blockSignals(True)
+        self.filter_groups_combo.clear()
+        self.filter_groups_combo.addItem(_SHOW_ALL_GROUPS_LABEL, userData=None)
+        groups = self.settings.settings_data_model.list_filter_groups()
+        for group in groups:
+            name = group.get("name", "")
+            group_id = group.get("group_id")
+            filter_count = group.get("filter_count", 0)
+            label = f"{name} ({filter_count})" if filter_count else name
+            self.filter_groups_combo.addItem(label, userData=group_id)
+        self.filter_groups_combo.blockSignals(False)
+        self.filter_groups_combo.setCurrentIndex(0)
+        self.filter_groups_combo.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        self.filter_groups_combo.setMinimumHeight(35)
+        self.filter_groups_combo.currentIndexChanged.connect(
+            self._on_filter_group_changed
+        )
 
     def _build_saved_filters_combo(self) -> None:
         self.saved_filters_combo.setEditable(True)
@@ -161,6 +207,15 @@ class FolderFilters(QWidget, ThemableMixin):
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
         )
         self.saved_filters_combo.setMinimumHeight(35)
+        self.saved_filters_combo.setItemDelegate(GroupedComboBoxDelegate())
+
+    def _on_filter_group_changed(self, index: int) -> None:
+        """Handle filter group selection change; refresh the saved filters combo."""
+        if index <= 0:
+            self._selected_group_id = None
+        else:
+            self._selected_group_id = self.filter_groups_combo.itemData(index)
+        self._refresh_saved_filters_combo()
 
     def _refresh_saved_filters_combo(self) -> None:
         selected_name = (
@@ -180,6 +235,12 @@ class FolderFilters(QWidget, ThemableMixin):
             self.settings.settings_data_model.saved_filters,
             key=lambda item: str(item.get("name", "")).casefold(),
         )
+        # Group filters by group_name for optgroup organization
+        from collections import OrderedDict
+
+        grouped_filters: OrderedDict[
+            str | None, list[tuple[dict[str, Any], int | None]]
+        ] = OrderedDict()
         for filter_cfg in saved:
             name = str(filter_cfg.get("name", ""))
             if not name:
@@ -187,13 +248,32 @@ class FolderFilters(QWidget, ThemableMixin):
             # Skip invisible filters
             if not filter_cfg.get("is_visible", True):
                 continue
+            # Skip filters with 0 count
             store = getattr(self.settings.settings_data_model, "filter_store", None)
             if isinstance(store, DbFilters):
                 count = store.get_display_count(name, selected_folders)
             else:
                 count = filter_cfg.get("total_count")
-            label = f"{name} ({count})" if count is not None else name
-            self.saved_filters_combo.addItem(label, userData=name)
+            if count is not None and count == 0:
+                continue
+            # Respect group filter
+            if self._selected_group_id is not None:
+                filter_group_id = filter_cfg.get("group_id")
+                if filter_group_id != self._selected_group_id:
+                    continue
+            group_name = filter_cfg.get("group_name") or "Ungrouped"
+            if group_name not in grouped_filters:
+                grouped_filters[group_name] = []
+            grouped_filters[group_name].append((filter_cfg, count))
+        # Add filters organized by group
+        for group_name, filter_entries in grouped_filters.items():
+            # Add group header as a non-selectable item
+            group_header = f"📁 {group_name}"
+            self.saved_filters_combo.addItem(group_header, userData="__GROUP_HEADER__")
+            for filter_cfg, count in filter_entries:
+                name = str(filter_cfg.get("name", ""))
+                label = f"{name} ({count})" if count is not None else name
+                self.saved_filters_combo.addItem(label, userData=name)
         if selected_name:
             selected_index = self.saved_filters_combo.findData(selected_name)
             if selected_index > 0:
@@ -205,9 +285,8 @@ class FolderFilters(QWidget, ThemableMixin):
         if (
             watched in (combo, combo.lineEdit())
             and event.type() == QEvent.Type.MouseButtonPress
-            and combo.currentIndex() == 0
-            and combo.currentText() == _SHOW_ALL_FILTER_LABEL
         ):
+            # Always show popup on click, regardless of current selection state
             combo.setEditText("")
             QTimer.singleShot(0, combo.showPopup)
         return super().eventFilter(watched, event)
@@ -217,6 +296,7 @@ class FolderFilters(QWidget, ThemableMixin):
 
         Prefers an exact case-insensitive match; otherwise accepts a unique
         prefix match so typing progressively selects the intended filter.
+        Skips group header items.
         """
         wanted = text.strip().casefold()
         if not wanted:
@@ -226,7 +306,11 @@ class FolderFilters(QWidget, ThemableMixin):
         prefix_index = -1
         prefix_matches = 0
         for index in range(combo.count()):
-            name = str(combo.itemData(index) or combo.itemText(index)).casefold()
+            data = combo.itemData(index)
+            # Skip group header items
+            if data == "__GROUP_HEADER__":
+                continue
+            name = str(data or combo.itemText(index)).casefold()
             if name == wanted:
                 return index
             if name.startswith(wanted):
@@ -348,6 +432,11 @@ class FolderFilters(QWidget, ThemableMixin):
         self.root_folder.emit(payload)
 
     def _load_saved_filter(self, index: int) -> None:
+        # Skip group header items
+        data = self.saved_filters_combo.itemData(index)
+        if data == "__GROUP_HEADER__":
+            return
+
         has_filter = index > 0
         self.saved_filter_selection_changed.emit(has_filter)
         # Enable/disable View Filter Criteria button based on selection
@@ -372,6 +461,7 @@ class FolderFilters(QWidget, ThemableMixin):
                 break
 
         self.filter_sort_label_changed.emit(self._sort_option_label(sort_option))
+        self.filter_sort_option_changed.emit(sort_option)
         self.filter_table.setRowCount(0)
         if filters:
             for filter_item in filters:

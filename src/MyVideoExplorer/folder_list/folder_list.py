@@ -33,12 +33,13 @@ _EMPTY_STATE_NO_MEDIA_FOLDERS = (
 
 
 class FolderList(QWidget, ThemableMixin):
-    folder_selected_intent = Signal(object)
-    folder_navigation_requested = Signal(object)
     clear_filter_requested = Signal()
-    media_nav_search_requested = Signal(object)
-    media_nav_clear_search_requested = Signal()
+    enqueue_playlist_requested = Signal()
+    folder_navigation_requested = Signal(object)
+    folder_selected_intent = Signal(object)
     folder_sort_changed = Signal(str)
+    media_nav_clear_search_requested = Signal()
+    media_nav_search_requested = Signal(object)
     HISTORY_FOLDER_LENGTH = 100
 
     def __init__(
@@ -59,6 +60,7 @@ class FolderList(QWidget, ThemableMixin):
         self._saved_filter_selected = False
         self._quick_search_active = False
         self._signals_connected = False
+        self._filtered_items: list[FileUtilModel] = []
         self._container = QWidget(self)
         self.header = FolderListHeader(parent=self)
         self.navigation_controller = FolderNavigationController()
@@ -97,6 +99,7 @@ class FolderList(QWidget, ThemableMixin):
 
         self.header.backward_clicked.connect(self._on_backward_folder_clicked)
         self.header.clear_filter_clicked.connect(self._on_clear_filter)
+        self.header.enqueue_playlist_requested.connect(self.enqueue_playlist_requested)
         self.header.sort_changed.connect(self.folder_sort_changed)
         self.header.forward_clicked.connect(self._on_forward_folder_clicked)
         self.header.random_clicked.connect(self._on_random_folder_clicked)
@@ -279,6 +282,7 @@ class FolderList(QWidget, ThemableMixin):
         on_complete: Callable[[list[FileUtilModel]], None] | None = None,
     ):
         """Sorts and populates the FolderListView."""
+        self._filtered_items = items
         if not items and not self._has_valid_media_folders():
             self.folder_list_view.show_empty_state(
                 message=_EMPTY_STATE_NO_MEDIA_FOLDERS

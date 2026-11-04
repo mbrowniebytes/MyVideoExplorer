@@ -108,6 +108,75 @@ class TestVideoPlayer:
         )
 
     @pytest.mark.asyncio
+    async def test_playlist_enqueues_all_recursive_folder_videos_without_duplicates(
+        self, video_player
+    ):
+        videos = [f"/media/Movie {index}.mkv" for index in range(25)]
+        video_player.video_finder.find_videos_in_folder_recursive = MagicMock(
+            side_effect=[videos, videos[10:]]
+        )
+
+        with patch.object(
+            video_player.video_launcher, "enqueue_via_player", new_callable=AsyncMock
+        ) as mock_enqueue:
+            assert video_player.enqueue_playlist_from_folders(
+                ["/media", "/media/collection"],
+                "/players/vlc.exe",
+                "--fullscreen",
+            )
+            await asyncio.sleep(0)
+
+        video_player.video_finder.find_videos_in_folder_recursive.assert_any_call(
+            "/media"
+        )
+        video_player.video_finder.find_videos_in_folder_recursive.assert_any_call(
+            "/media/collection"
+        )
+        mock_enqueue.assert_awaited_once_with(
+            "/players/vlc.exe", videos, "--fullscreen"
+        )
+
+    @pytest.mark.asyncio
+    async def test_playlist_continues_after_empty_folder_and_scans_subfolders(
+        self, video_player, tmp_path
+    ):
+        empty_folder = tmp_path / "empty"
+        empty_folder.mkdir()
+        folder_with_subfolder = tmp_path / "collection"
+        nested_folder = folder_with_subfolder / "nested"
+        nested_folder.mkdir(parents=True)
+        first_video = nested_folder / "Movie 1.mkv"
+        first_video.touch()
+        second_video = nested_folder / "Movie 2.mp4"
+        second_video.touch()
+        final_folder = tmp_path / "another"
+        final_folder.mkdir()
+        final_video = final_folder / "Movie 3.avi"
+        final_video.touch()
+
+        with patch.object(
+            video_player.video_launcher,
+            "play_videos_via_external_app",
+            new_callable=AsyncMock,
+        ) as mock_play:
+            assert video_player.enqueue_playlist_from_folders(
+                [
+                    str(empty_folder),
+                    str(folder_with_subfolder),
+                    str(final_folder),
+                ]
+            )
+            await asyncio.sleep(0)
+
+        mock_play.assert_awaited_once_with(
+            [
+                first_video.as_posix(),
+                second_video.as_posix(),
+                final_video.as_posix(),
+            ]
+        )
+
+    @pytest.mark.asyncio
     @patch("os.listdir")
     @patch("os.path.isfile")
     async def test_play_video_finds_correct_file(

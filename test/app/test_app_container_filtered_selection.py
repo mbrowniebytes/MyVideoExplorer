@@ -81,3 +81,67 @@ def test_search_results_preserve_current_folder_when_present():
     container.controller.set_current_folder.assert_not_called()
     container.file_list.refresh.assert_called_once_with(current_folder)
     container.image_list.refresh.assert_called_once_with(current_folder)
+
+
+@pytest.mark.parametrize("configured_player", [None, "vlc"])
+def test_enqueue_playlist_uses_filtered_video_results(configured_player):
+    container = AppContainer.__new__(AppContainer)
+    container.folder_list = MagicMock()
+    container.folder_list.folder_list_view.count.return_value = 3
+    folder_items = []
+    for path in ("/media/Zulu", "/media/Alpha", "/media/Beta"):
+        folder_item = MagicMock()
+        folder_item.data.return_value = path
+        folder_items.append(folder_item)
+    container.folder_list.folder_list_view.item.side_effect = folder_items
+    container.folder_nav_filters = MagicMock()
+    container.folder_nav_filters.filter_table.collect_filters.return_value = [
+        {"filter": "genre", "value": "Action"}
+    ]
+    container.folder_nav_filters.media_filter_widget.collect_filters.return_value = [
+        {"filter": "media", "value": ["/media/Movies"]}
+    ]
+    filtered_videos = [
+        {"file_path": "/media/Zulu/First Movie.mkv"},
+        {"file_path": "/media/Alpha/Nested/Second Movie.mp4"},
+        {"file_path": "/media/Beta/Third Movie.mkv"},
+    ]
+    container.folder_nav_filters.db_filter.matching_videos.return_value = (
+        filtered_videos
+    )
+    container.settings = MagicMock()
+    container.settings.settings_data_model.video_player_configs = (
+        [
+            {
+                "is_default": True,
+                "id": "vlc",
+                "executable": "/players/vlc",
+                "arguments": "--fullscreen",
+            }
+        ]
+        if configured_player
+        else []
+    )
+    container.video_player = MagicMock()
+    container.log_util = MagicMock()
+
+    container._enqueue_filtered_playlist()
+
+    filters = [
+        {"filter": "genre", "value": "Action"},
+        {"filter": "media", "value": ["/media/Movies"]},
+    ]
+    container.folder_nav_filters.db_filter.matching_videos.assert_called_once_with(
+        filters
+    )
+    video_paths = [
+        "/media/Zulu/First Movie.mkv",
+        "/media/Alpha/Nested/Second Movie.mp4",
+        "/media/Beta/Third Movie.mkv",
+    ]
+    if configured_player:
+        container.video_player.enqueue_video_paths.assert_called_once_with(
+            video_paths, "/players/vlc", "--fullscreen"
+        )
+    else:
+        container.video_player.enqueue_video_paths.assert_called_once_with(video_paths)

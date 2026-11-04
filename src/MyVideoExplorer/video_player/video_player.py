@@ -117,6 +117,87 @@ class VideoPlayer(QObject):
         self.video_played.emit(video_paths[0])
         return True
 
+    def enqueue_folder_playlist(
+        self,
+        folder_path: str | None,
+        executable: str | None = None,
+        arguments: str = "",
+    ) -> bool:
+        """Enqueue all videos in a folder to a player.
+
+        For VLC, uses a temp M3U8 playlist to avoid CLI argument length limits.
+        For other players, passes files as CLI arguments.
+        Falls back to OS default player if no executable is provided.
+        """
+        video_paths = self.video_finder.find_videos_in_folder(folder_path)
+        if not video_paths:
+            self.log_util.warning(f"No video files found in folder: {folder_path}")
+            return False
+
+        if executable:
+            asyncio.create_task(
+                self.video_launcher.enqueue_via_player(
+                    executable, video_paths, arguments
+                )
+            )
+        else:
+            asyncio.create_task(
+                self.video_launcher.play_videos_via_external_app(video_paths)
+            )
+        self.video_played.emit(video_paths[0])
+        return True
+
+    def enqueue_playlist_from_folders(
+        self,
+        folder_paths: list[str],
+        executable: str | None = None,
+        arguments: str = "",
+    ) -> bool:
+        """Enqueue all videos from the given folder list.
+
+        Collects videos from each folder and its subfolders. Videos are
+        deduplicated so overlapping folder hierarchies do not produce duplicates.
+        """
+        self.log_util.info(f"Enqueue playlist from {len(folder_paths)} folders")
+        seen: set[str] = set()
+        video_paths: list[str] = []
+        for folder_path in folder_paths:
+            videos = self.video_finder.find_videos_in_folder_recursive(folder_path)
+            if videos:
+                for v in videos:
+                    if v not in seen:
+                        seen.add(v)
+                        video_paths.append(v)
+                self.log_util.debug(f"Found {len(videos)} videos in {folder_path}")
+
+        self.log_util.info(f"Collected {len(video_paths)} total videos")
+        return self.enqueue_video_paths(video_paths, executable, arguments)
+
+    def enqueue_video_paths(
+        self,
+        video_paths: list[str],
+        executable: str | None = None,
+        arguments: str = "",
+    ) -> bool:
+        """Enqueue the supplied video paths without discovering files on disk."""
+        deduplicated_paths = list(dict.fromkeys(video_paths))
+        if not deduplicated_paths:
+            self.log_util.warning("No filtered video files to enqueue.")
+            return False
+
+        if executable:
+            asyncio.create_task(
+                self.video_launcher.enqueue_via_player(
+                    executable, deduplicated_paths, arguments
+                )
+            )
+        else:
+            asyncio.create_task(
+                self.video_launcher.play_videos_via_external_app(deduplicated_paths)
+            )
+        self.video_played.emit(deduplicated_paths[0])
+        return True
+
     def stop_video(self) -> None:
         """Stops the current internal playback session."""
         if self.internal_playback_engine:

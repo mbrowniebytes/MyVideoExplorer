@@ -172,11 +172,37 @@ async def test_external_app_opens_all_videos_from_a_playlist():
     assert await_args is not None
     playlist_path = Path(await_args.args[0])
     try:
-        assert playlist_path.suffix == ".m3u8"
+        assert playlist_path.name == "myvideoexplorer-os-default.m3u8"
         assert playlist_path.read_text(encoding="utf-8").splitlines() == [
             "#EXTM3U",
             Path(video_paths[0]).resolve().as_uri(),
             Path(video_paths[1]).resolve().as_uri(),
+        ]
+    finally:
+        playlist_path.unlink()
+
+
+@pytest.mark.asyncio
+async def test_enqueue_uses_temp_playlist_even_for_one_video():
+    launcher = VideoLauncher(MagicMock())
+    video_path = "/media/Movie.mkv"
+
+    with patch.object(
+        launcher, "_launch_process", new_callable=AsyncMock
+    ) as mock_launch:
+        await launcher.enqueue_via_player("/players/vlc", [video_path])
+
+    await_args = mock_launch.await_args
+    assert await_args is not None
+    command = await_args.args[0]
+    playlist_path = Path(command[-1])
+    try:
+        assert command[0] == "/players/vlc"
+        assert playlist_path.parent == Path("tmp")
+        assert playlist_path.name == "myvideoexplorer-vlc.m3u8"
+        assert playlist_path.read_text(encoding="utf-8").splitlines() == [
+            "#EXTM3U",
+            Path(video_path).resolve().as_uri(),
         ]
     finally:
         playlist_path.unlink()

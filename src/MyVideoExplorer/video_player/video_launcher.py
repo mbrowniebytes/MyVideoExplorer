@@ -1,9 +1,9 @@
 import asyncio
 import os
+import re
 import shlex
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 from MyVideoExplorer.utils.file_util import FileUtils
@@ -30,20 +30,16 @@ class VideoLauncher:
         await self._launch_process(command)
 
     async def play_videos_via_external_app(self, video_paths: list[str]) -> None:
-        """Open an ordered playlist with the operating system's default application."""
+        """Open an ordered playlist with the operating system's default application.
+
+        Reuses a named M3U playlist in the app's tmp/ folder.
+        """
         try:
-            with tempfile.NamedTemporaryFile(
-                mode="w",
-                encoding="utf-8",
-                suffix=".m3u8",
-                prefix="myvideoexplorer-",
-                delete=False,
-            ) as playlist:
-                playlist.write("#EXTM3U\n")
-                for video_path in video_paths:
-                    playlist.write(f"{Path(video_path).resolve().as_uri()}\n")
-                playlist_path = playlist.name
-            await self.play_via_external_app(playlist_path)
+            playlist_path = self._write_playlist(video_paths, "os-default")
+            self.log_util.info(
+                f"Created playlist with {len(video_paths)} videos: {playlist_path}"
+            )
+            await self.play_via_external_app(str(playlist_path))
         except (OSError, ValueError) as error:
             self.log_util.error(f"Failed to create or open video playlist: {error}")
 
@@ -75,6 +71,67 @@ class VideoLauncher:
             self.log_util.error(
                 f"Failed to launch configured player '{executable}': {e}"
             )
+
+    async def enqueue_via_player(
+        self, executable: str, video_paths: list[str], arguments: str = ""
+    ) -> None:
+        """Enqueue videos to a configured player.
+
+        Reuses a named M3U playlist in the app's tmp/ folder to avoid CLI
+        argument length limits and ensure consistent behavior across players.
+        """
+        if video_paths:
+            await self._enqueue_via_playlist(executable, video_paths, arguments)
+
+    @staticmethod
+    def _playlist_player_name(executable: str) -> str:
+        name = Path(executable).stem
+        safe_name = re.sub(r"[^A-Za-z0-9_-]+", "-", name).strip("-_")
+        return safe_name or "player"
+
+    @staticmethod
+    def _write_playlist(video_paths: list[str], player_name: str) -> Path:
+        tmp_dir = Path("tmp")
+        tmp_dir.mkdir(parents=True, exist_ok=True)
+        playlist_path = tmp_dir / f"myvideoexplorer-{player_name}.m3u8"
+        with playlist_path.open("w", encoding="utf-8") as playlist:
+            playlist.write("#EXTM3U\n")
+            playlist.writelines(
+                f"{Path(video_path).resolve().as_uri()}\n" for video_path in video_paths
+            )
+        return playlist_path
+
+    @staticmethod
+    def _is_vlc(executable: str) -> bool:
+        """Check if the executable is VLC by checking its basename."""
+        basename = Path(executable).name.lower()
+        return "vlc" in basename
+
+    async def _enqueue_via_playlist(
+        self, executable: str, video_paths: list[str], arguments: str = ""
+    ) -> None:
+        """Launch a player with its reusable M3U playlist in app tmp/."""
+        try:
+            player_name = self._playlist_player_name(executable)
+            playlist_path = self._write_playlist(video_paths, player_name)
+            self.log_util.info(
+                f"Created player playlist with {len(video_paths)} videos: {playlist_path}"
+            )
+
+            player_arguments = shlex.split(arguments)
+            normalized_playlist = (
+                os.path.normpath(str(playlist_path))
+                if os.name == "nt"
+                else str(playlist_path)
+            )
+            command = [executable, *player_arguments, normalized_playlist]
+            await self._launch_process(
+                command,
+                clean_environment=True,
+                capture_output=CAPTURE_PLAYER_OUTPUT,
+            )
+        except Exception as e:
+            self.log_util.error(f"Failed to launch player with playlist: {e}")
 
     @staticmethod
     def _clean_environment() -> dict[str, str]:

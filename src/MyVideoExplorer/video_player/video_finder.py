@@ -1,3 +1,4 @@
+import os
 import re
 from pathlib import Path
 
@@ -31,6 +32,30 @@ class VideoFinder:
             return []
 
         videos.sort(key=lambda item: self._natural_sort_key(item.name))
+        return [FileUtils.normalize_path(video) for video in videos]
+
+    def find_videos_in_folder_recursive(self, folder_path: str | None) -> list[str]:
+        """Return all videos inside a folder and its subfolders in natural order."""
+        folder = Path(folder_path) if folder_path else None
+        if folder is None or not folder.is_dir():
+            return []
+
+        videos: list[Path] = []
+
+        def log_walk_error(error: OSError) -> None:
+            self.log_util.error(
+                f"Error listing videos recursively in {error.filename}: {error}"
+            )
+
+        for root, directories, filenames in os.walk(folder, onerror=log_walk_error):
+            directories.sort(key=str.casefold)
+            videos.extend(
+                Path(root, filename)
+                for filename in filenames
+                if Path(filename).suffix.lower() in self.VIDEO_EXTS
+            )
+
+        videos.sort(key=lambda item: self._natural_sort_key(str(item)))
         return [FileUtils.normalize_path(video) for video in videos]
 
     @staticmethod

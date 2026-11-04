@@ -182,6 +182,17 @@ class FilterCriteriaDialog(QDialog):
         if self._readonly or self._is_system:
             self._name_edit.setReadOnly(True)
         name_layout.addWidget(self._name_edit)
+
+        # Copy button - only shown in edit mode for non-system filters
+        self._copy_button = ActionButton(
+            self, icon_name="fa6s.copy", tooltip="Copy filter", icon_size=14
+        )
+        self._copy_button.setFixedSize(22, 22)
+        self._copy_button.clicked.connect(self._on_copy_filter)
+        if self._readonly or not self._edit_mode or self._is_system:
+            self._copy_button.setVisible(False)
+        name_layout.addWidget(self._copy_button)
+
         layout.addLayout(name_layout)
 
         sort_layout = QHBoxLayout()
@@ -737,6 +748,37 @@ class FilterCriteriaDialog(QDialog):
         )
         self.saved.emit(
             name,
+            filters,
+            self._sort_option,
+            list(self._result_items),
+            group_id,
+            is_visible,
+        )
+
+    def _on_copy_filter(self) -> None:
+        """Copy the current filter with the same criteria but a new name."""
+        self._commit_pending_edit()
+        name = self._name_edit.text().strip() if self._name_edit is not None else ""
+        if not name:
+            return
+
+        # Create copy name
+        copy_name = name + " - Copy"
+        filters = (
+            self._filter_table.collect_filters()
+            if self._filter_table is not None
+            else []
+        )
+        group_id = self._get_selected_group_id()
+        is_visible = (
+            self._visible_checkbox.isChecked()
+            if self._visible_checkbox is not None
+            else True
+        )
+        # Close the dialog and emit the saved signal with the copy name
+        self.accept()
+        self.saved.emit(
+            copy_name,
             filters,
             self._sort_option,
             list(self._result_items),
