@@ -7,6 +7,7 @@ from PySide6.QtCore import QObject, Signal
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.db.db_filters import DEFAULT_FILTER_DB_PATH, DbFilters
+from MyVideoExplorer.settings.settings_filter_import import load_playlists_from_json
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtils
 from MyVideoExplorer.utils.json_util import JsonUtil
@@ -81,6 +82,12 @@ class SettingsState(QObject):
             db_path=filter_db_path or DEFAULT_FILTER_DB_PATH,
         )
         self.saved_filters = self.filter_store.list_filters()
+        # Load playlist templates from JSON on startup
+        self.saved_filters = load_playlists_from_json(
+            self.filter_store,
+            self.json_util,
+            on_filters_changed=self._emit_filters_changed,
+        )
         self.log_util.debug(f"__init__ {self.__class__.__name__}")
 
     def _ensure_defaults(self) -> None:
@@ -515,6 +522,9 @@ class SettingsState(QObject):
         original_name: str | None = None,
         sort_option: str = "default",
         manual_items: list[dict[str, Any]] | None = None,
+        group_id: int | None = None,
+        is_system: bool = False,
+        is_visible: bool = True,
     ) -> None:
         """
         Saves a named filter configuration.
@@ -526,6 +536,9 @@ class SettingsState(QObject):
                 replaced in place instead of a duplicate being appended.
             sort_option: Result ordering mode for this saved filter.
             manual_items: Ordered video identities to persist when Manual is selected.
+            group_id: Optional filter group assignment.
+            is_system: Whether this filter is app-defined (protected from editing).
+            is_visible: Whether this filter appears in the navigation combo.
         """
         self.filter_store.save_filter(
             name,
@@ -533,6 +546,9 @@ class SettingsState(QObject):
             original_name,
             sort_option=sort_option,
             manual_items=manual_items,
+            group_id=group_id,
+            is_system=is_system,
+            is_visible=is_visible,
         )
         self.saved_filters = self.filter_store.list_filters()
         self._emit_filters_changed()
@@ -542,6 +558,34 @@ class SettingsState(QObject):
         self.filter_store.delete_filter(name)
         self.saved_filters = self.filter_store.list_filters()
         self._emit_filters_changed()
+
+    def set_filter_visibility(self, name: str, is_visible: bool) -> None:
+        """Update the visibility flag for a saved filter."""
+        self.filter_store.set_filter_visibility(name, is_visible)
+        self.saved_filters = self.filter_store.list_filters()
+        self._emit_filters_changed()
+
+    def set_filter_group(self, name: str, group_id: int | None) -> None:
+        """Update the group assignment for a saved filter."""
+        self.filter_store.set_filter_group(name, group_id)
+        self.saved_filters = self.filter_store.list_filters()
+        self._emit_filters_changed()
+
+    def list_filter_groups(self) -> list[dict[str, Any]]:
+        """Return all filter groups with their filter counts."""
+        return self.filter_store.list_groups()
+
+    def create_filter_group(self, name: str) -> int:
+        """Create a new user-defined filter group and return its group_id."""
+        return self.filter_store.create_group(name)
+
+    def rename_filter_group(self, group_id: int, new_name: str) -> None:
+        """Rename a filter group."""
+        self.filter_store.rename_group(group_id, new_name)
+
+    def delete_filter_group(self, group_id: int) -> None:
+        """Delete a user-created filter group and ungroup its filters."""
+        self.filter_store.delete_group(group_id)
 
     @staticmethod
     def sanitize_media_label(label: Any) -> str:

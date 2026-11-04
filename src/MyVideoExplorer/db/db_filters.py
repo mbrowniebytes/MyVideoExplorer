@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import duckdb
 
@@ -107,7 +107,7 @@ class DbFilters:
     ) -> None:
         existing_rows = con.execute(
             "SELECT filter_id, name, criteria, folder_counts, total_count, "
-            "sort_option, needs_rebuild "
+            "sort_option, needs_rebuild, group_id, is_system, is_visible, last_modified "
             "FROM media_filters"
         ).fetchall()
         existing = {
@@ -118,6 +118,10 @@ class DbFilters:
                 "total_count": row[4],
                 "sort_option": row[5],
                 "needs_rebuild": row[6],
+                "group_id": row[7] if len(row) > 7 else None,
+                "is_system": row[8] if len(row) > 8 else False,
+                "is_visible": row[9] if len(row) > 9 else True,
+                "last_modified": row[10] if len(row) > 10 else None,
             }
             for row in existing_rows
         }
@@ -125,35 +129,48 @@ class DbFilters:
         seen: set[str] = set()
         for order, record in enumerate(records):
             name, criteria, sort_option = self._normalize_record(record)
+            group_id = record.get("group_id")
+            is_system = bool(record.get("is_system", False))
+            is_visible = bool(record.get("is_visible", True))
             if name in seen:
                 raise ValueError(f"Duplicate saved filter name: {name}")
             seen.add(name)
             old = existing.get(name)
+            folder_counts: dict[str, int] = {}
+            total_count: int | None = None
             if old and old["criteria"] == criteria:
-                folder_counts = old["folder_counts"]
-                total_count = old["total_count"]
-            else:
-                folder_counts = {}
-                total_count = None
+                folder_counts = cast("dict[str, int]", old["folder_counts"])
+                total_count = cast("int | None", old["total_count"])
             filter_id = old["filter_id"] if old else SnowflakeIdGenerator().generate()
             needs_rebuild = bool(old and old["needs_rebuild"])
             if old and old["criteria"] != criteria and sort_option == "manual":
                 needs_rebuild = True
+            # Preserve group/is_system/is_visible from existing record if not provided
+            if old and group_id is None:
+                group_id = old.get("group_id")
+            if old and not is_system and old.get("is_system"):
+                is_system = True
+            if old and is_visible and not old.get("is_visible", True):
+                is_visible = False
             keys = list(folder_counts)
             values = [int(folder_counts[key]) for key in keys]
             con.execute(
                 """
                 INSERT INTO media_filters
                     (filter_id, name, criteria, folder_counts, total_count, sort_order,
-                     sort_option, needs_rebuild)
-                VALUES (?, ?, ?::JSON, map(?::VARCHAR[], ?::BIGINT[]), ?, ?, ?, ?)
+                     sort_option, needs_rebuild, group_id, is_system, is_visible, last_modified)
+                VALUES (?, ?, ?::JSON, map(?::VARCHAR[], ?::BIGINT[]), ?, ?, ?, ?, ?, ?, ?, now())
                 ON CONFLICT (name) DO UPDATE SET
                     criteria = excluded.criteria,
                     folder_counts = excluded.folder_counts,
                     total_count = excluded.total_count,
                     sort_order = excluded.sort_order,
                     sort_option = excluded.sort_option,
-                    needs_rebuild = excluded.needs_rebuild
+                    needs_rebuild = excluded.needs_rebuild,
+                    group_id = excluded.group_id,
+                    is_system = excluded.is_system,
+                    is_visible = excluded.is_visible,
+                    last_modified = now()
                 """,
                 (
                     filter_id,
@@ -165,6 +182,9 @@ class DbFilters:
                     order,
                     sort_option,
                     needs_rebuild,
+                    group_id,
+                    is_system,
+                    is_visible,
                 ),
             )
 
@@ -183,9 +203,12 @@ class DbFilters:
     def list_filters(self) -> list[dict[str, Any]]:
         with self._connect() as con:
             rows = con.execute(
-                "SELECT name, criteria, folder_counts, total_count "
-                ", sort_option, needs_rebuild FROM media_filters "
-                "ORDER BY sort_order, lower(name)"
+                "SELECT mf.name, mf.criteria, mf.folder_counts, mf.total_count, "
+                "mf.sort_option, mf.needs_rebuild, mf.group_id, mf.is_system, "
+                "mf.is_visible, mf.last_modified, fg.name "
+                "FROM media_filters mf "
+                "LEFT JOIN filter_groups fg ON fg.group_id = mf.group_id "
+                "ORDER BY mf.sort_order, lower(mf.name)"
             ).fetchall()
         return [
             {
@@ -195,8 +218,13 @@ class DbFilters:
                 "total_count": total_count,
                 "sort_option": sort_option,
                 "needs_rebuild": bool(needs_rebuild),
+                "group_id": group_id,
+                "group_name": group_name,
+                "is_system": bool(is_system),
+                "is_visible": bool(is_visible),
+                "last_modified": last_modified,
             }
-            for name, criteria, folder_counts, total_count, sort_option, needs_rebuild in rows
+            for name, criteria, folder_counts, total_count, sort_option, needs_rebuild, group_id, is_system, is_visible, last_modified, group_name in rows
         ]
 
     def replace_all(self, records: list[dict[str, Any]]) -> None:
@@ -217,6 +245,9 @@ class DbFilters:
         original_name: str | None = None,
         sort_option: str = "default",
         manual_items: list[dict[str, Any]] | None = None,
+        group_id: int | None = None,
+        is_system: bool = False,
+        is_visible: bool = True,
     ) -> None:
         backup_database(str(self.db_path))
         name = name.strip()
@@ -237,7 +268,8 @@ class DbFilters:
             try:
                 old_name = original_name or name
                 old = con.execute(
-                    "SELECT filter_id, criteria FROM media_filters WHERE name = ?",
+                    "SELECT filter_id, criteria, group_id, is_system, is_visible "
+                    "FROM media_filters WHERE name = ?",
                     (old_name,),
                 ).fetchone()
 
@@ -263,12 +295,21 @@ class DbFilters:
                     con.execute("DELETE FROM media_filters WHERE name = ?", (name,))
 
                 if old:
+                    old_filter_id = old[0]
+                    old_group_id = old[2] if len(old) > 2 else None
                     same_criteria = json.loads(old[1]) == criteria
                     if same_criteria:
                         con.execute(
-                            "UPDATE media_filters SET name = ?, sort_option = ? "
+                            "UPDATE media_filters SET name = ?, sort_option = ?, "
+                            "group_id = ?, is_visible = ?, last_modified = now() "
                             "WHERE filter_id = ?",
-                            (name, sort_option, old[0]),
+                            (
+                                name,
+                                sort_option,
+                                group_id if group_id is not None else old_group_id,
+                                is_visible,
+                                old_filter_id,
+                            ),
                         )
                     else:
                         con.execute(
@@ -277,7 +318,9 @@ class DbFilters:
                             SET name = ?, criteria = ?::JSON,
                                 folder_counts = map(?::VARCHAR[], ?::BIGINT[]),
                                 total_count = NULL, sort_option = ?,
-                                needs_rebuild = ?
+                                needs_rebuild = ?,
+                                group_id = ?, is_visible = ?,
+                                last_modified = now()
                             WHERE filter_id = ?
                             """,
                             (
@@ -287,11 +330,13 @@ class DbFilters:
                                 [],
                                 sort_option,
                                 sort_option == "manual",
-                                old[0],
+                                group_id if group_id is not None else old_group_id,
+                                is_visible,
+                                old_filter_id,
                             ),
                         )
                     if manual_items is not None and sort_option == "manual":
-                        self._replace_manual_list(con, int(old[0]), manual_items)
+                        self._replace_manual_list(con, int(old_filter_id), manual_items)
                         con.execute(
                             "UPDATE media_filters SET needs_rebuild = ? "
                             "WHERE filter_id = ?",
@@ -300,7 +345,7 @@ class DbFilters:
                                     item.get("status", "exists") == "missing"
                                     for item in manual_items
                                 ),
-                                old[0],
+                                old_filter_id,
                             ),
                         )
                 else:
@@ -315,9 +360,10 @@ class DbFilters:
                         """
                         INSERT INTO media_filters
                             (filter_id, name, criteria, folder_counts, total_count,
-                             sort_order, sort_option, needs_rebuild)
+                             sort_order, sort_option, needs_rebuild, group_id, is_system,
+                             is_visible, last_modified)
                         VALUES (?, ?, ?::JSON, map(?::VARCHAR[], ?::BIGINT[]), NULL,
-                                ?, ?, ?)
+                                ?, ?, ?, ?, ?, ?, now())
                         """,
                         (
                             filter_id,
@@ -328,6 +374,9 @@ class DbFilters:
                             next_order,
                             sort_option,
                             sort_option == "manual" and manual_items is None,
+                            group_id,
+                            is_system,
+                            is_visible,
                         ),
                     )
                     if manual_items is not None and sort_option == "manual":
@@ -375,9 +424,12 @@ class DbFilters:
     def get_filter(self, name: str) -> dict[str, Any] | None:
         with self._connect() as con:
             row = con.execute(
-                "SELECT name, criteria, folder_counts, total_count, sort_option, "
-                "needs_rebuild "
-                "FROM media_filters WHERE name = ?",
+                "SELECT mf.name, mf.criteria, mf.folder_counts, mf.total_count, "
+                "mf.sort_option, mf.needs_rebuild, mf.group_id, mf.is_system, "
+                "mf.is_visible, mf.last_modified, fg.name "
+                "FROM media_filters mf "
+                "LEFT JOIN filter_groups fg ON fg.group_id = mf.group_id "
+                "WHERE mf.name = ?",
                 (name,),
             ).fetchone()
         if row is None:
@@ -389,6 +441,11 @@ class DbFilters:
             "total_count": row[3],
             "sort_option": row[4],
             "needs_rebuild": bool(row[5]),
+            "group_id": row[6],
+            "group_name": row[10],
+            "is_system": bool(row[7]),
+            "is_visible": bool(row[8]),
+            "last_modified": row[9],
         }
 
     def get_manual_items(self, name: str) -> list[dict[str, Any]]:
@@ -606,3 +663,144 @@ class DbFilters:
         if refreshed is None:
             raise RuntimeError(f"Saved filter disappeared after refresh: {name}")
         return refreshed
+
+    # ---- Filter Group management ----
+
+    def list_groups(self) -> list[dict[str, Any]]:
+        """Return all filter groups with their filter counts."""
+        with self._connect() as con:
+            rows = con.execute(
+                "SELECT fg.group_id, fg.name, fg.is_system, "
+                "COUNT(mf.filter_id) AS filter_count "
+                "FROM filter_groups fg "
+                "LEFT JOIN media_filters mf ON mf.group_id = fg.group_id "
+                "GROUP BY fg.group_id, fg.name, fg.is_system "
+                "ORDER BY fg.is_system DESC, lower(fg.name)"
+            ).fetchall()
+        return [
+            {
+                "group_id": row[0],
+                "name": row[1],
+                "is_system": bool(row[2]),
+                "filter_count": int(row[3]),
+            }
+            for row in rows
+        ]
+
+    def create_group(self, name: str) -> int:
+        """Create a new user-defined filter group and return its group_id.
+
+        Raises ValueError if a group with the same name already exists (case-insensitive).
+        """
+        name = name.strip()
+        if not name:
+            raise ValueError("Group name cannot be empty.")
+        with self._connect() as con:
+            con.begin()
+            try:
+                # Check for case-insensitive duplicate
+                existing = con.execute(
+                    "SELECT group_id FROM filter_groups WHERE lower(name) = lower(?)",
+                    (name,),
+                ).fetchone()
+                if existing is not None:
+                    raise ValueError(
+                        f"A filter group with the name '{name}' already exists. "
+                        "Group names must be unique (case-insensitive)."
+                    )
+                group_id = SnowflakeIdGenerator().generate()
+                con.execute(
+                    "INSERT INTO filter_groups (group_id, name, is_system) VALUES (?, ?, FALSE)",
+                    (group_id, name),
+                )
+                con.commit()
+                return int(group_id)
+            except Exception:
+                con.rollback()
+                raise
+
+    def rename_group(self, group_id: int, new_name: str) -> None:
+        """Rename a filter group.
+
+        Raises ValueError if the group is system-defined or the name is taken.
+        """
+        new_name = new_name.strip()
+        if not new_name:
+            raise ValueError("Group name cannot be empty.")
+        with self._connect() as con:
+            con.begin()
+            try:
+                group = con.execute(
+                    "SELECT name, is_system FROM filter_groups WHERE group_id = ?",
+                    (group_id,),
+                ).fetchone()
+                if group is None:
+                    raise KeyError(f"Filter group not found: {group_id}")
+                if group[1]:
+                    raise ValueError("System filter groups cannot be renamed.")
+                # Check for case-insensitive duplicate
+                existing = con.execute(
+                    "SELECT group_id FROM filter_groups "
+                    "WHERE lower(name) = lower(?) AND group_id != ?",
+                    (new_name, group_id),
+                ).fetchone()
+                if existing is not None:
+                    raise ValueError(
+                        f"A filter group with the name '{new_name}' already exists."
+                    )
+                con.execute(
+                    "UPDATE filter_groups SET name = ? WHERE group_id = ?",
+                    (new_name, group_id),
+                )
+                con.commit()
+            except Exception:
+                con.rollback()
+                raise
+
+    def delete_group(self, group_id: int) -> None:
+        """Delete a user-created filter group and ungroup its filters.
+
+        Raises ValueError if the group is system-defined.
+        """
+        with self._connect() as con:
+            con.begin()
+            try:
+                group = con.execute(
+                    "SELECT is_system FROM filter_groups WHERE group_id = ?",
+                    (group_id,),
+                ).fetchone()
+                if group is None:
+                    raise KeyError(f"Filter group not found: {group_id}")
+                if group[0]:
+                    raise ValueError("System filter groups cannot be deleted.")
+                # Ungroup all filters in this group
+                con.execute(
+                    "UPDATE media_filters SET group_id = NULL WHERE group_id = ?",
+                    (group_id,),
+                )
+                con.execute(
+                    "DELETE FROM filter_groups WHERE group_id = ?",
+                    (group_id,),
+                )
+                con.commit()
+            except Exception:
+                con.rollback()
+                raise
+
+    def set_filter_visibility(self, name: str, is_visible: bool) -> None:
+        """Update the visibility flag for a saved filter."""
+        with self._connect() as con:
+            con.execute(
+                "UPDATE media_filters SET is_visible = ?, last_modified = now() "
+                "WHERE name = ?",
+                (is_visible, name),
+            )
+
+    def set_filter_group(self, name: str, group_id: int | None) -> None:
+        """Update the group assignment for a saved filter."""
+        with self._connect() as con:
+            con.execute(
+                "UPDATE media_filters SET group_id = ?, last_modified = now() "
+                "WHERE name = ?",
+                (group_id, name),
+            )

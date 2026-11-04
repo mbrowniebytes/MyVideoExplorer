@@ -184,6 +184,9 @@ class FolderFilters(QWidget, ThemableMixin):
             name = str(filter_cfg.get("name", ""))
             if not name:
                 continue
+            # Skip invisible filters
+            if not filter_cfg.get("is_visible", True):
+                continue
             store = getattr(self.settings.settings_data_model, "filter_store", None)
             if isinstance(store, DbFilters):
                 count = store.get_display_count(name, selected_folders)

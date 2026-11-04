@@ -1,0 +1,22 @@
+[
+  {
+    "name": "Sci-Fi Classics",
+    "filters": [
+      {"filter": "Title", "value": "Inception"},
+      {"filter": "Title", "value": "Interstellar"},
+      {"filter": "Title", "value": "The Matrix"}
+    ],
+    "sort_option": "default",
+    "group": "Playlists"
+  },
+  {
+    "name": "Action Favorites",
+    "filters": [
+      {"filter": "Title", "value": "Mad Max: Fury Road"},
+      {"filter": "Title", "value": "John Wick"},
+      {"filter": "Title", "value": "Die Hard"}
+    ],
+    "sort_option": "default",
+    "group": "Playlists"
+  }
+]

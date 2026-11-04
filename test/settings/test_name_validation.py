@@ -171,7 +171,10 @@ def test_save_filter_allows_rename_to_same_name_case(tmp_path):
     # Renaming to the same name (different case) should work if it's the same filter
     store.save_filter("MyFilter", [], original_name="MyFilter")
     filters = store.list_filters()
+    # Just the user filter (no playlist templates in test DB)
     assert len(filters) == 1
+    names = {f["name"] for f in filters}
+    assert "MyFilter" in names
 
 
 def test_save_filter_rejects_name_with_quotes(tmp_path):

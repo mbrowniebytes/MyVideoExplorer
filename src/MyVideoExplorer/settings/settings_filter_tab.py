@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import UTC
 from functools import partial
 from typing import TYPE_CHECKING, Any
 
@@ -29,6 +30,10 @@ from MyVideoExplorer.media_nav_search.filter_criteria_dialog import FilterCriter
 from MyVideoExplorer.settings.filter_refresh_worker import FilterRefreshWorker
 from MyVideoExplorer.settings.filter_scan_worker import FilterScanWorker
 from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
+from MyVideoExplorer.settings.settings_filter_groups_dialog import (
+    SettingsFilterGroupsDialog,
+)
+from MyVideoExplorer.settings.settings_filter_header import SettingsFilterHeader
 from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.tag_cloud.tag_picker_dialog import TagPickerDialog
 from MyVideoExplorer.tag_cloud.tag_util import get_contrast_text_color
@@ -59,14 +64,17 @@ class SettingsFilterTab(SettingsBaseTab):
     editing criteria; the delete button removes the filter.
     """
 
+    log_util: LogUtil
+
     COL_EDIT = 0
     COL_NAME = 1
-    COL_COUNT = 2
-    COL_REFRESH = 3
-    COL_CRITERIA_COUNT = 4
-    COL_TYPES = 5
-    COL_DELETE = 6
-    COLUMN_COUNT = 7
+    COL_GROUP = 2
+    COL_COUNT = 3
+    COL_REFRESH = 4
+    COL_CRITERIA_COUNT = 5
+    COL_TYPES = 6
+    COL_DELETE = 7
+    COLUMN_COUNT = 8
 
     def __init__(
         self,
@@ -76,6 +84,7 @@ class SettingsFilterTab(SettingsBaseTab):
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(log_util, parent)
+        self.log_util = log_util
         self.state = state
         self._tag_store: DbTags | None = tag_store
         self.state.filter_counts_changed.connect(self._refresh_filter_list)
@@ -87,10 +96,12 @@ class SettingsFilterTab(SettingsBaseTab):
         self._search_text = ""
         self._search_type = ""
         self._search_tags: list[str] = []
+        self._search_group: int | str | None = None
 
         self._filter_table_widget: QTableWidget | None = None
         self._search_edit: QLineEdit | None = None
         self._criteria_combo: SelectComboBox | None = None
+        self._group_combo: SelectComboBox | None = None
         self._tag_btn: QToolButton | None = None
         self._tag_filter_widget: QWidget | None = None
         self._tag_filter_layout: QHBoxLayout | None = None
@@ -195,6 +206,13 @@ class SettingsFilterTab(SettingsBaseTab):
         add_btn.clicked.connect(self.open_add_filter)
         search_row.addWidget(add_btn)
 
+        # Filter Groups management button
+        groups_btn = ActionButton(
+            self, icon_name="fa6s.folder-tree", tooltip="Manage Filter Groups"
+        )
+        groups_btn.clicked.connect(self.open_groups_dialog)
+        search_row.addWidget(groups_btn)
+
         search_layout.addLayout(search_row)
 
         # --- Row 2: Filter controls ---
@@ -234,6 +252,20 @@ class SettingsFilterTab(SettingsBaseTab):
         self._criteria_combo.setMinimumWidth(160)
         filter_row.addWidget(self._criteria_combo)
 
+        # Group filter combobox
+        group_label = QLabel("Group:", self)
+        group_label.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
+        filter_row.addWidget(group_label)
+
+        self._group_combo = SelectComboBox(self)
+        self._group_combo.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
+        self._group_combo.addItem("- All Groups -", userData="")
+        self._group_combo.addItem("Edited Recently", userData="__edited_recently__")
+        self._populate_group_filter()
+        self._group_combo.currentIndexChanged.connect(self._on_search_changed)
+        self._group_combo.setMinimumWidth(140)
+        filter_row.addWidget(self._group_combo)
+
         # Tag filter button
         self._tag_btn = ActionButton(
             self, icon_name="fa6s.tag", tooltip="Filter by tag values"
@@ -264,15 +296,17 @@ class SettingsFilterTab(SettingsBaseTab):
 
         # Main filter list table
         self._filter_table_widget = QTableWidget(self)
+        self._filter_table_widget.setHorizontalHeader(SettingsFilterHeader(self))
         self._filter_table_widget.setColumnCount(self.COLUMN_COUNT)
         self._filter_table_widget.setHorizontalHeaderLabels(
             [
                 "",
                 "Filter Name",
-                "Media Folder Count",
+                "Group",
+                "Media",
                 "",
-                "Criteria Count",
-                "Criteria Types",
+                "Criteria",
+                "",
                 "",
             ]
         )
@@ -290,26 +324,32 @@ class SettingsFilterTab(SettingsBaseTab):
         self._filter_table_widget.setStyleSheet(APP_THEME.table_qss())
 
         header = self._filter_table_widget.horizontalHeader()
+        header.setSectionsClickable(True)
         header.setMinimumSectionSize(36)
         header.setSectionResizeMode(self.COL_EDIT, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(self.COL_NAME, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(
-            self.COL_COUNT, QHeaderView.ResizeMode.ResizeToContents
+            self.COL_GROUP, QHeaderView.ResizeMode.ResizeToContents
         )
+        header.setSectionResizeMode(self.COL_COUNT, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(self.COL_REFRESH, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(
-            self.COL_CRITERIA_COUNT, QHeaderView.ResizeMode.ResizeToContents
+            self.COL_CRITERIA_COUNT, QHeaderView.ResizeMode.Fixed
         )
         header.setSectionResizeMode(self.COL_TYPES, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(self.COL_DELETE, QHeaderView.ResizeMode.Fixed)
         self._filter_table_widget.setColumnWidth(self.COL_EDIT, 36)
+        self._filter_table_widget.setColumnWidth(self.COL_COUNT, 50)
         self._filter_table_widget.setColumnWidth(self.COL_REFRESH, 32)
+        self._filter_table_widget.setColumnWidth(self.COL_CRITERIA_COUNT, 40)
         self._filter_table_widget.setColumnWidth(self.COL_DELETE, 36)
 
-        # Enable clickable sorting on name and count columns
+        # Enable clickable sorting on name, group, and count columns
         header.setSortIndicatorShown(True)
         header.setSortIndicator(self._sort_column, self._sort_order)
         header.sortIndicatorChanged.connect(self._on_sort_changed)
+        if isinstance(header, SettingsFilterHeader):
+            header.groupedSortRequested.connect(self._on_sort_changed)
 
         self._filter_table_widget.doubleClicked.connect(self._on_double_click)
         self.content_layout.addWidget(self._filter_table_widget, 1)
@@ -323,12 +363,45 @@ class SettingsFilterTab(SettingsBaseTab):
             self._search_text = self._search_edit.text().strip().lower()
         if self._criteria_combo is not None:
             self._search_type = str(self._criteria_combo.currentData() or "")
+        if self._group_combo is not None:
+            group_data = self._group_combo.currentData()
+            if group_data == "" or group_data is None:
+                self._search_group = None
+            elif group_data == "__edited_recently__":
+                self._search_group = "__edited_recently__"
+            else:
+                self._search_group = int(group_data)
         self._refresh_filter_list()
+
+    def _populate_group_filter(self) -> None:
+        """Populate the Group filter combobox with available groups."""
+        combo = self._group_combo
+        if combo is None:
+            return
+        combo.blockSignals(True)
+        # Keep the first two items: "- All Groups -" and "Edited Recently"
+        while combo.count() > 2:
+            combo.removeItem(2)
+        try:
+            groups = self.state.list_filter_groups()
+            for grp in groups:
+                # Exclude "Edited Recently" — already added as special item
+                if grp.get("name") == "Edited Recently":
+                    continue
+                combo.addItem(grp["name"], userData=grp["group_id"])
+        except Exception:
+            pass
+        combo.blockSignals(False)
 
     def _on_sort_changed(self, column: int, order: Qt.SortOrder) -> None:
         """Handle column header click to sort the filter list."""
-        # Only allow sorting on name and count columns
-        if column not in (self.COL_NAME, self.COL_COUNT, self.COL_CRITERIA_COUNT):
+        # Allow sorting on name, group, and count columns
+        if column not in (
+            self.COL_NAME,
+            self.COL_GROUP,
+            self.COL_COUNT,
+            self.COL_CRITERIA_COUNT,
+        ):
             if self._filter_table_widget is not None:
                 header = self._filter_table_widget.horizontalHeader()
                 header.setSortIndicator(self._sort_column, self._sort_order)
@@ -485,6 +558,31 @@ class SettingsFilterTab(SettingsBaseTab):
             if self._search_type.casefold() not in types_in_filter:
                 return False
 
+        # Match by group
+        if self._search_group is not None:
+            filter_group_id = filter_cfg.get("group_id")
+            if self._search_group == "__edited_recently__":
+                # Check if filter was modified in the last 7 days
+                last_modified = filter_cfg.get("last_modified")
+                if last_modified is None:
+                    return False
+                from datetime import datetime, timedelta
+
+                cutoff = datetime.now(UTC) - timedelta(days=7)
+                # last_modified might be a datetime or string
+                if isinstance(last_modified, str):
+                    try:
+                        last_modified = datetime.fromisoformat(last_modified)
+                    except ValueError, AttributeError:
+                        return False
+                if last_modified.tzinfo is None:
+                    last_modified = last_modified.replace(tzinfo=UTC)
+                if last_modified < cutoff:
+                    return False
+            else:
+                if filter_group_id != self._search_group:
+                    return False
+
         # Match by tag values
         if self._search_tags:
             tag_values_in_filter: set[str] = set()
@@ -525,6 +623,11 @@ class SettingsFilterTab(SettingsBaseTab):
                 key=lambda f: f.get("name", "").lower(),
                 reverse=self._sort_order == Qt.SortOrder.DescendingOrder,
             )
+        elif self._sort_column == self.COL_GROUP:
+            filtered.sort(
+                key=lambda f: (f.get("group_name") or "(None)").lower(),
+                reverse=self._sort_order == Qt.SortOrder.DescendingOrder,
+            )
         elif self._sort_column == self.COL_COUNT:
             filtered.sort(
                 key=lambda f: self._sort_count_key(f),
@@ -544,6 +647,7 @@ class SettingsFilterTab(SettingsBaseTab):
             criteria_count = len(filters)
             criteria_types = sorted({f.get("filter", "") for f in filters})
             types_str = ", ".join(criteria_types) if criteria_types else "-"
+            is_system = filter_cfg.get("is_system", False)
 
             table.setCellWidget(
                 row_idx,
@@ -584,7 +688,12 @@ class SettingsFilterTab(SettingsBaseTab):
             # Name cell (elided with "..." when too long)
             name_item = QTableWidgetItem(name)
             name_item.setToolTip(name)
-            if filter_cfg.get("sort_option") == "manual" and filter_cfg.get(
+            if is_system:
+                name_item.setIcon(
+                    APP_THEME.icon("fa6s.lock", color=APP_THEME.config.color_text_muted)
+                )
+                name_item.setToolTip(f"{name}\n(System filter)")
+            elif filter_cfg.get("sort_option") == "manual" and filter_cfg.get(
                 "needs_rebuild"
             ):
                 name_item.setIcon(
@@ -598,6 +707,13 @@ class SettingsFilterTab(SettingsBaseTab):
                 )
             name_item.setFont(cell_font)
             table.setItem(row_idx, self.COL_NAME, name_item)
+
+            # Group column
+            group_name = filter_cfg.get("group_name") or "(None)"
+            group_item = QTableWidgetItem(str(group_name))
+            group_item.setToolTip(str(group_name))
+            group_item.setFont(cell_font)
+            table.setItem(row_idx, self.COL_GROUP, group_item)
 
             criteria_count_item = QTableWidgetItem(str(criteria_count))
             criteria_count_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -694,6 +810,11 @@ class SettingsFilterTab(SettingsBaseTab):
         if self._sort_column == self.COL_NAME:
             filters.sort(
                 key=lambda item: str(item.get("name", "")).casefold(),
+                reverse=self._sort_order == Qt.SortOrder.DescendingOrder,
+            )
+        elif self._sort_column == self.COL_GROUP:
+            filters.sort(
+                key=lambda item: (item.get("group_name") or "(None)").casefold(),
                 reverse=self._sort_order == Qt.SortOrder.DescendingOrder,
             )
         elif self._sort_column == self.COL_COUNT:
@@ -881,6 +1002,8 @@ class SettingsFilterTab(SettingsBaseTab):
     def open_edit_dialog(self, filter_cfg: dict[str, Any]) -> None:
         original_name = str(filter_cfg.get("name", ""))
         store = self._filter_store()
+        is_system = filter_cfg.get("is_system", False)
+        # System filters open in readonly mode
         dialog = self._make_dialog(
             filter_name=original_name,
             filters=list(filter_cfg.get("filters", [])),
@@ -889,6 +1012,9 @@ class SettingsFilterTab(SettingsBaseTab):
                 store.get_manual_items(original_name) if store is not None else []
             ),
             edit_mode=True,
+            group_id=filter_cfg.get("group_id"),
+            is_system=is_system,
+            is_visible=filter_cfg.get("is_visible", True),
         )
         dialog.saved.connect(partial(self._on_dialog_save, original_name))
         dialog.deleted.connect(self._on_dialog_delete)
@@ -902,6 +1028,13 @@ class SettingsFilterTab(SettingsBaseTab):
         dialog.saved.connect(partial(self._on_dialog_save, ""))
         self._show_dialog(dialog)
 
+    def open_groups_dialog(self) -> None:
+        """Open the Filter Groups management dialog."""
+        popup = SettingsFilterGroupsDialog(
+            self.state, self.log_util, parent=self.window()
+        )
+        popup.open()
+
     def _make_dialog(
         self,
         filter_name: str,
@@ -909,6 +1042,9 @@ class SettingsFilterTab(SettingsBaseTab):
         edit_mode: bool,
         sort_option: str = "default",
         manual_items: list[dict[str, Any]] | None = None,
+        group_id: int | None = None,
+        is_system: bool = False,
+        is_visible: bool = True,
     ) -> FilterCriteriaDialog:
         return FilterCriteriaDialog(
             genres=GENRES,
@@ -922,6 +1058,9 @@ class SettingsFilterTab(SettingsBaseTab):
             manual_items=manual_items,
             edit_mode=edit_mode,
             readonly=False,
+            group_id=group_id,
+            is_system=is_system,
+            is_visible=is_visible,
             parent=self.window(),
         )
 
@@ -983,6 +1122,8 @@ class SettingsFilterTab(SettingsBaseTab):
         filters: list[dict[str, str]],
         sort_option: str,
         manual_items: list[dict[str, Any]],
+        group_id: int | None = None,
+        is_visible: bool = True,
     ) -> None:
         """Defer persistence until the dialog has fully closed."""
         QTimer.singleShot(
@@ -994,6 +1135,8 @@ class SettingsFilterTab(SettingsBaseTab):
                 filters,
                 sort_option,
                 manual_items,
+                group_id,
+                is_visible,
             ),
         )
 
@@ -1004,6 +1147,8 @@ class SettingsFilterTab(SettingsBaseTab):
         filters: list[dict[str, str]],
         sort_option: str,
         manual_items: list[dict[str, Any]],
+        group_id: int | None = None,
+        is_visible: bool = True,
     ) -> None:
         self.state.save_filter(
             name,
@@ -1011,6 +1156,8 @@ class SettingsFilterTab(SettingsBaseTab):
             original_name=original_name or None,
             sort_option=sort_option,
             manual_items=manual_items if sort_option == "manual" else None,
+            group_id=group_id,
+            is_visible=is_visible,
         )
         self._refresh_filter_list()
         self._refresh_one_filter(name)

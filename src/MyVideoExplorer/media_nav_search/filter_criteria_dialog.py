@@ -8,6 +8,7 @@ from PySide6.QtGui import QColor, QFont, QStandardItemModel
 from PySide6.QtWidgets import (
     QAbstractItemDelegate,
     QAbstractItemView,
+    QCheckBox,
     QComboBox,
     QDialog,
     QHBoxLayout,
@@ -41,12 +42,15 @@ class FilterCriteriaDialog(QDialog):
     Modal dialog for viewing and editing filter criteria.
 
     Supports edit mode (pre-filled with save/cancel/delete) and add mode
-    (empty with save/cancel only). Manual sort mode exposes the matched videos
-    with ordering controls. Readonly mode is for display-only use.
+    (empty with save/cancel only). System filters keep their criteria fixed while
+    allowing visibility and sort settings to be changed. Manual sort mode exposes
+    the matched videos with ordering controls. Readonly mode is for display-only use.
     """
 
     # Emitted when the user saves the filter
-    saved = Signal(str, list, str, list)  # name, criteria, sort option, manual order
+    saved = Signal(
+        str, list, str, list, int, bool
+    )  # name, criteria, sort option, manual order, group_id, is_visible
     # Emitted when the user deletes the filter
     deleted = Signal(str)  # filter_name
     # Emitted when the user clicks Edit in readonly mode
@@ -65,6 +69,9 @@ class FilterCriteriaDialog(QDialog):
         manual_items: list[dict[str, Any]] | None = None,
         edit_mode: bool = True,
         readonly: bool = False,
+        group_id: int | None = None,
+        is_system: bool = False,
+        is_visible: bool = True,
         parent: QWidget | None = None,
     ) -> None:
         """
@@ -95,11 +102,16 @@ class FilterCriteriaDialog(QDialog):
         self._initial_manual_items = manual_items or []
         self._edit_mode = edit_mode
         self._readonly = readonly
+        self._group_id = group_id
+        self._is_system = is_system
+        self._is_visible = is_visible
 
         self._name_edit: QLineEdit | None = None
         self._filter_table: FolderFilterTable | None = None
         self._criteria_type_combo: QComboBox | None = None
         self._sort_combo: SelectComboBox | None = None
+        self._group_combo: SelectComboBox | None = None
+        self._visible_checkbox: QCheckBox | None = None
         self._results_tree: QTreeWidget | None = None
         self._result_items: list[dict[str, Any]] = []
         self._results_timer = QTimer(self)
@@ -167,12 +179,14 @@ class FilterCriteriaDialog(QDialog):
         self._name_edit = NameWidget(self)
         self._name_edit.setText(self._filter_name)
         self._name_edit.setPlaceholderText("Enter filter name")
-        if self._readonly:
+        if self._readonly or self._is_system:
             self._name_edit.setReadOnly(True)
         name_layout.addWidget(self._name_edit)
         layout.addLayout(name_layout)
 
         sort_layout = QHBoxLayout()
+        sort_layout.setSpacing(8)
+
         sort_label = QLabel("Sort:", self)
         sort_label.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
         sort_layout.addWidget(sort_label)
@@ -201,10 +215,35 @@ class FilterCriteriaDialog(QDialog):
         self._sort_combo.setCurrentIndex(max(0, current_sort_index))
         APP_THEME.setup_combo_box(self._sort_combo)
         sort_layout.addWidget(self._sort_combo)
+
+        # Group combobox
+        group_label = QLabel("Group:", self)
+        group_label.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
+        sort_layout.addWidget(group_label)
+        self._group_combo = SelectComboBox(self)
+        self._group_combo.setEditable(True)
+        self._group_combo.setMinimumWidth(140)
+        self._populate_group_combo()
+        if self._readonly or self._is_system:
+            self._group_combo.setEnabled(False)
+        APP_THEME.setup_combo_box(self._group_combo)
+        sort_layout.addWidget(self._group_combo)
+
+        # Visible checkbox (always editable, even for system filters)
+        self._visible_checkbox = QCheckBox("Visible", self)
+        self._visible_checkbox.setFont(
+            QFont(APP_THEME.font_family, APP_THEME.font_size)
+        )
+        self._visible_checkbox.setChecked(self._is_visible)
+        if self._readonly:
+            self._visible_checkbox.setEnabled(False)
+        APP_THEME.setup_checkbox(self._visible_checkbox)
+        sort_layout.addWidget(self._visible_checkbox)
+
         sort_layout.addStretch(1)
         layout.addLayout(sort_layout)
 
-        if not self._readonly:
+        if not self._readonly and not self._is_system:
             layout.addLayout(self._build_add_criteria_row())
 
         # Filter criteria table in scroll area
@@ -218,7 +257,7 @@ class FilterCriteriaDialog(QDialog):
             tags=self.tags,
             tag_store=self._tag_store,
             state=self._state,
-            readonly=self._readonly,
+            readonly=self._readonly or self._is_system,
         )
         scroll.setWidget(self._filter_table)
         layout.addWidget(scroll, 1)
@@ -265,7 +304,7 @@ class FilterCriteriaDialog(QDialog):
             cancel_button.clicked.connect(self.reject)
             button_layout.addWidget(cancel_button)
 
-            if self._edit_mode:
+            if self._edit_mode and not self._is_system:
                 delete_button = DelayedDeleteButton(self)
                 delete_button.setIconSize(
                     QSize(APP_THEME.icon_size, APP_THEME.icon_size)
@@ -376,6 +415,42 @@ class FilterCriteriaDialog(QDialog):
 
     def _filter_store(self):
         return getattr(self._state, "filter_store", None)
+
+    def _populate_group_combo(self) -> None:
+        """Populate the Group combobox with available filter groups."""
+        combo = self._group_combo
+        if combo is None:
+            return
+        combo.blockSignals(True)
+        combo.clear()
+        combo.addItem("- None -", userData="")
+        store = self._filter_store()
+        if store is not None:
+            try:
+                groups = store.list_groups()
+                for grp in groups:
+                    # Exclude "Edited Recently" from the picker (settings-only)
+                    if grp.get("name") == "Edited Recently":
+                        continue
+                    combo.addItem(grp["name"], userData=grp["group_id"])
+                # Select the current group
+                if self._group_id is not None:
+                    idx = combo.findData(self._group_id)
+                    if idx >= 0:
+                        combo.setCurrentIndex(idx)
+            except Exception:
+                pass
+        combo.blockSignals(False)
+
+    def _get_selected_group_id(self) -> int | None:
+        """Get the currently selected group ID from the combobox."""
+        combo = self._group_combo
+        if combo is None:
+            return None
+        data = combo.currentData()
+        if data == "" or data is None:
+            return None
+        return int(data)
 
     def _on_sort_changed(self, _index: int) -> None:
         combo = self._sort_combo
@@ -604,15 +679,22 @@ class FilterCriteriaDialog(QDialog):
         filter_name: str,
         filters: list[dict[str, str]],
         sort_option: str = "default",
+        group_id: int | None = None,
+        is_visible: bool = True,
     ) -> None:
         """Update the dialog with new filter data (used for readonly popup refresh)."""
         self._filter_name = filter_name
         self._sort_option = sort_option
+        self._group_id = group_id
+        self._is_visible = is_visible
         if self._name_edit is not None:
             self._name_edit.setText(filter_name)
         if self._sort_combo is not None:
             index = self._sort_combo.findData(sort_option)
             self._sort_combo.setCurrentIndex(max(0, index))
+        if self._visible_checkbox is not None:
+            self._visible_checkbox.setChecked(is_visible)
+        self._populate_group_combo()
         table = self._filter_table
         if table is not None:
             table.setRowCount(0)
@@ -647,7 +729,20 @@ class FilterCriteriaDialog(QDialog):
         self._refresh_results()
         # Close first so listeners never rebuild UI while this dialog is still active
         self.accept()
-        self.saved.emit(name, filters, self._sort_option, list(self._result_items))
+        group_id = self._get_selected_group_id()
+        is_visible = (
+            self._visible_checkbox.isChecked()
+            if self._visible_checkbox is not None
+            else True
+        )
+        self.saved.emit(
+            name,
+            filters,
+            self._sort_option,
+            list(self._result_items),
+            group_id,
+            is_visible,
+        )
 
     def _on_delete(self) -> None:
         # Delete the filter that was opened, even if the name field was edited

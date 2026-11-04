@@ -13,6 +13,7 @@ SNOWFLAKE_ID_MIGRATION = "20261101_snowflake_ids.sql"
 
 FILTER_SNOWFLAKE_MIGRATION = "20261102_filter_snowflake_ids.sql"
 MANUAL_FILTER_LISTS_MIGRATION = "20261103_manual_filter_lists.sql"
+FILTER_GROUPS_MIGRATION = "20261104_filter_groups.sql"
 
 DbType = Literal["media", "filter_catalog", "tag_catalog"]
 
@@ -44,6 +45,7 @@ class DbMigrations:
                     "20261101_create_tag_catalog",
                     "20261102_filter_snowflake_ids",
                     "20261103_manual_filter_lists",
+                    "20261104_filter_groups",
                 )
             )
         if self.db_type == "filter_catalog":
@@ -52,6 +54,7 @@ class DbMigrations:
                     "20261101_create_filter_catalog",
                     "20261102_filter_snowflake_ids",
                     "20261103_manual_filter_lists",
+                    "20261104_filter_groups",
                 )
             )
         return migration_name.startswith(self._migration_prefix())
