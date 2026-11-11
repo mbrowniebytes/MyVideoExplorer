@@ -106,6 +106,7 @@ class TagCloudWidget(QWidget):
             self.add_tag_button.setObjectName("add_tag_button")
             self.add_tag_button.clicked.connect(self._begin_add_tag)
             controls.addWidget(self.add_tag_button)
+        self._extra_controls = controls
         layout.addLayout(controls)
 
         self.cloud_container = QWidget(self)
@@ -116,6 +117,10 @@ class TagCloudWidget(QWidget):
         self.filter_edit.textChanged.connect(self.refresh)
         self.sort_combo.currentIndexChanged.connect(self._on_sort_changed)
         self.set_tags(tags or [])
+
+    def add_control_widget(self, widget: QWidget) -> None:
+        """Add a widget to the controls row, after the existing controls."""
+        self._extra_controls.addWidget(widget)
 
     @property
     def tags(self) -> list[dict[str, Any]]:

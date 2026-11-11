@@ -60,7 +60,9 @@ tmp/*
 # app
 db/*.db
 db/backups/*.db
+/utils/
 cfg/settings*.json
 cfg/backups/settings*.json
 log/*.log
+
 

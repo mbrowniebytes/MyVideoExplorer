@@ -10,6 +10,7 @@ class TestMediaSettingsSignals:
     @pytest.fixture
     def settings_media_tab(self, qtbot):
         mock_state = MagicMock()
+        mock_state.ffmpeg_path = ""
         mock_log_util = MagicMock()
         mock_file_util = MagicMock()
 

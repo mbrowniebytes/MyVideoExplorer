@@ -124,6 +124,23 @@ class DbScanUtil:
 
         self._run_in_transaction(_delete)
 
+    def delete_ffprobe_meta_by_file_id(self, media_file_id: int) -> None:
+        """Delete ffprobe metadata rows for a single media file.
+
+        Call this before or after deleting the corresponding `media_file` row
+        to avoid orphaned rows in `media_file_video`, `media_file_audio`, and
+        `media_file_subtitle`.
+        """
+
+        def _delete(con):
+            con.execute(db_query.DbQuery.FfprobeVideo.DELETE_BY_FILE, (media_file_id,))
+            con.execute(db_query.DbQuery.FfprobeAudio.DELETE_BY_FILE, (media_file_id,))
+            con.execute(
+                db_query.DbQuery.FfprobeSubtitle.DELETE_BY_FILE, (media_file_id,)
+            )
+
+        self._run_in_transaction(_delete)
+
     def save_media(
         self, media_list: list[dict[str, Any]], media_path: str, progress_callback=None
     ):
@@ -143,6 +160,20 @@ class DbScanUtil:
         try:
             # 1. Delete records for the scanned folder that are no longer present
             def _cleanup(con):
+                # Delete ffprobe metadata for files being removed
+                con.execute(
+                    db_query.DbQuery.FfprobeVideo.DELETE_BY_DIR,
+                    (normalized_media_path,),
+                )
+                con.execute(
+                    db_query.DbQuery.FfprobeAudio.DELETE_BY_DIR,
+                    (normalized_media_path,),
+                )
+                con.execute(
+                    db_query.DbQuery.FfprobeSubtitle.DELETE_BY_DIR,
+                    (normalized_media_path,),
+                )
+                # Delete media file records no longer present
                 con.execute(
                     db_query.DbQuery.MediaFile.DELETE_BY_DIR_NOT_IN,
                     (normalized_media_path, normalized_file_paths),

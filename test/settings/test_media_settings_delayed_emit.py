@@ -19,6 +19,7 @@ class TestMediaSettingsDelayedEmit:
             }
         ]
         mock_state.db_enabled.return_value = True
+        mock_state.ffmpeg_path = ""
 
         mock_log_util = MagicMock()
         mock_file_util = MagicMock()

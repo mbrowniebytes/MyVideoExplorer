@@ -1,18 +1,26 @@
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
 from PySide6.QtCore import Qt
 
 from MyVideoExplorer.folder_filter.folder_filter_media import FolderFilterMedia
 from MyVideoExplorer.settings.settings_state import SettingsState
 
 
-def test_refresh_on_signal(qtbot):
+@pytest.fixture
+def filter_db_path(tmp_path):
+    """Provide an isolated filter database path to avoid file lock conflicts."""
+    return tmp_path / "filter_catalog.db"
+
+
+def test_refresh_on_signal(qtbot, filter_db_path: Path):
     mock_log_util = MagicMock()
     with patch("MyVideoExplorer.settings.settings_state.SettingsState._load_settings"):
         with patch(
             "MyVideoExplorer.settings.settings_state.SettingsState._ensure_defaults"
         ):
-            state = SettingsState(mock_log_util)
+            state = SettingsState(mock_log_util, filter_db_path=filter_db_path)
             state.media_configs = [{"label": "Media1", "path": "/path1"}]
 
             # Need a mock settings object that has settings_data_model

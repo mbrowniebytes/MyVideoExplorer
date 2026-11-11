@@ -22,6 +22,7 @@ class TestSettingsMediaScanAll:
             {"label": "TV", "path": str(folder2)},
         ]
         mock_state.db_enabled.return_value = True
+        mock_state.ffmpeg_path = ""
         mock_state.get_db_path.return_value = str(tmp_path / "media.db")
 
         mock_log = MagicMock()

@@ -3,11 +3,13 @@ from __future__ import annotations
 import logging
 from datetime import UTC
 from functools import partial
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import QModelIndex, QSize, Qt, QTimer
 from PySide6.QtGui import QFont, QStandardItemModel
 from PySide6.QtWidgets import (
+    QFileDialog,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
@@ -24,16 +26,18 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from MyVideoExplorer.db.db_filters import DbFilters
+from MyVideoExplorer.db.db_filters import FILTER_SORT_OPTIONS, DbFilters
 from MyVideoExplorer.folder_filter.folder_filter_table import FolderFilterTable
 from MyVideoExplorer.media_nav_search.filter_criteria_dialog import FilterCriteriaDialog
 from MyVideoExplorer.settings.filter_refresh_worker import FilterRefreshWorker
 from MyVideoExplorer.settings.filter_scan_worker import FilterScanWorker
 from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
+from MyVideoExplorer.settings.settings_export import SettingsExportWorker
 from MyVideoExplorer.settings.settings_filter_groups_dialog import (
     SettingsFilterGroupsDialog,
 )
 from MyVideoExplorer.settings.settings_filter_header import SettingsFilterHeader
+from MyVideoExplorer.settings.settings_import import SettingsImportWorker
 from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.tag_cloud.tag_picker_dialog import TagPickerDialog
 from MyVideoExplorer.tag_cloud.tag_util import get_contrast_text_color
@@ -110,6 +114,10 @@ class SettingsFilterTab(SettingsBaseTab):
         self._bulk_progress_bar: QProgressBar | None = None
         self._active_refresh_worker: FilterRefreshWorker | None = None
         self._scan_workers: set[FilterScanWorker] = set()
+        self._export_worker: SettingsExportWorker | None = None
+        self._import_worker: SettingsImportWorker | None = None
+        self._export_btn: ActionButton | None = None
+        self._import_btn: ActionButton | None = None
         self._worker_is_bulk = False
         self._progress_index = 0
         self._busy_filter_name: str | None = None
@@ -212,6 +220,20 @@ class SettingsFilterTab(SettingsBaseTab):
         )
         groups_btn.clicked.connect(self.open_groups_dialog)
         search_row.addWidget(groups_btn)
+
+        # Export filters button
+        self._export_btn = ActionButton(
+            self, icon_name="fa6s.file-export", tooltip="Export filters to JSON"
+        )
+        self._export_btn.clicked.connect(self._on_export_clicked)
+        search_row.addWidget(self._export_btn)
+
+        # Import filters button
+        self._import_btn = ActionButton(
+            self, icon_name="fa6s.file-import", tooltip="Import filters from JSON"
+        )
+        self._import_btn.clicked.connect(self._on_import_clicked)
+        search_row.addWidget(self._import_btn)
 
         search_layout.addLayout(search_row)
 
@@ -1189,6 +1211,207 @@ class SettingsFilterTab(SettingsBaseTab):
     def _persist_delete(self, name: str) -> None:
         self.state.delete_filter(name)
         self._refresh_filter_list()
+
+    # ---- Export / Import ----
+
+    def _on_export_clicked(self) -> None:
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Export Filters",
+            "filters_export.json",
+            "JSON Files (*.json)",
+        )
+        if not file_path:
+            return
+        self._set_export_import_enabled(False)
+        worker = SettingsExportWorker(self._build_export_data, Path(file_path))
+        self._export_worker = worker
+        worker.progress.connect(self._on_export_progress)
+        worker.finished.connect(self._on_export_finished)
+        worker.failed.connect(self._on_export_failed)
+        worker.start()
+
+    def _build_export_data(self) -> dict[str, Any]:
+        """Build the JSON payload for export, excluding system entries and internal fields."""
+        filters = self.state.filter_store.list_filters()
+        groups = self.state.filter_store.list_groups()
+
+        export_groups = [
+            {"group_id": g["group_id"], "name": g["name"]}
+            for g in groups
+            if not g["is_system"]
+        ]
+
+        export_filters = []
+        for f in filters:
+            if f["is_system"]:
+                continue
+            entry: dict[str, Any] = {
+                "name": f["name"],
+                "filters": f["filters"],
+                "sort_option": f["sort_option"],
+                "group_name": f.get("group_name") or "",
+                "is_visible": f["is_visible"],
+            }
+            if f["sort_option"] == "manual":
+                manual = self.state.filter_store.get_manual_items(f["name"])
+                entry["manual_items"] = [
+                    {
+                        "order_index": idx,
+                        "media_folder": item["media_folder"],
+                        "rel_path": item["rel_path"],
+                    }
+                    for idx, item in enumerate(manual, start=1)
+                ]
+            export_filters.append(entry)
+
+        return {"groups": export_groups, "filters": export_filters}
+
+    def _on_export_progress(self, current: int, total: int, label: str) -> None:
+        if self._bulk_progress_bar is not None:
+            self._bulk_progress_bar.show()
+            self._bulk_progress_bar.setMaximum(total)
+            self._bulk_progress_bar.setValue(current)
+
+    def _on_export_finished(self) -> None:
+        if self._bulk_progress_bar is not None:
+            self._bulk_progress_bar.hide()
+        self._export_worker = None
+        self._set_export_import_enabled(True)
+        QMessageBox.information(
+            self, "Export Complete", "Filters exported successfully."
+        )
+
+    def _on_export_failed(self, error_msg: str) -> None:
+        if self._bulk_progress_bar is not None:
+            self._bulk_progress_bar.hide()
+        self._export_worker = None
+        self._set_export_import_enabled(True)
+        QMessageBox.critical(self, "Export Failed", error_msg)
+
+    def _on_import_clicked(self) -> None:
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Import Filters",
+            "",
+            "JSON Files (*.json)",
+        )
+        if not file_path:
+            return
+        self._set_export_import_enabled(False)
+        worker = SettingsImportWorker(Path(file_path), self._validate_import_data)
+        self._import_worker = worker
+        worker.progress.connect(self._on_import_progress)
+        worker.data_ready.connect(self._on_import_data_ready)
+        worker.failed.connect(self._on_import_failed)
+        worker.finished.connect(self._on_import_finished)
+        worker.start()
+
+    def _validate_import_data(self, data: dict[str, Any]) -> list[str]:
+        """Validate the structure of imported filter data."""
+        errors: list[str] = []
+        if not isinstance(data, dict):
+            return ["Import file must contain a JSON object."]
+        filters = data.get("filters")
+        if not isinstance(filters, list):
+            return ["Import file must contain a 'filters' array."]
+        for idx, f in enumerate(filters):
+            prefix = f"Filter {idx + 1}"
+            name = f.get("name")
+            if not name or not isinstance(name, str) or not name.strip():
+                errors.append(f"{prefix}: missing or empty 'name'.")
+            criteria = f.get("filters")
+            if not isinstance(criteria, list) or not criteria:
+                errors.append(f"{prefix}: missing or empty 'filters' array.")
+            sort_option = f.get("sort_option")
+            if sort_option not in FILTER_SORT_OPTIONS:
+                errors.append(
+                    f"{prefix}: invalid 'sort_option' '{sort_option}'. "
+                    f"Must be one of: {', '.join(sorted(FILTER_SORT_OPTIONS))}."
+                )
+            if "manual_items" in f:
+                items = f["manual_items"]
+                if not isinstance(items, list):
+                    errors.append(f"{prefix}: 'manual_items' must be an array.")
+        return errors
+
+    def _on_import_progress(self, current: int, total: int, label: str) -> None:
+        if self._bulk_progress_bar is not None:
+            self._bulk_progress_bar.show()
+            self._bulk_progress_bar.setMaximum(total)
+            self._bulk_progress_bar.setValue(current)
+
+    def _on_import_data_ready(self, data: dict[str, Any]) -> None:
+        """Apply the validated import data to the filter store."""
+        groups_data = data.get("groups", [])
+        filters_data = data.get("filters", [])
+
+        # Build a name -> group_id map for existing groups
+        existing_groups = self.state.filter_store.list_groups()
+        group_map: dict[str, int] = {
+            g["name"].casefold(): g["group_id"] for g in existing_groups
+        }
+
+        # Create missing groups
+        for g in groups_data:
+            gname = g.get("name", "")
+            if gname and gname.casefold() not in group_map:
+                try:
+                    gid = self.state.filter_store.create_group(gname)
+                    group_map[gname.casefold()] = gid
+                except ValueError:
+                    pass
+
+        # Import each filter
+        for f in filters_data:
+            name = f.get("name", "").strip()
+            if not name:
+                continue
+            criteria = f.get("filters", [])
+            sort_option = f.get("sort_option", "default")
+            group_name = f.get("group_name", "")
+            is_visible = f.get("is_visible", True)
+
+            group_id = None
+            if group_name:
+                group_id = group_map.get(group_name.casefold())
+
+            manual_items = f.get("manual_items")
+            try:
+                self.state.filter_store.save_filter(
+                    name=name,
+                    criteria=criteria,
+                    sort_option=sort_option,
+                    manual_items=manual_items,
+                    group_id=group_id,
+                    is_visible=is_visible,
+                )
+            except ValueError:
+                pass
+
+        self._refresh_filter_list()
+
+    def _on_import_finished(self) -> None:
+        if self._bulk_progress_bar is not None:
+            self._bulk_progress_bar.hide()
+        self._import_worker = None
+        self._set_export_import_enabled(True)
+        QMessageBox.information(
+            self, "Import Complete", "Filters imported successfully."
+        )
+
+    def _on_import_failed(self, error_msg: str) -> None:
+        if self._bulk_progress_bar is not None:
+            self._bulk_progress_bar.hide()
+        self._import_worker = None
+        self._set_export_import_enabled(True)
+        QMessageBox.critical(self, "Import Failed", error_msg)
+
+    def _set_export_import_enabled(self, enabled: bool) -> None:
+        if self._export_btn is not None:
+            self._export_btn.setEnabled(enabled)
+        if self._import_btn is not None:
+            self._import_btn.setEnabled(enabled)
 
     def apply_theme(self) -> None:
         super().apply_theme()

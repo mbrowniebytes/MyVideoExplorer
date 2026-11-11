@@ -21,12 +21,17 @@ class FontUtil:
             self.log_util.error(f"Font directory not found: {fonts_dir}")
             return
 
-        loaded_fonts = 0
+        self.log_util.debug(f"Loading fonts from: {fonts_dir}")
+
+        loaded_fonts = []
         for font_file in fonts_dir.glob("*.ttf"):
             if QFontDatabase.addApplicationFont(str(font_file)) != -1:
-                loaded_fonts += 1
+                loaded_fonts.append(font_file.name)
         # for font_file in fonts_dir.glob("*.otf"):
         #     if QFontDatabase.addApplicationFont(str(font_file)) != -1:
-        #         loaded_fonts += 1
+        #         loaded_fonts.append(font_file.name)
 
-        self.log_util.debug(f"Loaded {loaded_fonts} custom fonts from {fonts_dir}")
+        if loaded_fonts:
+            self.log_util.debug(f"Using font: {loaded_fonts[0]}")
+        else:
+            self.log_util.debug(f"No custom fonts found in {fonts_dir}")

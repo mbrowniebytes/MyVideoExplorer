@@ -217,6 +217,9 @@ class LogUtil:
         root_logger.addHandler(self._file_handler)
         root_logger.setLevel(effective_level)
 
+        # Suppress noisy asyncio "Using proactor" messages from stdlib
+        logging.getLogger("asyncio").setLevel(logging.WARNING)
+
         self._logger_initialized = True
 
         return self

@@ -1,6 +1,6 @@
 import datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QFont
@@ -15,15 +15,19 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSizePolicy,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
+from MyVideoExplorer.settings.settings_export import SettingsExportWorker
+from MyVideoExplorer.settings.settings_import import SettingsImportWorker
 from MyVideoExplorer.settings.settings_media_folder_browser_section import (
     SettingsMediaFolderBrowserSection,
 )
+from MyVideoExplorer.settings.settings_meta_tab import SettingsMetaTab
 from MyVideoExplorer.settings.settings_state import (
     DEFAULT_SCAN_MEDIA_TIMEOUT_SECONDS,
     SCAN_MEDIA_TIMEOUT_OPTIONS,
@@ -35,6 +39,9 @@ from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.widgets.buttons.action_button import ActionButton
 from MyVideoExplorer.widgets.combo_boxes.select_combo_box import SelectComboBox
+
+if TYPE_CHECKING:
+    from PySide6.QtWidgets import QProgressBar
 
 
 class SettingsMediaTab(SettingsBaseTab):
@@ -53,13 +60,29 @@ class SettingsMediaTab(SettingsBaseTab):
         self.file_util = file_util
         self.nfo_util = NfoParseUtil(file_util, log_util)
 
+        self._export_worker: SettingsExportWorker | None = None
+        self._import_worker: SettingsImportWorker | None = None
+        self._export_btn: ActionButton | None = None
+        self._import_btn: ActionButton | None = None
+        self._progress_bar: QProgressBar | None = None
+
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(0)
 
-        scroll = QScrollArea(self)
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        self.tab_widget = QTabWidget(self)
+        self._layout.addWidget(self.tab_widget)
+
+        # Media sub-tab (existing content)
+        self.media_tab = QWidget()
+        self.media_scroll = QScrollArea(self.media_tab)
+        self.media_scroll.setWidgetResizable(True)
+        self.media_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+
+        media_layout = QVBoxLayout(self.media_tab)
+        media_layout.setContentsMargins(0, 0, 0, 0)
+        media_layout.setSpacing(0)
+        media_layout.addWidget(self.media_scroll)
 
         self.main_widget = QWidget(self)
         self.content_layout = QVBoxLayout(self.main_widget)
@@ -72,8 +95,12 @@ class SettingsMediaTab(SettingsBaseTab):
         self._build_ui()
         self.content_layout.addStretch()
 
-        scroll.setWidget(self.main_widget)
-        self._layout.addWidget(scroll)
+        self.media_scroll.setWidget(self.main_widget)
+        self.tab_widget.addTab(self.media_tab, "Media")
+
+        # Meta sub-tab (new ffmpeg scan config)
+        self.meta_tab = SettingsMetaTab(self.state, log_util, file_util)
+        self.tab_widget.addTab(self.meta_tab, "Meta")
 
     def _build_ui(self) -> None:
         # Dropdown
@@ -177,6 +204,22 @@ class SettingsMediaTab(SettingsBaseTab):
 
         save_btn_layout.addWidget(self.reset_btn)
         save_btn_layout.addStretch()
+
+        self._export_btn = ActionButton(
+            self, icon_name="fa6s.file-export", tooltip="Export media settings to JSON"
+        )
+        self._export_btn.clicked.connect(self._on_export_clicked)
+        save_btn_layout.addWidget(self._export_btn)
+
+        self._import_btn = ActionButton(
+            self,
+            icon_name="fa6s.file-import",
+            tooltip="Import media settings from JSON",
+        )
+        self._import_btn.clicked.connect(self._on_import_clicked)
+        save_btn_layout.addWidget(self._import_btn)
+
+        save_btn_layout.addStretch()
         save_btn_layout.addWidget(add_btn)
         save_btn_layout.addStretch()
         save_btn_layout.addWidget(self.save_btn)
@@ -185,11 +228,165 @@ class SettingsMediaTab(SettingsBaseTab):
             alignment=Qt.AlignmentFlag.AlignBottom,
         )
 
+    # ---- Export / Import ----
+
+    def _on_export_clicked(self) -> None:
+        from PySide6.QtWidgets import QFileDialog
+
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Export Media Settings",
+            "media_export.json",
+            "JSON Files (*.json)",
+        )
+        if not file_path:
+            return
+        self._set_export_import_enabled(False)
+        worker = SettingsExportWorker(self._build_export_data, Path(file_path))
+        self._export_worker = worker
+        worker.progress.connect(self._on_export_progress)
+        worker.finished.connect(self._on_export_finished)
+        worker.failed.connect(self._on_export_failed)
+        worker.start()
+
+    def _build_export_data(self) -> dict[str, Any]:
+        """Build the JSON payload for exporting media settings."""
+        return {
+            "media_configs": self.state.media_configs,
+            "db_enabled": self.state._db_enabled,
+        }
+
+    def _on_export_progress(self, current: int, total: int, label: str) -> None:
+        self._show_progress(current, total)
+
+    def _on_export_finished(self) -> None:
+        self._hide_progress()
+        self._export_worker = None
+        self._set_export_import_enabled(True)
+        QMessageBox.information(
+            self, "Export Complete", "Media settings exported successfully."
+        )
+
+    def _on_export_failed(self, error_msg: str) -> None:
+        self._hide_progress()
+        self._export_worker = None
+        self._set_export_import_enabled(True)
+        QMessageBox.critical(self, "Export Failed", error_msg)
+
+    def _on_import_clicked(self) -> None:
+        from PySide6.QtWidgets import QFileDialog
+
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Import Media Settings",
+            "",
+            "JSON Files (*.json)",
+        )
+        if not file_path:
+            return
+        self._set_export_import_enabled(False)
+        worker = SettingsImportWorker(Path(file_path), self._validate_import_data)
+        self._import_worker = worker
+        worker.progress.connect(self._on_import_progress)
+        worker.data_ready.connect(self._on_import_data_ready)
+        worker.failed.connect(self._on_import_failed)
+        worker.finished.connect(self._on_import_finished)
+        worker.start()
+
+    def _validate_import_data(self, data: dict[str, Any]) -> list[str]:
+        """Validate the structure of imported media settings data."""
+        errors: list[str] = []
+        if not isinstance(data, dict):
+            return ["Import file must contain a JSON object."]
+        media_configs = data.get("media_configs")
+        if not isinstance(media_configs, list):
+            return ["Import file must contain a 'media_configs' array."]
+        seen_labels: set[str] = set()
+        for idx, cfg in enumerate(media_configs):
+            prefix = f"Media config {idx + 1}"
+            if not isinstance(cfg, dict):
+                errors.append(f"{prefix}: must be a JSON object.")
+                continue
+            label = cfg.get("label")
+            if not label or not isinstance(label, str) or not label.strip():
+                errors.append(f"{prefix}: missing or empty 'label'.")
+            else:
+                key = label.strip().casefold()
+                if key in seen_labels:
+                    errors.append(f"{prefix}: duplicate label '{label.strip()}'.")
+                seen_labels.add(key)
+            path = cfg.get("path")
+            if not path or not isinstance(path, str) or not path.strip():
+                errors.append(f"{prefix}: missing or empty 'path'.")
+        db_enabled = data.get("db_enabled")
+        if db_enabled is not None and not isinstance(db_enabled, bool):
+            errors.append("'db_enabled' must be a boolean value.")
+        return errors
+
+    def _on_import_progress(self, current: int, total: int, label: str) -> None:
+        self._show_progress(current, total)
+
+    def _on_import_data_ready(self, data: dict[str, Any]) -> None:
+        """Apply the validated import data to the media settings."""
+        media_configs = data.get("media_configs", [])
+        self.state.media_configs = media_configs
+        self.state._normalize_media_config_paths()
+        # Ensure each config has an icon
+        for config in self.state.media_configs:
+            if "icon" not in config:
+                config["icon"] = "fa6s.folder"
+            if "media_type" not in config:
+                config["media_type"] = "movie"
+
+        db_enabled = data.get("db_enabled")
+        if isinstance(db_enabled, bool):
+            self.state._db_enabled = db_enabled
+            self.db_enabled_dropdown.setCurrentText("Yes" if db_enabled else "No")
+
+        self._refresh_folder_nav_settings()
+        self.refresh_scan_targets()
+
+    def _on_import_finished(self) -> None:
+        self._hide_progress()
+        self._import_worker = None
+        self._set_export_import_enabled(True)
+        QMessageBox.information(
+            self, "Import Complete", "Media settings imported successfully."
+        )
+
+    def _on_import_failed(self, error_msg: str) -> None:
+        self._hide_progress()
+        self._import_worker = None
+        self._set_export_import_enabled(True)
+        QMessageBox.critical(self, "Import Failed", error_msg)
+
+    def _set_export_import_enabled(self, enabled: bool) -> None:
+        if self._export_btn is not None:
+            self._export_btn.setEnabled(enabled)
+        if self._import_btn is not None:
+            self._import_btn.setEnabled(enabled)
+
+    def _show_progress(self, current: int, total: int) -> None:
+        from PySide6.QtWidgets import QProgressBar
+
+        if self._progress_bar is None:
+            self._progress_bar = QProgressBar(self)
+            layout = QVBoxLayout(self)
+            layout.insertWidget(0, self._progress_bar)
+        self._progress_bar.show()
+        self._progress_bar.setMaximum(max(total, 1))
+        self._progress_bar.setValue(current)
+
+    def _hide_progress(self) -> None:
+        if self._progress_bar is not None:
+            self._progress_bar.hide()
+
     def reset_settings(self) -> None:
         """Reset settings for this tab."""
         self.state.load_media()
         self._refresh_folder_nav_settings()
         self.reset_save_button()
+        self.refresh_scan_targets()
         self.saved.emit(
             SignalPayload(
                 data=None,
@@ -406,6 +603,7 @@ class SettingsMediaTab(SettingsBaseTab):
         }
         self.state.media_configs.append(new_config)
         self._refresh_folder_nav_settings()
+        self.refresh_scan_targets()
 
         self._on_setting_changed()
 
@@ -445,6 +643,7 @@ class SettingsMediaTab(SettingsBaseTab):
             self.state.media_configs.remove(media_config)
 
             self._refresh_folder_nav_settings()
+            self.refresh_scan_targets()
             self._on_setting_changed()
             self.state.settings_changed.emit(
                 SignalPayload(
@@ -489,6 +688,9 @@ class SettingsMediaTab(SettingsBaseTab):
         self.state.save_media()
         self.reset_save_button()
 
+        # Refresh Meta tab scan targets after saving
+        self.refresh_scan_targets()
+
         paths = self._get_valid_media_paths()
         self.root_folders_changed.emit(
             SignalPayload(
@@ -524,3 +726,18 @@ class SettingsMediaTab(SettingsBaseTab):
         super().apply_theme()
         font = QFont(APP_THEME.font_family, APP_THEME.font_size)
         self.setFont(font)
+        if hasattr(self, "meta_tab"):
+            self.meta_tab.apply_theme()
+
+    def closeEvent(self, event) -> None:
+        """Clean up workers on tab close."""
+        if self._export_worker is not None and self._export_worker.isRunning():
+            self._export_worker.requestInterruption()
+        if self._import_worker is not None and self._import_worker.isRunning():
+            self._import_worker.requestInterruption()
+        super().closeEvent(event)
+
+    def refresh_scan_targets(self) -> None:
+        """Repopulate the scan target dropdown in the Meta tab when media configs change."""
+        if hasattr(self, "meta_tab"):
+            self.meta_tab.refresh_scan_targets()

@@ -75,6 +75,7 @@ class SettingsState(QObject):
         self.selected_media_folders: list[str] = []
         self.tags: list[dict[str, str]] = []
         self._db_enabled = True
+        self.ffmpeg_path = ""
         self.saved_filters: list[dict[str, Any]] = []
         self._load_settings()
         self.filter_store = DbFilters(
@@ -119,6 +120,7 @@ class SettingsState(QObject):
         media_defaults: dict[str, Any] = {
             "media_configs": self.media_configs,
             "db_enabled": self._db_enabled,
+            "ffmpeg_path": self.ffmpeg_path,
         }
         filter_defaults: dict[str, list[dict[str, Any]]] = {
             "saved_filters": self.saved_filters,
@@ -203,6 +205,7 @@ class SettingsState(QObject):
         self.media_configs = media_data.get("media_configs", self.media_configs)
         self._normalize_media_config_paths()
         self._db_enabled = media_data.get("db_enabled", False)
+        self.ffmpeg_path = media_data.get("ffmpeg_path", "")
 
         # Ensure each folder config has an icon
         for config in self.media_configs:
@@ -286,6 +289,7 @@ class SettingsState(QObject):
         media_settings: dict[str, Any] = {
             "media_configs": self.media_configs,
             "db_enabled": self._db_enabled,
+            "ffmpeg_path": self.ffmpeg_path,
         }
 
         self.log_util.info(f"Saving media_settings: {media_settings}")
@@ -501,6 +505,7 @@ class SettingsState(QObject):
         self._normalize_media_config_paths()
         self.log_util.info(f"Loaded media_configs: {self.media_configs}")
         self._db_enabled = media_data.get("db_enabled", True)
+        self.ffmpeg_path = media_data.get("ffmpeg_path", "")
         # Ensure each folder config has an icon
         for config in self.media_configs:
             if "icon" not in config:
