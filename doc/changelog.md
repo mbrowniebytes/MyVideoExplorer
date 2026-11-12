@@ -26,6 +26,11 @@
   - media
     - performance! scan media speed and save to db greatly increased
     - add Scan All button
+    - add Meta scan
+      - use ffmpeg
+      - scan for video meta info, bitrate, codec, resolution, etc
+    - add Compare db
+      - compare local media db to a temp imported media db
   - app
     - add Scan Media Timeout
     - on App launch, META and NFO can be Collapsed/Expanded
@@ -52,10 +57,12 @@
 - internal:
   - optimize filter and scan sql 
   - parse and store media Year in db
+  - use file name for media db title instead of nfo
   - filters config moved to db to support counts
   - make backups of tags db and filters db
   - db ids changed from autoincrement ids or uuids to timestamp/snowflake ids
   - normalize all paths as posix and consolidate to file_utils
+  - add new widget checkbox combobox
   - update ai docs in doc/ and .junie/
 
 release - [MyVideoExplorer-20261100-0.008](https://github.com/mbrowniebytes/MyVideoExplorer/releases/tag/20261100-0.008)

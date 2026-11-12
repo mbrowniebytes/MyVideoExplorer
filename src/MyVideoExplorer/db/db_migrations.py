@@ -11,6 +11,7 @@ from MyVideoExplorer.utils.file_util import FileUtils
 POSIX_PATH_MIGRATION = "20261027_normalize_posix_paths.sql"
 SNOWFLAKE_ID_MIGRATION = "20261101_snowflake_ids.sql"
 FFPROBE_META_MIGRATION = "20261110_ffprobe_meta_tables.sql"
+FILE_SIZE_MIGRATION = "20261110_add_file_size.sql"
 
 FILTER_SNOWFLAKE_MIGRATION = "20261102_filter_snowflake_ids.sql"
 MANUAL_FILTER_LISTS_MIGRATION = "20261103_manual_filter_lists.sql"

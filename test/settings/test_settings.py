@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -40,8 +41,10 @@ class TestSettings:
                         {"label": "Test", "path": "/test"}
                     ]
                     # Mock get_db_path to avoid using the real db/ folder
+                    tmp_db_dir = Path("tmp") / "db"
+                    tmp_db_dir.mkdir(parents=True, exist_ok=True)
                     s.settings_data_model.get_db_path = MagicMock(
-                        return_value="test_temp.db"
+                        return_value=str(tmp_db_dir / "test_temp.db")
                     )
 
                     # Mock only the problematic UI components that cause Segfaults

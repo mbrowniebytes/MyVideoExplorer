@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
 )
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
+from MyVideoExplorer.compare.compare_tab import CompareTab
 from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
 from MyVideoExplorer.settings.settings_export import SettingsExportWorker
 from MyVideoExplorer.settings.settings_import import SettingsImportWorker
@@ -67,8 +68,14 @@ class SettingsMediaTab(SettingsBaseTab):
         self._progress_bar: QProgressBar | None = None
 
         self._layout = QVBoxLayout(self)
-        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setContentsMargins(0, 8, 0, 0)
         self._layout.setSpacing(0)
+
+        # Separator line above sub-tabs
+        separator = QFrame(self)
+        separator.setFrameShape(QFrame.Shape.HLine)
+        separator.setFrameShadow(QFrame.Shadow.Sunken)
+        self._layout.addWidget(separator)
 
         self.tab_widget = QTabWidget(self)
         self._layout.addWidget(self.tab_widget)
@@ -101,6 +108,18 @@ class SettingsMediaTab(SettingsBaseTab):
         # Meta sub-tab (new ffmpeg scan config)
         self.meta_tab = SettingsMetaTab(self.state, log_util, file_util)
         self.tab_widget.addTab(self.meta_tab, "Meta")
+
+        # Compare sub-tab (media comparison)
+        self.compare_tab: CompareTab | None = None
+
+    def set_compare_tab(self, compare_tab: CompareTab) -> None:
+        """Set the compare tab and add it to the tab widget.
+
+        Args:
+            compare_tab: The compare tab widget.
+        """
+        self.compare_tab = compare_tab
+        self.tab_widget.addTab(self.compare_tab, "Compare")
 
     def _build_ui(self) -> None:
         # Dropdown
@@ -420,7 +439,7 @@ class SettingsMediaTab(SettingsBaseTab):
                 if Path(db_path).exists():
                     mtime = Path(db_path).stat().st_mtime
                     date = (
-                        datetime.datetime.fromtimestamp(mtime, tz=datetime.UTC)
+                        dt.datetime.fromtimestamp(mtime, tz=dt.UTC)
                         .astimezone()
                         .strftime("%Y-%m-%d")
                     )

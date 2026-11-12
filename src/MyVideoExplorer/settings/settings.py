@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QTabBar, QTabWidget, QVBoxLayout, QWidget
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
+from MyVideoExplorer.compare.compare_tab import CompareTab
 from MyVideoExplorer.db.db_tags import DbTags
 from MyVideoExplorer.settings.settings_app_tab import SettingsAppTab
 from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
@@ -43,6 +46,7 @@ class Settings(QWidget, ThemableMixin):
         self._filter_settings_tab: SettingsFilterTab | None = None
         self._tags_settings_tab: SettingsTagsTab | None = None
         self._player_settings_tab: SettingsPlayerTab | None = None
+        self._compare_tab: CompareTab | None = None
 
     @property
     def app_settings_tab(self) -> SettingsAppTab:
@@ -107,6 +111,25 @@ class Settings(QWidget, ThemableMixin):
         if self._filter_settings_tab is not None:
             self._filter_settings_tab.tag_store = value
 
+    def _resolve_local_db_path(self) -> Path:
+        """Resolve the local database path from the first available media config.
+
+        Returns:
+            Path to the local database file.
+        """
+        for config in self.settings_data_model.media_configs:
+            db_path = self.settings_data_model.get_db_path(config)
+            if Path(db_path).exists():
+                return Path(db_path)
+        # Fallback: use the first config's DB path even if it doesn't exist yet
+        if self.settings_data_model.media_configs:
+            return Path(
+                self.settings_data_model.get_db_path(
+                    self.settings_data_model.media_configs[0]
+                )
+            )
+        return Path("db/media_media.db")
+
     def _build_ui(self) -> None:
         """Constructs the settings UI layout and registers tabs."""
         if self.layout() is not None:
@@ -141,6 +164,15 @@ class Settings(QWidget, ThemableMixin):
             self._player_settings_tab = SettingsPlayerTab(
                 self.settings_data_model, self.log_util, parent=self
             )
+
+            # Create CompareTab with the settings state
+            self._compare_tab = CompareTab(
+                self.settings_data_model,
+                self.log_util,
+                self.file_util,
+                parent=self,
+            )
+            self._media_settings_tab.set_compare_tab(self._compare_tab)
 
             # Group tabs for centralized management (DRY principle)
             self.managed_tabs = [

@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+from pathlib import Path
 from typing import Any
 
 import duckdb
@@ -223,13 +224,19 @@ class DbScanUtil:
                     except ValueError, TypeError:
                         runtime = 0
 
+                file_size = None
+                try:
+                    file_size = Path(normalized_file_path).stat().st_size
+                except OSError:
+                    pass
+
                 data.append(
                     (
                         id_gen.generate(),
                         normalized_media_path,
                         normalized_file_path,
                         item.get("type"),
-                        metadata.get("title"),
+                        Path(normalized_file_path).stem,
                         year,
                         metadata.get("plot"),
                         metadata.get("score"),
@@ -239,6 +246,7 @@ class DbScanUtil:
                         self._normalize_array_value(metadata.get("genres")),
                         self._normalize_array_value(metadata.get("actors")),
                         self._normalize_array_value(metadata.get("directors")),
+                        file_size,
                     )
                 )
 
