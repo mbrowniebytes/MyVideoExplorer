@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
 from MyVideoExplorer.app.app_container import AppContainer
 from MyVideoExplorer.theme.theme import APP_THEME
 
-DEFAULT_SPLITTER_SIZES = (600, 900)
+DEFAULT_SPLITTER_SIZES = (300, 500)
 
 
 class AppBuilder:
@@ -31,6 +31,7 @@ class AppBuilder:
         splitter.addWidget(self._create_left_panel())
         splitter.addWidget(self._create_right_panel())
         splitter.setSizes(list(DEFAULT_SPLITTER_SIZES))
+        splitter.setMinimumWidth(450)
         main_layout.addWidget(splitter)
 
         APP_THEME.app = self.app

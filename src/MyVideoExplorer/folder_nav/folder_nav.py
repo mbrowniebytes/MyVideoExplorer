@@ -58,9 +58,6 @@ class FolderNav(QWidget, ThemableMixin):
         self.folder_filter_widget.root_folder.connect(self._handle_root_folder)
         self.folder_filter_widget.filters_requested.connect(self.apply_filters)
         self.folder_filter_widget.genre_changed.connect(self._handle_genre_changed)
-        self.folder_filter_widget.enqueue_playlist_requested.connect(
-            self.enqueue_playlist_requested
-        )
         self._signals_connected = True
 
     def set_root_folders(self, paths: list[str]) -> None:
@@ -77,8 +74,8 @@ class FolderNav(QWidget, ThemableMixin):
             # Rebuild nav combo (labels) and saved filters combo
             self.folder_filter_widget.build_nav_combo()
             # self.folder_filter_widget._refresh_saved_filters_combo()
-            # Rebuild media buttons to reflect current settings and roots
-            self.folder_filter_widget.media_filter_widget.refresh_buttons()
+            # Rebuild media combo to reflect current settings and roots
+            self.folder_filter_widget.refresh_media_combo()
 
             # self.apply_filters_requested()
             self._filter_timer.start(150)

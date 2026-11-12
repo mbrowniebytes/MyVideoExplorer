@@ -117,16 +117,35 @@ class FfprobeUtil:
             audio_rows: list[tuple[Any, ...]] = []
             subtitle_rows: list[tuple[Any, ...]] = []
 
-            # Collect audio bitrates first for video bitrate calculation
+            # First pass: collect known bitrates for fallback estimation
             audio_bitrates: list[int] = []
+            video_stream_bitrate: int | None = None
             for stream in streams:
                 if stream.get("codec_type") == "audio":
                     br = self._safe_int(stream.get("bit_rate"))
                     if br is not None:
                         audio_bitrates.append(br)
+                elif stream.get("codec_type") == "video":
+                    video_stream_bitrate = self._safe_int(stream.get("bit_rate"))
 
-            # Get overall format bitrate for video bitrate estimation
+            # Get overall format bitrate for fallback estimation
             overall_bitrate = self._safe_int(fmt.get("bit_rate"))
+
+            # Calculate remaining bitrate for audio streams without stream-level data
+            # remaining = overall - video - sum(known_audio_bitrates)
+            remaining_for_audio: int | None = None
+            if overall_bitrate is not None:
+                used = (video_stream_bitrate or 0) + sum(audio_bitrates)
+                remaining = overall_bitrate - used
+                if remaining > 0:
+                    remaining_for_audio = remaining
+
+            # Count audio streams without bitrate for equal distribution
+            audio_streams_without_bitrate = 0
+            for stream in streams:
+                if stream.get("codec_type") == "audio":
+                    if self._safe_int(stream.get("bit_rate")) is None:
+                        audio_streams_without_bitrate += 1
 
             for stream in streams:
                 stype = stream.get("codec_type")
@@ -163,6 +182,17 @@ class FfprobeUtil:
                     )
 
                 elif stype == "audio":
+                    # Determine audio bitrate: prefer stream-level, fall back to estimation
+                    audio_bitrate = self._safe_int(stream.get("bit_rate"))
+                    if (
+                        audio_bitrate is None
+                        and remaining_for_audio is not None
+                        and audio_streams_without_bitrate > 0
+                    ):
+                        # Estimate by distributing remaining bitrate equally
+                        audio_bitrate = (
+                            remaining_for_audio // audio_streams_without_bitrate
+                        )
                     audio_rows.append(
                         (
                             id_gen.generate(),
@@ -173,7 +203,7 @@ class FfprobeUtil:
                             stream.get("channels"),
                             stream.get("channel_layout"),
                             self._safe_int(stream.get("sample_rate")),
-                            self._safe_int(stream.get("bit_rate")),
+                            audio_bitrate,
                             tags.get("language"),
                             bool(disposition.get("default", False)),
                             bool(disposition.get("forced", False)),

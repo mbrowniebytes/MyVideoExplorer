@@ -443,7 +443,7 @@ class AppContainer:
             None,
         )
         filters = self.folder_nav_filters.filter_table.collect_filters()
-        filters.extend(self.folder_nav_filters.media_filter_widget.collect_filters())
+        filters.extend(self.folder_nav_filters.collect_media_filters())
         matching_videos = self.folder_nav_filters.db_filter.matching_videos(filters)
         folder_order: dict[str, int] = {}
         for row in range(self.folder_list.folder_list_view.count()):

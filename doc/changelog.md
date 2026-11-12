@@ -19,6 +19,7 @@
   - restore tooltip info
   - reselect folder nav media on search or filter, if possible
   - add additional sorting
+  - change the media filters from buttons to a checkbox combobox
 - settings 
   - names
     - unique per type
@@ -43,6 +44,7 @@
     - add sorting, Default, Manual, A-Z, Z-A, Last Played, Qty Played
   - tags
     - re-position tag icons
+    - size scales with qty
   - filters, tags
     - delete button disabled, hover for 2.5s to enable
     - if more than 10 movies, show delete confirmation  
@@ -63,6 +65,7 @@
   - db ids changed from autoincrement ids or uuids to timestamp/snowflake ids
   - normalize all paths as posix and consolidate to file_utils
   - add new widget checkbox combobox
+  - fix filter db error when scan all media
   - update ai docs in doc/ and .junie/
 
 release - [MyVideoExplorer-20261100-0.008](https://github.com/mbrowniebytes/MyVideoExplorer/releases/tag/20261100-0.008)

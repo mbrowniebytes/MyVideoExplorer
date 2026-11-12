@@ -3,9 +3,11 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from PySide6.QtCore import QEvent, QObject, Qt, QTimer, Signal
+from PySide6.QtCore import QEvent, QObject, Qt, Signal
+from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QHBoxLayout,
+    QMenu,
     QSizePolicy,
     QToolButton,
     QVBoxLayout,
@@ -19,7 +21,6 @@ from MyVideoExplorer.folder_filter.folder_filter_filter import FolderFilterFilte
 from MyVideoExplorer.folder_filter.folder_filter_genre_combo_widget import (
     GenreComboWidget,
 )
-from MyVideoExplorer.folder_filter.folder_filter_media import FolderFilterMedia
 from MyVideoExplorer.folder_filter.folder_filter_table import FolderFilterTable
 from MyVideoExplorer.media_nav_search.filter_criteria_dialog import FilterCriteriaDialog
 from MyVideoExplorer.settings.settings import Settings
@@ -29,6 +30,7 @@ from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.ui_utils import UIUtils
 from MyVideoExplorer.widgets.buttons.action_button import ActionButton
 from MyVideoExplorer.widgets.combo_box_delegate import GroupedComboBoxDelegate
+from MyVideoExplorer.widgets.combo_boxes.checkbox_combo_box import CheckboxComboBox
 from MyVideoExplorer.widgets.combo_boxes.select_combo_box import SelectComboBox
 
 _SHOW_ALL_FILTER_LABEL = "- Select a Filter (Showing All) -"
@@ -44,7 +46,6 @@ class FolderFilters(QWidget, ThemableMixin):
     root_folder = Signal(object)
     loading_started = Signal(object)
     edit_filter_requested = Signal(str)
-    enqueue_playlist_requested = Signal()
 
     GENRES = sorted(
         ["Action", "Comedy", "Sci-Fi", "Mystery", "Thriller", "Drama", "Adventure"]
@@ -66,14 +67,25 @@ class FolderFilters(QWidget, ThemableMixin):
         self.filter_criteria_button = QToolButton(self)
         self.genre_combo = GenreComboWidget(self.GENRES, parent=self)
         self.nav_combo = SelectComboBox(self)
-        self.filter_groups_combo = SelectComboBox(self)
         self.saved_filters_combo = SelectComboBox(self)
         self._selected_group_id: int | None = None  # None means "All Groups"
         self.genre_combo.setVisible(False)
         self.nav_combo.setVisible(False)
         self._criteria_popup: FilterCriteriaDialog | None = None
 
-        self.media_filter_widget = FolderFilterMedia(self.settings, log_util, self)
+        # Media folder button with dropdown menu
+        self.media_filter_button = ActionButton(
+            self, icon_name="fa6s.video", tooltip="Filter by media folder"
+        )
+        self.media_filter_combo = CheckboxComboBox(self)
+        self._media_label_to_paths: dict[str, list[str]] = {}
+
+        # Filter group button with dropdown menu
+        self.filter_groups_button = ActionButton(
+            self, icon_name="fa6s.filter", tooltip="Select a filter group"
+        )
+        self._filter_groups_menu: QMenu = QMenu(self)
+        self._filter_group_actions: dict[int | None, QAction] = {}
         self.filter_table = FolderFilterTable(
             self.GENRES,
             self.settings.settings_data_model.media_configs,
@@ -100,21 +112,21 @@ class FolderFilters(QWidget, ThemableMixin):
         self._build_saved_filters_combo()
         self._build_filter_criteria_button()
         self._build_clear_search_button()
-
-        self.enqueue_playlist_button = self._create_enqueue_playlist_button()
+        self._build_media_combo()
 
         # Add saved filters and filter controls row
         saved_filters_layout = QHBoxLayout()
-        saved_filters_layout.addWidget(self.filter_groups_combo, 1)
+        self.media_filter_button.setFixedSize(35, 35)
+        self.filter_groups_button.setFixedSize(35, 35)
+        saved_filters_layout.addWidget(self.media_filter_button)
+        saved_filters_layout.addWidget(self.filter_groups_button)
         saved_filters_layout.addWidget(self.saved_filters_combo, 1)
         saved_filters_layout.addWidget(self.filter_criteria_button)
         saved_filters_layout.addWidget(self.clear_search_button)
-        saved_filters_layout.addWidget(self.enqueue_playlist_button)
 
         filter_layout = QVBoxLayout(filter_container)
         filter_layout.setSpacing(4)
         filter_layout.setContentsMargins(2, 0, 2, 0)
-        filter_layout.addWidget(self.media_filter_widget)
         filter_layout.addLayout(saved_filters_layout)
 
         left_layout = QVBoxLayout(self)
@@ -150,16 +162,6 @@ class FolderFilters(QWidget, ThemableMixin):
         self.clear_search_button.setEnabled(False)
         self.clear_search_button.clicked.connect(self._clear_search)
 
-    def _create_enqueue_playlist_button(self) -> ActionButton:
-        button = ActionButton(
-            self,
-            icon_name="fa6s.list-ordered",
-            tooltip="Enqueue playlist in default player",
-        )
-        button.setFixedSize(30, 30)
-        button.clicked.connect(self.enqueue_playlist_requested)
-        return button
-
     def _build_filter_criteria_button(self) -> None:
         self.filter_criteria_button = self._make_tool_button(
             "View Filter Criteria", "fa6s.filter"
@@ -172,28 +174,33 @@ class FolderFilters(QWidget, ThemableMixin):
         self.filter_criteria_button.clicked.connect(self._show_filter_criteria)
 
     def _build_filter_groups_combo(self) -> None:
-        """Build the filter groups combobox for selecting which group's filters to show."""
-        self.filter_groups_combo.setEditable(False)
-        self.filter_groups_combo.setToolTip("Select a filter group")
-        self.filter_groups_combo.blockSignals(True)
-        self.filter_groups_combo.clear()
-        self.filter_groups_combo.addItem(_SHOW_ALL_GROUPS_LABEL, userData=None)
+        """Build the filter groups menu for the filter group button."""
+        self._filter_groups_menu.clear()
+        self._filter_group_actions.clear()
+
+        all_action = QAction(_SHOW_ALL_GROUPS_LABEL, self._filter_groups_menu)
+        all_action.setCheckable(True)
+        all_action.setChecked(self._selected_group_id is None)
+        all_action.triggered.connect(lambda: self._on_filter_group_action(None))
+        self._filter_group_actions[None] = all_action
+        self._filter_groups_menu.addAction(all_action)
+
         groups = self.settings.settings_data_model.list_filter_groups()
         for group in groups:
             name = group.get("name", "")
             group_id = group.get("group_id")
             filter_count = group.get("filter_count", 0)
             label = f"{name} ({filter_count})" if filter_count else name
-            self.filter_groups_combo.addItem(label, userData=group_id)
-        self.filter_groups_combo.blockSignals(False)
-        self.filter_groups_combo.setCurrentIndex(0)
-        self.filter_groups_combo.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
-        )
-        self.filter_groups_combo.setMinimumHeight(35)
-        self.filter_groups_combo.currentIndexChanged.connect(
-            self._on_filter_group_changed
-        )
+            action = QAction(label, self._filter_groups_menu)
+            action.setCheckable(True)
+            action.setChecked(self._selected_group_id == group_id)
+            action.triggered.connect(
+                lambda checked=False, gid=group_id: self._on_filter_group_action(gid)
+            )
+            self._filter_group_actions[group_id] = action
+            self._filter_groups_menu.addAction(action)
+
+        self.filter_groups_button.clicked.connect(self._show_filter_groups_menu)
 
     def _build_saved_filters_combo(self) -> None:
         self.saved_filters_combo.setEditable(True)
@@ -209,12 +216,20 @@ class FolderFilters(QWidget, ThemableMixin):
         self.saved_filters_combo.setMinimumHeight(35)
         self.saved_filters_combo.setItemDelegate(GroupedComboBoxDelegate())
 
-    def _on_filter_group_changed(self, index: int) -> None:
-        """Handle filter group selection change; refresh the saved filters combo."""
-        if index <= 0:
-            self._selected_group_id = None
-        else:
-            self._selected_group_id = self.filter_groups_combo.itemData(index)
+    def _show_filter_groups_menu(self) -> None:
+        """Show the filter groups dropdown menu for the button."""
+        self._filter_groups_menu.exec(
+            self.filter_groups_button.mapToGlobal(
+                self.filter_groups_button.rect().bottomLeft()
+            )
+        )
+
+    def _on_filter_group_action(self, group_id: int | None) -> None:
+        """Handle filter group selection from the dropdown menu."""
+        self._selected_group_id = group_id
+        # Update check states
+        for gid, action in self._filter_group_actions.items():
+            action.setChecked(gid == group_id)
         self._refresh_saved_filters_combo()
 
     def _refresh_saved_filters_combo(self) -> None:
@@ -228,7 +243,7 @@ class FolderFilters(QWidget, ThemableMixin):
         self.saved_filters_combo.addItem(_SHOW_ALL_FILTER_LABEL, userData="")
         selected_folders = [
             str(path)
-            for media_filter in self.media_filter_widget.collect_filters()
+            for media_filter in self.collect_media_filters()
             for path in media_filter.get("value", [])
         ]
         saved = sorted(
@@ -282,13 +297,18 @@ class FolderFilters(QWidget, ThemableMixin):
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         combo = self.saved_filters_combo
+        line_edit = combo.lineEdit()
         if (
-            watched in (combo, combo.lineEdit())
+            watched in (combo, line_edit)
             and event.type() == QEvent.Type.MouseButtonPress
         ):
-            # Always show popup on click, regardless of current selection state
+            # Clear text and show popup on any click.  Block signals while
+            # clearing to prevent currentTextChanged from interfering.
+            combo.blockSignals(True)
             combo.setEditText("")
-            QTimer.singleShot(0, combo.showPopup)
+            combo.blockSignals(False)
+            combo.showPopup()
+            return True
         return super().eventFilter(watched, event)
 
     def _resolve_filter_text(self, text: str) -> int:
@@ -333,9 +353,67 @@ class FolderFilters(QWidget, ThemableMixin):
         btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         return btn
 
+    def _build_media_combo(self) -> None:
+        """Build the media folder checkbox combo box from current settings."""
+        label_to_paths: dict[str, list[str]] = {}
+        for config in self.settings.settings_data_model.media_configs:
+            label = config.get("label", "")
+            path = config.get("path", "")
+            if not path or not label:
+                continue
+            if label not in label_to_paths:
+                label_to_paths[label] = []
+            if path not in label_to_paths[label]:
+                label_to_paths[label].append(path)
+
+        self._media_label_to_paths = label_to_paths
+        labels = sorted(label_to_paths.keys())
+        self.media_filter_combo.set_items(labels)
+
+        # Set initial selection based on current state
+        selected_folders = set(self.settings.settings_data_model.selected_media_folders)
+        selected_labels = [
+            label
+            for label, paths in label_to_paths.items()
+            if any(p in selected_folders for p in paths)
+        ]
+        if selected_labels:
+            for label in selected_labels:
+                action = self.media_filter_combo._actions.get(label)
+                if action is not None:
+                    action.setChecked(True)
+            self.media_filter_combo._update_display()
+
+        # Wire the button to show the combo's menu
+        self.media_filter_button.clicked.connect(self._show_media_filter_menu)
+
+    def collect_media_filters(self) -> list[dict]:
+        """Collect media folder filters from the checkbox combo box."""
+        selected_labels = self.media_filter_combo.selected_items()
+        filters: list[dict] = []
+        for label in selected_labels:
+            paths = self._media_label_to_paths.get(label, [])
+            if paths:
+                filters.append({"filter": "media", "value": paths})
+        return filters
+
+    def refresh_media_combo(self) -> None:
+        """Rebuild the media folder combo box items on settings changes."""
+        self._build_media_combo()
+
+    def _show_media_filter_menu(self) -> None:
+        """Show the media folder checkbox menu for the button."""
+        self.media_filter_combo._menu.exec(
+            self.media_filter_button.mapToGlobal(
+                self.media_filter_button.rect().bottomLeft()
+            )
+        )
+
     def _connect_sigs(self) -> None:
         self.nav_combo.currentIndexChanged.connect(self._handle_media_selection)
-        self.media_filter_widget.apply_filters.connect(self.filters_requested.emit)
+        self.media_filter_combo.selection_changed.connect(
+            self._on_media_filter_selection_changed
+        )
         self.saved_filters_combo.currentIndexChanged.connect(self._load_saved_filter)
         self.saved_filters_combo.currentTextChanged.connect(self._handle_filter_text)
         self.saved_filters_combo.currentTextChanged.connect(
@@ -353,14 +431,7 @@ class FolderFilters(QWidget, ThemableMixin):
 
         def refresh_all():
             self.build_nav_combo()
-            selected_folders = set(
-                self.settings.settings_data_model.selected_media_folders
-            )
-            for button in self.media_filter_widget.media_button_group:
-                button_paths = button.property("media_paths") or []
-                button.setChecked(
-                    any(path in selected_folders for path in button_paths)
-                )
+            self.refresh_media_combo()
             self._on_media_filter_selection_changed()
             # Preserve the currently selected filter name before rebuilding the combo
             current_filter_name = ""
@@ -388,9 +459,6 @@ class FolderFilters(QWidget, ThemableMixin):
         self.settings.settings_data_model.filter_counts_changed.connect(
             self._refresh_saved_filters_combo
         )
-        self.media_filter_widget.apply_filters.connect(
-            self._on_media_filter_selection_changed
-        )
 
     def _update_clear_search_enabled(self, text: str) -> None:
         """Enable clear button only when search text exists."""
@@ -403,16 +471,19 @@ class FolderFilters(QWidget, ThemableMixin):
             line_edit.clear()
             line_edit.setFocus()
 
-    def _on_media_filter_selection_changed(self) -> None:
+    def _on_media_filter_selection_changed(
+        self, _selected: list[str] | None = None
+    ) -> None:
         selected_folders = [
             str(path)
-            for media_filter in self.media_filter_widget.collect_filters()
+            for media_filter in self.collect_media_filters()
             for path in media_filter.get("value", [])
         ]
         state = self.settings.settings_data_model
         state.selected_media_folders = selected_folders
         state.media_folder_selection_changed.emit(selected_folders)
         self._refresh_saved_filters_combo()
+        self.filters_requested.emit()
 
     def _handle_media_selection(self, index: int) -> None:
         if index < 0:
@@ -683,7 +754,7 @@ class FolderFilters(QWidget, ThemableMixin):
                 self.loading_started.emit([folder_path])
 
             filters = self.filter_table.collect_filters()
-            filters.extend(self.media_filter_widget.collect_filters())
+            filters.extend(self.collect_media_filters())
 
             results = self.db_filter.filter(
                 filters=filters,
@@ -700,7 +771,7 @@ class FolderFilters(QWidget, ThemableMixin):
                 if on_complete:
                     results = self._apply_filters_internal(items)
                     filters = self.filter_table.collect_filters()
-                    filters.extend(self.media_filter_widget.collect_filters())
+                    filters.extend(self.collect_media_filters())
                     on_complete(self._apply_saved_filter_sort(results, filters))
                 return
 
@@ -726,8 +797,8 @@ class FolderFilters(QWidget, ThemableMixin):
     ) -> list[FileUtilModel]:
         filters = self.filter_table.collect_filters()
 
-        # Add active media buttons to filters
-        filters.extend(self.media_filter_widget.collect_filters())
+        # Add active media filters
+        filters.extend(self.collect_media_filters())
 
         return self.folder_nav_filters_filter.apply_filters(
             items=items,

@@ -98,7 +98,7 @@ def test_enqueue_playlist_uses_filtered_video_results(configured_player):
     container.folder_nav_filters.filter_table.collect_filters.return_value = [
         {"filter": "genre", "value": "Action"}
     ]
-    container.folder_nav_filters.media_filter_widget.collect_filters.return_value = [
+    container.folder_nav_filters.collect_media_filters.return_value = [
         {"filter": "media", "value": ["/media/Movies"]}
     ]
     filtered_videos = [

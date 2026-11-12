@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from math import sqrt
 from typing import Protocol
 
 from PySide6.QtCore import QDate, QSize, Qt, Signal
@@ -369,13 +370,18 @@ class MediaNavSearchOptionsDialog(QDialog):
         self.selected_tags_container.clear()
         self.selected_tags_container.setVisible(bool(tags))
         colors = getattr(self, "_tag_colors", {})
+        counts = getattr(self, "_tag_counts", {})
+        maximum_qty = max(counts.values()) if counts else 0
         for tag in tags:
             color = colors.get(tag.casefold(), "#808080")
-            chip = self._make_chip(
+            qty = counts.get(tag.casefold(), 0)
+            font_size = self._compute_tag_font_size(qty, maximum_qty)
+            chip = self._make_tag_chip(
                 tag,
                 f"Remove tag '{tag}'",
                 lambda current=tag: self.tag_remove_requested.emit(current),
                 color=color,
+                font_size=font_size,
             )
             self.selected_tags_container.flow_layout.addWidget(chip)
         self.selected_tags_container.refresh_height()
@@ -383,6 +389,10 @@ class MediaNavSearchOptionsDialog(QDialog):
 
     def set_tag_colors(self, colors: dict[str, str]) -> None:
         self._tag_colors = dict(colors)
+        self.set_selected_tags(self.selected_tags)
+
+    def set_tag_counts(self, counts: dict[str, int]) -> None:
+        self._tag_counts = dict(counts)
         self.set_selected_tags(self.selected_tags)
 
     def qty_criteria(self) -> tuple[str, int | None]:
@@ -490,6 +500,9 @@ class MediaNavSearchOptionsDialog(QDialog):
         filters = self.collect_criteria_as_filters()
         self.create_filter_requested.emit(filters)
 
+    QUICK_SEARCH_MIN_FONT_SIZE = 7
+    QUICK_SEARCH_MAX_FONT_SIZE = 12
+
     @staticmethod
     def _make_chip(
         label: str,
@@ -497,11 +510,19 @@ class MediaNavSearchOptionsDialog(QDialog):
         on_click: Callable[[], None],
         *,
         color: str | None = None,
+        font_size: int | None = None,
     ) -> QToolButton:
         chip = DelayedDeleteButton()
         chip.setText(label)
         chip.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         chip.setToolTip(tooltip)
+        if font_size is not None:
+            font = chip.font()
+            font.setPointSize(font_size)
+            chip.setFont(font)
+            # Scale the chip's minimum height to match the font size
+            min_h = font_size + 10
+            chip.setMinimumHeight(min_h)
         if color:
             chip.setStyleSheet(
                 f"QToolButton {{ color: {get_contrast_text_color(color)}; "
@@ -514,6 +535,72 @@ class MediaNavSearchOptionsDialog(QDialog):
             )
         chip.clicked.connect(lambda _checked=False: on_click())
         return chip
+
+    @staticmethod
+    def _make_tag_chip(
+        label: str,
+        tooltip: str,
+        on_click: Callable[[], None],
+        *,
+        color: str | None = None,
+        font_size: int | None = None,
+    ) -> QWidget:
+        """Create a tag chip with the tag name and an X remove button on the right."""
+        chip = QWidget()
+        layout = QHBoxLayout(chip)
+        layout.setContentsMargins(6, 2, 2, 2)
+        layout.setSpacing(2)
+
+        tag_label = QLabel(label, chip)
+        tag_label.setCursor(Qt.CursorShape.PointingHandCursor)
+        tag_label.setToolTip(tooltip)
+        if font_size is not None:
+            font = tag_label.font()
+            font.setPointSize(font_size)
+            tag_label.setFont(font)
+            min_h = font_size + 10
+            chip.setMinimumHeight(min_h)
+        if color:
+            tag_label.setStyleSheet(
+                f"QLabel {{ color: {get_contrast_text_color(color)}; }}"
+            )
+
+        x_button = QToolButton(chip)
+        x_button.setIcon(APP_THEME.icon("fa6s.xmark"))
+        x_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        x_button.setAutoRaise(True)
+        x_button.setToolTip(tooltip)
+        x_button.clicked.connect(lambda _checked=False: on_click())
+        if color:
+            x_button.setStyleSheet(
+                f"QToolButton {{ color: {get_contrast_text_color(color)}; "
+                f"background: transparent; border: none; padding: 1px; }}"
+            )
+
+        layout.addWidget(tag_label)
+        layout.addWidget(x_button)
+
+        if color:
+            chip.setStyleSheet(
+                f"QWidget {{ background-color: {color}; border-radius: 4px; }}"
+            )
+        else:
+            chip.setStyleSheet(
+                "QWidget { border: 1px solid palette(mid); border-radius: 4px; }"
+            )
+        return chip
+
+    @staticmethod
+    def _compute_tag_font_size(
+        qty: int, maximum_qty: int, min_size: int = 7, max_size: int = 12
+    ) -> int:
+        """Compute a scaled font size for a tag chip based on its quantity."""
+        if qty == 0:
+            return max(min_size - 2, 5)
+        if maximum_qty == 0:
+            return min_size
+        size = round(min_size + (max_size - min_size) * sqrt(qty / maximum_qty))
+        return max(size, min_size)
 
 
 class MediaNavSearchWidget(QWidget):
@@ -594,6 +681,7 @@ class MediaNavSearchWidget(QWidget):
             self.create_filter_requested
         )
         self._options_dialog.set_tag_colors(self._tag_colors())
+        self._options_dialog.set_tag_counts(self._tag_counts())
         for radio in self.options_dialog.name_radios.values():
             radio.toggled.connect(self._update_search_placeholder)
         self._update_search_placeholder()
@@ -610,6 +698,12 @@ class MediaNavSearchWidget(QWidget):
             for item in catalog
             if isinstance(item, dict) and item.get("tag")
         }
+
+    def _tag_counts(self) -> dict[str, int]:
+        tag_store = getattr(self.settings, "tag_store", None)
+        if tag_store is not None:
+            return tag_store.get_tag_counts()
+        return {}
 
     def _on_criteria_changed(self, *_args) -> None:
         self._refresh_criteria_summary()
@@ -693,7 +787,7 @@ class MediaNavSearchWidget(QWidget):
         summary.clear()
         options = self.options_dialog
         fields = options.selected_fields()
-        criteria: list[tuple[str, str, Callable[[], None]]] = []
+        criteria: list[tuple[str, str, Callable[[], None], int | None, bool]] = []
         tag_colors = self._tag_colors()
         criteria_colors: dict[str, str] = {}
 
@@ -709,6 +803,8 @@ class MediaNavSearchWidget(QWidget):
                         lambda selected=person_field: options.person_inputs[
                             selected
                         ].clear(),
+                        None,
+                        False,
                     )
                 )
         if "year" in fields:
@@ -718,21 +814,30 @@ class MediaNavSearchWidget(QWidget):
                     f"Year {options.year_operator.currentText()} {year}",
                     "Clear year criterion",
                     lambda: options.year_combo.setCurrentIndex(0),
+                    None,
+                    False,
                 )
             )
         if "tags" in fields:
+            tag_counts = self._tag_counts()
+            maximum_qty = max(tag_counts.values()) if tag_counts else 0
             for tag in options.selected_tags:
-                label = f"Tag: {tag}"
+                qty = tag_counts.get(tag.casefold(), 0)
+                font_size = MediaNavSearchOptionsDialog._compute_tag_font_size(
+                    qty, maximum_qty
+                )
                 criteria.append(
                     (
-                        label,
+                        tag,
                         f"Remove tag '{tag}'",
                         lambda selected=tag: self.remove_selected_tag(selected),
+                        font_size,
+                        True,
                     )
                 )
                 color = tag_colors.get(tag.casefold())
                 if color:
-                    criteria_colors[label] = color
+                    criteria_colors[tag] = color
         if "qty_played" in fields:
             operator, value = options.qty_criteria()
             criteria.append(
@@ -740,6 +845,8 @@ class MediaNavSearchWidget(QWidget):
                     f"Qty Played {operator} {value}",
                     "Clear Qty Played criterion",
                     lambda: options.qty_checkbox.setChecked(False),
+                    None,
+                    False,
                 )
             )
         if "last_played" in fields:
@@ -750,13 +857,33 @@ class MediaNavSearchWidget(QWidget):
                     label,
                     "Clear Date Last Played criterion",
                     lambda: options.date_checkbox.setChecked(False),
+                    None,
+                    False,
                 )
             )
 
-        for label, tooltip, callback in criteria:
-            chip = MediaNavSearchOptionsDialog._make_chip(
-                label, tooltip, callback, color=criteria_colors.get(label)
-            )
+        for item in criteria:
+            label = item[0]
+            tooltip = item[1]
+            callback = item[2]
+            font_size = item[3]
+            is_tag = item[4]
+            if is_tag:
+                chip = MediaNavSearchOptionsDialog._make_tag_chip(
+                    label,
+                    tooltip,
+                    callback,
+                    color=criteria_colors.get(label),
+                    font_size=font_size,
+                )
+            else:
+                chip = MediaNavSearchOptionsDialog._make_chip(
+                    label,
+                    tooltip,
+                    callback,
+                    color=criteria_colors.get(label),
+                    font_size=font_size,
+                )
             summary.flow_layout.addWidget(chip)
         has_criteria = bool(criteria)
         summary.setVisible(has_criteria)

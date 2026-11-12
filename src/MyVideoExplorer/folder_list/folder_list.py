@@ -157,7 +157,7 @@ class FolderList(QWidget, ThemableMixin):
     def _build_container(self) -> QWidget:
         container = QWidget(self)
         container.setObjectName("folderListContainer")
-        container.setMinimumWidth(200)
+        container.setMinimumWidth(150)
         container.setSizePolicy(
             QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding
         )

@@ -89,7 +89,8 @@ class MediaInfoSideView(QWidget, ThemableMixin):
         self.media_info_side_layout.addWidget(self.side_content_widget)
         self.media_info_side_layout.addWidget(self.empty_nfo_placeholder_widget)
 
-        self.setFixedWidth(300)
+        self.setMinimumWidth(200)
+        self.setMaximumWidth(400)
         self.side_content_widget.played_count_changed.connect(self._save_played_count)
         self.side_content_widget.last_played_changed.connect(self._save_last_played)
         self.side_content_widget.tag_cloud_widget.tag_added.connect(self._add_media_tag)

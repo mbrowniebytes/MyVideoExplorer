@@ -269,7 +269,11 @@ class TestFolderNavFilters:
         combo = nav_filters.saved_filters_combo
         assert combo.itemText(combo.findData("Example")) == "Example (10)"
 
-        nav_filters.media_filter_widget.media_button_group[0].setChecked(True)
+        # Select the first media folder label to trigger count filtering
+        first_label = next(iter(nav_filters._media_label_to_paths.keys()))
+        action = nav_filters.media_filter_combo._actions.get(first_label)
+        if action is not None:
+            action.setChecked(True)
         nav_filters._refresh_saved_filters_combo()
         assert combo.itemText(combo.findData("Example")) == "Example (3)"
 

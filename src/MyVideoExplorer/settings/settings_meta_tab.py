@@ -4,6 +4,7 @@ import logging
 import os
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from PySide6.QtCore import Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QFont
@@ -159,11 +160,9 @@ class SettingsMetaTab(SettingsBaseTab):
         self.stop_button.hide()
         scan_btn_layout.addWidget(self.stop_button)
 
-        self.scan_stats_label = QLabel(parent=self)
-        self.scan_stats_label.setObjectName("meta_scan_stats")
-        self.scan_stats_label.setWordWrap(True)
-        self.scan_stats_label.setStyleSheet(APP_THEME.label_qss("secondary"))
-        scan_btn_layout.addWidget(self.scan_stats_label, 1)
+        self.scan_stats_layout = QHBoxLayout()
+        self.scan_stats_layout.setContentsMargins(0, 0, 0, 0)
+        scan_btn_layout.addLayout(self.scan_stats_layout, 1)
         self.content_layout.addLayout(scan_btn_layout)
         self.scan_target_combo.currentTextChanged.connect(self._refresh_scan_stats)
 
@@ -420,11 +419,37 @@ class SettingsMetaTab(SettingsBaseTab):
         except AttributeError:
             return "n/a"
 
-    def _get_stats(self, config: dict[str, str]) -> FfprobeStats | None:
+    def _get_stats(self, config: dict[str, Any]) -> FfprobeStats | None:
         db_path = self.state.get_db_path(config)
         if not Path(db_path).is_file():
             return None
         return FfprobeUtil(self.ffmpeg_path_edit.text().strip(), db_path).get_stats()
+
+    def _clear_stats_layout(self) -> None:
+        """Remove all widgets from the stats layout."""
+        while self.scan_stats_layout.count():
+            item = self.scan_stats_layout.takeAt(0)
+            if item is None:
+                continue
+            w = item.widget()
+            if w is not None:
+                w.deleteLater()
+            else:
+                nested = item.layout()
+                if nested is not None:
+                    # Recursively clear nested layout items
+                    while nested.count():
+                        nested_item = nested.takeAt(0)
+                        if nested_item is None:
+                            continue
+                        nw = nested_item.widget()
+                        if nw is not None:
+                            nw.deleteLater()
+                        else:
+                            nlayout = nested_item.layout()
+                            if nlayout is not None:
+                                nlayout.deleteLater()
+                    nested.deleteLater()
 
     def _refresh_scan_stats(self, _target: str | None = None) -> None:
         target = self.scan_target_combo.currentText()
@@ -438,7 +463,8 @@ class SettingsMetaTab(SettingsBaseTab):
             ]
 
         if not configs:
-            self.scan_stats_label.setText("No media folders configured")
+            self._clear_stats_layout()
+            self.scan_stats_layout.addStretch()
             return
 
         try:
@@ -447,7 +473,10 @@ class SettingsMetaTab(SettingsBaseTab):
                 self._meta_stats_by_label[label] = self._get_stats(config)
         except Exception as exc:
             logger.exception("Failed to load Meta scan statistics")
-            self.scan_stats_label.setText(f"Unable to load scan stats: {exc}")
+            self._clear_stats_layout()
+            err_label = QLabel(f"Unable to load scan stats: {exc}", parent=self)
+            err_label.setStyleSheet(APP_THEME.label_qss("secondary"))
+            self.scan_stats_layout.addWidget(err_label)
             return
 
         self._display_scan_stats(configs)
@@ -467,27 +496,80 @@ class SettingsMetaTab(SettingsBaseTab):
         ]
 
     def _display_scan_stats(self, configs: list[dict[str, str]]) -> None:
+        self._clear_stats_layout()
+
         available = [
             self._meta_stats_by_label.get(str(config.get("label", "")))
             for config in configs
         ]
         available = [item for item in available if item is not None]
 
+        if not available:
+            self.scan_stats_layout.addStretch()
+            return
+
         totals = {
-            "Probed files": sum(item.probed_files for item in available),
-            "Video streams": sum(item.video_streams for item in available),
-            "Audio streams": sum(item.audio_streams for item in available),
-            "Subtitle streams": sum(item.subtitle_streams for item in available),
+            "fa6s.database": sum(item.probed_files for item in available),
+            "fa6s.video": sum(item.video_streams for item in available),
+            "fa6s.music": sum(item.audio_streams for item in available),
+            "fa6s.closed-captioning": sum(item.subtitle_streams for item in available),
         }
-        counts = " | ".join(f"{label}: {count:,}" for label, count in totals.items())
         latest_scan = max(
             (item.last_probed for item in available if item.last_probed),
             default=None,
         )
-        summary = f"{counts}\nLast probed: {self._format_last_probed(latest_scan)}"
+        totals["fa6s.clock"] = self._format_last_probed(latest_scan)
+
+        icon_tooltips = {
+            "fa6s.database": "Probed files",
+            "fa6s.video": "Video streams",
+            "fa6s.music": "Audio streams",
+            "fa6s.closed-captioning": "Subtitle streams",
+            "fa6s.clock": f"Last probed: {self._format_last_probed(latest_scan)}",
+        }
+
+        for i, (icon_name, count) in enumerate(totals.items()):
+            pair_layout = QHBoxLayout()
+            pair_layout.setContentsMargins(0, 0, 0, 0)
+            pair_layout.setSpacing(1)
+            pair_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+
+            val_str = f"{count:,}" if isinstance(count, int) else str(count)
+            lbl = QLabel(val_str, parent=self)
+            lbl.setObjectName(f"meta_stats_val_{i}")
+            lbl.setAlignment(
+                Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+            )
+            lbl.setStyleSheet(APP_THEME.label_qss("secondary"))
+            if icon_name == "fa6s.clock":
+                lbl.setFixedWidth(110)
+            else:
+                lbl.setFixedWidth(50)
+            pair_layout.addWidget(lbl)
+
+            icon_lbl = QLabel(parent=self)
+            icon_lbl.setObjectName(f"meta_stats_icon_{i}")
+            icon_lbl.setPixmap(
+                APP_THEME.icon(icon_name, color=APP_THEME.text_color).pixmap(16, 16)
+            )
+            icon_lbl.setToolTip(icon_tooltips.get(icon_name, ""))
+            if icon_name == "fa6s.clock":
+                lbl.setToolTip(icon_tooltips.get(icon_name, ""))
+            pair_layout.addWidget(icon_lbl)
+
+            self.scan_stats_layout.addLayout(pair_layout)
+
+            if i < len(totals) - 1:
+                self.scan_stats_layout.addSpacing(8)
+
         if len(available) < len(configs):
-            summary += f" ({len(available)}/{len(configs)} have metadata)"
-        self.scan_stats_label.setText(summary)
+            partial_label = QLabel(
+                f"({len(available)}/{len(configs)} have metadata)", parent=self
+            )
+            partial_label.setStyleSheet(APP_THEME.label_qss("secondary"))
+            self.scan_stats_layout.addWidget(partial_label)
+
+        self.scan_stats_layout.addStretch()
 
     def _load_from_state(self) -> None:
         # Block signals while loading to avoid marking the tab as dirty

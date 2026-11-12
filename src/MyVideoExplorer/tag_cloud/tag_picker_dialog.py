@@ -138,7 +138,12 @@ class TagPickerDialog(QDialog):
 
         layout.addWidget(QLabel("Available tags", self))
         self.cloud = TagCloudWidget(
-            editable=True, selectable=True, color_editable=True, parent=self
+            editable=True,
+            selectable=True,
+            color_editable=True,
+            min_font_size=8,
+            max_font_size=18,
+            parent=self,
         )
         self.cloud.tag_selected.connect(self._on_cloud_tag_selected)
         self.cloud.tag_color_changed.connect(self._on_cloud_tag_color_changed)

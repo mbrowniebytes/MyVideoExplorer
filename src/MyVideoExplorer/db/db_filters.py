@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import threading
 from pathlib import Path
 from typing import Any, cast
 
@@ -41,6 +42,7 @@ class DbFilters:
         self.path_utils = path_utils or FileUtils()
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.db_filter = DbFilter(settings_state, self.path_utils)
+        self._lock = threading.Lock()
         self._initialize()
 
     def _connect(self) -> duckdb.DuckDBPyConnection:
@@ -473,102 +475,105 @@ class DbFilters:
 
     def mark_manual_items_stale(self, media_folder: str) -> list[str]:
         """Mark manual entries missing when a scan removed or replaced their media ID."""
-        root_path = self.path_utils.normalize_path(media_folder)
-        root = root_path.casefold()
-        configs = [
-            config
-            for config in (getattr(self.settings_state, "media_configs", []) or [])
-            if self.path_utils.normalize_path(str(config.get("path", ""))).casefold()
-            == root
-        ]
-        if not configs:
-            raise ValueError(f"No configured media folder matches: {media_folder}")
-        db_path = self.settings_state.get_db_path(configs[0])
-        normalized_db_path = self.path_utils.normalize_path(db_path)
-        if not Path(normalized_db_path).is_file():
-            raise FileNotFoundError(
-                f"Media database does not exist: {normalized_db_path}"
-            )
-
-        with self._connect() as con:
-            entries = con.execute(
-                """
-                SELECT m.filter_id, m.media_id, m.rel_path, m.status
-                FROM filter_manual_list AS m
-                WHERE lower(m.media_folder) = ?
-                """,
-                (root,),
-            ).fetchall()
-        if not entries:
-            return []
-
-        expected_paths = [
-            self.path_utils.normalize_path(f"{root_path}/{rel_path.lstrip('/')}")
-            for _, _, rel_path, _ in entries
-        ]
-        with duckdb.connect(normalized_db_path, read_only=True) as media_con:
-            resolved_rows = media_con.execute(
-                """
-                SELECT id, file_path
-                FROM media_file
-                WHERE lower(file_path) IN (
-                    SELECT lower(unnest(?::VARCHAR[]))
-                )
-                """,
-                (expected_paths,),
-            ).fetchall()
-        resolved = {
-            self.path_utils.normalize_path(file_path).casefold(): int(media_id)
-            for media_id, file_path in resolved_rows
-        }
-
-        stale_rows = [
-            (int(filter_id), int(media_id))
-            for filter_id, media_id, rel_path, status in entries
-            if status != "missing"
-            and resolved.get(
-                self.path_utils.normalize_path(
-                    f"{root_path}/{str(rel_path).lstrip('/')}"
+        with self._lock:
+            root_path = self.path_utils.normalize_path(media_folder)
+            root = root_path.casefold()
+            configs = [
+                config
+                for config in (getattr(self.settings_state, "media_configs", []) or [])
+                if self.path_utils.normalize_path(
+                    str(config.get("path", ""))
                 ).casefold()
-            )
-            != int(media_id)
-        ]
-        if not stale_rows:
-            return []
-        stale_filter_ids = sorted({filter_id for filter_id, _ in stale_rows})
+                == root
+            ]
+            if not configs:
+                raise ValueError(f"No configured media folder matches: {media_folder}")
+            db_path = self.settings_state.get_db_path(configs[0])
+            normalized_db_path = self.path_utils.normalize_path(db_path)
+            if not Path(normalized_db_path).is_file():
+                raise FileNotFoundError(
+                    f"Media database does not exist: {normalized_db_path}"
+                )
 
-        with self._connect() as con:
-            con.begin()
-            try:
-                for filter_id, media_id in stale_rows:
+            with self._connect() as con:
+                entries = con.execute(
+                    """
+                    SELECT m.filter_id, m.media_id, m.rel_path, m.status
+                    FROM filter_manual_list AS m
+                    WHERE lower(m.media_folder) = ?
+                    """,
+                    (root,),
+                ).fetchall()
+            if not entries:
+                return []
+
+            expected_paths = [
+                self.path_utils.normalize_path(f"{root_path}/{rel_path.lstrip('/')}")
+                for _, _, rel_path, _ in entries
+            ]
+            with duckdb.connect(normalized_db_path) as media_con:
+                resolved_rows = media_con.execute(
+                    """
+                    SELECT id, file_path
+                    FROM media_file
+                    WHERE lower(file_path) IN (
+                        SELECT lower(unnest(?::VARCHAR[]))
+                    )
+                    """,
+                    (expected_paths,),
+                ).fetchall()
+            resolved = {
+                self.path_utils.normalize_path(file_path).casefold(): int(media_id)
+                for media_id, file_path in resolved_rows
+            }
+
+            stale_rows = [
+                (int(filter_id), int(media_id))
+                for filter_id, media_id, rel_path, status in entries
+                if status != "missing"
+                and resolved.get(
+                    self.path_utils.normalize_path(
+                        f"{root_path}/{str(rel_path).lstrip('/')}"
+                    ).casefold()
+                )
+                != int(media_id)
+            ]
+            if not stale_rows:
+                return []
+            stale_filter_ids = sorted({filter_id for filter_id, _ in stale_rows})
+
+            with self._connect() as con:
+                con.begin()
+                try:
+                    for filter_id, media_id in stale_rows:
+                        con.execute(
+                            """
+                            UPDATE filter_manual_list
+                            SET status = 'missing'
+                            WHERE filter_id = ? AND media_id = ?
+                              AND lower(media_folder) = ?
+                            """,
+                            (filter_id, media_id, root),
+                        )
+                    rows = con.execute(
+                        "SELECT name FROM media_filters "
+                        "WHERE filter_id IN (SELECT unnest(?::BIGINT[]))",
+                        (stale_filter_ids,),
+                    ).fetchall()
+                    names = [str(row[0]) for row in rows]
                     con.execute(
                         """
-                        UPDATE filter_manual_list
-                        SET status = 'missing'
-                        WHERE filter_id = ? AND media_id = ?
-                          AND lower(media_folder) = ?
+                        UPDATE media_filters
+                        SET needs_rebuild = TRUE
+                        WHERE filter_id IN (SELECT unnest(?::BIGINT[]))
                         """,
-                        (filter_id, media_id, root),
+                        (stale_filter_ids,),
                     )
-                rows = con.execute(
-                    "SELECT name FROM media_filters "
-                    "WHERE filter_id IN (SELECT unnest(?::BIGINT[]))",
-                    (stale_filter_ids,),
-                ).fetchall()
-                names = [str(row[0]) for row in rows]
-                con.execute(
-                    """
-                    UPDATE media_filters
-                    SET needs_rebuild = TRUE
-                    WHERE filter_id IN (SELECT unnest(?::BIGINT[]))
-                    """,
-                    (stale_filter_ids,),
-                )
-                con.commit()
-            except Exception:
-                con.rollback()
-                raise
-        return names
+                    con.commit()
+                except Exception:
+                    con.rollback()
+                    raise
+            return names
 
     def get_display_count(
         self, name: str, selected_folders: list[str] | None = None
