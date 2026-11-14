@@ -172,6 +172,9 @@ async def test_external_app_opens_all_videos_from_a_playlist():
     assert await_args is not None
     playlist_path = Path(await_args.args[0])
     try:
+        assert playlist_path.is_absolute(), (
+            "Playlist path should be absolute for OS default handler"
+        )
         assert playlist_path.name == "myvideoexplorer-os-default.m3u8"
         assert playlist_path.read_text(encoding="utf-8").splitlines() == [
             "#EXTM3U",
@@ -180,6 +183,22 @@ async def test_external_app_opens_all_videos_from_a_playlist():
         ]
     finally:
         playlist_path.unlink()
+
+
+@pytest.mark.asyncio
+async def test_single_video_via_external_app_passes_file_directly():
+    """When there's only one video, pass it directly without creating a playlist."""
+    launcher = VideoLauncher(MagicMock())
+    video_path = "/media/Movie.mkv"
+
+    with patch.object(
+        launcher, "play_via_external_app", new_callable=AsyncMock
+    ) as mock_open:
+        await launcher.play_videos_via_external_app([video_path])
+
+    await_args = mock_open.await_args
+    assert await_args is not None
+    assert await_args.args[0] == video_path
 
 
 @pytest.mark.asyncio

@@ -166,6 +166,12 @@ class SettingsMetaTab(SettingsBaseTab):
         self.content_layout.addLayout(scan_btn_layout)
         self.scan_target_combo.currentTextChanged.connect(self._refresh_scan_stats)
 
+        # Folder progress label (e.g., "Scanning M1a (1 of 4)")
+        self.folder_progress_label = QLabel(parent=self)
+        self.folder_progress_label.hide()
+        self.folder_progress_label.setStyleSheet(APP_THEME.label_qss("secondary"))
+        self.content_layout.addWidget(self.folder_progress_label)
+
         # Progress bar
         self.progress_bar = QProgressBar(self)
         self.progress_bar.hide()
@@ -245,6 +251,7 @@ class SettingsMetaTab(SettingsBaseTab):
         self.stop_button.show()
         self.progress_bar.show()
         self.progress_bar.setRange(0, 0)
+        self.folder_progress_label.show()
         self.stage_label.show()
         self.stage_label.setText("Starting scan…")
 
@@ -276,6 +283,14 @@ class SettingsMetaTab(SettingsBaseTab):
                 return
 
             config = self._scan_configs[self._scan_index]
+            config_label = str(config.get("label", "Unnamed"))
+            total_configs = len(self._scan_configs)
+            current_index = self._scan_index + 1
+
+            self.folder_progress_label.setText(
+                f"Scanning {config_label} ({current_index} of {total_configs})"
+            )
+
             worker = FfprobeWorker(
                 ffmpeg_folder=self._ffmpeg_folder,
                 media_config=config,
@@ -347,6 +362,7 @@ class SettingsMetaTab(SettingsBaseTab):
 
     def _on_scan_finished(self) -> None:
         self.progress_bar.hide()
+        self.folder_progress_label.hide()
         self.stage_label.hide()
         self.stop_button.hide()
         self.scan_button.show()
@@ -354,6 +370,7 @@ class SettingsMetaTab(SettingsBaseTab):
 
     def _on_stop_clicked(self) -> None:
         if hasattr(self, "_current_worker") and self._current_worker is not None:
+            logger.info("Stop button clicked — requesting interruption")
             self._current_worker.requestInterruption()
             self.stage_label.setText("Cancelling…")
 

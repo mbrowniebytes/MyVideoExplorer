@@ -1,7 +1,7 @@
 -- media_file_video (per video stream; usually 1 row per file)
 CREATE TABLE IF NOT EXISTS media_file_video (
     id BIGINT PRIMARY KEY,
-    media_file_id BIGINT NOT NULL REFERENCES media_file(id),
+    media_file_id BIGINT NOT NULL,
     stream_index INTEGER NOT NULL,
     width INTEGER,
     height INTEGER,
@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS media_file_video (
 -- media_file_audio (per audio stream)
 CREATE TABLE IF NOT EXISTS media_file_audio (
     id BIGINT PRIMARY KEY,
-    media_file_id BIGINT NOT NULL REFERENCES media_file(id),
+    media_file_id BIGINT NOT NULL,
     stream_index INTEGER NOT NULL,
     codec_name VARCHAR(32),
     profile VARCHAR(64),
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS media_file_audio (
 -- media_file_subtitle (per subtitle stream)
 CREATE TABLE IF NOT EXISTS media_file_subtitle (
     id BIGINT PRIMARY KEY,
-    media_file_id BIGINT NOT NULL REFERENCES media_file(id),
+    media_file_id BIGINT NOT NULL,
     stream_index INTEGER NOT NULL,
     format VARCHAR(32),
     lang VARCHAR(8),

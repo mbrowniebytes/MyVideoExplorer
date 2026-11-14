@@ -82,7 +82,6 @@ class ImageTitleWidget(QWidget):
 
         icon_names = {
             "vlc": "fa6s.play",
-            "potplayer": "fa6s.film",
             "mpc_qt": "fa6s.clapperboard",
             "custom": "fa6s.video",
         }

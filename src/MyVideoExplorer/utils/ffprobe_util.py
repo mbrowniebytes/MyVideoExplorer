@@ -70,6 +70,9 @@ class FfprobeUtil:
         Returns `None` when ffprobe fails or produces no output.
         """
         try:
+            logger.info("Running ffprobe on: %s", file_path)
+            logger.info("Using ffprobe at: %s", self.ffprobe_path)
+
             result = subprocess.run(
                 [
                     str(self.ffprobe_path),
@@ -85,7 +88,14 @@ class FfprobeUtil:
                 text=True,
                 timeout=30,
                 check=False,
+                creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
             )
+            logger.info(
+                "ffprobe completed for %s (return code %d)",
+                file_path,
+                result.returncode,
+            )
+
             if result.returncode != 0:
                 logger.warning(
                     "ffprobe failed for %s (code %d): %s",
@@ -96,14 +106,41 @@ class FfprobeUtil:
                 return None
             output = result.stdout.strip()
             if not output:
+                logger.info("ffprobe returned no output for: %s", file_path)
                 return None
             return json.loads(output)
-        except (
-            subprocess.TimeoutExpired,
-            FileNotFoundError,
-            json.JSONDecodeError,
-        ) as exc:
-            logger.warning("ffprobe error for %s: %s", file_path, exc)
+        except subprocess.TimeoutExpired:
+            logger.error(
+                "ffprobe timed out after 30s for %s. The process may be hanging.",
+                file_path,
+            )
+            return None
+        except subprocess.SubprocessError:
+            logger.exception(
+                "ffprobe subprocess error for %s",
+                file_path,
+            )
+            return None
+        except FileNotFoundError as exc:
+            logger.error(
+                "ffprobe binary not found at %s for file %s: %s",
+                self.ffprobe_path,
+                file_path,
+                exc,
+            )
+            return None
+        except json.JSONDecodeError as exc:
+            logger.error(
+                "ffprobe returned invalid JSON for %s: %s",
+                file_path,
+                exc,
+            )
+            return None
+        except Exception:
+            logger.exception(
+                "Unexpected error running ffprobe for %s",
+                file_path,
+            )
             return None
 
     def save_probe_result(self, media_file_id: int, probe_data: dict[str, Any]) -> None:

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import os
 import re
@@ -32,14 +34,21 @@ class VideoLauncher:
     async def play_videos_via_external_app(self, video_paths: list[str]) -> None:
         """Open an ordered playlist with the operating system's default application.
 
-        Reuses a named M3U playlist in the app's tmp/ folder.
+        For a single video, passes the file directly to avoid playlist format
+        compatibility issues with OS default handlers. For multiple videos,
+        reuses a named M3U playlist with an absolute path in the app's tmp/ folder.
         """
+        if len(video_paths) == 1:
+            await self.play_via_external_app(video_paths[0])
+            return
+
         try:
             playlist_path = self._write_playlist(video_paths, "os-default")
+            absolute_playlist_path = playlist_path.resolve()
             self.log_util.info(
-                f"Created playlist with {len(video_paths)} videos: {playlist_path}"
+                f"Created playlist with {len(video_paths)} videos: {absolute_playlist_path}"
             )
-            await self.play_via_external_app(str(playlist_path))
+            await self.play_via_external_app(str(absolute_playlist_path))
         except (OSError, ValueError) as error:
             self.log_util.error(f"Failed to create or open video playlist: {error}")
 

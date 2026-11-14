@@ -284,7 +284,6 @@ class SettingsPlayerTab(SettingsBaseTab):
         return {
             "os_default": "fa6s.circle-play",
             "vlc": "fa6s.play",
-            "potplayer": "fa6s.film",
             "mpc_qt": "fa6s.clapperboard",
             "custom": "fa6s.video",
         }[player_id]

@@ -36,7 +36,6 @@ DEFAULT_SCAN_MEDIA_TIMEOUT_SECONDS = 120
 VIDEO_PLAYER_DEFAULTS: tuple[tuple[str, str, bool], ...] = (
     ("os_default", "OS default", True),
     ("vlc", "VLC", False),
-    ("potplayer", "PotPlayer", False),
     ("mpc_qt", "MPC-QT", False),
     ("custom", "Custom", False),
 )
@@ -430,7 +429,6 @@ class SettingsState(QObject):
                 "label": label,
                 "executable": {
                     "vlc": "C:/Program Files/VideoLAN/VLC/vlc.exe",
-                    "potplayer": "C:/Program Files/DAUM/PotPlayer/PotPlayerMini64.exe",
                     "mpc_qt": "C:/Program Files/MPC-QT/mpc-qt.exe",
                 }.get(player_id, ""),
                 "arguments": "",

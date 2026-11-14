@@ -278,7 +278,6 @@ class TestSettingsSplit:
         assert [player["id"] for player in reloaded.video_player_configs] == [
             "os_default",
             "vlc",
-            "potplayer",
             "mpc_qt",
             "custom",
         ]
@@ -289,7 +288,7 @@ class TestSettingsSplit:
         qtbot.addWidget(tab)
 
         radios = tab.findChildren(QRadioButton)
-        assert len(radios) == 5
+        assert len(radios) == 4
         assert sum(radio.isChecked() for radio in radios) == 1
         assert radios[0].isChecked()
         assert all(radio.isEnabled() for radio in radios)
@@ -302,7 +301,7 @@ class TestSettingsSplit:
         player_arguments = [
             edit for edit in argument_edits if edit.objectName().endswith("_arguments")
         ]
-        assert len(player_arguments) == 5
+        assert len(player_arguments) == 4
         assert all(edit.text() == "" for edit in player_arguments)
         custom_label = next(
             player["label"]
@@ -328,10 +327,6 @@ class TestSettingsSplit:
             player["id"]: player["executable"] for player in state.video_player_configs
         }
         assert executables["vlc"] == "C:/Program Files/VideoLAN/VLC/vlc.exe"
-        assert (
-            executables["potplayer"]
-            == "C:/Program Files/DAUM/PotPlayer/PotPlayerMini64.exe"
-        )
         assert executables["mpc_qt"] == "C:/Program Files/MPC-QT/mpc-qt.exe"
 
     def test_legacy_player_settings_are_migrated(self, setup_cfg, mock_log_util):

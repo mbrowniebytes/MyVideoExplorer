@@ -144,18 +144,21 @@ class FfprobeWorker(QThread):
                     continue
 
                 try:
+                    logger.info("Processing file %d/%d: %s", i, total, file_name)
                     probe_data = ff_util.probe_file(file_path)
                     if probe_data is None:
                         logger.warning("ffprobe returned no data for: %s", file_path)
                         continue
 
                     ff_util.save_probe_result(file_id, probe_data)
+                    logger.info("Saved probe result for %s", file_name)
                     self.stats_updated.emit(
                         str(self.media_config.get("label", "")), ff_util.get_stats()
                     )
                 except Exception as exc:
-                    logger.error(
-                        "Failed to probe or save result for %s: %s", file_path, exc
+                    logger.exception(
+                        "Failed to probe or save result for %s",
+                        file_path,
                     )
                     self.error.emit(f"Failed to process {file_name}: {exc}")
 

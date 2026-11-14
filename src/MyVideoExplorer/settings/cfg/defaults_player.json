@@ -17,14 +17,6 @@
             "show_icon": false
         },
         {
-            "id": "potplayer",
-            "label": "PotPlayer",
-            "executable": "C:/Program Files/DAUM/PotPlayer/PotPlayerMini64.exe",
-            "arguments": "",
-            "is_default": false,
-            "show_icon": false
-        },
-        {
             "id": "mpc_qt",
             "label": "MPC-QT",
             "executable": "C:/Program Files/MPC-QT/mpc-qt.exe",
