@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
 
 from MyVideoExplorer.db.db_filters import FILTER_SORT_OPTIONS, DbFilters
 from MyVideoExplorer.folder_filter.folder_filter_table import FolderFilterTable
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.media_nav_search.filter_criteria_dialog import FilterCriteriaDialog
 from MyVideoExplorer.settings.filter_refresh_worker import FilterRefreshWorker
 from MyVideoExplorer.settings.filter_scan_worker import FilterScanWorker
@@ -84,12 +85,14 @@ class SettingsFilterTab(SettingsBaseTab):
         self,
         state: SettingsState,
         log_util: LogUtil,
+        lang: LangEn,
         tag_store: DbTags | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(log_util, parent)
         self.log_util = log_util
         self.state = state
+        self.lang = lang
         self._tag_store: DbTags | None = tag_store
         self.state.filter_counts_changed.connect(self._refresh_filter_list)
         self.state.media_folder_selection_changed.connect(
@@ -102,22 +105,22 @@ class SettingsFilterTab(SettingsBaseTab):
         self._search_tags: list[str] = []
         self._search_group: int | str | None = None
 
-        self._filter_table_widget: QTableWidget | None = None
-        self._search_edit: QLineEdit | None = None
-        self._criteria_combo: SelectComboBox | None = None
-        self._group_combo: SelectComboBox | None = None
-        self._tag_btn: QToolButton | None = None
-        self._tag_filter_widget: QWidget | None = None
-        self._tag_filter_layout: QHBoxLayout | None = None
-        self._clear_tag_btn: QToolButton | None = None
-        self._refresh_all_btn: QToolButton | None = None
-        self._bulk_progress_bar: QProgressBar | None = None
+        self._filter_table_widget: QTableWidget
+        self._search_edit: QLineEdit
+        self._criteria_combo: SelectComboBox
+        self._group_combo: SelectComboBox
+        self._tag_btn: QToolButton
+        self._tag_filter_widget: QWidget
+        self._tag_filter_layout: QHBoxLayout
+        self._clear_tag_btn: QToolButton
+        self._refresh_all_btn: QToolButton
+        self._bulk_progress_bar: QProgressBar
         self._active_refresh_worker: FilterRefreshWorker | None = None
         self._scan_workers: set[FilterScanWorker] = set()
         self._export_worker: SettingsExportWorker | None = None
         self._import_worker: SettingsImportWorker | None = None
-        self._export_btn: ActionButton | None = None
-        self._import_btn: ActionButton | None = None
+        self._export_btn: ActionButton
+        self._import_btn: ActionButton
         self._worker_is_bulk = False
         self._progress_index = 0
         self._busy_filter_name: str | None = None
@@ -158,7 +161,7 @@ class SettingsFilterTab(SettingsBaseTab):
 
     def _build_ui(self) -> None:
         # Search bar section
-        search_group = QGroupBox("Filters", self)
+        search_group = QGroupBox(self.lang.ui.settings.filter.group_title, self)
         search_layout = QVBoxLayout(search_group)
         search_layout.setSpacing(8)
 
@@ -166,21 +169,23 @@ class SettingsFilterTab(SettingsBaseTab):
         search_row = QHBoxLayout()
         search_row.setSpacing(8)
 
-        search_label = QLabel("Search:", self)
+        search_label = QLabel(self.lang.ui.settings.filter.search_label, self)
         search_label.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
         search_row.addWidget(search_label)
 
         self._search_edit = QLineEdit(self)
-        self._search_edit.setPlaceholderText("Filter by name...")
+        self._search_edit.setPlaceholderText(
+            self.lang.ui.settings.filter.search_placeholder
+        )
         self._search_edit.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
         self._search_edit.textChanged.connect(self._on_search_changed)
         search_row.addWidget(self._search_edit, 1)
 
         self._refresh_all_btn = ActionButton(
             self,
-            text="Refresh Filters",
+            text=self.lang.ui.settings.filter.refresh_filters_btn,
             icon_name="fa6s.arrows-rotate",
-            tooltip="Refresh all saved filters",
+            tooltip=self.lang.ui.settings.filter.refresh_filters_tooltip,
         )
         self._refresh_all_btn.clicked.connect(self._refresh_all_filters)
 
@@ -209,28 +214,36 @@ class SettingsFilterTab(SettingsBaseTab):
 
         # Add filter button
         add_btn = ActionButton(
-            self, icon_name="fa6s.circle-plus", tooltip="Add New Filter"
+            self,
+            icon_name="fa6s.circle-plus",
+            tooltip=self.lang.ui.settings.filter.add_filter_tooltip,
         )
         add_btn.clicked.connect(self.open_add_filter)
         search_row.addWidget(add_btn)
 
         # Filter Groups management button
         groups_btn = ActionButton(
-            self, icon_name="fa6s.folder-tree", tooltip="Manage Filter Groups"
+            self,
+            icon_name="fa6s.folder-tree",
+            tooltip=self.lang.ui.settings.filter.manage_groups_tooltip,
         )
         groups_btn.clicked.connect(self.open_groups_dialog)
         search_row.addWidget(groups_btn)
 
         # Export filters button
         self._export_btn = ActionButton(
-            self, icon_name="fa6s.file-export", tooltip="Export filters to JSON"
+            self,
+            icon_name="fa6s.file-export",
+            tooltip=self.lang.ui.settings.filter.export_filters_tooltip,
         )
         self._export_btn.clicked.connect(self._on_export_clicked)
         search_row.addWidget(self._export_btn)
 
         # Import filters button
         self._import_btn = ActionButton(
-            self, icon_name="fa6s.file-import", tooltip="Import filters from JSON"
+            self,
+            icon_name="fa6s.file-import",
+            tooltip=self.lang.ui.settings.filter.import_filters_tooltip,
         )
         self._import_btn.clicked.connect(self._on_import_clicked)
         search_row.addWidget(self._import_btn)
@@ -242,13 +255,15 @@ class SettingsFilterTab(SettingsBaseTab):
         filter_row.setSpacing(8)
 
         # Filter by criteria type
-        criteria_label = QLabel("Criteria:", self)
+        criteria_label = QLabel(self.lang.ui.settings.filter.criteria_label, self)
         criteria_label.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
         filter_row.addWidget(criteria_label)
 
         self._criteria_combo = SelectComboBox(self)
         self._criteria_combo.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
-        self._criteria_combo.addItem("- Any Criteria -", userData="")
+        self._criteria_combo.addItem(
+            self.lang.ui.settings.filter.any_criteria, userData=""
+        )
         under_group = False
         for ft in FolderFilterTable.FILTER_TYPES:
             if ft in FolderFilterTable.FILTER_GROUP_HEADERS:
@@ -275,14 +290,16 @@ class SettingsFilterTab(SettingsBaseTab):
         filter_row.addWidget(self._criteria_combo)
 
         # Group filter combobox
-        group_label = QLabel("Group:", self)
+        group_label = QLabel(self.lang.ui.settings.filter.group_label, self)
         group_label.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
         filter_row.addWidget(group_label)
 
         self._group_combo = SelectComboBox(self)
         self._group_combo.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
-        self._group_combo.addItem("- All Groups -", userData="")
-        self._group_combo.addItem("Edited Recently", userData="__edited_recently__")
+        self._group_combo.addItem(self.lang.ui.settings.filter.all_groups, userData="")
+        self._group_combo.addItem(
+            self.lang.ui.settings.filter.edited_recently, userData="__edited_recently__"
+        )
         self._populate_group_filter()
         self._group_combo.currentIndexChanged.connect(self._on_search_changed)
         self._group_combo.setMinimumWidth(140)
@@ -290,7 +307,9 @@ class SettingsFilterTab(SettingsBaseTab):
 
         # Tag filter button
         self._tag_btn = ActionButton(
-            self, icon_name="fa6s.tag", tooltip="Filter by tag values"
+            self,
+            icon_name="fa6s.tag",
+            tooltip=self.lang.ui.settings.filter.filter_by_tag,
         )
         self._tag_btn.clicked.connect(self._on_tag_filter_clicked)
         filter_row.addWidget(self._tag_btn)
@@ -305,7 +324,7 @@ class SettingsFilterTab(SettingsBaseTab):
         self._clear_tag_btn = ActionButton(
             self,
             icon_name="fa6s.xmark",
-            tooltip="Clear tag filter",
+            tooltip=self.lang.ui.settings.filter.clear_tag_filter,
             icon_size=14,
         )
         self._clear_tag_btn.clicked.connect(self._clear_tag_filter)
@@ -381,25 +400,20 @@ class SettingsFilterTab(SettingsBaseTab):
 
     def _on_search_changed(self) -> None:
         """Handle search text or type filter change."""
-        if self._search_edit is not None:
-            self._search_text = self._search_edit.text().strip().lower()
-        if self._criteria_combo is not None:
-            self._search_type = str(self._criteria_combo.currentData() or "")
-        if self._group_combo is not None:
-            group_data = self._group_combo.currentData()
-            if group_data == "" or group_data is None:
-                self._search_group = None
-            elif group_data == "__edited_recently__":
-                self._search_group = "__edited_recently__"
-            else:
-                self._search_group = int(group_data)
+        self._search_text = self._search_edit.text().strip().lower()
+        self._search_type = str(self._criteria_combo.currentData() or "")
+        group_data = self._group_combo.currentData()
+        if group_data == "" or group_data is None:
+            self._search_group = None
+        elif group_data == "__edited_recently__":
+            self._search_group = "__edited_recently__"
+        else:
+            self._search_group = int(group_data)
         self._refresh_filter_list()
 
     def _populate_group_filter(self) -> None:
         """Populate the Group filter combobox with available groups."""
         combo = self._group_combo
-        if combo is None:
-            return
         combo.blockSignals(True)
         # Keep the first two items: "- All Groups -" and "Edited Recently"
         while combo.count() > 2:
@@ -408,7 +422,7 @@ class SettingsFilterTab(SettingsBaseTab):
             groups = self.state.list_filter_groups()
             for grp in groups:
                 # Exclude "Edited Recently" — already added as special item
-                if grp.get("name") == "Edited Recently":
+                if grp.get("name") == self.lang.ui.settings.filter.edited_recently:
                     continue
                 combo.addItem(grp["name"], userData=grp["group_id"])
         except Exception:
@@ -424,9 +438,8 @@ class SettingsFilterTab(SettingsBaseTab):
             self.COL_COUNT,
             self.COL_CRITERIA_COUNT,
         ):
-            if self._filter_table_widget is not None:
-                header = self._filter_table_widget.horizontalHeader()
-                header.setSortIndicator(self._sort_column, self._sort_order)
+            header = self._filter_table_widget.horizontalHeader()
+            header.setSortIndicator(self._sort_column, self._sort_order)
             return
         self._sort_column = column
         self._sort_order = order
@@ -441,8 +454,7 @@ class SettingsFilterTab(SettingsBaseTab):
         """Rebuild the tag chips display and show/hide the clear button."""
         self._build_tag_chips()
         has_tags = bool(self._search_tags)
-        if self._clear_tag_btn is not None:
-            self._clear_tag_btn.setVisible(has_tags)
+        self._clear_tag_btn.setVisible(has_tags)
 
     def _tag_color(self, tag: str) -> str:
         """Look up the stored color for a tag, falling back to a default."""
@@ -460,8 +472,6 @@ class SettingsFilterTab(SettingsBaseTab):
 
     def _build_tag_chips(self) -> None:
         """Rebuild the tag chips widgets from the current search tags."""
-        if self._tag_filter_layout is None:
-            return
         # Clear existing widgets
         while self._tag_filter_layout.count():
             item = self._tag_filter_layout.takeAt(0)
@@ -519,8 +529,6 @@ class SettingsFilterTab(SettingsBaseTab):
     def _on_tag_filter_clicked(self) -> None:
         """Open tag picker dialog to filter the list by tag values."""
         if self._tag_store is None:
-            return
-        if self._tag_btn is None:
             return
         popup = TagPickerDialog(self.window(), allow_create=False, allow_delete=False)
         catalog_tags = self._tag_store.list_tags()
@@ -622,21 +630,19 @@ class SettingsFilterTab(SettingsBaseTab):
     def _refresh_filter_list(self) -> None:
         """Populate the filter table from state.saved_filters, applying search filters."""
         table = self._filter_table_widget
-        if table is None:
-            return
 
         table.setRowCount(0)
         table.clearSpans()
 
         saved = self.state.saved_filters
         if not saved:
-            self._show_placeholder(table, "No saved filters found.")
+            self._show_placeholder(table, self.lang.ui.settings.filter.no_saved_filters)
             return
 
         # Apply search filter
         filtered = [f for f in saved if self._matches_search(f)]
         if not filtered:
-            self._show_placeholder(table, "No filters match the search criteria.")
+            self._show_placeholder(table, self.lang.ui.settings.filter.no_match)
             return
 
         # Apply sorting
@@ -676,7 +682,7 @@ class SettingsFilterTab(SettingsBaseTab):
                 self.COL_EDIT,
                 self._make_row_button(
                     "fa6s.pen-to-square",
-                    f"Edit filter '{name}'",
+                    self.lang.ui.settings.filter.edit_filter.format(name=name),
                     partial(self.open_edit_dialog, filter_cfg),
                 ),
             )
@@ -725,13 +731,15 @@ class SettingsFilterTab(SettingsBaseTab):
                     )
                 )
                 name_item.setToolTip(
-                    f"{name}\nManual list needs refresh to rebuild stale entries."
+                    f"{name}\n{self.lang.ui.settings.filter.manual_needs_refresh}"
                 )
             name_item.setFont(cell_font)
             table.setItem(row_idx, self.COL_NAME, name_item)
 
             # Group column
-            group_name = filter_cfg.get("group_name") or "(None)"
+            group_name = (
+                filter_cfg.get("group_name") or self.lang.ui.settings.filter.none_group
+            )
             group_item = QTableWidgetItem(str(group_name))
             group_item.setToolTip(str(group_name))
             group_item.setFont(cell_font)
@@ -752,7 +760,7 @@ class SettingsFilterTab(SettingsBaseTab):
                 self.COL_DELETE,
                 self._make_row_button(
                     "fa6s.trash-can",
-                    f"Delete filter '{name}'",
+                    self.lang.ui.settings.filter.delete_filter.format(name=name),
                     partial(self._request_delete, name),
                 ),
             )
@@ -783,8 +791,8 @@ class SettingsFilterTab(SettingsBaseTab):
         logger.error("Manual-filter scan validation failed: %s", error)
         QMessageBox.warning(
             self,
-            "Manual Filter Scan Check Failed",
-            f"Manual filter entries could not be checked after the scan:\n{error}",
+            self.lang.ui.settings.filter.manual_scan_failed,
+            self.lang.ui.settings.filter.manual_scan_failed_msg.format(error=error),
         )
 
     def _finish_scan_worker(self, worker: FilterScanWorker) -> None:
@@ -876,7 +884,9 @@ class SettingsFilterTab(SettingsBaseTab):
                 self._refresh_all_btn.setIcon(
                     APP_THEME.icon("fa6s.spinner", color=APP_THEME.text_color)
                 )
-                self._refresh_all_btn.setToolTip("Refreshing saved filters")
+                self._refresh_all_btn.setToolTip(
+                    self.lang.ui.settings.filter.refresh_filters
+                )
         table = self._filter_table_widget
         if table is not None:
             for row in range(table.rowCount()):
@@ -937,7 +947,7 @@ class SettingsFilterTab(SettingsBaseTab):
                 continue
             self._filtered_filters[row] = latest
             count = self._display_count(latest)
-            count_item = table.item(row, self.COL_COUNT) if table is not None else None
+            count_item = table.item(row, self.COL_COUNT)
             if count_item is not None:
                 count_item.setText(str(count) if count is not None else "-")
                 count_item.setData(
@@ -947,8 +957,6 @@ class SettingsFilterTab(SettingsBaseTab):
 
     def _set_refresh_button_busy(self, name: str, busy: bool) -> None:
         table = self._filter_table_widget
-        if table is None:
-            return
         for row, item in enumerate(self._filtered_filters):
             if item.get("name") != name:
                 continue
@@ -958,9 +966,9 @@ class SettingsFilterTab(SettingsBaseTab):
                 button.setIcon(APP_THEME.icon(icon, color=APP_THEME.text_color))
                 button.setEnabled(not busy and self._active_refresh_worker is None)
                 button.setToolTip(
-                    f"Refreshing filter '{name}'"
+                    self.lang.ui.settings.filter.refreshing_filter.format(name=name)
                     if busy
-                    else f"Refresh filter '{name}'"
+                    else self.lang.ui.settings.filter.refresh_filter.format(name=name)
                 )
             break
 
@@ -971,23 +979,21 @@ class SettingsFilterTab(SettingsBaseTab):
             worker.deleteLater()
 
         if self._worker_is_bulk:
-            if self._bulk_progress_bar is not None:
-                self._bulk_progress_bar.setValue(self._bulk_progress_bar.maximum())
-                self._bulk_progress_bar.hide()
-            if self._refresh_all_btn is not None:
-                self._refresh_all_btn.setEnabled(True)
-        if self._refresh_all_btn is not None:
-            self._refresh_all_btn.setIcon(
-                APP_THEME.icon("fa6s.arrows-rotate", color=APP_THEME.text_color)
-            )
-            self._refresh_all_btn.setToolTip("Refresh all saved filters")
+            self._bulk_progress_bar.setValue(self._bulk_progress_bar.maximum())
+            self._bulk_progress_bar.hide()
             self._refresh_all_btn.setEnabled(True)
+        self._refresh_all_btn.setIcon(
+            APP_THEME.icon("fa6s.arrows-rotate", color=APP_THEME.text_color)
+        )
+        self._refresh_all_btn.setToolTip(
+            self.lang.ui.settings.filter.refresh_filters_tooltip
+        )
+        self._refresh_all_btn.setEnabled(True)
         table = self._filter_table_widget
-        if table is not None:
-            for row in range(table.rowCount()):
-                button = table.cellWidget(row, self.COL_REFRESH)
-                if isinstance(button, QToolButton):
-                    button.setEnabled(True)
+        for row in range(table.rowCount()):
+            button = table.cellWidget(row, self.COL_REFRESH)
+            if isinstance(button, QToolButton):
+                button.setEnabled(True)
         for item in self._filtered_filters:
             self._set_refresh_button_busy(str(item.get("name", "")), False)
         self._refresh_filter_list()
@@ -995,9 +1001,10 @@ class SettingsFilterTab(SettingsBaseTab):
         if self._refresh_errors:
             QMessageBox.warning(
                 self,
-                "Filter Refresh Failed",
-                "Some saved filters could not be refreshed:\n"
-                + "\n".join(self._refresh_errors),
+                self.lang.ui.settings.filter.filter_refresh_failed,
+                self.lang.ui.settings.filter.filter_refresh_failed_msg.format(
+                    errors="\n".join(self._refresh_errors)
+                ),
             )
 
     def _show_placeholder(self, table: QTableWidget, text: str) -> None:
@@ -1014,8 +1021,6 @@ class SettingsFilterTab(SettingsBaseTab):
     def _on_double_click(self, index: QModelIndex | None = None) -> None:
         """Handle double-click on a filter row to open the edit dialog."""
         table = self._filter_table_widget
-        if table is None:
-            return
         row = index.row() if index is not None else table.currentRow()
         if row < 0 or row >= len(self._filtered_filters):
             return
@@ -1053,7 +1058,7 @@ class SettingsFilterTab(SettingsBaseTab):
     def open_groups_dialog(self) -> None:
         """Open the Filter Groups management dialog."""
         popup = SettingsFilterGroupsDialog(
-            self.state, self.log_util, parent=self.window()
+            self.state, self.log_util, self.lang, parent=self.window()
         )
         popup.open()
 
@@ -1199,8 +1204,10 @@ class SettingsFilterTab(SettingsBaseTab):
         if count is not None and int(count) > 10:
             answer = QMessageBox.question(
                 self,
-                "Delete Filter",
-                f"'{name}' matches {count} movies. Delete this filter?",
+                self.lang.ui.settings.filter.delete_filter_title,
+                self.lang.ui.settings.filter.delete_filter_msg.format(
+                    name=name, count=count
+                ),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No,
             )
@@ -1217,7 +1224,7 @@ class SettingsFilterTab(SettingsBaseTab):
     def _on_export_clicked(self) -> None:
         file_path, _ = QFileDialog.getSaveFileName(
             self,
-            "Export Filters",
+            self.lang.ui.settings.filter.export_title,
             "filters_export.json",
             "JSON Files (*.json)",
         )
@@ -1279,7 +1286,9 @@ class SettingsFilterTab(SettingsBaseTab):
         self._export_worker = None
         self._set_export_import_enabled(True)
         QMessageBox.information(
-            self, "Export Complete", "Filters exported successfully."
+            self,
+            self.lang.ui.settings.filter.export_complete,
+            self.lang.ui.settings.filter.export_complete_msg,
         )
 
     def _on_export_failed(self, error_msg: str) -> None:
@@ -1287,12 +1296,14 @@ class SettingsFilterTab(SettingsBaseTab):
             self._bulk_progress_bar.hide()
         self._export_worker = None
         self._set_export_import_enabled(True)
-        QMessageBox.critical(self, "Export Failed", error_msg)
+        QMessageBox.critical(
+            self, self.lang.ui.settings.filter.export_failed, error_msg
+        )
 
     def _on_import_clicked(self) -> None:
         file_path, _ = QFileDialog.getOpenFileName(
             self,
-            "Import Filters",
+            self.lang.ui.settings.filter.import_title,
             "",
             "JSON Files (*.json)",
         )
@@ -1336,10 +1347,9 @@ class SettingsFilterTab(SettingsBaseTab):
         return errors
 
     def _on_import_progress(self, current: int, total: int, label: str) -> None:
-        if self._bulk_progress_bar is not None:
-            self._bulk_progress_bar.show()
-            self._bulk_progress_bar.setMaximum(total)
-            self._bulk_progress_bar.setValue(current)
+        self._bulk_progress_bar.show()
+        self._bulk_progress_bar.setMaximum(total)
+        self._bulk_progress_bar.setValue(current)
 
     def _on_import_data_ready(self, data: dict[str, Any]) -> None:
         """Apply the validated import data to the filter store."""
@@ -1392,26 +1402,26 @@ class SettingsFilterTab(SettingsBaseTab):
         self._refresh_filter_list()
 
     def _on_import_finished(self) -> None:
-        if self._bulk_progress_bar is not None:
-            self._bulk_progress_bar.hide()
+        self._bulk_progress_bar.hide()
         self._import_worker = None
         self._set_export_import_enabled(True)
         QMessageBox.information(
-            self, "Import Complete", "Filters imported successfully."
+            self,
+            self.lang.ui.settings.filter.import_complete,
+            self.lang.ui.settings.filter.import_complete_msg,
         )
 
     def _on_import_failed(self, error_msg: str) -> None:
-        if self._bulk_progress_bar is not None:
-            self._bulk_progress_bar.hide()
+        self._bulk_progress_bar.hide()
         self._import_worker = None
         self._set_export_import_enabled(True)
-        QMessageBox.critical(self, "Import Failed", error_msg)
+        QMessageBox.critical(
+            self, self.lang.ui.settings.filter.import_failed, error_msg
+        )
 
     def _set_export_import_enabled(self, enabled: bool) -> None:
-        if self._export_btn is not None:
-            self._export_btn.setEnabled(enabled)
-        if self._import_btn is not None:
-            self._import_btn.setEnabled(enabled)
+        self._export_btn.setEnabled(enabled)
+        self._import_btn.setEnabled(enabled)
 
     def apply_theme(self) -> None:
         super().apply_theme()

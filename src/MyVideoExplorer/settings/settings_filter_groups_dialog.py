@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
@@ -35,18 +36,20 @@ class SettingsFilterGroupsDialog(QDialog):
         self,
         state: SettingsState,
         log_util: LogUtil,
+        lang: LangEn,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self.state = state
         self.log_util = log_util
-        self.setWindowTitle("Filter Groups")
+        self.lang = lang
+        self.setWindowTitle(self.lang.ui.settings.filter_groups.window_title)
         self.setStyleSheet(APP_THEME.container_qss())
         self.resize(500, 350)
         self.setMinimumSize(400, 250)
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.WindowCloseButtonHint)
 
-        self._table: QTableWidget | None = None
+        self._table: QTableWidget
         self._editing_row: int | None = None
 
         self._build_ui()
@@ -59,7 +62,7 @@ class SettingsFilterGroupsDialog(QDialog):
 
         # Header
         header_layout = QHBoxLayout()
-        title_label = QLabel("Filter Groups", self)
+        title_label = QLabel(self.lang.ui.settings.filter_groups.title, self)
         title_label.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size + 2))
         header_layout.addWidget(title_label)
         header_layout.addStretch(1)
@@ -68,7 +71,14 @@ class SettingsFilterGroupsDialog(QDialog):
         # Table
         self._table = QTableWidget(self)
         self._table.setColumnCount(self.COLUMN_COUNT)
-        self._table.setHorizontalHeaderLabels(["", "Name", "Filters", ""])
+        self._table.setHorizontalHeaderLabels(
+            [
+                "",
+                self.lang.ui.settings.filter_groups.name_header,
+                self.lang.ui.settings.filter_groups.filters_header,
+                "",
+            ]
+        )
         self._table.verticalHeader().setVisible(False)
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -90,20 +100,24 @@ class SettingsFilterGroupsDialog(QDialog):
         # Footer
         footer_layout = QHBoxLayout()
         add_group_btn = ActionButton(
-            self, icon_name="fa6s.circle-plus", tooltip="Add New Group"
+            self,
+            icon_name="fa6s.circle-plus",
+            tooltip=self.lang.ui.settings.filter_groups.add_group_tooltip,
         )
         add_group_btn.clicked.connect(self._on_add_group)
         footer_layout.addWidget(add_group_btn)
         footer_layout.addStretch(1)
-        close_btn = ActionButton(self, icon_name="fa6s.xmark", tooltip="Close")
+        close_btn = ActionButton(
+            self,
+            icon_name="fa6s.xmark",
+            tooltip=self.lang.ui.settings.filter_groups.close_tooltip,
+        )
         close_btn.clicked.connect(self.accept)
         footer_layout.addWidget(close_btn)
         layout.addLayout(footer_layout)
 
     def _refresh_list(self) -> None:
         table = self._table
-        if table is None:
-            return
 
         # Cancel any active inline edit
         if self._editing_row is not None:
@@ -118,7 +132,9 @@ class SettingsFilterGroupsDialog(QDialog):
 
         if not groups:
             table.setRowCount(1)
-            placeholder = QTableWidgetItem("No filter groups found.")
+            placeholder = QTableWidgetItem(
+                self.lang.ui.settings.filter_groups.no_groups
+            )
             placeholder.setFlags(Qt.ItemFlag.NoItemFlags)
             placeholder.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             table.setItem(0, 0, placeholder)
@@ -136,7 +152,11 @@ class SettingsFilterGroupsDialog(QDialog):
             # Edit button (hidden for system groups)
             if not is_system:
                 edit_btn = ActionButton(
-                    table, icon_name="fa6s.pen-to-square", tooltip=f"Rename '{name}'"
+                    table,
+                    icon_name="fa6s.pen-to-square",
+                    tooltip=self.lang.ui.settings.filter_groups.rename_tooltip.format(
+                        name=name
+                    ),
                 )
                 edit_btn.setIconSize(QSize(14, 14))
                 edit_btn.clicked.connect(
@@ -149,7 +169,9 @@ class SettingsFilterGroupsDialog(QDialog):
             name_item.setFont(cell_font)
             if is_system:
                 name_item.setForeground(QColor(APP_THEME.config.color_text_muted))
-                name_item.setToolTip(f"{name} (system)")
+                name_item.setToolTip(
+                    f"{name} ({self.lang.ui.settings.filter_groups.system})"
+                )
             table.setItem(row_idx, self.COL_NAME, name_item)
 
             # Qty cell
@@ -162,7 +184,11 @@ class SettingsFilterGroupsDialog(QDialog):
             if not is_system:
                 del_btn = DelayedDeleteButton(table, icon_name="fa6s.trash-can")
                 del_btn.setIconSize(QSize(14, 14))
-                del_btn.setToolTip(f"Delete group '{name}'")
+                del_btn.setToolTip(
+                    self.lang.ui.settings.filter_groups.delete_group_tooltip.format(
+                        name=name
+                    )
+                )
                 del_btn.clicked.connect(
                     lambda checked=False, gid=group_id: self._delete_group(gid)
                 )
@@ -181,19 +207,29 @@ class SettingsFilterGroupsDialog(QDialog):
         input_layout.setContentsMargins(12, 8, 12, 8)
         input_layout.setSpacing(8)
 
-        name_label = QLabel("New Group:", self)
+        name_label = QLabel(self.lang.ui.settings.filter_groups.new_group, self)
         name_label.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
         input_layout.addWidget(name_label)
 
         name_edit = NameWidget(self)
-        name_edit.setPlaceholderText("Enter group name")
+        name_edit.setPlaceholderText(
+            self.lang.ui.settings.filter_groups.enter_group_name
+        )
         input_layout.addWidget(name_edit, 1)
 
-        ok_btn = ActionButton(self, icon_name="fa6s.check", tooltip="Create")
+        ok_btn = ActionButton(
+            self,
+            icon_name="fa6s.check",
+            tooltip=self.lang.ui.settings.filter_groups.create_tooltip,
+        )
         ok_btn.setIconSize(QSize(14, 14))
         input_layout.addWidget(ok_btn)
 
-        cancel_btn = ActionButton(self, icon_name="fa6s.xmark", tooltip="Cancel")
+        cancel_btn = ActionButton(
+            self,
+            icon_name="fa6s.xmark",
+            tooltip=self.lang.ui.settings.filter_groups.cancel_tooltip,
+        )
         cancel_btn.setIconSize(QSize(14, 14))
         input_layout.addWidget(cancel_btn)
 
@@ -218,7 +254,7 @@ class SettingsFilterGroupsDialog(QDialog):
 
         footer_layout = QHBoxLayout()
         footer_layout.setContentsMargins(12, 0, 12, 0)
-        name_label = QLabel("New Group:", self)
+        name_label = QLabel(self.lang.ui.settings.filter_groups.new_group, self)
         name_label.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
         footer_layout.addWidget(name_label)
         footer_layout.addWidget(name_edit, 1)
@@ -230,13 +266,19 @@ class SettingsFilterGroupsDialog(QDialog):
         def on_create() -> None:
             new_name = name_edit.text().strip()
             if not new_name:
-                QMessageBox.warning(self, "Invalid Name", "Group name cannot be empty.")
+                QMessageBox.warning(
+                    self,
+                    self.lang.ui.settings.filter_groups.invalid_name,
+                    self.lang.ui.settings.filter_groups.invalid_name_msg,
+                )
                 return
             try:
                 self.state.create_filter_group(new_name)
                 self._refresh_list()
             except ValueError as e:
-                QMessageBox.warning(self, "Create Failed", str(e))
+                QMessageBox.warning(
+                    self, self.lang.ui.settings.filter_groups.create_failed, str(e)
+                )
             except Exception as e:
                 self.log_util.error(f"Failed to create group: {e}")
                 QMessageBox.critical(self, "Error", str(e))
@@ -268,12 +310,18 @@ class SettingsFilterGroupsDialog(QDialog):
         # Re-add the original footer
         footer_layout = QHBoxLayout()
         add_group_btn = ActionButton(
-            self, icon_name="fa6s.circle-plus", tooltip="Add New Group"
+            self,
+            icon_name="fa6s.circle-plus",
+            tooltip=self.lang.ui.settings.filter_groups.add_group_tooltip,
         )
         add_group_btn.clicked.connect(self._on_add_group)
         footer_layout.addWidget(add_group_btn)
         footer_layout.addStretch(1)
-        close_btn = ActionButton(self, icon_name="fa6s.xmark", tooltip="Close")
+        close_btn = ActionButton(
+            self,
+            icon_name="fa6s.xmark",
+            tooltip=self.lang.ui.settings.filter_groups.close_tooltip,
+        )
         close_btn.clicked.connect(self.accept)
         footer_layout.addWidget(close_btn)
         if isinstance(main_layout, QVBoxLayout):
@@ -320,7 +368,11 @@ class SettingsFilterGroupsDialog(QDialog):
         line_edit.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size - 4))
         line_edit.returnPressed.connect(lambda: self._commit_inline_edit())
 
-        save_btn = ActionButton(edit_widget, icon_name="fa6s.check", tooltip="Save")
+        save_btn = ActionButton(
+            edit_widget,
+            icon_name="fa6s.check",
+            tooltip=self.lang.ui.settings.filter_groups.save_tooltip,
+        )
         save_btn.setIconSize(QSize(12, 12))
         save_btn.clicked.connect(lambda: self._commit_inline_edit())
 
@@ -364,7 +416,11 @@ class SettingsFilterGroupsDialog(QDialog):
 
         new_name = line_edit.text().strip()
         if not new_name:
-            QMessageBox.warning(self, "Invalid Name", "Group name cannot be empty.")
+            QMessageBox.warning(
+                self,
+                self.lang.ui.settings.filter_groups.invalid_name,
+                self.lang.ui.settings.filter_groups.invalid_name_msg,
+            )
             return
 
         # Find the group_id for this row
@@ -385,7 +441,9 @@ class SettingsFilterGroupsDialog(QDialog):
                 self._editing_row = None
                 self._refresh_list()
             except ValueError as e:
-                QMessageBox.warning(self, "Rename Failed", str(e))
+                QMessageBox.warning(
+                    self, self.lang.ui.settings.filter_groups.rename_failed, str(e)
+                )
             except Exception as e:
                 self.log_util.error(f"Failed to rename group: {e}")
                 QMessageBox.critical(self, "Error", str(e))
@@ -402,7 +460,9 @@ class SettingsFilterGroupsDialog(QDialog):
             self.state.delete_filter_group(group_id)
             self._refresh_list()
         except ValueError as e:
-            QMessageBox.warning(self, "Delete Failed", str(e))
+            QMessageBox.warning(
+                self, self.lang.ui.settings.filter_groups.delete_failed, str(e)
+            )
         except Exception as e:
             self.log_util.error(f"Failed to delete group: {e}")
             QMessageBox.critical(self, "Error", str(e))

@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
 from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.theme.theme import APP_THEME
@@ -31,10 +32,15 @@ class SettingsPlayerTab(SettingsBaseTab):
     player_configurations_changed = Signal(object)
 
     def __init__(
-        self, state: SettingsState, log_util: LogUtil, parent: QWidget | None = None
+        self,
+        state: SettingsState,
+        log_util: LogUtil,
+        lang: LangEn,
+        parent: QWidget | None = None,
     ) -> None:
         super().__init__(log_util, parent)
         self.state = state
+        self.lang = lang
         self._rows: dict[
             str, tuple[QLineEdit, QCheckBox, QRadioButton, QPushButton]
         ] = {}
@@ -53,18 +59,19 @@ class SettingsPlayerTab(SettingsBaseTab):
         self._default_group = QButtonGroup(self)
         self._default_group.setExclusive(True)
         for column, title in enumerate(
-            ("Player", "Executable path", "Default", "Show")
+            (
+                self.lang.ui.settings.player.player_header,
+                self.lang.ui.settings.player.executable_path,
+                self.lang.ui.settings.player.default_header,
+                self.lang.ui.settings.player.show_header,
+            )
         ):
             label = QLabel(title, self)
             label.setStyleSheet(APP_THEME.secondary_label_qss())
-            if title == "Default":
-                label.setToolTip(
-                    "The selected player is used when you double-click a media image."
-                )
-            elif title == "Show":
-                label.setToolTip(
-                    "Show this player's play button next to the OS-default play button."
-                )
+            if title == self.lang.ui.settings.player.default_header:
+                label.setToolTip(self.lang.ui.settings.player.default_tooltip)
+            elif title == self.lang.ui.settings.player.show_header:
+                label.setToolTip(self.lang.ui.settings.player.show_tooltip)
             grid.addWidget(label, 0, column)
 
         for row, config in enumerate(self.state.video_player_configs, start=1):
@@ -86,9 +93,9 @@ class SettingsPlayerTab(SettingsBaseTab):
             executable_edit = QLineEdit(config["executable"], self)
             executable_edit.setObjectName(f"{player_id}_executable")
             executable_edit.setPlaceholderText(
-                "Provided by the operating system"
+                self.lang.ui.settings.player.os_default_placeholder
                 if player_id == "os_default"
-                else "Full path to player executable"
+                else self.lang.ui.settings.player.executable_placeholder
             )
             browse_button = QPushButton(self)
             browse_button.setObjectName(f"{player_id}_browse_button")
@@ -97,7 +104,7 @@ class SettingsPlayerTab(SettingsBaseTab):
             )
             browse_button.setFixedSize(32, 28)
             browse_button.setAccessibleName(f"Browse for {config['label']} executable")
-            browse_button.setToolTip("Browse for the player's executable.")
+            browse_button.setToolTip(self.lang.ui.settings.player.browse_tooltip)
             browse_button.setStyleSheet(APP_THEME.small_button_qss())
             browse_button.clicked.connect(
                 lambda checked=False, selected_id=player_id, edit=executable_edit: (
@@ -114,14 +121,12 @@ class SettingsPlayerTab(SettingsBaseTab):
             arguments_edit = QLineEdit(config["arguments"], self)
             arguments_edit.setObjectName(f"{player_id}_arguments")
             arguments_edit.setPlaceholderText(
-                "Optional launch arguments (for example: --fullscreen)"
+                self.lang.ui.settings.player.arguments_placeholder
             )
             arguments_edit.setToolTip(
-                "Arguments are passed to this player before the media file. "
-                'Quote values that contain spaces, for example: --profile "My Profile".'
+                self.lang.ui.settings.player.arguments_tooltip
                 if player_id != "os_default"
-                else "Stored for reference; OS-default playback uses the system file association, "
-                "which does not accept custom launch arguments."
+                else self.lang.ui.settings.player.os_default_args_tooltip
             )
             arguments_edit.textChanged.connect(
                 lambda value, config=config: self._update_config(
@@ -133,9 +138,7 @@ class SettingsPlayerTab(SettingsBaseTab):
             show_icon = QCheckBox(self)
             show_icon.setObjectName(f"{player_id}_show_checkbox")
             show_icon.setChecked(config["show_icon"])
-            show_icon.setToolTip(
-                "Show this player's play button next to the OS-default play button."
-            )
+            show_icon.setToolTip(self.lang.ui.settings.player.show_tooltip)
             default_radio = QRadioButton(self)
             default_radio.setChecked(config["is_default"])
             default_radio.setToolTip(
@@ -213,9 +216,9 @@ class SettingsPlayerTab(SettingsBaseTab):
         buttons = QWidget(self)
         button_layout = QGridLayout(buttons)
         self.reset_btn = self._build_reset_button(
-            "Reset Player Settings", self.reset_settings
+            self.lang.ui.settings.player.reset_btn, self.reset_settings
         )
-        self.save_btn = QPushButton("Save Player Settings", self)
+        self.save_btn = QPushButton(self.lang.ui.settings.player.save_btn, self)
         self.save_btn.clicked.connect(self._save_player_settings)
         spacer = QWidget(self)
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
@@ -248,7 +251,9 @@ class SettingsPlayerTab(SettingsBaseTab):
 
     def _browse_for_player(self, player_id: str, executable_edit: QLineEdit) -> None:
         executable, _ = QFileDialog.getOpenFileName(
-            self, f"Select {player_id} executable", executable_edit.text()
+            self,
+            self.lang.ui.settings.player.browse_title.format(player_id=player_id),
+            executable_edit.text(),
         )
         if executable:
             executable_edit.setText(executable)

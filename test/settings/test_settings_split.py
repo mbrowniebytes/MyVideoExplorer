@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from PySide6.QtWidgets import QCheckBox, QLineEdit, QRadioButton
 
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.settings.settings_player_tab import SettingsPlayerTab
 from MyVideoExplorer.settings.settings_state import SettingsState
 
@@ -284,7 +285,7 @@ class TestSettingsSplit:
 
     def test_video_tab_locks_os_default_player(self, setup_cfg, mock_log_util, qtbot):
         state = SettingsState(mock_log_util)
-        tab = SettingsPlayerTab(state, mock_log_util)
+        tab = SettingsPlayerTab(state, mock_log_util, LangEn())
         qtbot.addWidget(tab)
 
         radios = tab.findChildren(QRadioButton)

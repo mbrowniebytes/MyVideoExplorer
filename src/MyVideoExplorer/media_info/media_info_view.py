@@ -4,6 +4,7 @@ from PySide6.QtCore import QTimer, Signal
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.media_info.media_info_scroll_content_widget import (
     MediaInfoScrollContentWidget,
 )
@@ -48,9 +49,11 @@ class MediaInfoView(QWidget, ThemableMixin):
         nfo_parse_util: NfoParseUtil,
         str_util: StrUtil,
         log_util: LogUtil,
+        lang: LangEn,
     ) -> None:
         super().__init__()
         self.log_util = log_util
+        self.lang = lang
         self._ui_utils = UIUtils()
 
         self.nfo_parse_util = nfo_parse_util
@@ -64,11 +67,11 @@ class MediaInfoView(QWidget, ThemableMixin):
         self._section_build_timer.timeout.connect(self._build_pending_sections)
 
         # Create child widgets with this view as parent to avoid top-level windows
-        self.toolbar_widget = MediaInfoToolbarWidget(parent=self)
+        self.toolbar_widget = MediaInfoToolbarWidget(self.lang, parent=self)
         self.scroll_content_widget = MediaInfoScrollContentWidget(log_util, parent=self)
 
         self.common_section = MediaInfoCommonSection(self.str_util, parent=self)
-        self.plot_section = MediaInfoPlotSection(parent=self)
+        self.plot_section = MediaInfoPlotSection(self.lang, parent=self)
         self.ids_section = MediaInfoDetailsSection(parent=self)
         self.videos_section = MediaInfoDetailsSection(parent=self)
         self.audios_section = MediaInfoDetailsSection(parent=self)

@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 from PySide6.QtWidgets import QMessageBox, QVBoxLayout, QWidget
 
 from MyVideoExplorer.db.db_tags import DbTags
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
 from MyVideoExplorer.settings.settings_export import SettingsExportWorker
 from MyVideoExplorer.settings.settings_import import SettingsImportWorker
@@ -26,18 +27,20 @@ class SettingsTagsTab(SettingsBaseTab):
         self,
         state: SettingsState,
         log_util: LogUtil,
+        lang: LangEn,
         tag_store: DbTags | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(log_util, parent)
         self.state = state
+        self.lang = lang
         self.tag_store = tag_store
         self.tag_cloud_settings = TagCloudSettings(state, tag_store, self)
 
         self._export_worker: SettingsExportWorker | None = None
         self._import_worker: SettingsImportWorker | None = None
-        self._export_btn: ActionButton | None = None
-        self._import_btn: ActionButton | None = None
+        self._export_btn: ActionButton
+        self._import_btn: ActionButton
         self._progress_bar: QProgressBar | None = None
 
         layout = QVBoxLayout(self)
@@ -46,13 +49,17 @@ class SettingsTagsTab(SettingsBaseTab):
 
         # --- Add export/import buttons to the tag cloud controls row ---
         self._export_btn = ActionButton(
-            self, icon_name="fa6s.file-export", tooltip="Export tags to JSON"
+            self,
+            icon_name="fa6s.file-export",
+            tooltip=self.lang.ui.settings.tags.export_tooltip,
         )
         self._export_btn.clicked.connect(self._on_export_clicked)
         self.tag_cloud_settings.cloud.add_control_widget(self._export_btn)
 
         self._import_btn = ActionButton(
-            self, icon_name="fa6s.file-import", tooltip="Import tags from JSON"
+            self,
+            icon_name="fa6s.file-import",
+            tooltip=self.lang.ui.settings.tags.import_tooltip,
         )
         self._import_btn.clicked.connect(self._on_import_clicked)
         self.tag_cloud_settings.cloud.add_control_widget(self._import_btn)
@@ -64,7 +71,7 @@ class SettingsTagsTab(SettingsBaseTab):
 
         file_path, _ = QFileDialog.getSaveFileName(
             self,
-            "Export Tags",
+            self.lang.ui.settings.tags.export_title,
             "tags_export.json",
             "JSON Files (*.json)",
         )
@@ -96,20 +103,24 @@ class SettingsTagsTab(SettingsBaseTab):
         self._hide_progress()
         self._export_worker = None
         self._set_export_import_enabled(True)
-        QMessageBox.information(self, "Export Complete", "Tags exported successfully.")
+        QMessageBox.information(
+            self,
+            self.lang.ui.settings.tags.export_complete,
+            self.lang.ui.settings.tags.export_complete_msg,
+        )
 
     def _on_export_failed(self, error_msg: str) -> None:
         self._hide_progress()
         self._export_worker = None
         self._set_export_import_enabled(True)
-        QMessageBox.critical(self, "Export Failed", error_msg)
+        QMessageBox.critical(self, self.lang.ui.settings.tags.export_failed, error_msg)
 
     def _on_import_clicked(self) -> None:
         from PySide6.QtWidgets import QFileDialog
 
         file_path, _ = QFileDialog.getOpenFileName(
             self,
-            "Import Tags",
+            self.lang.ui.settings.tags.import_title,
             "",
             "JSON Files (*.json)",
         )
@@ -206,19 +217,21 @@ class SettingsTagsTab(SettingsBaseTab):
         self._hide_progress()
         self._import_worker = None
         self._set_export_import_enabled(True)
-        QMessageBox.information(self, "Import Complete", "Tags imported successfully.")
+        QMessageBox.information(
+            self,
+            self.lang.ui.settings.tags.import_complete,
+            self.lang.ui.settings.tags.import_complete_msg,
+        )
 
     def _on_import_failed(self, error_msg: str) -> None:
         self._hide_progress()
         self._import_worker = None
         self._set_export_import_enabled(True)
-        QMessageBox.critical(self, "Import Failed", error_msg)
+        QMessageBox.critical(self, self.lang.ui.settings.tags.import_failed, error_msg)
 
     def _set_export_import_enabled(self, enabled: bool) -> None:
-        if self._export_btn is not None:
-            self._export_btn.setEnabled(enabled)
-        if self._import_btn is not None:
-            self._import_btn.setEnabled(enabled)
+        self._export_btn.setEnabled(enabled)
+        self._import_btn.setEnabled(enabled)
 
     def _show_progress(self, current: int, total: int) -> None:
         from PySide6.QtWidgets import QProgressBar

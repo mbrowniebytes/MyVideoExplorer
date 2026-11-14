@@ -1,3 +1,4 @@
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.media_info.media_info_toolbar_widget import MediaInfoToolbarWidget
 from MyVideoExplorer.media_info_section.media_info_section_definitions import (
     MEDIA_INFO_VIEW_MODE_DEFAULT,
@@ -5,7 +6,7 @@ from MyVideoExplorer.media_info_section.media_info_section_definitions import (
 
 
 def test_toolbar_builds_default_buttons(qtbot):
-    toolbar = MediaInfoToolbarWidget()
+    toolbar = MediaInfoToolbarWidget(LangEn())
     qtbot.addWidget(toolbar)
 
     toolbar.rebuild_for_view_mode(MEDIA_INFO_VIEW_MODE_DEFAULT)

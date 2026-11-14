@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 import logging
 import sys
 import traceback
@@ -382,7 +382,7 @@ class LogUtil:
         self.remove_file_handler()
 
         # date_str = datetime.datetime.now(datetime.UTC).astimezone().strftime("%Y%m%d-%H%M%S")
-        date_str = datetime.datetime.now(datetime.UTC).astimezone().strftime("%Y%m%d")
+        date_str = dt.datetime.now(dt.UTC).astimezone().strftime("%Y%m%d")
         backup_log = LOG_DIR / f"app-{date_str}.log"
         # shutil.move(self.LOG_FILE, LOG_DIR / f"app-{date_str}.log")
         self.concat_files(

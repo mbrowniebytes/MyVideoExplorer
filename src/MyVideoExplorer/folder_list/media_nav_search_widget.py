@@ -28,6 +28,7 @@ from MyVideoExplorer.folder_list.media_nav_search import (
     QTY_OPERATORS,
     MediaNavSearchCriteria,
 )
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.tag_cloud.tag_picker_dialog import TagPickerDialog
 from MyVideoExplorer.tag_cloud.tag_util import get_contrast_text_color
 from MyVideoExplorer.theme.theme import APP_THEME
@@ -111,10 +112,13 @@ class MediaNavSearchOptionsDialog(QDialog):
     tag_remove_requested = Signal(str)
     create_filter_requested = Signal(list)  # list of filter dicts
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(
+        self, parent: QWidget | None = None, lang: LangEn | None = None
+    ) -> None:
         super().__init__(parent)
+        self.lang = lang or LangEn()
         self.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.WindowStaysOnTopHint)
-        self.setWindowTitle("Media Search Options")
+        self.setWindowTitle(self.lang.ui.media_nav_search.options_title)
         self.setStyleSheet(APP_THEME.container_qss())
         self._selected_tags: list[str] = []
         self._tag_colors: dict[str, str] = {}
@@ -151,7 +155,15 @@ class MediaNavSearchOptionsDialog(QDialog):
         self.name_group.setExclusive(True)
         name_row = QHBoxLayout()
         for field in ("movie_name", "folder_name", "file_name"):
-            label = _NAME_LABELS[field]
+            label = (
+                self.lang.ui.media_nav_search.movie_name
+                if field == "movie_name"
+                else (
+                    self.lang.ui.media_nav_search.folder_name
+                    if field == "folder_name"
+                    else self.lang.ui.media_nav_search.file_name
+                )
+            )
             radio = QRadioButton(label, self)
             radio.setObjectName(f"search_name_{field}")
             self.name_radios[field] = radio
@@ -172,7 +184,11 @@ class MediaNavSearchOptionsDialog(QDialog):
             radio.setObjectName(f"search_person_{field}")
             query = QLineEdit(self)
             query.setObjectName(f"search_{field}_query")
-            query.setPlaceholderText(f"Search {label.lower()}")
+            query.setPlaceholderText(
+                self.lang.ui.media_nav_search.search_person_placeholder.format(
+                    label=label.lower()
+                )
+            )
             self.person_radios[field] = radio
             self.person_inputs[field] = query
             self.person_group.addButton(radio)
@@ -184,11 +200,11 @@ class MediaNavSearchOptionsDialog(QDialog):
         self.person_radios["director"].setChecked(True)
         self._add_separator(layout)
 
-        self.year_checkbox = QCheckBox("Year", self)
+        self.year_checkbox = QCheckBox(self.lang.ui.media_nav_search.year, self)
         self.year_operator = self._make_operator_combo(_YEAR_OPERATORS)
         self.year_combo = SelectComboBox(self)
         self.year_combo.setObjectName("search_year_combo")
-        self.year_combo.addItem("- Any -", userData=None)
+        self.year_combo.addItem(self.lang.ui.media_nav_search.any_year, userData=None)
         year_values = list(range(QDate.currentDate().year(), 1949, -1)) + list(
             range(1940, 1899, -10)
         )
@@ -221,7 +237,7 @@ class MediaNavSearchOptionsDialog(QDialog):
         year_row.addStretch(1)
         layout.addLayout(year_row)
 
-        self.qty_checkbox = QCheckBox("Qty Played", self)
+        self.qty_checkbox = QCheckBox(self.lang.ui.media_nav_search.qty_played, self)
         self.qty_operator = self._make_operator_combo(QTY_OPERATORS)
         self.qty_value = QSpinBox(self)
         self.qty_value.setObjectName("search_qty_value")
@@ -242,7 +258,9 @@ class MediaNavSearchOptionsDialog(QDialog):
         qty_row.addStretch(1)
         layout.addLayout(qty_row)
 
-        self.date_checkbox = QCheckBox("Date Last Played", self)
+        self.date_checkbox = QCheckBox(
+            self.lang.ui.media_nav_search.date_last_played, self
+        )
         self.date_operator = self._make_operator_combo(DATE_OPERATORS)
         self.date_start = self._make_date_edit()
         self.date_checkbox.toggled.connect(self.date_operator.setEnabled)
@@ -258,8 +276,12 @@ class MediaNavSearchOptionsDialog(QDialog):
         self._add_separator(layout)
 
         tag_row = QHBoxLayout()
-        self.tags_checkbox = QCheckBox("Tags", self)
-        self.select_tags_button = self._make_button("Select Tags", "fa6s.tag")
+        self.tags_checkbox = QCheckBox(
+            self.lang.ui.media_nav_search.tags_checkbox, self
+        )
+        self.select_tags_button = self._make_button(
+            self.lang.ui.media_nav_search.select_tags, "fa6s.tag"
+        )
         self.select_tags_button.setEnabled(False)
         self.tags_checkbox.toggled.connect(self.select_tags_button.setEnabled)
         self.tags_checkbox.toggled.connect(self.criteria_changed)
@@ -275,7 +297,7 @@ class MediaNavSearchOptionsDialog(QDialog):
         bottom_row = QHBoxLayout()
         bottom_row.addStretch(1)
         self.create_filter_button = self._make_button(
-            "Create Filter from Search", "fa6s.circle-plus"
+            self.lang.ui.media_nav_search.create_filter, "fa6s.circle-plus"
         )
         self.create_filter_button.clicked.connect(self._on_create_filter)
         bottom_row.addWidget(self.create_filter_button)
@@ -378,7 +400,7 @@ class MediaNavSearchOptionsDialog(QDialog):
             font_size = self._compute_tag_font_size(qty, maximum_qty)
             chip = self._make_tag_chip(
                 tag,
-                f"Remove tag '{tag}'",
+                self.lang.ui.media_nav_search.remove_tag.format(tag=tag),
                 lambda current=tag: self.tag_remove_requested.emit(current),
                 color=color,
                 font_size=font_size,
@@ -610,23 +632,37 @@ class MediaNavSearchWidget(QWidget):
     search_criteria_changed = Signal(bool)
 
     def __init__(
-        self, settings: _SearchSettings, parent: QWidget | None = None
+        self,
+        settings: _SearchSettings,
+        parent: QWidget | None = None,
+        lang: LangEn | None = None,
     ) -> None:
         super().__init__(parent)
         self.settings = settings
+        self.lang = lang or LangEn()
         self._selected_tags: list[str] = []
         self._tag_picker: TagPickerDialog | None = None
         self._options_dialog: MediaNavSearchOptionsDialog | None = None
 
         self.media_nav_search_box = QLineEdit(self)
         self.media_nav_search_box.setObjectName("media_nav_search_box")
-        self.media_nav_search_box.setPlaceholderText("Search movie name")
+        self.media_nav_search_box.setPlaceholderText(
+            self.lang.ui.media_nav_search.search_placeholder
+        )
         self.media_nav_search_box.returnPressed.connect(self.submit_search)
 
-        self.search_button = self._make_button("Search", "fa6s.magnifying-glass")
-        self.options_button = self._make_button("Search Options", "fa6s.sliders")
-        self.tag_button = self._make_button("Tags", "fa6s.tag")
-        self.clear_search_button = self._make_button("Clear Search", "fa6s.xmark")
+        self.search_button = self._make_button(
+            self.lang.ui.media_nav_search.search_button, "fa6s.magnifying-glass"
+        )
+        self.options_button = self._make_button(
+            self.lang.ui.media_nav_search.search_options, "fa6s.sliders"
+        )
+        self.tag_button = self._make_button(
+            self.lang.ui.media_nav_search.tags_button, "fa6s.tag"
+        )
+        self.clear_search_button = self._make_button(
+            self.lang.ui.media_nav_search.clear_search, "fa6s.xmark"
+        )
         self.search_button.setObjectName("media_nav_search_button")
         self.options_button.setObjectName("media_nav_search_options_button")
         self.clear_search_button.setObjectName("media_nav_clear_search_button")
@@ -673,7 +709,7 @@ class MediaNavSearchWidget(QWidget):
         return button
 
     def _build_options_dialog(self) -> None:
-        self._options_dialog = MediaNavSearchOptionsDialog(self.window())
+        self._options_dialog = MediaNavSearchOptionsDialog(self.window(), self.lang)
         self._options_dialog.select_tags_button.clicked.connect(self._show_tag_picker)
         self._options_dialog.tag_remove_requested.connect(self.remove_selected_tag)
         self._options_dialog.criteria_changed.connect(self._on_criteria_changed)
@@ -763,7 +799,9 @@ class MediaNavSearchWidget(QWidget):
     def _update_search_placeholder(self, *_args) -> None:
         field = self.options_dialog.selected_name_field()
         self.media_nav_search_box.setPlaceholderText(
-            f"Search {_NAME_LABELS[field].lower()}"
+            self.lang.ui.media_nav_search.search_placeholder_dynamic.format(
+                field=_NAME_LABELS[field].lower()
+            )
         )
 
     def add_selected_tag(self, tag: str) -> None:
@@ -799,7 +837,9 @@ class MediaNavSearchWidget(QWidget):
                 criteria.append(
                     (
                         f"{label}: {query}",
-                        f"Clear {label.lower()} criterion",
+                        self.lang.ui.media_nav_search.clear_person_criterion.format(
+                            label=label.lower()
+                        ),
                         lambda selected=person_field: options.person_inputs[
                             selected
                         ].clear(),
@@ -812,7 +852,7 @@ class MediaNavSearchWidget(QWidget):
             criteria.append(
                 (
                     f"Year {options.year_operator.currentText()} {year}",
-                    "Clear year criterion",
+                    self.lang.ui.media_nav_search.clear_year_criterion,
                     lambda: options.year_combo.setCurrentIndex(0),
                     None,
                     False,
@@ -829,7 +869,7 @@ class MediaNavSearchWidget(QWidget):
                 criteria.append(
                     (
                         tag,
-                        f"Remove tag '{tag}'",
+                        self.lang.ui.media_nav_search.remove_tag.format(tag=tag),
                         lambda selected=tag: self.remove_selected_tag(selected),
                         font_size,
                         True,
@@ -843,7 +883,7 @@ class MediaNavSearchWidget(QWidget):
             criteria.append(
                 (
                     f"Qty Played {operator} {value}",
-                    "Clear Qty Played criterion",
+                    self.lang.ui.media_nav_search.clear_qty_criterion,
                     lambda: options.qty_checkbox.setChecked(False),
                     None,
                     False,
@@ -855,7 +895,7 @@ class MediaNavSearchWidget(QWidget):
             criteria.append(
                 (
                     label,
-                    "Clear Date Last Played criterion",
+                    self.lang.ui.media_nav_search.clear_date_criterion,
                     lambda: options.date_checkbox.setChecked(False),
                     None,
                     False,

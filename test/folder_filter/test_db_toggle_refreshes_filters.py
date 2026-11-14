@@ -2,6 +2,7 @@ from unittest.mock import MagicMock
 
 from MyVideoExplorer.folder_filter.folder_filter import FolderFilters
 from MyVideoExplorer.folder_filter.folder_filter_filter import FolderFilterFilter
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
@@ -23,7 +24,7 @@ def test_db_toggle_refreshes_filters(qtbot):
 
     engine = FolderFilterFilter(nfo_util, settings_state, log_util)
 
-    widget = FolderFilters(engine, file_util, settings_mock, log_util)
+    widget = FolderFilters(engine, file_util, settings_mock, log_util, LangEn())
     widget.root_folders = ["D:/Test"]
     widget.build()
 

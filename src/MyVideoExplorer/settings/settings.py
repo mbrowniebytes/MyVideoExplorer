@@ -9,6 +9,7 @@ from PySide6.QtWidgets import QTabBar, QTabWidget, QVBoxLayout, QWidget
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.compare.compare_tab import CompareTab
 from MyVideoExplorer.db.db_tags import DbTags
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.settings.settings_app_tab import SettingsAppTab
 from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
 from MyVideoExplorer.settings.settings_filter_tab import SettingsFilterTab
@@ -29,10 +30,11 @@ class Settings(QWidget, ThemableMixin):
 
     dirty_changed = Signal(object)
 
-    def __init__(self, log_util: LogUtil, file_util: FileUtil) -> None:
+    def __init__(self, log_util: LogUtil, file_util: FileUtil, lang: LangEn) -> None:
         super().__init__()
         self.log_util = log_util
         self.file_util = file_util
+        self.lang = lang
 
         # Data Model (State Management)
         self.settings_data_model = SettingsState(self.log_util)
@@ -138,17 +140,26 @@ class Settings(QWidget, ThemableMixin):
         # Initialize tabs if not already done
         if not self.managed_tabs:
             self._app_settings_tab = SettingsAppTab(
-                self.settings_data_model, self.log_util, parent=self
+                self.settings_data_model, self.log_util, self.lang, parent=self
             )
             self._ui_settings_tab = SettingsUITab(
-                self.settings_data_model, self.log_util, self.file_util, parent=self
+                self.settings_data_model,
+                self.log_util,
+                self.file_util,
+                self.lang,
+                parent=self,
             )
             self._media_settings_tab = SettingsMediaTab(
-                self.settings_data_model, self.log_util, self.file_util, parent=self
+                self.settings_data_model,
+                self.log_util,
+                self.file_util,
+                self.lang,
+                parent=self,
             )
             self._filter_settings_tab = SettingsFilterTab(
                 self.settings_data_model,
                 self.log_util,
+                self.lang,
                 tag_store=self.tag_store,
                 parent=self,
             )
@@ -158,11 +169,12 @@ class Settings(QWidget, ThemableMixin):
             self._tags_settings_tab = SettingsTagsTab(
                 self.settings_data_model,
                 self.log_util,
+                self.lang,
                 tag_store=self.tag_store,
                 parent=self,
             )
             self._player_settings_tab = SettingsPlayerTab(
-                self.settings_data_model, self.log_util, parent=self
+                self.settings_data_model, self.log_util, self.lang, parent=self
             )
 
             # Create CompareTab with the settings state
@@ -170,6 +182,7 @@ class Settings(QWidget, ThemableMixin):
                 self.settings_data_model,
                 self.log_util,
                 self.file_util,
+                self.lang,
                 parent=self,
             )
             self._media_settings_tab.set_compare_tab(self._compare_tab)

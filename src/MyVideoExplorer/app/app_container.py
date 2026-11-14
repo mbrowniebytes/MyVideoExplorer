@@ -19,6 +19,7 @@ from MyVideoExplorer.folder_list.media_nav_search import (
 from MyVideoExplorer.folder_nav.folder_nav import FolderNav
 from MyVideoExplorer.image_list.image_list import ImageList
 from MyVideoExplorer.image_list.image_list_view import ImageListView
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.media_info.media_info import MediaInfo
 from MyVideoExplorer.media_info.media_info_view import MediaInfoView
 from MyVideoExplorer.media_info_side.media_info_side_view import MediaInfoSideView
@@ -74,7 +75,8 @@ class AppContainer:
         try:
             self.path_utils = FileUtils()
             self.file_util = FileUtil(self.log_util, self.path_utils)
-            self.settings = Settings(self.log_util, self.file_util)
+            self.lang = LangEn()
+            self.settings = Settings(self.log_util, self.file_util, self.lang)
         except Exception as e:
             self.log_util.error(f"Error initializing Settings: {e}")
             raise
@@ -104,7 +106,9 @@ class AppContainer:
             self.media_nav_search_service = MediaNavSearch(
                 self.settings.settings_data_model, self.path_utils
             )
-            self.folder_list = FolderList(self.file_util, self.settings, self.log_util)
+            self.folder_list = FolderList(
+                self.file_util, self.settings, self.log_util, self.lang
+            )
             self.folder_list.setParent(self.window)
 
             self.folder_nav_filters = FolderFilters(
@@ -112,15 +116,16 @@ class AppContainer:
                 self.file_util,
                 self.settings,
                 self.log_util,
+                self.lang,
             )
             self.folder_nav_filters.setParent(self.window)
             self.folder_nav = FolderNav(self.folder_nav_filters, self.log_util)
             self.folder_nav.setParent(self.window)
-            self.file_list = FileList(self.file_util, self.log_util)
+            self.file_list = FileList(self.file_util, self.log_util, self.lang)
             self.file_list.setParent(self.window)
 
             self.media_info_view = MediaInfoView(
-                self.nfo_parse_util, self.str_util, self.log_util
+                self.nfo_parse_util, self.str_util, self.log_util, self.lang
             )
             self.media_info_view.setParent(self.window)
             self.media_info_side_view = MediaInfoSideView(
@@ -130,6 +135,7 @@ class AppContainer:
                 self.db_play_history,
                 self.db_tags,
                 self.settings.settings_data_model,
+                lang=self.lang,
             )
             self.media_info_side_view.setParent(self.window)
             self.media_info = MediaInfo(
@@ -149,6 +155,7 @@ class AppContainer:
                 self.image_list_view,
                 self.file_list,
                 self.log_util,
+                self.lang,
             )
             self.image_list.setParent(self.window)
 
@@ -159,6 +166,7 @@ class AppContainer:
                 media_info=self.media_info,
                 image_list=self.image_list,
                 settings=self.settings,
+                lang=self.lang,
             )
             self.media_info_tabs.setParent(self.window)
 

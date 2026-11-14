@@ -14,6 +14,7 @@ from MyVideoExplorer.folder_filter.folder_filter_table import (
     FilterTagCloudWidget,
     FolderFilterTable,
 )
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.settings.settings_filter_tab import SettingsFilterTab
 from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.utils.file_util import FileUtil
@@ -205,7 +206,7 @@ class TestFolderNavFilters:
         engine = FolderFilterFilter(nfo_util, settings_mock.settings_data_model)
         engine.apply_filters = MagicMock(side_effect=engine.apply_filters)
         mock_log = MagicMock()
-        widget = FolderFilters(engine, file_util, settings_mock, mock_log)
+        widget = FolderFilters(engine, file_util, settings_mock, mock_log, LangEn())
         widget.build()
         qtbot.addWidget(widget)
         return widget
@@ -505,7 +506,7 @@ class TestFolderNavFilters:
         ]
         tag_store.get_tag_counts.return_value = {"action": 12, "drama": 5}
 
-        tab = SettingsFilterTab(state, log, tag_store=tag_store)
+        tab = SettingsFilterTab(state, log, LangEn(), tag_store=tag_store)
         qtbot.addWidget(tab)
 
         # Verify the compact table shows the filter
@@ -548,7 +549,7 @@ class TestFolderNavFilters:
         ]
         tag_store.get_tag_counts.return_value = {"action": 10, "drama": 4, "sci-fi": 8}
 
-        tab = SettingsFilterTab(state, log, tag_store=tag_store)
+        tab = SettingsFilterTab(state, log, LangEn(), tag_store=tag_store)
         qtbot.addWidget(tab)
 
         # Verify the compact table shows the filter with correct count
@@ -658,7 +659,7 @@ class TestFolderNavFilters:
         ]
         tag_store.get_tag_counts.return_value = {f"tag{i}": i for i in range(20)}
 
-        tab = SettingsFilterTab(state, log, tag_store=tag_store)
+        tab = SettingsFilterTab(state, log, LangEn(), tag_store=tag_store)
         tab.resize(500, 600)
         tab.show()
         qtbot.addWidget(tab)

@@ -9,6 +9,7 @@ from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.db.db_play_history import DbPlayHistory
 from MyVideoExplorer.db.db_tags import DbTags
 from MyVideoExplorer.db.models.play_history import PlayHistory
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.media_info_section.media_info_section_definitions import (
     MEDIA_INFO_VIEW_MODE_IMAGE_LIST,
 )
@@ -44,9 +45,11 @@ class MediaInfoSideView(QWidget, ThemableMixin):
         tag_store: DbTags | None = None,
         tag_state: TagStateProtocol | None = None,
         settings_state: SettingsState | None = None,
+        lang: LangEn | None = None,
     ) -> None:
         super().__init__()
         self.log_util = log_util
+        self.lang = lang or LangEn()
         self._ui_utils = UIUtils()
 
         self.nfo_parse_util = nfo_parse_util
@@ -67,6 +70,7 @@ class MediaInfoSideView(QWidget, ThemableMixin):
             tag_state=tag_state,
             tag_store=tag_store,
             settings_state=settings_state,
+            lang=self.lang,
         )
         self.side_content_widget.hide()
         self.side_content_widget.column_widths_changed.connect(self.setFixedWidth)
@@ -78,7 +82,7 @@ class MediaInfoSideView(QWidget, ThemableMixin):
             parent=self,
         )
 
-        self.plot_section = MediaInfoPlotSection()
+        self.plot_section = MediaInfoPlotSection(self.lang)
 
         self.media_info_side_layout = self._ui_utils.apply_compact_layout(
             self, QVBoxLayout

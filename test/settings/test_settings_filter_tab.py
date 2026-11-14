@@ -11,6 +11,7 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QMessageBox, QPushButton, QSpinBox, QToolButton, QWidget
 
 from MyVideoExplorer.db.db_filters import DbFilters
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.media_nav_search.filter_criteria_dialog import FilterCriteriaDialog
 from MyVideoExplorer.settings.settings_filter_header import SettingsFilterHeader
 from MyVideoExplorer.settings.settings_filter_tab import SettingsFilterTab
@@ -32,7 +33,7 @@ def state():
 
 @pytest.fixture
 def tab(qtbot, state):
-    widget = SettingsFilterTab(state, MagicMock())
+    widget = SettingsFilterTab(state, MagicMock(), LangEn())
     qtbot.addWidget(widget)
     widget.resize(700, 500)
     widget.show()
@@ -292,7 +293,7 @@ def test_movie_count_column_should_reflect_selected_media_folders(qtbot, tmp_pat
     state.filter_store = store
     state.saved_filters = store.list_filters()
 
-    tab = SettingsFilterTab(state, MagicMock())
+    tab = SettingsFilterTab(state, MagicMock(), LangEn())
     qtbot.addWidget(tab)
 
     table = tab._filter_table_widget
@@ -348,7 +349,7 @@ def test_row_refresh_button_should_update_movie_count_off_gui_thread(qtbot, tmp_
         state, "saved_filters", store.list_filters()
     )
 
-    tab = SettingsFilterTab(state, MagicMock())
+    tab = SettingsFilterTab(state, MagicMock(), LangEn())
     qtbot.addWidget(tab)
     table = tab._filter_table_widget
     assert table is not None
@@ -611,6 +612,7 @@ def test_readonly_dialog_should_hide_add_criteria_and_action_buttons(qtbot):
         filters=[{"filter": "Folder", "value": "abc"}],
         edit_mode=False,
         readonly=True,
+        lang=LangEn(),
     )
     qtbot.addWidget(dialog)
 
@@ -655,6 +657,7 @@ def test_system_filter_should_allow_sort_visibility_and_save_without_editing_cri
         sort_option="a_z",
         edit_mode=True,
         is_system=True,
+        lang=LangEn(),
     )
     qtbot.addWidget(dialog)
     saved_results = []

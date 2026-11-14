@@ -5,6 +5,7 @@ import pytest
 from MyVideoExplorer.file_list.file_list import FileList
 from MyVideoExplorer.image_list.image_list import ImageList
 from MyVideoExplorer.image_list.image_list_view import ImageListView
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.utils.str_util import StrUtil
@@ -25,7 +26,14 @@ class TestImageList:
         str_util = MagicMock(spec=StrUtil)
 
         il = ImageList(
-            file_util, settings, nfo_parse_util, str_util, view, file_list, mock_log
+            file_util,
+            settings,
+            nfo_parse_util,
+            str_util,
+            view,
+            file_list,
+            mock_log,
+            LangEn(),
         )
         il.build()
         return il

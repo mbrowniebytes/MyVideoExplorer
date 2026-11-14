@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from MyVideoExplorer.folder_list.folder_list import FolderList
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 
@@ -20,7 +21,9 @@ class TestFolderListRandom:
             "MyVideoExplorer.folder_list.folder_list.FolderList._has_valid_media_folders",
             return_value=True,
         ):
-            widget = FolderList(file_util, settings=settings, log_util=mock_log)
+            widget = FolderList(
+                file_util, settings=settings, log_util=mock_log, lang=LangEn()
+            )
             widget.build()
         qtbot.addWidget(widget)
         return widget

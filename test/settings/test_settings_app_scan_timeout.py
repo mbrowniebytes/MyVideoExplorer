@@ -1,12 +1,13 @@
 from unittest.mock import MagicMock
 
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.settings.settings_app_tab import SettingsAppTab
 
 
 def test_scan_media_timeout_options_update_and_save_state(qtbot):
     state = MagicMock()
     state.scan_media_timeout_seconds = 120
-    tab = SettingsAppTab(state, MagicMock())
+    tab = SettingsAppTab(state, MagicMock(), LangEn())
     qtbot.addWidget(tab)
 
     assert [
@@ -27,7 +28,7 @@ def test_scan_media_timeout_options_update_and_save_state(qtbot):
 def test_scan_media_timeout_defaults_when_unsupported(qtbot):
     state = MagicMock()
     state.scan_media_timeout_seconds = 45
-    tab = SettingsAppTab(state, MagicMock())
+    tab = SettingsAppTab(state, MagicMock(), LangEn())
     qtbot.addWidget(tab)
 
     assert tab.scan_media_timeout_combo.currentData() == 120

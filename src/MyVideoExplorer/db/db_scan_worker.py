@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 import os
 import re
 from pathlib import Path
@@ -90,7 +90,7 @@ class ScanWorker(QThread):
                 "videos_count": 0,
                 "nfo_count": 0,
                 "other_count": 0,
-                "last_scanned": datetime.datetime.now(datetime.UTC),
+                "last_scanned": dt.datetime.now(dt.UTC),
             }
 
             progress = 0

@@ -1,10 +1,11 @@
 from PySide6.QtCore import Qt
 
 from MyVideoExplorer.folder_list.folder_list_header import FolderListHeader
+from MyVideoExplorer.lang.lang_en import LangEn
 
 
 def test_sort_combo_should_expose_requested_sort_options(qtbot):
-    header = FolderListHeader()
+    header = FolderListHeader(LangEn())
     qtbot.addWidget(header)
 
     combo = header.sort_combo

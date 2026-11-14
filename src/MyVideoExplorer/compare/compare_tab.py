@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 
 from MyVideoExplorer.compare.compare_model import COMPARE_COLUMNS, CompareTableModel
 from MyVideoExplorer.compare.compare_worker import CompareWorker
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
@@ -37,6 +38,7 @@ class CompareTab(SettingsBaseTab):
         state: SettingsState,
         log_util: LogUtil,
         file_util: FileUtil,
+        lang: LangEn,
         parent: QWidget | None = None,
     ) -> None:
         """Initialize the compare tab.
@@ -45,11 +47,13 @@ class CompareTab(SettingsBaseTab):
             state: Settings state (provides media configs).
             log_util: Logging utility.
             file_util: File utility.
+            lang: Language strings.
             parent: Qt parent widget.
         """
         super().__init__(log_util, parent)
         self._state = state
         self._file_util = file_util
+        self.lang = lang
         self._compare_dbs: dict[str, Path] = {}
         self._worker: CompareWorker | None = None
         self._model: CompareTableModel | None = None
@@ -67,12 +71,12 @@ class CompareTab(SettingsBaseTab):
         compare_row.setSpacing(10)
         compare_row.addStretch()
 
-        self._compare_db_label = QLabel("Compare media:")
+        self._compare_db_label = QLabel(self.lang.ui.compare.compare_media)
         self._compare_db_combo = SelectComboBox()
-        self._compare_db_combo.setPlaceholderText("Load DB first")
+        self._compare_db_combo.setPlaceholderText(self.lang.ui.compare.load_db_first)
         self._compare_db_combo.setEnabled(False)
 
-        self._import_btn = QPushButton("Load DB")
+        self._import_btn = QPushButton(self.lang.ui.compare.load_db)
         self._import_btn.clicked.connect(self._on_import_db)
 
         compare_row.addWidget(self._compare_db_label)
@@ -85,11 +89,11 @@ class CompareTab(SettingsBaseTab):
         local_row.setSpacing(10)
         local_row.addStretch()
 
-        self._local_db_label = QLabel("Local media:")
+        self._local_db_label = QLabel(self.lang.ui.compare.local_media)
         self._local_db_combo = SelectComboBox()
-        self._local_db_combo.setPlaceholderText("Select local media")
+        self._local_db_combo.setPlaceholderText(self.lang.ui.compare.select_local)
 
-        self._compare_btn = QPushButton("Compare")
+        self._compare_btn = QPushButton(self.lang.ui.compare.compare)
         self._compare_btn.clicked.connect(self._on_compare)
         self._compare_btn.setEnabled(False)
 
@@ -114,14 +118,14 @@ class CompareTab(SettingsBaseTab):
         filter_layout = QHBoxLayout()
         filter_layout.setSpacing(10)
 
-        self._status_label = QLabel("Status:")
+        self._status_label = QLabel(self.lang.ui.compare.status)
         self._status_checkbox = CheckboxComboBox(self)
         self._status_checkbox.set_items(["missing", "match", "similar"])
         self._status_checkbox.selection_changed.connect(self._on_status_changed)
 
-        self._search_label = QLabel("Search:")
+        self._search_label = QLabel(self.lang.ui.compare.search)
         self._search_field = QLineEdit()
-        self._search_field.setPlaceholderText("Search all columns...")
+        self._search_field.setPlaceholderText(self.lang.ui.compare.search_placeholder)
         self._search_field.returnPressed.connect(self._on_search_changed)
 
         filter_layout.addWidget(self._status_label)
@@ -152,13 +156,13 @@ class CompareTab(SettingsBaseTab):
         page_layout = QHBoxLayout()
         page_layout.setSpacing(10)
 
-        self._prev_btn = QPushButton("Previous")
+        self._prev_btn = QPushButton(self.lang.ui.compare.previous)
         self._prev_btn.clicked.connect(self._on_prev_page)
         self._prev_btn.setEnabled(False)
 
-        self._page_label = QLabel("Page 0 / 0")
+        self._page_label = QLabel(self.lang.ui.compare.page.format(current=0, total=0))
 
-        self._next_btn = QPushButton("Next")
+        self._next_btn = QPushButton(self.lang.ui.compare.next)
         self._next_btn.clicked.connect(self._on_next_page)
         self._next_btn.setEnabled(False)
 
@@ -250,7 +254,7 @@ class CompareTab(SettingsBaseTab):
         """Handle import database button click."""
         file_path, _ = QFileDialog.getOpenFileName(
             self,
-            "Import Compare Database",
+            self.lang.ui.compare.import_title,
             "",
             "DuckDB Files (*.db);;All Files (*)",
         )
@@ -347,6 +351,8 @@ class CompareTab(SettingsBaseTab):
         """Update pagination controls."""
         if self._model:
             current, total = self._model.page_info()
-            self._page_label.setText(f"Page {current + 1} / {total}")
+            self._page_label.setText(
+                self.lang.ui.compare.page.format(current=current + 1, total=total)
+            )
             self._prev_btn.setEnabled(current > 0)
             self._next_btn.setEnabled(current + 1 < total)

@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.db.models.ffprobe_stats import FfprobeStats
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
 from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.theme.theme import APP_THEME
@@ -46,11 +47,13 @@ class SettingsMetaTab(SettingsBaseTab):
         state: SettingsState,
         log_util: LogUtil,
         file_util: FileUtil,
+        lang: LangEn,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(log_util, parent)
         self.state = state
         self.file_util = file_util
+        self.lang = lang
         self._current_worker: FfprobeWorker | None = None
         self._scan_index = 0
         self._scan_configs: list[dict[str, str]] = []
@@ -80,14 +83,14 @@ class SettingsMetaTab(SettingsBaseTab):
 
     def _build_ui(self) -> None:
         # ffmpeg label
-        ffmpeg_label = QLabel("ffmpeg", parent=self)
+        ffmpeg_label = QLabel(self.lang.ui.settings.meta.ffmpeg_label, parent=self)
         ffmpeg_label.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size - 1))
         ffmpeg_label.setStyleSheet(APP_THEME.label_qss("secondary"))
         self.content_layout.addWidget(ffmpeg_label)
 
         # Download link
         self.ffmpeg_download_link = QLabel(
-            '<a href="https://ffmpeg.org/download.html">Download ffmpeg</a>',
+            f'<a href="https://ffmpeg.org/download.html">{self.lang.ui.settings.meta.download_link}</a>',
             parent=self,
         )
         self.ffmpeg_download_link.setTextFormat(Qt.TextFormat.RichText)
@@ -106,11 +109,11 @@ class SettingsMetaTab(SettingsBaseTab):
         path_layout.setSpacing(5)
 
         self.ffmpeg_path_edit = QLineEdit(parent=self)
-        self.ffmpeg_path_edit.setPlaceholderText("Select ffmpeg installation folder...")
+        self.ffmpeg_path_edit.setPlaceholderText(self.lang.ui.settings.meta.placeholder)
         self.ffmpeg_path_edit.textChanged.connect(self._on_ffmpeg_path_changed)
         path_layout.addWidget(self.ffmpeg_path_edit)
 
-        browse_btn = QPushButton("Browse...", parent=self)
+        browse_btn = QPushButton(self.lang.ui.settings.meta.browse, parent=self)
         browse_btn.clicked.connect(self._on_browse_ffmpeg)
         path_layout.addWidget(browse_btn)
 
@@ -124,7 +127,7 @@ class SettingsMetaTab(SettingsBaseTab):
         # Scan target dropdown
         target_layout = QHBoxLayout()
         target_layout.setSpacing(5)
-        target_label = QLabel("Scan Target:", parent=self)
+        target_label = QLabel(self.lang.ui.settings.meta.scan_target, parent=self)
         target_layout.addWidget(target_label)
 
         self.scan_target_combo = SelectComboBox(self)
@@ -135,7 +138,9 @@ class SettingsMetaTab(SettingsBaseTab):
         self.content_layout.addLayout(target_layout)
 
         # Scan mode checkbox
-        self.scan_new_checkbox = QCheckBox("Scan New (only new files)", parent=self)
+        self.scan_new_checkbox = QCheckBox(
+            self.lang.ui.settings.meta.scan_new, parent=self
+        )
         self.content_layout.addWidget(self.scan_new_checkbox)
 
         # Scan button + Stop button
@@ -143,8 +148,8 @@ class SettingsMetaTab(SettingsBaseTab):
         self.scan_button = ActionButton(
             self,
             icon_name="fa6s.magnifying-glass",
-            tooltip="Run ffmpeg-based media scan",
-            text="Scan",
+            tooltip=self.lang.ui.settings.meta.scan_tooltip,
+            text=self.lang.ui.settings.meta.scan,
         )
         self.scan_button.clicked.connect(self._on_scan_clicked)
         self.scan_button.setEnabled(False)
@@ -153,8 +158,8 @@ class SettingsMetaTab(SettingsBaseTab):
         self.stop_button = ActionButton(
             self,
             icon_name="fa6s.stop",
-            tooltip="Cancel the current scan",
-            text="Stop",
+            tooltip=self.lang.ui.settings.meta.stop_tooltip,
+            text=self.lang.ui.settings.meta.stop,
         )
         self.stop_button.clicked.connect(self._on_stop_clicked)
         self.stop_button.hide()
@@ -193,10 +198,10 @@ class SettingsMetaTab(SettingsBaseTab):
         save_btn_layout.setContentsMargins(20, 15, 20, 15)
 
         self.reset_btn = self._build_reset_button(
-            "Reset Meta Settings", self.reset_settings
+            self.lang.ui.settings.meta.reset_btn, self.reset_settings
         )
 
-        self.save_btn = QPushButton("Save Meta Settings", parent=self)
+        self.save_btn = QPushButton(self.lang.ui.settings.meta.save_btn, parent=self)
         self.save_btn.clicked.connect(self._save_meta_settings)
 
         save_btn_layout.addWidget(self.reset_btn)
@@ -218,7 +223,7 @@ class SettingsMetaTab(SettingsBaseTab):
 
     def _on_browse_ffmpeg(self) -> None:
         folder = QFileDialog.getExistingDirectory(
-            self, "Select ffmpeg Installation Folder"
+            self, self.lang.ui.settings.meta.browse_title
         )
         if folder:
             normalized = self.file_util.normalize_path(folder)
@@ -237,7 +242,7 @@ class SettingsMetaTab(SettingsBaseTab):
             return
 
         # Determine which media configs to scan
-        if target == "Scan All":
+        if target == self.lang.ui.settings.meta.scan_all:
             configs = list(self.state.media_configs)
         else:
             configs = [c for c in self.state.media_configs if c.get("label") == target]
@@ -253,13 +258,15 @@ class SettingsMetaTab(SettingsBaseTab):
         self.progress_bar.setRange(0, 0)
         self.folder_progress_label.show()
         self.stage_label.show()
-        self.stage_label.setText("Starting scan…")
+        self.stage_label.setText(self.lang.ui.settings.meta.starting_scan)
 
         # Emit signal for external listeners
         payload = SignalPayload(
             data={
                 "ffmpeg_path": ffmpeg_folder,
-                "target": "all" if target == "Scan All" else target,
+                "target": "all"
+                if target == self.lang.ui.settings.meta.scan_all
+                else target,
                 "scan_new_only": scan_new_only,
             },
             sender=self.__class__.__name__,
@@ -288,7 +295,9 @@ class SettingsMetaTab(SettingsBaseTab):
             current_index = self._scan_index + 1
 
             self.folder_progress_label.setText(
-                f"Scanning {config_label} ({current_index} of {total_configs})"
+                self.lang.ui.settings.meta.scanning.format(
+                    label=config_label, current=current_index, total=total_configs
+                )
             )
 
             worker = FfprobeWorker(
@@ -323,7 +332,9 @@ class SettingsMetaTab(SettingsBaseTab):
         try:
             self.progress_bar.setValue(current)
             self.stage_label.setText(
-                f"{current}/{self.progress_bar.maximum()}: {file_name}"
+                self.lang.ui.settings.meta.progress.format(
+                    current=current, total=self.progress_bar.maximum(), file=file_name
+                )
             )
         except Exception as exc:
             logger.error("Error in progress_updated handler: %s", exc)
@@ -336,7 +347,9 @@ class SettingsMetaTab(SettingsBaseTab):
 
     def _on_worker_error(self, message: str) -> None:
         try:
-            self.stage_label.setText(f"Error: {message}")
+            self.stage_label.setText(
+                self.lang.ui.settings.meta.error.format(message=message)
+            )
         except Exception as exc:
             logger.error("Error in error handler: %s", exc)
 
@@ -372,7 +385,7 @@ class SettingsMetaTab(SettingsBaseTab):
         if hasattr(self, "_current_worker") and self._current_worker is not None:
             logger.info("Stop button clicked — requesting interruption")
             self._current_worker.requestInterruption()
-            self.stage_label.setText("Cancelling…")
+            self.stage_label.setText(self.lang.ui.settings.meta.cancelling)
 
     # ---- Validation ----
 
@@ -400,12 +413,12 @@ class SettingsMetaTab(SettingsBaseTab):
 
         binary = self._find_ffmpeg_binary(path_text)
         if binary is not None:
-            self.ffmpeg_status_label.setText("ffmpeg found")
+            self.ffmpeg_status_label.setText(self.lang.ui.settings.meta.ffmpeg_found)
             self.ffmpeg_status_label.setStyleSheet("color: #3FB950;")
             self.ffmpeg_status_label.show()
             self.scan_button.setEnabled(True)
             return True
-        self.ffmpeg_status_label.setText("ffmpeg not found")
+        self.ffmpeg_status_label.setText(self.lang.ui.settings.meta.ffmpeg_not_found)
         self.ffmpeg_status_label.setStyleSheet("color: #F85149;")
         self.ffmpeg_status_label.show()
         self.scan_button.setEnabled(False)
@@ -421,20 +434,19 @@ class SettingsMetaTab(SettingsBaseTab):
 
     def _populate_scan_targets(self) -> None:
         self.scan_target_combo.clear()
-        self.scan_target_combo.addItem("Scan All")
+        self.scan_target_combo.addItem(self.lang.ui.settings.meta.scan_all)
         for config in self.state.media_configs:
             label = config.get("label", "Unnamed")
             if label:
                 self.scan_target_combo.addItem(label)
 
-    @staticmethod
-    def _format_last_probed(value: datetime | None) -> str:
+    def _format_last_probed(self, value: datetime | None) -> str:
         if not value:
-            return "n/a"
+            return self.lang.ui.settings.meta.na
         try:
             return value.strftime("%Y-%m-%d %I:%M%p").lower()
         except AttributeError:
-            return "n/a"
+            return self.lang.ui.settings.meta.na
 
     def _get_stats(self, config: dict[str, Any]) -> FfprobeStats | None:
         db_path = self.state.get_db_path(config)
@@ -470,7 +482,7 @@ class SettingsMetaTab(SettingsBaseTab):
 
     def _refresh_scan_stats(self, _target: str | None = None) -> None:
         target = self.scan_target_combo.currentText()
-        if target == "Scan All":
+        if target == self.lang.ui.settings.meta.scan_all:
             configs = list(self.state.media_configs)
         else:
             configs = [
@@ -491,7 +503,10 @@ class SettingsMetaTab(SettingsBaseTab):
         except Exception as exc:
             logger.exception("Failed to load Meta scan statistics")
             self._clear_stats_layout()
-            err_label = QLabel(f"Unable to load scan stats: {exc}", parent=self)
+            err_label = QLabel(
+                self.lang.ui.settings.meta.unable_to_load_stats.format(error=exc),
+                parent=self,
+            )
             err_label.setStyleSheet(APP_THEME.label_qss("secondary"))
             self.scan_stats_layout.addWidget(err_label)
             return
@@ -504,7 +519,7 @@ class SettingsMetaTab(SettingsBaseTab):
 
     def _get_display_configs(self) -> list[dict[str, str]]:
         target = self.scan_target_combo.currentText()
-        if target == "Scan All":
+        if target == self.lang.ui.settings.meta.scan_all:
             return list(self.state.media_configs)
         return [
             config
@@ -538,11 +553,13 @@ class SettingsMetaTab(SettingsBaseTab):
         totals["fa6s.clock"] = self._format_last_probed(latest_scan)
 
         icon_tooltips = {
-            "fa6s.database": "Probed files",
-            "fa6s.video": "Video streams",
-            "fa6s.music": "Audio streams",
-            "fa6s.closed-captioning": "Subtitle streams",
-            "fa6s.clock": f"Last probed: {self._format_last_probed(latest_scan)}",
+            "fa6s.database": self.lang.ui.settings.meta.probed_files,
+            "fa6s.video": self.lang.ui.settings.meta.video_streams,
+            "fa6s.music": self.lang.ui.settings.meta.audio_streams,
+            "fa6s.closed-captioning": self.lang.ui.settings.meta.subtitle_streams,
+            "fa6s.clock": self.lang.ui.settings.meta.last_probed.format(
+                date=self._format_last_probed(latest_scan)
+            ),
         }
 
         for i, (icon_name, count) in enumerate(totals.items()):
@@ -581,7 +598,10 @@ class SettingsMetaTab(SettingsBaseTab):
 
         if len(available) < len(configs):
             partial_label = QLabel(
-                f"({len(available)}/{len(configs)} have metadata)", parent=self
+                self.lang.ui.settings.meta.partial_metadata.format(
+                    available=len(available), total=len(configs)
+                ),
+                parent=self,
             )
             partial_label.setStyleSheet(APP_THEME.label_qss("secondary"))
             self.scan_stats_layout.addWidget(partial_label)

@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
 )
 
 from MyVideoExplorer.folder_filter.folder_filter_table import FolderFilterTable
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.tag_cloud.tag_util import validate_name
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.widgets.buttons.action_button import ActionButton
@@ -72,6 +73,7 @@ class FilterCriteriaDialog(QDialog):
         group_id: int | None = None,
         is_system: bool = False,
         is_visible: bool = True,
+        lang: LangEn | None = None,
         parent: QWidget | None = None,
     ) -> None:
         """
@@ -105,6 +107,7 @@ class FilterCriteriaDialog(QDialog):
         self._group_id = group_id
         self._is_system = is_system
         self._is_visible = is_visible
+        self.lang = lang or LangEn()
 
         self._name_edit: QLineEdit | None = None
         self._filter_table: FolderFilterTable | None = None
@@ -120,7 +123,7 @@ class FilterCriteriaDialog(QDialog):
         self._results_timer.timeout.connect(self._refresh_results)
 
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.WindowCloseButtonHint)
-        self.setWindowTitle("Filter Criteria")
+        self.setWindowTitle(self.lang.ui.filter_criteria.window_title)
         self.setStyleSheet(APP_THEME.container_qss())
         if self._readonly:
             self.resize(600, 480)
@@ -156,13 +159,16 @@ class FilterCriteriaDialog(QDialog):
         header_layout = QHBoxLayout()
         header_layout.setSpacing(8)
 
-        title_label = QLabel("Filter Criteria", self)
+        title_label = QLabel(self.lang.ui.filter_criteria.title, self)
         title_label.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size + 2))
         header_layout.addWidget(title_label)
         header_layout.addStretch(1)
 
         close_button = ActionButton(
-            self, icon_name="fa6s.xmark", tooltip="Close", icon_size=14
+            self,
+            icon_name="fa6s.xmark",
+            tooltip=self.lang.ui.filter_criteria.close_tooltip,
+            icon_size=14,
         )
         close_button.setFixedSize(22, 22)
         close_button.clicked.connect(self.reject)
@@ -172,7 +178,7 @@ class FilterCriteriaDialog(QDialog):
         # Filter name field
         name_layout = QHBoxLayout()
         name_layout.setSpacing(8)
-        name_label = QLabel("Name:", self)
+        name_label = QLabel(self.lang.ui.filter_criteria.name_label, self)
         name_label.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
         name_layout.addWidget(name_label)
 
@@ -198,13 +204,19 @@ class FilterCriteriaDialog(QDialog):
         sort_layout = QHBoxLayout()
         sort_layout.setSpacing(8)
 
-        sort_label = QLabel("Sort:", self)
+        sort_label = QLabel(self.lang.ui.filter_criteria.sort_label, self)
         sort_label.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
         sort_layout.addWidget(sort_label)
         self._sort_combo = SelectComboBox(self)
-        self._sort_combo.addItem("Default (use Folder sorting)", userData="default")
-        self._sort_combo.addItem("Manual", userData="manual")
-        self._sort_combo.addItem("Other (live)", userData="group")
+        self._sort_combo.addItem(
+            self.lang.ui.filter_criteria.default_sort, userData="default"
+        )
+        self._sort_combo.addItem(
+            self.lang.ui.filter_criteria.manual_sort, userData="manual"
+        )
+        self._sort_combo.addItem(
+            self.lang.ui.filter_criteria.other_live, userData="group"
+        )
         group_index = self._sort_combo.count() - 1
         model = self._sort_combo.model()
         if isinstance(model, QStandardItemModel):
@@ -212,10 +224,10 @@ class FilterCriteriaDialog(QDialog):
             if group_item is not None:
                 group_item.setEnabled(False)
         for label, value in (
-            ("A-Z", "a_z"),
-            ("Z-A", "z_a"),
-            ("Last Played", "last_played"),
-            ("Qty Played", "qty_played"),
+            (self.lang.ui.filter_criteria.sort_a_z, "a_z"),
+            (self.lang.ui.filter_criteria.sort_z_a, "z_a"),
+            (self.lang.ui.filter_criteria.sort_last_played, "last_played"),
+            (self.lang.ui.filter_criteria.sort_qty_played, "qty_played"),
         ):
             self._sort_combo.addItem(f"    {label}", userData=value)
         if self._readonly:
@@ -228,7 +240,7 @@ class FilterCriteriaDialog(QDialog):
         sort_layout.addWidget(self._sort_combo)
 
         # Group combobox
-        group_label = QLabel("Group:", self)
+        group_label = QLabel(self.lang.ui.filter_criteria.group_label, self)
         group_label.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
         sort_layout.addWidget(group_label)
         self._group_combo = SelectComboBox(self)
@@ -241,7 +253,7 @@ class FilterCriteriaDialog(QDialog):
         sort_layout.addWidget(self._group_combo)
 
         # Visible checkbox (always editable, even for system filters)
-        self._visible_checkbox = QCheckBox("Visible", self)
+        self._visible_checkbox = QCheckBox(self.lang.ui.filter_criteria.visible, self)
         self._visible_checkbox.setFont(
             QFont(APP_THEME.font_family, APP_THEME.font_size)
         )
@@ -274,13 +286,18 @@ class FilterCriteriaDialog(QDialog):
         layout.addWidget(scroll, 1)
 
         if not self._readonly:
-            results_label = QLabel("Matched Results", self)
+            results_label = QLabel(self.lang.ui.filter_criteria.matched_results, self)
             results_label.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
             layout.addWidget(results_label)
 
             self._results_tree = QTreeWidget(self)
             self._results_tree.setColumnCount(2)
-            self._results_tree.setHeaderLabels(["Folder / Video", "Manual order"])
+            self._results_tree.setHeaderLabels(
+                [
+                    self.lang.ui.filter_criteria.folder_video,
+                    self.lang.ui.filter_criteria.manual_order,
+                ]
+            )
             self._results_tree.setRootIsDecorated(False)
             self._results_tree.setAlternatingRowColors(True)
             self._results_tree.setMinimumHeight(190)
@@ -307,11 +324,19 @@ class FilterCriteriaDialog(QDialog):
         button_layout.setSpacing(8)
 
         if not self._readonly:
-            save_button = ActionButton(self, icon_name="fa6s.check", tooltip="Save")
+            save_button = ActionButton(
+                self,
+                icon_name="fa6s.check",
+                tooltip=self.lang.ui.filter_criteria.save_tooltip,
+            )
             save_button.clicked.connect(self._on_save)
             button_layout.addWidget(save_button)
 
-            cancel_button = ActionButton(self, icon_name="fa6s.xmark", tooltip="Cancel")
+            cancel_button = ActionButton(
+                self,
+                icon_name="fa6s.xmark",
+                tooltip=self.lang.ui.filter_criteria.cancel_tooltip,
+            )
             cancel_button.clicked.connect(self.reject)
             button_layout.addWidget(cancel_button)
 
@@ -320,7 +345,7 @@ class FilterCriteriaDialog(QDialog):
                 delete_button.setIconSize(
                     QSize(APP_THEME.icon_size, APP_THEME.icon_size)
                 )
-                delete_button.setToolTip("Delete Filter")
+                delete_button.setToolTip(self.lang.ui.filter_criteria.delete_filter)
                 delete_button.clicked.connect(self._on_delete)
                 button_layout.addWidget(delete_button)
 
@@ -329,7 +354,9 @@ class FilterCriteriaDialog(QDialog):
             # Readonly mode: show Edit button at bottom-right
             button_layout.addStretch(1)
             edit_btn = ActionButton(
-                self, icon_name="fa6s.pen-to-square", tooltip="Edit Filter"
+                self,
+                icon_name="fa6s.pen-to-square",
+                tooltip=self.lang.ui.filter_criteria.edit_filter,
             )
             edit_btn.clicked.connect(
                 lambda: self.edit_requested.emit(self._filter_name)
@@ -343,7 +370,7 @@ class FilterCriteriaDialog(QDialog):
         add_layout = QHBoxLayout()
         add_layout.setSpacing(8)
 
-        criteria_label = QLabel("Criteria:", self)
+        criteria_label = QLabel(self.lang.ui.filter_criteria.criteria_label, self)
         criteria_label.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
         add_layout.addWidget(criteria_label)
 
@@ -352,7 +379,9 @@ class FilterCriteriaDialog(QDialog):
             QFont(APP_THEME.font_family, APP_THEME.font_size)
         )
         self._criteria_type_combo.setMinimumWidth(200)
-        self._criteria_type_combo.addItem("- Select a Criteria -", userData="")
+        self._criteria_type_combo.addItem(
+            self.lang.ui.filter_criteria.select_criteria, userData=""
+        )
         under_group = False
         for filter_type in FolderFilterTable.FILTER_TYPES:
             if filter_type in FolderFilterTable.FILTER_GROUP_HEADERS:
@@ -378,7 +407,9 @@ class FilterCriteriaDialog(QDialog):
         add_layout.addWidget(self._criteria_type_combo)
 
         add_criteria_button = ActionButton(
-            self, icon_name="fa6s.circle-plus", tooltip="Add Criteria"
+            self,
+            icon_name="fa6s.circle-plus",
+            tooltip=self.lang.ui.filter_criteria.add_criteria,
         )
         add_criteria_button.clicked.connect(self._on_add_criteria)
         add_layout.addWidget(add_criteria_button)
@@ -434,7 +465,7 @@ class FilterCriteriaDialog(QDialog):
             return
         combo.blockSignals(True)
         combo.clear()
-        combo.addItem("- None -", userData="")
+        combo.addItem(self.lang.ui.filter_criteria.none_group, userData="")
         store = self._filter_store()
         if store is not None:
             try:
@@ -728,7 +759,9 @@ class FilterCriteriaDialog(QDialog):
         if not is_valid:
             if self._name_edit is not None:
                 self._name_edit.setFocus()
-            QMessageBox.warning(self, "Invalid Filter Name", error_msg)
+            QMessageBox.warning(
+                self, self.lang.ui.filter_criteria.invalid_name, error_msg
+            )
             return
 
         filters = (

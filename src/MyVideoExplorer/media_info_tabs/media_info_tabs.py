@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QFont, Qt
 from PySide6.QtWidgets import QTabBar, QTabWidget, QToolButton, QVBoxLayout, QWidget
 
 from MyVideoExplorer.image_list.image_list import ImageList
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.media_info.media_info import MediaInfo
 from MyVideoExplorer.settings.settings import Settings
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
@@ -27,9 +30,11 @@ class MediaInfoTabs(QWidget, ThemableMixin):
         media_info: MediaInfo,
         image_list: ImageList,
         settings: Settings,
+        lang: LangEn,
     ) -> None:
         super().__init__()
         self.log_util = log_util
+        self.lang = lang
         self.folder_path: str | None = None
         self.active_tab_index: int = 0
         self.spacer_tab_index: int = -1
@@ -44,8 +49,8 @@ class MediaInfoTabs(QWidget, ThemableMixin):
         # Corner button for settings (will be placed at top-right)
         # Parent to the tab widget so the corner placement remains correct when maximized
         self.settings_button = QToolButton(self.tab_container)
-        self.settings_button.setText(self.LABEL_SETTINGS)
-        self.settings_button.setToolTip("Settings")
+        self.settings_button.setText(self.lang.ui.media_info_tabs.tab_settings)
+        self.settings_button.setToolTip(self.lang.ui.media_info_tabs.settings_tooltip)
         self.settings_button.setAutoRaise(True)
         self.settings_button.clicked.connect(self.show_settings_tab)
 
@@ -73,8 +78,12 @@ class MediaInfoTabs(QWidget, ThemableMixin):
         self.tab_container.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size))
 
         # Add content tabs
-        self._add_content_tab(self.image_list.build(), self.LABEL_MEDIA)
-        self._add_content_tab(self.media_info.build(), self.LABEL_INFO)
+        self._add_content_tab(
+            self.image_list.build(), self.lang.ui.media_info_tabs.tab_media
+        )
+        self._add_content_tab(
+            self.media_info.build(), self.lang.ui.media_info_tabs.tab_info
+        )
         # Add spacer so the content tabs keep their tab-like sizing
         self._add_spacer_tab()
         # Add settings tab (content) and expose a corner widget for the gear
@@ -121,14 +130,18 @@ class MediaInfoTabs(QWidget, ThemableMixin):
     def _add_settings_tab(self, settings: Settings) -> None:
         # Add the settings page as a tab, but the visible access will be via corner widget
         self.settings_tab_index = self._add_content_tab(
-            settings.build(), self.LABEL_SETTINGS
+            settings.build(), self.lang.ui.media_info_tabs.tab_settings
         )
         settings.dirty_changed.connect(
             lambda p: self._on_settings_dirty_changed(p.data)
         )
 
     def _on_settings_dirty_changed(self, is_dirty: bool) -> None:
-        label = self.LABEL_SETTINGS_DIRTY if is_dirty else self.LABEL_SETTINGS
+        label = (
+            self.lang.ui.media_info_tabs.tab_settings_dirty
+            if is_dirty
+            else self.lang.ui.media_info_tabs.tab_settings
+        )
         # Update the corner button label if present, otherwise fallback to tab text
         if hasattr(self, "settings_button") and self.settings_button:
             self.settings_button.setText(label)

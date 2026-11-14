@@ -2,6 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.settings.settings_media_folder_browser_section import (
     SettingsMediaFolderBrowserSection,
 )
@@ -28,7 +29,7 @@ class TestSettingsMediaScanAll:
         mock_log = MagicMock()
         mock_file_util = MagicMock()
 
-        tab = SettingsMediaTab(mock_state, mock_log, mock_file_util)
+        tab = SettingsMediaTab(mock_state, mock_log, mock_file_util, LangEn())
         qtbot.addWidget(tab)
         return tab
 

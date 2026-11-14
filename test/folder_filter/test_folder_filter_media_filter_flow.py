@@ -5,6 +5,7 @@ import pytest
 
 from MyVideoExplorer.folder_filter.folder_filter import FolderFilters
 from MyVideoExplorer.folder_filter.folder_filter_filter import FolderFilterFilter
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.utils.file_util import FileUtil
 
@@ -37,7 +38,7 @@ def test_media_filter_selection_should_emit_filters_requested(
             file_util = MagicMock(spec=FileUtil)
             nfo_util = MagicMock()
             engine = FolderFilterFilter(nfo_util, state)
-            widget = FolderFilters(engine, file_util, settings, mock_log_util)
+            widget = FolderFilters(engine, file_util, settings, mock_log_util, LangEn())
             widget.build()
             qtbot.addWidget(widget)
 
@@ -92,7 +93,7 @@ def test_media_filter_select_none_should_show_all(qtbot, filter_db_path: Path):
             file_util = MagicMock(spec=FileUtil)
             nfo_util = MagicMock()
             engine = FolderFilterFilter(nfo_util, state)
-            widget = FolderFilters(engine, file_util, settings, mock_log_util)
+            widget = FolderFilters(engine, file_util, settings, mock_log_util, LangEn())
             widget.build()
             qtbot.addWidget(widget)
 
@@ -133,7 +134,7 @@ def test_media_filter_select_all_should_show_all(qtbot, filter_db_path: Path):
             file_util = MagicMock(spec=FileUtil)
             nfo_util = MagicMock()
             engine = FolderFilterFilter(nfo_util, state)
-            widget = FolderFilters(engine, file_util, settings, mock_log_util)
+            widget = FolderFilters(engine, file_util, settings, mock_log_util, LangEn())
             widget.build()
             qtbot.addWidget(widget)
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QUrl, Signal
@@ -6,6 +8,7 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from MyVideoExplorer.app.app_signals_model import SignalPayload
 from MyVideoExplorer.file_list.file_list_view import FileListView
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil
@@ -16,27 +19,23 @@ from MyVideoExplorer.widgets.buttons.action_button import ActionButton
 class FileList(QWidget, ThemableMixin):
     file_selected_intent = Signal(object)
 
-    def __init__(self, file_util: FileUtil, log_util: LogUtil) -> None:
+    def __init__(self, file_util: FileUtil, log_util: LogUtil, lang: LangEn) -> None:
         super().__init__()
         self.log_util = log_util
         self.file_util = file_util
+        self.lang = lang
         self._signals_connected = False
         self._container = QWidget(self)
         self.file_list_view = FileListView()
 
-        self.title_label = QLabel("Folder Contents:", parent=self)
+        self.title_label = QLabel(self.lang.ui.file_list.title, parent=self)
         self.help_icon = QLabel("?", parent=self)
 
-        tooltip = (
-            "File List Usage:\n"
-            "- Double-click video to play it\n"
-            "- Single-click, selected image will be shown above\n"
-            "- Use the scrollbar or mouse wheel to browse files"
-        )
+        tooltip = self.lang.ui.file_list.tooltip
         self.help_icon.setToolTip(tooltip)
 
         self.explorer_button = ActionButton(
-            self, icon_name="fa6s.folder", tooltip="Open Folder"
+            self, icon_name="fa6s.folder", tooltip=self.lang.ui.file_list.open_folder
         )
         self.explorer_button.clicked.connect(self._on_open_folder_clicked)
         self.explorer_button.setVisible(False)
@@ -103,7 +102,7 @@ class FileList(QWidget, ThemableMixin):
         self.file_list_view.clear()
 
         if not folder_path:
-            self.title_label.setText("Folder Contents:")
+            self.title_label.setText(self.lang.ui.file_list.title)
             self.explorer_button.setVisible(False)
             return
 
@@ -112,14 +111,10 @@ class FileList(QWidget, ThemableMixin):
             self.file_list_view.add_file_item(item)
 
         count = len(items)
-        self.title_label.setText(f"Folder Contents: ({count})")
-        tooltip = (
-            f"Files in folder: {count}\n\n"
-            f"File List Usage:\n"
-            f"- Double-click video to play it\n"
-            f"- Single-click, selected image will be shown above\n"
-            f"- Use the scrollbar or mouse wheel to browse files"
+        self.title_label.setText(
+            self.lang.ui.file_list.title_with_count.format(count=count)
         )
+        tooltip = self.lang.ui.file_list.tooltip_with_count.format(count=count)
         self.help_icon.setToolTip(tooltip)
 
         self.explorer_button.setVisible(True)

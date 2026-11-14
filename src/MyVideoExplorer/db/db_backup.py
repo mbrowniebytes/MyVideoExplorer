@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 import shutil
 from pathlib import Path
 
@@ -19,7 +19,7 @@ def backup_database(db_path: str) -> None:
     backup_dir = db_path_obj.parent / "backups"
     backup_dir.mkdir(parents=True, exist_ok=True)
 
-    today_str = datetime.datetime.now(datetime.UTC).astimezone().strftime("%Y-%m-%d")
+    today_str = dt.datetime.now(dt.UTC).astimezone().strftime("%Y-%m-%d")
     backup_name = f"{db_path_obj.stem}_{today_str}{db_path_obj.suffix}"
     backup_path = backup_dir / backup_name
 

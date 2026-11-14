@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
@@ -9,13 +11,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
 
 PLOT_SECTION_OBJECT_NAME = "section_plot"
-PLOT_SECTION_TITLE_TEXT = "P\nl\no\nt"
-
 PLOT_SECTION_MINIMUM_EMPTY_HEIGHT = 40
 PLOT_SECTION_MINIMUM_CONTENT_HEIGHT = 40
 PLOT_SECTION_MAXIMUM_CONTENT_HEIGHT = 150
@@ -24,16 +25,17 @@ PLOT_SECTION_LINE_HEIGHT_MULTIPLIER = 1.0
 
 
 class MediaInfoPlotSection(QWidget, ThemableMixin):
-    def __init__(self, log_util: LogUtil | None = None, parent=None):
+    def __init__(self, lang: LangEn, log_util: LogUtil | None = None, parent=None):
         super().__init__(parent)
         self.log_util = log_util or LogUtil()
+        self.lang = lang
 
         self._current_plot_text = ""
 
         self.plot_section_layout = QVBoxLayout(self)
         self.plot_content_layout = QHBoxLayout()
 
-        self.plot_title_label = QLabel(PLOT_SECTION_TITLE_TEXT, parent=self)
+        self.plot_title_label = QLabel(self.lang.ui.media_info.plot_title, parent=self)
         self.plot_text_edit = QPlainTextEdit()
 
         self._configure_section_frame()

@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 import json
 import os
 import shutil
@@ -95,9 +95,7 @@ class JsonUtil:
             except OSError:
                 pass
 
-        today_str = (
-            datetime.datetime.now(datetime.UTC).astimezone().strftime("%Y-%m-%d")
-        )
+        today_str = dt.datetime.now(dt.UTC).astimezone().strftime("%Y-%m-%d")
         backup_name = backup_dir / f"{file_path.stem}_{today_str}{file_path.suffix}"
 
         # Only create one backup per day

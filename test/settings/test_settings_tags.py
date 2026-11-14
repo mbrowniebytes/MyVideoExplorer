@@ -5,6 +5,7 @@ from PySide6.QtGui import QColor, QEnterEvent
 from PySide6.QtWidgets import QLineEdit, QToolButton
 
 from MyVideoExplorer.db.db_tags import DbTags
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.settings.settings_tags import SettingsTagsTab
 from MyVideoExplorer.tag_cloud.tag_cloud_settings import TagCloudSettings
@@ -228,7 +229,7 @@ def test_settings_tags_can_create_tag(qtbot, tmp_path, monkeypatch):
     )
     state = SettingsState(MagicMock())
     store = DbTags(state, tmp_path / "tag_catalog.db")
-    settings_tab = SettingsTagsTab(state, MagicMock(), store)
+    settings_tab = SettingsTagsTab(state, MagicMock(), LangEn(), tag_store=store)
     qtbot.addWidget(settings_tab)
     settings_tab.show()
     qtbot.wait(10)
@@ -297,7 +298,7 @@ def test_tag_name_validation(qtbot, tmp_path, monkeypatch):
     )
     state = SettingsState(MagicMock())
     store = DbTags(state, tmp_path / "tag_catalog.db")
-    settings_tab = SettingsTagsTab(state, MagicMock(), store)
+    settings_tab = SettingsTagsTab(state, MagicMock(), LangEn(), tag_store=store)
     qtbot.addWidget(settings_tab)
     cloud = settings_tab.tag_cloud_settings.cloud
     add_button = cloud.findChild(QToolButton, "add_tag_button")

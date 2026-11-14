@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from MyVideoExplorer.app.app_signals_model import SignalPayload
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.settings.settings_media_tab import SettingsMediaTab
 
 
@@ -15,7 +16,7 @@ class TestMediaSettingsSignals:
         mock_file_util = MagicMock()
 
         with patch.object(SettingsMediaTab, "_build_ui", return_value=None):
-            tab = SettingsMediaTab(mock_state, mock_log_util, mock_file_util)
+            tab = SettingsMediaTab(mock_state, mock_log_util, mock_file_util, LangEn())
             tab.reset_save_button = MagicMock()
             tab.folder_nav_layout = MagicMock()
             tab.folder_nav_content = MagicMock()

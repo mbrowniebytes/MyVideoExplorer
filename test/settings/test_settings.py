@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from PySide6.QtWidgets import QTabWidget, QWidget
 
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.settings.settings import Settings
 
 
@@ -28,7 +29,7 @@ class TestSettings:
                 with patch("MyVideoExplorer.theme.theme.Theme.refresh_theme"):
                     mock_log_util = MagicMock()
                     mock_file_util = MagicMock()
-                    s = Settings(mock_log_util, mock_file_util)
+                    s = Settings(mock_log_util, mock_file_util, LangEn())
                     # Use a temporary filter database to avoid file lock conflicts
                     from MyVideoExplorer.db.db_filters import DbFilters
 
@@ -114,7 +115,7 @@ class TestSettings:
                 with patch("MyVideoExplorer.theme.theme.Theme.refresh_theme"):
                     mock_log_util = MagicMock()
                     mock_file_util = MagicMock()
-                    s = Settings(mock_log_util, mock_file_util)
+                    s = Settings(mock_log_util, mock_file_util, LangEn())
                     # Fully mock build to avoid UI-related access violations in test environment
                     s.tab_widget = QTabWidget()  # type: ignore
                     from MyVideoExplorer.widgets.right_aligned_tab_bar import (

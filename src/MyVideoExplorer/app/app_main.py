@@ -5,7 +5,7 @@ handles the loading splash, and performs top-level exception handling.
 This module centralizes startup logic so main.py can remain a thin launcher.
 """
 
-import datetime
+import datetime as dt
 import sys
 import traceback
 from pathlib import Path
@@ -31,11 +31,7 @@ def _emergency_log(message: str, exc_info: bool = False) -> None:
         log_dir.mkdir(parents=True, exist_ok=True)
         log_file = log_dir / "app.log"
         with log_file.open("a", encoding="utf-8") as f:
-            ts = (
-                datetime.datetime.now(datetime.UTC)
-                .astimezone()
-                .strftime("%Y-%m-%d %H:%M:%S")
-            )
+            ts = dt.datetime.now(dt.UTC).astimezone().strftime("%Y-%m-%d %H:%M:%S")
             f.write(f"{ts} - EMERGENCY - {message}\n")
             if exc_info:
                 f.write(traceback.format_exc())

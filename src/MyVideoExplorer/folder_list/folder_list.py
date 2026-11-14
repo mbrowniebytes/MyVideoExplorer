@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Callable
 from pathlib import Path
 
@@ -19,6 +21,7 @@ from MyVideoExplorer.folder_list.folder_navigation_controller import (
     FolderNavigationController,
 )
 from MyVideoExplorer.folder_list.media_nav_search_widget import MediaNavSearchWidget
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.settings.settings import Settings
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
@@ -27,9 +30,7 @@ from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.ui_utils import UIUtils
 
-_EMPTY_STATE_NO_MEDIA_FOLDERS = (
-    "No media folders configured.\nOpen Settings (Gear) → Media and add a media folder."
-)
+_EMPTY_STATE_NO_MEDIA_FOLDERS = ""
 
 
 class FolderList(QWidget, ThemableMixin):
@@ -43,26 +44,32 @@ class FolderList(QWidget, ThemableMixin):
     HISTORY_FOLDER_LENGTH = 100
 
     def __init__(
-        self, file_util: FileUtil, settings: Settings, log_util: LogUtil, parent=None
+        self,
+        file_util: FileUtil,
+        settings: Settings,
+        log_util: LogUtil,
+        lang: LangEn,
+        parent=None,
     ) -> None:
         super().__init__(parent)
         self.log_util = log_util
+        self.lang = lang
         self._ui_utils = UIUtils()
         self.folder_list_view = FolderListView(log_util=self.log_util)
-        self.loading_label = QLabel("Loading...", parent=self)
+        self.loading_label = QLabel(self.lang.ui.folder_list.loading, parent=self)
         self.loading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.stack = QStackedWidget(self)
         self.stack.addWidget(self.folder_list_view)
         self.stack.addWidget(self.loading_label)
         self.file_util = file_util
         self.settings = settings
-        self.media_nav_search = MediaNavSearchWidget(settings, self)
+        self.media_nav_search = MediaNavSearchWidget(settings, self, self.lang)
         self._saved_filter_selected = False
         self._quick_search_active = False
         self._signals_connected = False
         self._filtered_items: list[FileUtilModel] = []
         self._container = QWidget(self)
-        self.header = FolderListHeader(parent=self)
+        self.header = FolderListHeader(self.lang, parent=self)
         self.navigation_controller = FolderNavigationController()
 
     @property
@@ -121,7 +128,7 @@ class FolderList(QWidget, ThemableMixin):
 
         if not self._has_valid_media_folders():
             self.folder_list_view.show_empty_state(
-                message=_EMPTY_STATE_NO_MEDIA_FOLDERS
+                message=self.lang.ui.folder_list.empty_state_no_media
             )
             self.stack.setCurrentWidget(self.folder_list_view)
         else:
@@ -142,15 +149,10 @@ class FolderList(QWidget, ThemableMixin):
         else:
             loading_source = "File System"
 
-        tooltip = (
-            "Folder List Usage:\n"
-            "- Click a folder to view its contents\n"
-            "- Use 'Add Media Folder' in settings to add more roots\n"
-            "- Use the folder picker to browse other directories\n"
-            "\n"
-            f"Settings:\n"
-            f"- Checking {num_folders} media folder{'s' if num_folders != 1 else ''}\n"
-            f"- Loading from: {loading_source}"
+        tooltip = self.lang.ui.folder_list.tooltip.format(
+            count=num_folders,
+            plural="folders" if num_folders != 1 else "folder",
+            source=loading_source,
         )
         self.help_icon.setToolTip(tooltip)
 
@@ -173,7 +175,7 @@ class FolderList(QWidget, ThemableMixin):
         # show a helpful instruction to add media folders in Settings.
         if not self._has_valid_media_folders():
             self.folder_list_view.show_empty_state(
-                message=_EMPTY_STATE_NO_MEDIA_FOLDERS
+                message=self.lang.ui.folder_list.empty_state_no_media
             )
             self._update_button_states()
             return
@@ -285,7 +287,7 @@ class FolderList(QWidget, ThemableMixin):
         self._filtered_items = items
         if not items and not self._has_valid_media_folders():
             self.folder_list_view.show_empty_state(
-                message=_EMPTY_STATE_NO_MEDIA_FOLDERS
+                message=self.lang.ui.folder_list.empty_state_no_media
             )
             self.stack.setCurrentWidget(self.folder_list_view)
             self._update_button_states()

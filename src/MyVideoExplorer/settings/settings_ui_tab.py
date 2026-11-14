@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pathlib import Path
 
 from PySide6.QtCore import Qt
@@ -14,7 +16,8 @@ from PySide6.QtWidgets import (
 )
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
-from MyVideoExplorer.settings.settings import SettingsBaseTab
+from MyVideoExplorer.lang.lang_en import LangEn
+from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
 from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil
@@ -29,11 +32,13 @@ class SettingsUITab(SettingsBaseTab):
         state: SettingsState,
         log_util: LogUtil,
         file_util: FileUtil,
+        lang: LangEn,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(log_util, parent)
         self.file_util = file_util
         self.state = state
+        self.lang = lang
 
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
@@ -55,7 +60,7 @@ class SettingsUITab(SettingsBaseTab):
         self._layout.addWidget(scroll)
 
     def _build_ui(self) -> None:
-        display_group = QGroupBox("UI Settings")
+        display_group = QGroupBox(self.lang.ui.settings.settings_ui.group_title)
         display_layout = QFormLayout(display_group)
 
         # Font size
@@ -70,7 +75,9 @@ class SettingsUITab(SettingsBaseTab):
         self.font_size_combo.currentIndexChanged.connect(self._on_font_size_changed)
         self.font_size_combo.currentIndexChanged.connect(self._on_setting_changed)
 
-        display_layout.addRow("Font Size:", self.font_size_combo)
+        display_layout.addRow(
+            self.lang.ui.settings.settings_ui.font_size, self.font_size_combo
+        )
 
         # App Font
         self.font_family_combo = SelectComboBox(self)
@@ -109,38 +116,43 @@ class SettingsUITab(SettingsBaseTab):
         self.font_family_combo.currentIndexChanged.connect(self._on_font_family_changed)
         # self.font_family_combo.currentIndexChanged.connect(self._on_setting_changed)
 
-        display_layout.addRow("App Font", self.font_family_combo)
+        display_layout.addRow(
+            self.lang.ui.settings.settings_ui.app_font, self.font_family_combo
+        )
 
         # Indentation Indicator
         self.indent_indicator_combo = SelectComboBox(self)
         indent_groups = [
             (
-                "Dots",
+                self.lang.ui.settings.settings_ui.indent_dots,
                 [
-                    ("•", "Bullet (•)"),
-                    ("・", "Middle dot (・)"),
-                    (".", "Period (.)"),
-                    ("▪", "Small square (▪)"),
+                    ("•", self.lang.ui.settings.settings_ui.indent_bullet),
+                    ("・", self.lang.ui.settings.settings_ui.indent_middle_dot),
+                    (".", self.lang.ui.settings.settings_ui.indent_period),
+                    ("▪", self.lang.ui.settings.settings_ui.indent_small_square),
                 ],
             ),
             (
-                "Lines",
+                self.lang.ui.settings.settings_ui.indent_lines,
                 [
-                    ("-", "Hyphen (-)"),
-                    (" ", "Space"),
-                    ("─", "Line separator (─)"),
-                    ("├", "Tree branch (├)"),
-                    ("_", "Underscore (_)"),
-                    ("│", "Vertical bar (│)"),
+                    ("-", self.lang.ui.settings.settings_ui.indent_hyphen),
+                    (" ", self.lang.ui.settings.settings_ui.indent_space),
+                    ("─", self.lang.ui.settings.settings_ui.indent_line_sep),
+                    ("├", self.lang.ui.settings.settings_ui.indent_tree_branch),
+                    ("_", self.lang.ui.settings.settings_ui.indent_underscore),
+                    ("│", self.lang.ui.settings.settings_ui.indent_vertical_bar),
                 ],
             ),
             (
-                "Arrows",
+                self.lang.ui.settings.settings_ui.indent_arrows,
                 [
-                    ("→", "Arrow (→)"),
-                    ("◂", "Left triangle (◂)"),
-                    ("▸", "Right triangle (▸)"),
-                    ("▹", "Right triangle small (▹)"),
+                    ("→", self.lang.ui.settings.settings_ui.indent_arrow),
+                    ("◂", self.lang.ui.settings.settings_ui.indent_left_triangle),
+                    ("▸", self.lang.ui.settings.settings_ui.indent_right_triangle),
+                    (
+                        "▹",
+                        self.lang.ui.settings.settings_ui.indent_right_triangle_small,
+                    ),
                 ],
             ),
         ]
@@ -175,7 +187,10 @@ class SettingsUITab(SettingsBaseTab):
             self._on_setting_changed
         )
 
-        display_layout.addRow("Folder Indentation", self.indent_indicator_combo)
+        display_layout.addRow(
+            self.lang.ui.settings.settings_ui.folder_indentation,
+            self.indent_indicator_combo,
+        )
 
         self.content_layout.addWidget(display_group)
 
@@ -187,11 +202,13 @@ class SettingsUITab(SettingsBaseTab):
         save_btn_layout = QHBoxLayout(save_btn_container)
         save_btn_layout.setContentsMargins(20, 15, 20, 15)
 
-        self.save_btn = QPushButton("Save UI Settings", parent=self)
+        self.save_btn = QPushButton(
+            self.lang.ui.settings.settings_ui.save_btn, parent=self
+        )
         self.save_btn.clicked.connect(self._save_ui_settings)
 
         self.reset_btn = self._build_reset_button(
-            "Reset UI Settings", self.reset_settings
+            self.lang.ui.settings.settings_ui.reset_btn, self.reset_settings
         )
 
         spacer = QWidget(self)

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime as dt
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -22,6 +24,7 @@ from PySide6.QtWidgets import (
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.compare.compare_tab import CompareTab
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
 from MyVideoExplorer.settings.settings_export import SettingsExportWorker
 from MyVideoExplorer.settings.settings_import import SettingsImportWorker
@@ -54,17 +57,19 @@ class SettingsMediaTab(SettingsBaseTab):
         state: SettingsState,
         log_util: LogUtil,
         file_util: FileUtil,
+        lang: LangEn,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(log_util, parent)
         self.state = state
         self.file_util = file_util
+        self.lang = lang
         self.nfo_util = NfoParseUtil(file_util, log_util)
 
         self._export_worker: SettingsExportWorker | None = None
         self._import_worker: SettingsImportWorker | None = None
-        self._export_btn: ActionButton | None = None
-        self._import_btn: ActionButton | None = None
+        self._export_btn: ActionButton
+        self._import_btn: ActionButton
         self._progress_bar: QProgressBar | None = None
 
         self._layout = QVBoxLayout(self)
@@ -106,7 +111,7 @@ class SettingsMediaTab(SettingsBaseTab):
         self.tab_widget.addTab(self.media_tab, "Media")
 
         # Meta sub-tab (new ffmpeg scan config)
-        self.meta_tab = SettingsMetaTab(self.state, log_util, file_util)
+        self.meta_tab = SettingsMetaTab(self.state, log_util, file_util, self.lang)
         self.tab_widget.addTab(self.meta_tab, "Meta")
 
         # Compare sub-tab (media comparison)
@@ -126,12 +131,16 @@ class SettingsMediaTab(SettingsBaseTab):
         db_dropdown_layout = QHBoxLayout()
         db_dropdown_layout.setContentsMargins(0, 0, 0, 0)
         db_dropdown_layout.setSpacing(5)
-        lbl_db = QLabel("Use Local DB:", parent=self)
+        lbl_db = QLabel(self.lang.ui.settings.media.use_local_db, parent=self)
         db_dropdown_layout.addWidget(lbl_db)
         self.db_enabled_dropdown = SelectComboBox(self)
-        self.db_enabled_dropdown.addItems(["Yes", "No"])
+        self.db_enabled_dropdown.addItems(
+            [self.lang.ui.settings.media.yes, self.lang.ui.settings.media.no]
+        )
         self.db_enabled_dropdown.setCurrentText(
-            "Yes" if self.state.db_enabled() else "No"
+            self.lang.ui.settings.media.yes
+            if self.state.db_enabled()
+            else self.lang.ui.settings.media.no
         )
         self.db_enabled_dropdown.currentIndexChanged.connect(
             self._on_db_enabled_changed
@@ -143,8 +152,8 @@ class SettingsMediaTab(SettingsBaseTab):
         self.scan_all_btn = ActionButton(
             self,
             icon_name="fa6s.rotate",
-            tooltip="Scan all configured media folders into the database",
-            text="Scan All",
+            tooltip=self.lang.ui.settings.media.scan_all_tooltip,
+            text=self.lang.ui.settings.media.scan_all,
         )
         self.scan_all_btn.clicked.connect(self._on_scan_all_clicked)
         db_dropdown_layout.addWidget(self.scan_all_btn)
@@ -153,7 +162,7 @@ class SettingsMediaTab(SettingsBaseTab):
 
         self._update_db_tooltip()
 
-        self.folder_nav_group = QGroupBox("Media Folders")
+        self.folder_nav_group = QGroupBox(self.lang.ui.settings.media.media_folders)
         self.folder_nav_group.setFont(
             QFont(APP_THEME.font_family, APP_THEME.font_size - 2)
         )
@@ -167,7 +176,12 @@ class SettingsMediaTab(SettingsBaseTab):
         # Header for the media sections
         header = QHBoxLayout()
         header.setContentsMargins(10, 0, 10, 0)
-        for text in ["Name", "", "Type", "Icon"]:
+        for text in [
+            self.lang.ui.settings.media.name_header,
+            "",
+            self.lang.ui.settings.media.type_header,
+            self.lang.ui.settings.media.icon_header,
+        ]:
             if text:
                 label = QLabel(text, parent=self)
                 label.setStyleSheet(APP_THEME.label_qss("secondary"))
@@ -212,20 +226,22 @@ class SettingsMediaTab(SettingsBaseTab):
         save_btn_layout.setContentsMargins(20, 15, 20, 15)
 
         self.reset_btn = self._build_reset_button(
-            "Reset Media Settings", self.reset_settings
+            self.lang.ui.settings.media.reset_btn, self.reset_settings
         )
 
-        add_btn = QPushButton("Add Media Folder", parent=self)
+        add_btn = QPushButton(self.lang.ui.settings.media.add_media_folder, parent=self)
         add_btn.clicked.connect(self._add_folder)
 
-        self.save_btn = QPushButton("Save Media Settings", parent=self)
+        self.save_btn = QPushButton(self.lang.ui.settings.media.save_btn, parent=self)
         self.save_btn.clicked.connect(self._save_media_settings)
 
         save_btn_layout.addWidget(self.reset_btn)
         save_btn_layout.addStretch()
 
         self._export_btn = ActionButton(
-            self, icon_name="fa6s.file-export", tooltip="Export media settings to JSON"
+            self,
+            icon_name="fa6s.file-export",
+            tooltip=self.lang.ui.settings.media.export_tooltip,
         )
         self._export_btn.clicked.connect(self._on_export_clicked)
         save_btn_layout.addWidget(self._export_btn)
@@ -233,7 +249,7 @@ class SettingsMediaTab(SettingsBaseTab):
         self._import_btn = ActionButton(
             self,
             icon_name="fa6s.file-import",
-            tooltip="Import media settings from JSON",
+            tooltip=self.lang.ui.settings.media.import_tooltip,
         )
         self._import_btn.clicked.connect(self._on_import_clicked)
         save_btn_layout.addWidget(self._import_btn)
@@ -254,7 +270,7 @@ class SettingsMediaTab(SettingsBaseTab):
 
         file_path, _ = QFileDialog.getSaveFileName(
             self,
-            "Export Media Settings",
+            self.lang.ui.settings.media.export_title,
             "media_export.json",
             "JSON Files (*.json)",
         )
@@ -283,21 +299,23 @@ class SettingsMediaTab(SettingsBaseTab):
         self._export_worker = None
         self._set_export_import_enabled(True)
         QMessageBox.information(
-            self, "Export Complete", "Media settings exported successfully."
+            self,
+            self.lang.ui.settings.media.export_complete,
+            self.lang.ui.settings.media.export_complete_msg,
         )
 
     def _on_export_failed(self, error_msg: str) -> None:
         self._hide_progress()
         self._export_worker = None
         self._set_export_import_enabled(True)
-        QMessageBox.critical(self, "Export Failed", error_msg)
+        QMessageBox.critical(self, self.lang.ui.settings.media.export_failed, error_msg)
 
     def _on_import_clicked(self) -> None:
         from PySide6.QtWidgets import QFileDialog
 
         file_path, _ = QFileDialog.getOpenFileName(
             self,
-            "Import Media Settings",
+            self.lang.ui.settings.media.import_title,
             "",
             "JSON Files (*.json)",
         )
@@ -360,7 +378,11 @@ class SettingsMediaTab(SettingsBaseTab):
         db_enabled = data.get("db_enabled")
         if isinstance(db_enabled, bool):
             self.state._db_enabled = db_enabled
-            self.db_enabled_dropdown.setCurrentText("Yes" if db_enabled else "No")
+            self.db_enabled_dropdown.setCurrentText(
+                self.lang.ui.settings.media.yes
+                if db_enabled
+                else self.lang.ui.settings.media.no
+            )
 
         self._refresh_folder_nav_settings()
         self.refresh_scan_targets()
@@ -370,20 +392,20 @@ class SettingsMediaTab(SettingsBaseTab):
         self._import_worker = None
         self._set_export_import_enabled(True)
         QMessageBox.information(
-            self, "Import Complete", "Media settings imported successfully."
+            self,
+            self.lang.ui.settings.media.import_complete,
+            self.lang.ui.settings.media.import_complete_msg,
         )
 
     def _on_import_failed(self, error_msg: str) -> None:
         self._hide_progress()
         self._import_worker = None
         self._set_export_import_enabled(True)
-        QMessageBox.critical(self, "Import Failed", error_msg)
+        QMessageBox.critical(self, self.lang.ui.settings.media.import_failed, error_msg)
 
     def _set_export_import_enabled(self, enabled: bool) -> None:
-        if self._export_btn is not None:
-            self._export_btn.setEnabled(enabled)
-        if self._import_btn is not None:
-            self._import_btn.setEnabled(enabled)
+        self._export_btn.setEnabled(enabled)
+        self._import_btn.setEnabled(enabled)
 
     def _show_progress(self, current: int, total: int) -> None:
         from PySide6.QtWidgets import QProgressBar
@@ -417,7 +439,9 @@ class SettingsMediaTab(SettingsBaseTab):
         )
 
     def _on_db_enabled_changed(self, index: int) -> None:
-        value = self.db_enabled_dropdown.currentText() == "Yes"
+        value = (
+            self.db_enabled_dropdown.currentText() == self.lang.ui.settings.media.yes
+        )
         self.state._db_enabled = value
 
         self.state.settings_changed.emit(
@@ -448,11 +472,13 @@ class SettingsMediaTab(SettingsBaseTab):
 
             latest_date_str = latest_date or "Unknown"
             self.db_enabled_dropdown.setToolTip(
-                f"Database filtering enabled (Latest update: {latest_date_str})."
+                self.lang.ui.settings.media.db_enabled_tooltip.format(
+                    date=latest_date_str
+                )
             )
         else:
             self.db_enabled_dropdown.setToolTip(
-                "Database filtering disabled. Filtering will be limited."
+                self.lang.ui.settings.media.db_disabled_tooltip
             )
 
     def _refresh_folder_nav_settings(self) -> None:
@@ -467,9 +493,7 @@ class SettingsMediaTab(SettingsBaseTab):
             self.folder_nav_layout.removeRow(0)
 
         if not self.state.media_configs:
-            msg = (
-                "No media folders configured.\nClick the Add Media Folder button below."
-            )
+            msg = self.lang.ui.settings.media.no_media_folders_msg
             instr = QLabel(msg, parent=self)
             instr.setWordWrap(True)
             instr.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size - 4))
@@ -532,8 +556,8 @@ class SettingsMediaTab(SettingsBaseTab):
         if not valid_sections:
             QMessageBox.information(
                 self,
-                "Scan All",
-                "No configured media folders with valid paths found to scan.",
+                self.lang.ui.settings.media.scan_all,
+                self.lang.ui.settings.media.scan_all_no_folders,
             )
             return
 
@@ -548,7 +572,7 @@ class SettingsMediaTab(SettingsBaseTab):
         if not getattr(self, "_scan_all_queue", None):
             self._scan_all_active = False
             self.scan_all_btn.setEnabled(self._has_valid_media_folders())
-            self.scan_all_btn.setText("Scan All")
+            self.scan_all_btn.setText(self.lang.ui.settings.media.scan_all)
             self.scan_all_btn.set_action_icon("fa6s.rotate")
             self._update_db_tooltip()
             return
@@ -556,7 +580,9 @@ class SettingsMediaTab(SettingsBaseTab):
         self._scan_all_current += 1
         section = self._scan_all_queue.pop(0)
         self.scan_all_btn.setText(
-            f"Scanning {self._scan_all_current} of {self._scan_all_total}..."
+            self.lang.ui.settings.media.scanning.format(
+                current=self._scan_all_current, total=self._scan_all_total
+            )
         )
         self.folder_scroll_area.ensureWidgetVisible(section.progress_bar, 12, 24)
 
@@ -573,8 +599,9 @@ class SettingsMediaTab(SettingsBaseTab):
 
         def on_section_stalled():
             self.scan_all_btn.setText(
-                f"Stopping stalled scan {self._scan_all_current} of "
-                f"{self._scan_all_total}..."
+                self.lang.ui.settings.media.stopping_stalled.format(
+                    current=self._scan_all_current, total=self._scan_all_total
+                )
             )
 
         section.scan_finished.connect(on_section_finished)
@@ -638,7 +665,7 @@ class SettingsMediaTab(SettingsBaseTab):
             widget = item.widget()
             if widget is not None:
                 for child in widget.findChildren(QLineEdit):
-                    if child.text() == "New Folder":
+                    if child.text() == self.lang.ui.settings.media.new_folder:
                         child.setFocus()
                         child.selectAll()
                         return
@@ -649,8 +676,10 @@ class SettingsMediaTab(SettingsBaseTab):
 
         reply = QMessageBox.question(
             self,
-            "Confirm removal",
-            f"Remove Media Folder config\n{label}: {path}?",
+            self.lang.ui.settings.media.confirm_removal,
+            self.lang.ui.settings.media.confirm_removal_msg.format(
+                label=label, path=path
+            ),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -688,7 +717,7 @@ class SettingsMediaTab(SettingsBaseTab):
         if isinstance(errors, list) and errors:
             QMessageBox.critical(
                 self,
-                "Invalid Media Settings",
+                self.lang.ui.settings.media.invalid_media_settings,
                 "<br>".join(errors),
             )
             return
@@ -698,12 +727,14 @@ class SettingsMediaTab(SettingsBaseTab):
         except (OSError, ValueError) as exc:
             QMessageBox.critical(
                 self,
-                "Media DB Rename Error",
+                self.lang.ui.settings.media.media_db_rename_error,
                 str(exc),
             )
             return
 
-        self.state._db_enabled = self.db_enabled_dropdown.currentText() == "Yes"
+        self.state._db_enabled = (
+            self.db_enabled_dropdown.currentText() == self.lang.ui.settings.media.yes
+        )
         self.state.save_media()
         self.reset_save_button()
 

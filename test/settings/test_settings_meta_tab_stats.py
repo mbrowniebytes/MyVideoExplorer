@@ -5,6 +5,7 @@ import pytest
 from PySide6.QtWidgets import QWidget
 
 from MyVideoExplorer.db.models.ffprobe_stats import FfprobeStats
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.settings.settings_meta_tab import SettingsMetaTab
 
 
@@ -35,7 +36,7 @@ def meta_tab(qtbot, tmp_path, monkeypatch):
             )
         ),
     )
-    tab = SettingsMetaTab(state, MagicMock(), MagicMock())
+    tab = SettingsMetaTab(state, MagicMock(), MagicMock(), LangEn())
     qtbot.addWidget(tab)
     return tab, stats_by_path
 

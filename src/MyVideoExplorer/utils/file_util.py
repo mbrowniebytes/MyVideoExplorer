@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 import os
 import re
 import sys
@@ -445,7 +445,7 @@ class FileUtil:
 
         path_obj = Path(path)
         candidates = [path_obj.stem, path_obj.parent.name]
-        max_year = datetime.datetime.now(datetime.UTC).year + 10
+        max_year = dt.datetime.now(dt.UTC).year + 10
 
         for text in candidates:
             if not text:

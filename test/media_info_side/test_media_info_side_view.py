@@ -9,6 +9,7 @@ from PySide6.QtWidgets import QLineEdit, QPushButton, QToolButton
 
 from MyVideoExplorer.db.db_play_history import DbPlayHistory
 from MyVideoExplorer.db.models.play_history import PlayHistory
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.media_info_side.media_info_side_view import MediaInfoSideView
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.utils.str_util import StrUtil
@@ -37,7 +38,7 @@ class TestMediaInfoSideView:
         str_util.join_strings.side_effect = lambda items: ", ".join(map(str, items))
         mock_log = MagicMock()
 
-        view = MediaInfoSideView(nfo_parse_util, str_util, mock_log)
+        view = MediaInfoSideView(nfo_parse_util, str_util, mock_log, lang=LangEn())
         qtbot.addWidget(view)
         return view
 
@@ -165,7 +166,9 @@ class TestMediaInfoSideView:
         history.get_history.return_value = PlayHistory(3, date(2022, 8, 9))
         history.set_qty_played.return_value = True
         history.set_last_played.return_value = True
-        view = MediaInfoSideView(nfo_parse_util, str_util, MagicMock(), history)
+        view = MediaInfoSideView(
+            nfo_parse_util, str_util, MagicMock(), history, lang=LangEn()
+        )
         qtbot.addWidget(view)
 
         view.set_media_file_path("C:/movies/film.mkv")
@@ -275,6 +278,7 @@ class TestMediaInfoSideView:
             MagicMock(),
             tag_store=tag_store,
             tag_state=tag_state,
+            lang=LangEn(),
         )
         qtbot.addWidget(view)
 
@@ -453,6 +457,7 @@ class TestMediaInfoSideView:
             MagicMock(),
             tag_store=tag_store,
             tag_state=tag_state,
+            lang=LangEn(),
         )
         qtbot.addWidget(view)
 

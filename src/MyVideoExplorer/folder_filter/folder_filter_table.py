@@ -27,6 +27,7 @@ from MyVideoExplorer.folder_filter.filter_last_played_widget import (
 from MyVideoExplorer.folder_filter.filter_qty_played_widget import (
     FilterQtyPlayedWidget,
 )
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.tag_cloud.tag_button import TagButton
 from MyVideoExplorer.tag_cloud.tag_util import get_contrast_text_color
 from MyVideoExplorer.theme.theme import APP_THEME
@@ -64,6 +65,11 @@ class FilterTagCloudWidget(QWidget):
             if self.table.cellWidget(r, 1) is self:
                 return r
         return -1
+
+    @property
+    def lang(self) -> LangEn:
+        """Delegate lang access to the parent table."""
+        return self.table.lang
 
     def hasHeightForWidth(self) -> bool:
         return True
@@ -111,7 +117,11 @@ class FilterTagCloudWidget(QWidget):
         cleaned: list[str] = []
         for t in tags:
             s = str(t).strip()
-            if s and s != "- Select Tag -" and s.casefold() not in seen:
+            if (
+                s
+                and s != self.lang.ui.folder_filter.select_tag_placeholder
+                and s.casefold() not in seen
+            ):
                 seen.add(s.casefold())
                 cleaned.append(s)
         self._tags = cleaned
@@ -125,7 +135,7 @@ class FilterTagCloudWidget(QWidget):
 
     def add_tag(self, tag: str, emit_signal: bool = True) -> None:
         s = str(tag).strip()
-        if not s or s == "- Select Tag -":
+        if not s or s == self.lang.ui.folder_filter.select_tag_placeholder:
             return
         if s.casefold() not in {t.casefold() for t in self._tags}:
             self._tags.append(s)
@@ -174,7 +184,9 @@ class FilterTagCloudWidget(QWidget):
             else:
                 btn.setText(f"{tag} ({count})")
                 btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-                btn.setToolTip(f"Remove tag '{tag}'")
+                btn.setToolTip(
+                    self.lang.ui.folder_filter.remove_tag_tooltip.format(tag=tag)
+                )
                 if not self.readonly:
                     btn.setCursor(Qt.CursorShape.ArrowCursor)
                 btn.clicked.connect(lambda _, t=tag: self.remove_tag(t))
@@ -190,7 +202,7 @@ class FilterTagCloudWidget(QWidget):
             add_btn = ActionButton(
                 self,
                 icon_name="fa6s.tag",
-                tooltip="Add Tag to filter",
+                tooltip=self.lang.ui.folder_filter.add_tag_tooltip,
                 icon_size=12,
             )
             add_btn.setFont(QFont(APP_THEME.font_family, APP_THEME.font_size - 6))
@@ -248,6 +260,7 @@ class FolderFilterTable(QTableWidget):
         tag_store: DbTags | None = None,
         state: object | None = None,
         readonly: bool = False,
+        lang: LangEn | None = None,
     ):
         super().__init__()
         self.genres = genres
@@ -256,6 +269,7 @@ class FolderFilterTable(QTableWidget):
         self._tag_store = tag_store
         self._state = state
         self.readonly = readonly
+        self.lang = lang or LangEn()
         self._setup_ui()
 
     @property
@@ -271,10 +285,14 @@ class FolderFilterTable(QTableWidget):
         self.verticalHeader().setVisible(False)
         if self.readonly:
             self.setColumnCount(2)
-            self.setHorizontalHeaderLabels(["Filter", "Value"])
+            self.setHorizontalHeaderLabels(
+                self.lang.ui.folder_filter.filter_table_header
+            )
         else:
             self.setColumnCount(3)
-            self.setHorizontalHeaderLabels(["Filter", "Value", ""])
+            self.setHorizontalHeaderLabels(
+                self.lang.ui.folder_filter.filter_table_header_edit
+            )
         self.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.MinimumExpanding
         )
@@ -298,9 +316,9 @@ class FolderFilterTable(QTableWidget):
         if self.rowCount() == 0:
             self.insertRow(0)
             placeholder_text = (
-                "Select a filter from above dropdown"
+                self.lang.ui.folder_filter.filter_table_placeholder_readonly
                 if self.readonly
-                else "Add a Filter from above"
+                else self.lang.ui.folder_filter.filter_table_placeholder_edit
             )
             if self.readonly:
                 placeholder = QLabel(placeholder_text, self)
@@ -466,8 +484,11 @@ class FolderFilterTable(QTableWidget):
 
     def _style_tag_button(self, btn: QPushButton, tag_name: str) -> None:
         btn.setProperty("tag_value", tag_name)
-        if not tag_name or tag_name == "- Select Tag -":
-            btn.setText("- Select Tag -")
+        if (
+            not tag_name
+            or tag_name == self.lang.ui.folder_filter.select_tag_placeholder
+        ):
+            btn.setText(self.lang.ui.folder_filter.select_tag_placeholder)
             btn.setProperty("preserve_custom_style", False)
             btn.setStyleSheet("")
             APP_THEME.setup_button(btn)
@@ -499,17 +520,21 @@ class FolderFilterTable(QTableWidget):
                 tags = [
                     str(t).strip()
                     for t in filter_value
-                    if str(t).strip() and str(t).strip() != "- Select Tag -"
+                    if str(t).strip()
+                    and str(t).strip()
+                    != self.lang.ui.folder_filter.select_tag_placeholder
                 ]
             elif (
                 isinstance(filter_value, str)
                 and filter_value.strip()
-                and filter_value.strip() != "- Select Tag -"
+                and filter_value.strip()
+                != self.lang.ui.folder_filter.select_tag_placeholder
             ):
                 tags = [
                     t.strip()
                     for t in filter_value.split(",")
-                    if t.strip() and t.strip() != "- Select Tag -"
+                    if t.strip()
+                    and t.strip() != self.lang.ui.folder_filter.select_tag_placeholder
                 ]
             else:
                 tags = []
@@ -535,7 +560,7 @@ class FolderFilterTable(QTableWidget):
         if clean_type == "genre":
             # For Genre, we use a new combo box
             combo = SelectComboBox(self)
-            combo.addItem("-none-")
+            combo.addItem(self.lang.ui.folder_filter.none_genre)
             for genre in self.genres:
                 combo.addItem(genre)
             if filter_value:
@@ -547,7 +572,9 @@ class FolderFilterTable(QTableWidget):
         if clean_type == "media":
             # For Media, we use a new combo box
             combo = SelectComboBox(self)
-            combo.addItem("- Select Folder -", userData="")
+            combo.addItem(
+                self.lang.ui.folder_filter.select_folder_placeholder, userData=""
+            )
             for config in self.media_configs:
                 combo.addItem(config["label"], userData=config["path"])
             if filter_value:
@@ -607,7 +634,7 @@ class FolderFilterTable(QTableWidget):
     def _set_remove_button_cell(self, row_nbr: int) -> None:
 
         remove_btn = DelayedDeleteButton(self)
-        remove_btn.setToolTip("Delete Criteria")
+        remove_btn.setToolTip(self.lang.ui.folder_filter.delete_criteria)
         remove_btn.clicked.connect(lambda: self._remove_filter_row(remove_btn))
         self.setCellWidget(row_nbr, 2, remove_btn)
 
@@ -682,9 +709,17 @@ class FolderFilterTable(QTableWidget):
         if isinstance(widget, (QPushButton, QToolButton)):
             tag_val = widget.property("tag_value")
             if tag_val is not None:
-                return "" if tag_val == "- Select Tag -" else str(tag_val).strip()
+                return (
+                    ""
+                    if tag_val == self.lang.ui.folder_filter.select_tag_placeholder
+                    else str(tag_val).strip()
+                )
             text = widget.text().strip()
-            return "" if text == "- Select Tag -" else text
+            return (
+                ""
+                if text == self.lang.ui.folder_filter.select_tag_placeholder
+                else text
+            )
 
         value_item = self.item(row, 1)
         if value_item is not None:
