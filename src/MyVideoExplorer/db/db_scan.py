@@ -1,11 +1,13 @@
 import json
 import logging
 import re
+from pathlib import Path
 from typing import Any
 
 import duckdb
 
 from MyVideoExplorer.db import db_migrations, db_query
+from MyVideoExplorer.db.db_snowflake_id import SnowflakeIdGenerator
 from MyVideoExplorer.db.models.media_path_stats import MediaPathStats
 from MyVideoExplorer.lang.lang_loader import LangLoader
 from MyVideoExplorer.utils.file_util import FileUtil, FileUtils
@@ -123,6 +125,23 @@ class DbScanUtil:
 
         self._run_in_transaction(_delete)
 
+    def delete_ffprobe_meta_by_file_id(self, media_file_id: int) -> None:
+        """Delete ffprobe metadata rows for a single media file.
+
+        Call this before or after deleting the corresponding `media_file` row
+        to avoid orphaned rows in `media_file_video`, `media_file_audio`, and
+        `media_file_subtitle`.
+        """
+
+        def _delete(con):
+            con.execute(db_query.DbQuery.FfprobeVideo.DELETE_BY_FILE, (media_file_id,))
+            con.execute(db_query.DbQuery.FfprobeAudio.DELETE_BY_FILE, (media_file_id,))
+            con.execute(
+                db_query.DbQuery.FfprobeSubtitle.DELETE_BY_FILE, (media_file_id,)
+            )
+
+        self._run_in_transaction(_delete)
+
     def save_media(
         self, media_list: list[dict[str, Any]], media_path: str, progress_callback=None
     ):
@@ -142,18 +161,31 @@ class DbScanUtil:
         try:
             # 1. Delete records for the scanned folder that are no longer present
             def _cleanup(con):
-                if media_list:
+                # Delete ffprobe metadata for files being removed
+                con.execute(
+                    db_query.DbQuery.FfprobeVideo.DELETE_BY_DIR,
+                    (normalized_media_path,),
+                )
+                con.execute(
+                    db_query.DbQuery.FfprobeAudio.DELETE_BY_DIR,
+                    (normalized_media_path,),
+                )
+                con.execute(
+                    db_query.DbQuery.FfprobeSubtitle.DELETE_BY_DIR,
+                    (normalized_media_path,),
+                )
+                # Delete media file records no longer present
+                con.execute(
+                    db_query.DbQuery.MediaFile.DELETE_BY_DIR_NOT_IN,
+                    (normalized_media_path, normalized_file_paths),
+                )
+                if not media_list:
                     con.execute(
-                        db_query.DbQuery.MediaFile.DELETE_BY_DIR_NOT_IN,
-                        (normalized_media_path, normalized_file_paths),
+                        db_query.DbQuery.MediaPathStats.DELETE,
+                        (normalized_media_path,),
                     )
-                else:
-                    self.delete_stats(media_path)
 
-            if media_list:
-                self._run_in_transaction(_cleanup)
-            else:
-                self.delete_stats(media_path)
+            self._run_in_transaction(_cleanup)
 
             if not media_list:
                 if progress_callback is not None:
@@ -165,6 +197,7 @@ class DbScanUtil:
                 progress_callback(25, self.lang.scan_progress["preparing_media_rows"])
 
             data = []
+            id_gen = SnowflakeIdGenerator()
             for item, normalized_file_path in zip(
                 media_list, normalized_file_paths, strict=True
             ):
@@ -191,12 +224,19 @@ class DbScanUtil:
                     except ValueError, TypeError:
                         runtime = 0
 
+                file_size = None
+                try:
+                    file_size = Path(normalized_file_path).stat().st_size
+                except OSError:
+                    pass
+
                 data.append(
                     (
+                        id_gen.generate(),
                         normalized_media_path,
                         normalized_file_path,
                         item.get("type"),
-                        metadata.get("title"),
+                        Path(normalized_file_path).stem,
                         year,
                         metadata.get("plot"),
                         metadata.get("score"),
@@ -206,6 +246,7 @@ class DbScanUtil:
                         self._normalize_array_value(metadata.get("genres")),
                         self._normalize_array_value(metadata.get("actors")),
                         self._normalize_array_value(metadata.get("directors")),
+                        file_size,
                     )
                 )
 

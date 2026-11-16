@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.media_info.media_info import MediaInfo
 from MyVideoExplorer.media_info.media_info_view import MediaInfoView
 from MyVideoExplorer.media_info_side.media_info_side_view import MediaInfoSideView
@@ -16,8 +17,8 @@ class TestMediaInfo:
         nfo_parse_util = MagicMock(spec=NfoParseUtil)
         str_util = MagicMock(spec=StrUtil)
         mock_log = MagicMock()
-        view = MediaInfoView(nfo_parse_util, str_util, mock_log)
-        side_view = MediaInfoSideView(nfo_parse_util, str_util, mock_log)
+        view = MediaInfoView(nfo_parse_util, str_util, mock_log, LangEn())
+        side_view = MediaInfoSideView(nfo_parse_util, str_util, mock_log, lang=LangEn())
 
         mi = MediaInfo(view, side_view, mock_log)
         mi.build()

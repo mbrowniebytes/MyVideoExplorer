@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.media_info.media_info_view import MediaInfoView
 from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
@@ -40,7 +41,7 @@ class TestMediaInfoView:
         # Mock StrUtil methods
         str_util.join_strings.side_effect = lambda items: ", ".join(map(str, items))
 
-        view = MediaInfoView(nfo_parse_util, str_util, log_util)
+        view = MediaInfoView(nfo_parse_util, str_util, log_util, LangEn())
         qtbot.addWidget(view)
         return view
 

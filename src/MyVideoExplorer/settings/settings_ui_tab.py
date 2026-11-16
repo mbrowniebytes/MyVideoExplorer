@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 from pathlib import Path
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont, QFontDatabase
+from PySide6.QtGui import QFont, QFontDatabase, QStandardItemModel
 from PySide6.QtWidgets import (
     QFormLayout,
     QGroupBox,
@@ -14,11 +16,13 @@ from PySide6.QtWidgets import (
 )
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
-from MyVideoExplorer.settings.settings import SettingsBaseTab
+from MyVideoExplorer.lang.lang_en import LangEn
+from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
 from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.log_util import LogUtil
+from MyVideoExplorer.widgets.combo_box_delegate import GroupedComboBoxDelegate
 from MyVideoExplorer.widgets.combo_boxes.select_combo_box import SelectComboBox
 
 
@@ -28,11 +32,13 @@ class SettingsUITab(SettingsBaseTab):
         state: SettingsState,
         log_util: LogUtil,
         file_util: FileUtil,
+        lang: LangEn,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(log_util, parent)
         self.file_util = file_util
         self.state = state
+        self.lang = lang
 
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
@@ -54,7 +60,7 @@ class SettingsUITab(SettingsBaseTab):
         self._layout.addWidget(scroll)
 
     def _build_ui(self) -> None:
-        display_group = QGroupBox("UI Settings")
+        display_group = QGroupBox(self.lang.ui.settings.settings_ui.group_title)
         display_layout = QFormLayout(display_group)
 
         # Font size
@@ -69,7 +75,9 @@ class SettingsUITab(SettingsBaseTab):
         self.font_size_combo.currentIndexChanged.connect(self._on_font_size_changed)
         self.font_size_combo.currentIndexChanged.connect(self._on_setting_changed)
 
-        display_layout.addRow("Font Size:", self.font_size_combo)
+        display_layout.addRow(
+            self.lang.ui.settings.settings_ui.font_size, self.font_size_combo
+        )
 
         # App Font
         self.font_family_combo = SelectComboBox(self)
@@ -108,7 +116,81 @@ class SettingsUITab(SettingsBaseTab):
         self.font_family_combo.currentIndexChanged.connect(self._on_font_family_changed)
         # self.font_family_combo.currentIndexChanged.connect(self._on_setting_changed)
 
-        display_layout.addRow("App Font", self.font_family_combo)
+        display_layout.addRow(
+            self.lang.ui.settings.settings_ui.app_font, self.font_family_combo
+        )
+
+        # Indentation Indicator
+        self.indent_indicator_combo = SelectComboBox(self)
+        indent_groups = [
+            (
+                self.lang.ui.settings.settings_ui.indent_dots,
+                [
+                    ("•", self.lang.ui.settings.settings_ui.indent_bullet),
+                    ("・", self.lang.ui.settings.settings_ui.indent_middle_dot),
+                    (".", self.lang.ui.settings.settings_ui.indent_period),
+                    ("▪", self.lang.ui.settings.settings_ui.indent_small_square),
+                ],
+            ),
+            (
+                self.lang.ui.settings.settings_ui.indent_lines,
+                [
+                    ("-", self.lang.ui.settings.settings_ui.indent_hyphen),
+                    (" ", self.lang.ui.settings.settings_ui.indent_space),
+                    ("─", self.lang.ui.settings.settings_ui.indent_line_sep),
+                    ("├", self.lang.ui.settings.settings_ui.indent_tree_branch),
+                    ("_", self.lang.ui.settings.settings_ui.indent_underscore),
+                    ("│", self.lang.ui.settings.settings_ui.indent_vertical_bar),
+                ],
+            ),
+            (
+                self.lang.ui.settings.settings_ui.indent_arrows,
+                [
+                    ("→", self.lang.ui.settings.settings_ui.indent_arrow),
+                    ("◂", self.lang.ui.settings.settings_ui.indent_left_triangle),
+                    ("▸", self.lang.ui.settings.settings_ui.indent_right_triangle),
+                    (
+                        "▹",
+                        self.lang.ui.settings.settings_ui.indent_right_triangle_small,
+                    ),
+                ],
+            ),
+        ]
+        indent_group_headers = [group[0] for group in indent_groups]
+        current_index = 0
+        index = 0
+        for group_name, options in indent_groups:
+            # Add group header as a disabled item
+            self.indent_indicator_combo.addItem(group_name)
+            header_index = self.indent_indicator_combo.count() - 1
+            model = self.indent_indicator_combo.model()
+            if model is not None and isinstance(model, QStandardItemModel):
+                item = model.item(header_index)
+                if item is not None:
+                    item.setEnabled(False)
+            index += 1
+            for value, label in options:
+                if value == APP_THEME.indent_indicator:
+                    current_index = index
+                self.indent_indicator_combo.addItem("    " + label, value)
+                index += 1
+        self.indent_indicator_combo.setCurrentIndex(current_index)
+        # Apply grouped delegate for extra height on group headers
+        self.indent_indicator_combo.setItemDelegate(
+            GroupedComboBoxDelegate(indent_group_headers, self.indent_indicator_combo)
+        )
+
+        self.indent_indicator_combo.currentIndexChanged.connect(
+            self._on_indent_indicator_changed
+        )
+        self.indent_indicator_combo.currentIndexChanged.connect(
+            self._on_setting_changed
+        )
+
+        display_layout.addRow(
+            self.lang.ui.settings.settings_ui.folder_indentation,
+            self.indent_indicator_combo,
+        )
 
         self.content_layout.addWidget(display_group)
 
@@ -120,11 +202,13 @@ class SettingsUITab(SettingsBaseTab):
         save_btn_layout = QHBoxLayout(save_btn_container)
         save_btn_layout.setContentsMargins(20, 15, 20, 15)
 
-        self.save_btn = QPushButton("Save UI Settings", parent=self)
+        self.save_btn = QPushButton(
+            self.lang.ui.settings.settings_ui.save_btn, parent=self
+        )
         self.save_btn.clicked.connect(self._save_ui_settings)
 
         self.reset_btn = self._build_reset_button(
-            "Reset UI Settings", self.reset_settings
+            self.lang.ui.settings.settings_ui.reset_btn, self.reset_settings
         )
 
         spacer = QWidget(self)
@@ -155,6 +239,12 @@ class SettingsUITab(SettingsBaseTab):
         for i in range(self.font_family_combo.count()):
             if self.font_family_combo.itemText(i) == main_current_family:
                 self.font_family_combo.setCurrentIndex(i)
+                break
+
+        # Update indent indicator combo
+        for i in range(self.indent_indicator_combo.count()):
+            if self.indent_indicator_combo.itemData(i) == APP_THEME.indent_indicator:
+                self.indent_indicator_combo.setCurrentIndex(i)
                 break
 
         APP_THEME.refresh_theme()
@@ -224,6 +314,27 @@ class SettingsUITab(SettingsBaseTab):
         #         flow=SignalFlow.USER_INPUT,
         #     )
         # )
+        self._on_setting_changed()
+
+    def _on_indent_indicator_changed(self, index: int) -> None:
+        value = self.indent_indicator_combo.itemData(
+            index, role=Qt.ItemDataRole.UserRole
+        )
+        if value is None:
+            return
+        if value == APP_THEME.indent_indicator:
+            return
+
+        APP_THEME.indent_indicator = value
+        self.state.settings_changed.emit(
+            SignalPayload(
+                data=value,
+                sender=self.__class__.__name__,
+                name="Settings Changed",
+                description="Indentation indicator was changed.",
+                flow=SignalFlow.USER_INPUT,
+            )
+        )
         self._on_setting_changed()
 
     def _save_ui_settings(self) -> None:

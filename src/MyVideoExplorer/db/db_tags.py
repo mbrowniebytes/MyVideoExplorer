@@ -5,7 +5,9 @@ from typing import Any
 
 import duckdb
 
+from MyVideoExplorer.db.db_backup import backup_database
 from MyVideoExplorer.db.db_migrations import DbMigrations
+from MyVideoExplorer.db.db_snowflake_id import SnowflakeIdGenerator
 from MyVideoExplorer.utils.file_util import FileUtils
 
 DEFAULT_TAG_DB_PATH = Path("db") / "tag_catalog.db"
@@ -24,43 +26,7 @@ class DbTags:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._tags_cache: list[dict[str, str]] | None = None
         self._tag_counts_cache: dict[str, int] | None = None
-        with duckdb.connect(self.path_utils.normalize_path(self.db_path)) as con:
-            con.execute(
-                """
-                CREATE TABLE IF NOT EXISTS tags (
-                    tag TEXT PRIMARY KEY,
-                    color TEXT NOT NULL DEFAULT '#808080'
-                )
-                """
-            )
-            con.execute(
-                """
-                CREATE TABLE IF NOT EXISTS tag_catalog_meta (
-                    key TEXT PRIMARY KEY,
-                    value TEXT NOT NULL
-                )
-                """
-            )
-            imported = con.execute(
-                "SELECT value FROM tag_catalog_meta "
-                "WHERE key = 'legacy_settings_tags_imported'"
-            ).fetchone()
-            if imported is None:
-                legacy_tags = settings_state.normalize_tags(
-                    settings_state.json_util.load_json(
-                        Path("cfg") / "settings_tags.json"
-                    ).get("tags", [])
-                )
-                if isinstance(legacy_tags, list) and legacy_tags:
-                    con.executemany(
-                        "INSERT INTO tags (tag, color) VALUES (?, ?) "
-                        "ON CONFLICT (tag) DO NOTHING",
-                        [(item["tag"], item["color"]) for item in legacy_tags],
-                    )
-                con.execute(
-                    "INSERT INTO tag_catalog_meta (key, value) "
-                    "VALUES ('legacy_settings_tags_imported', 'true')"
-                )
+        DbMigrations(str(self.db_path), db_type="tag_catalog").run_migrations()
         self._sync_state()
 
     def list_tags(self) -> list[dict[str, str]]:
@@ -76,6 +42,7 @@ class DbTags:
         return [dict(item) for item in self._tags_cache]
 
     def add_catalog_tag(self, tag: str, color: str = "#808080") -> bool:
+        backup_database(str(self.db_path))
         normalized = self.settings_state.normalize_tags([{"tag": tag, "color": color}])
         if not normalized:
             return False
@@ -95,6 +62,7 @@ class DbTags:
         return True
 
     def set_tag_color(self, tag: str, color: str) -> bool:
+        backup_database(str(self.db_path))
         normalized = self.settings_state.normalize_tags([{"tag": tag, "color": color}])
         if not normalized:
             return False
@@ -115,6 +83,7 @@ class DbTags:
         new_tag: str,
         color: str,
     ) -> bool:
+        backup_database(str(self.db_path))
         existing_tags = self.list_tags()
         matching = next(
             (
@@ -152,6 +121,7 @@ class DbTags:
         return True
 
     def delete_catalog_tag(self, tag: str) -> bool:
+        backup_database(str(self.db_path))
         matching = next(
             (
                 item
@@ -176,6 +146,7 @@ class DbTags:
         renamed: dict[str, str],
         deleted: list[str],
     ) -> None:
+        backup_database(str(self.db_path))
         normalized = self.settings_state.normalize_tags(tags)
         if len(normalized) != len([tag for tag in tags if tag.get("tag", "").strip()]):
             raise ValueError("Tag names must be unique and colors must be valid.")
@@ -236,9 +207,10 @@ class DbTags:
                     if config
                     else ""
                 )
+                row_id = SnowflakeIdGenerator().generate()
                 con.execute(
-                    "INSERT INTO media_file (media_path, file_path, user_tags) VALUES (?, ?, ?)",
-                    (media_path, posix_path, tags),
+                    "INSERT INTO media_file (id, media_path, file_path, user_tags) VALUES (?, ?, ?, ?)",
+                    (row_id, media_path, posix_path, tags),
                 )
                 updated = (posix_path,)
         if updated is not None:

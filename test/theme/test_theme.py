@@ -1,6 +1,13 @@
 import pytest
-from PySide6.QtCore import QSize
-from PySide6.QtWidgets import QListWidget, QToolButton
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QListWidget,
+    QPushButton,
+    QRadioButton,
+    QTabBar,
+    QToolButton,
+)
 
 from MyVideoExplorer.theme.theme import Theme
 
@@ -36,6 +43,18 @@ class TestTheme:
         # Verify icon size is set
         assert lw.iconSize() == QSize(theme.icon_size, theme.icon_size)
         assert lw.styleSheet() != ""
+
+    def test_setup_interactive_widgets_uses_pointing_hand_cursor(self, theme, qtbot):
+        widgets = [
+            (QPushButton(), theme.setup_button),
+            (QRadioButton(), theme.setup_button),
+            (QCheckBox(), theme.setup_checkbox),
+            (QTabBar(), theme.setup_tabs),
+        ]
+        for widget, setup in widgets:
+            qtbot.addWidget(widget)
+            setup(widget)
+            assert widget.cursor().shape() == Qt.CursorShape.PointingHandCursor
 
     @pytest.mark.parametrize("object_name", ["meta_column_toggle", "nfo_column_toggle"])
     def test_setup_toggle_button_preserves_borderless_style(

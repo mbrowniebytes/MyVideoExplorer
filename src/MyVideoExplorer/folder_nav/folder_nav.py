@@ -20,6 +20,7 @@ class FolderNav(QWidget, ThemableMixin):
     selected_folder_changed = Signal(object)
     filtered_items_updated = Signal(object)
     genre_changed = Signal(object)
+    enqueue_playlist_requested = Signal()
 
     def __init__(self, folder_filter_widget: FolderFilters, log_util: LogUtil) -> None:
         super().__init__()
@@ -73,8 +74,8 @@ class FolderNav(QWidget, ThemableMixin):
             # Rebuild nav combo (labels) and saved filters combo
             self.folder_filter_widget.build_nav_combo()
             # self.folder_filter_widget._refresh_saved_filters_combo()
-            # Rebuild media buttons to reflect current settings and roots
-            self.folder_filter_widget.media_filter_widget.refresh_buttons()
+            # Rebuild media combo to reflect current settings and roots
+            self.folder_filter_widget.refresh_media_combo()
 
             # self.apply_filters_requested()
             self._filter_timer.start(150)

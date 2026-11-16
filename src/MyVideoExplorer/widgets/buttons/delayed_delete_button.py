@@ -4,6 +4,7 @@ from PySide6.QtCore import QElapsedTimer, QEvent, Qt, QTimer
 from PySide6.QtGui import QColor, QEnterEvent, QHideEvent, QKeyEvent, QMouseEvent
 from PySide6.QtWidgets import QMessageBox, QWidget
 
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.widgets.buttons.action_button import ActionButton
 
@@ -172,7 +173,7 @@ class DelayedDeleteButton(ActionButton):
         return (
             QMessageBox.question(
                 self.window(),
-                self.confirmation_title or "Confirm deletion",
+                self.confirmation_title or LangEn().ui.widgets.confirm_deletion,
                 self.confirmation_message,
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No,

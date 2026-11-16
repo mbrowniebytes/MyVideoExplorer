@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.settings.settings_media_tab import SettingsMediaTab
 from MyVideoExplorer.settings.settings_state import SettingsState
 
@@ -19,12 +20,13 @@ class TestMediaSettingsDelayedEmit:
             }
         ]
         mock_state.db_enabled.return_value = True
+        mock_state.ffmpeg_path = ""
 
         mock_log_util = MagicMock()
         mock_file_util = MagicMock()
 
         with patch.object(SettingsMediaTab, "_build_ui", return_value=None):
-            tab = SettingsMediaTab(mock_state, mock_log_util, mock_file_util)
+            tab = SettingsMediaTab(mock_state, mock_log_util, mock_file_util, LangEn())
 
             tab.folder_nav_layout = MagicMock()
             tab.folder_nav_content = MagicMock()

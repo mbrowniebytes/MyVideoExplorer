@@ -23,7 +23,7 @@
 
 ## Key Modules (`src/MyVideoExplorer/`)
 - `app/`: DI container, controller, signal bus, main window.
-- `db/`: DuckDB schemas, repositories, file scanner & query filters. Saved-filter definitions and cached per-media-folder filtered-folder counts are stored in `db/filter_catalog.db`.
+- `db/`: DuckDB schemas, repositories, file scanner & query filters. Saved-filter definitions and cached per-media-folder filtered-folder counts are stored in `db/filter_catalog.db`; Manual-sorted filters additionally store ordered video identities and relative paths. Library scans mark stale manual entries for rebuild, while **Refresh filter** reconciles their list.
 - `file_list/`, `image_list/`: Table and thumbnail/poster grid views.
 - `folder_list/`, `folder_nav/`, `folder_filter/`: Folder tree, breadcrumbs, search filtering.
 - `media_info*/`: Metadata panels, sections, sidebars, and tab manager.

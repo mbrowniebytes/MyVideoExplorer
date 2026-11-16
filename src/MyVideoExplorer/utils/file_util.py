@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 import os
 import re
 import sys
@@ -26,6 +26,46 @@ class _FileUtilLogger(Protocol):
     def error(
         self, message: str, *, extra_info: dict[str, Any] | None = None
     ) -> None: ...
+
+
+# Pattern for validating media folder paths.
+# Matches printable ASCII characters only (hex 0x20–0x7E), which expands to:
+#   - Spaces (0x20)
+#   - Punctuation: ! " # $ % & ' ( ) * + , - . /
+#   - Digits: 0–9
+#   - More punctuation: : ; < = > ? @
+#   - Uppercase letters: A–Z
+#   - More punctuation: [ \ ] ^ _ `
+#   - Lowercase letters: a–z
+#   - More punctuation: { | } ~
+# In other words: letters (a-zA-Z0-9), digits, spaces, slashes (/ and \), and all
+# standard ASCII punctuation. Rejects null bytes, control characters (0x00–0x1F),
+# and non-ASCII characters (0x80+).
+VALID_PATH_PATTERN = re.compile(r"^[\x20-\x7E]+$")
+
+
+def validate_path(path: str) -> tuple[bool, str]:
+    """Validate a media folder path for OS-safe characters.
+
+    Unlike name validation, paths are allowed to contain slashes and backslashes.
+    This function rejects empty paths, paths with control characters, and paths
+    with characters outside the printable ASCII range.
+
+    Args:
+        path: The path string to validate.
+
+    Returns:
+        A tuple of (is_valid, error_message). If valid, error_message is empty.
+    """
+    cleaned = path.strip()
+    if not cleaned:
+        return False, "Path cannot be empty."
+    if not VALID_PATH_PATTERN.fullmatch(cleaned):
+        return (
+            False,
+            "Path contains invalid characters. Only printable ASCII characters are allowed.",
+        )
+    return True, ""
 
 
 class FileUtils:
@@ -84,6 +124,11 @@ class FileUtils:
         )
         return normalized_path.startswith(prefix)
 
+    @staticmethod
+    def is_dir_accessible(path: str | os.PathLike[str]) -> bool:
+        directory = Path(path)
+        return directory.is_dir() and os.access(directory, os.R_OK | os.X_OK)
+
 
 class FileUtil:
     """Utility class for filesystem traversal, classification, and metadata extraction."""
@@ -107,12 +152,8 @@ class FileUtil:
     @staticmethod
     def get_resource_path(relative_path: str) -> str:
         """Get absolute path to resource, works for dev and for PyInstaller."""
-        try:
-            # PyInstaller creates a temp folder and stores path in _MEIPASS
-            base_path = Path(sys._MEIPASS)  # type: ignore
-        except AttributeError:
-            base_path = Path.cwd()
-
+        meipass = getattr(sys, "_MEIPASS", None)
+        base_path = Path(meipass) if isinstance(meipass, str) else Path.cwd()
         return FileUtils.normalize_path(base_path / relative_path)
 
     def _scan_directory(self, path: Path) -> list[os.DirEntry[str]]:
@@ -400,7 +441,7 @@ class FileUtil:
 
         path_obj = Path(path)
         candidates = [path_obj.stem, path_obj.parent.name]
-        max_year = datetime.datetime.now(datetime.UTC).year + 10
+        max_year = dt.datetime.now(dt.UTC).year + 10
 
         for text in candidates:
             if not text:

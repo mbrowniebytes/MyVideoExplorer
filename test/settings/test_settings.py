@@ -1,8 +1,10 @@
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 from PySide6.QtWidgets import QTabWidget, QWidget
 
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.settings.settings import Settings
 
 
@@ -14,9 +16,10 @@ class TestSettings:
         return d / "settings_ui.json"
 
     @pytest.fixture
-    def settings(self, qtbot):
+    def settings(self, qtbot, tmp_path):
         # Mock class-level check before instantiation to avoid using MagicMock as class attribute
         # which might be causing issues with PySide's metaclass
+        filter_db_path = tmp_path / "filter_catalog.db"
         with patch(
             "MyVideoExplorer.settings.settings_state.SettingsState._load_settings"
         ):
@@ -26,13 +29,23 @@ class TestSettings:
                 with patch("MyVideoExplorer.theme.theme.Theme.refresh_theme"):
                     mock_log_util = MagicMock()
                     mock_file_util = MagicMock()
-                    s = Settings(mock_log_util, mock_file_util)
+                    s = Settings(mock_log_util, mock_file_util, LangEn())
+                    # Use a temporary filter database to avoid file lock conflicts
+                    from MyVideoExplorer.db.db_filters import DbFilters
+
+                    temp_store = DbFilters(
+                        s.settings_data_model, db_path=filter_db_path
+                    )
+                    s.settings_data_model.filter_store = temp_store
+                    s.settings_data_model.saved_filters = temp_store.list_filters()
                     s.settings_data_model.media_configs = [
                         {"label": "Test", "path": "/test"}
                     ]
                     # Mock get_db_path to avoid using the real db/ folder
+                    tmp_db_dir = Path("tmp") / "db"
+                    tmp_db_dir.mkdir(parents=True, exist_ok=True)
                     s.settings_data_model.get_db_path = MagicMock(
-                        return_value="test_temp.db"
+                        return_value=str(tmp_db_dir / "test_temp.db")
                     )
 
                     # Mock only the problematic UI components that cause Segfaults
@@ -102,7 +115,7 @@ class TestSettings:
                 with patch("MyVideoExplorer.theme.theme.Theme.refresh_theme"):
                     mock_log_util = MagicMock()
                     mock_file_util = MagicMock()
-                    s = Settings(mock_log_util, mock_file_util)
+                    s = Settings(mock_log_util, mock_file_util, LangEn())
                     # Fully mock build to avoid UI-related access violations in test environment
                     s.tab_widget = QTabWidget()  # type: ignore
                     from MyVideoExplorer.widgets.right_aligned_tab_bar import (

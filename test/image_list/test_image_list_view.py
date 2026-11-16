@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QWidget
 
 from MyVideoExplorer.file_list.file_list import FileList
 from MyVideoExplorer.image_list.image_list_view import ImageListView
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.media_info_side.media_info_side_view import MediaInfoSideView
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.utils.str_util import StrUtil
@@ -23,7 +24,7 @@ class TestImageListView:
         str_util = MagicMock(spec=StrUtil)
         nfo_parse_util = MagicMock(spec=NfoParseUtil)
         mock_log = MagicMock()
-        side_view = MediaInfoSideView(nfo_parse_util, str_util, mock_log)
+        side_view = MediaInfoSideView(nfo_parse_util, str_util, mock_log, lang=LangEn())
         file_list = MagicMock(spec=FileList)
         file_list.build.return_value = QWidget()
         view = ImageListView(str_util, side_view, file_list, mock_log)
@@ -58,6 +59,8 @@ class TestImageListView:
         assert actions_layout.itemAt(0).widget() is title_widget.help_icon
         assert actions_layout.itemAt(1).spacerItem() is not None
         assert actions_layout.itemAt(2).widget() is title_widget.play_video_button
+        assert title_widget.play_video_button.width() > 28
+        assert title_widget.play_video_button.width() < 60
         actions_widget_width = title_widget.actions_widget.width()
         assert actions_widget_width >= (
             title_widget.help_icon.width()
@@ -66,6 +69,37 @@ class TestImageListView:
         )
         with qtbot.waitSignal(image_list_view.play_video_requested):
             title_widget.play_video_button.click()
+
+    def test_enabled_player_buttons_follow_default_play_button(
+        self, image_list_view, qtbot
+    ):
+        title_widget = image_list_view.title_widget
+        title_widget.set_video_players(
+            [
+                {
+                    "id": "vlc",
+                    "label": "VLC",
+                    "executable": "C:/Apps/vlc.exe",
+                    "show_icon": True,
+                },
+                {
+                    "id": "mpc_qt",
+                    "label": "MPC-QT",
+                    "executable": "C:/Apps/mpc-qt.exe",
+                    "show_icon": False,
+                },
+            ]
+        )
+
+        assert set(title_widget._player_buttons) == {"vlc"}
+        vlc_button = title_widget._player_buttons["vlc"]
+        assert vlc_button.property("preserve_custom_style")
+        assert "background: transparent" in vlc_button.styleSheet()
+        assert "border: none" in vlc_button.styleSheet()
+        assert title_widget.actions_layout.itemAt(3).widget() is vlc_button
+        with qtbot.waitSignal(title_widget.video_player_requested) as emitted:
+            title_widget._player_buttons["vlc"].click()
+        assert emitted.args == ["vlc"]
 
     def test_collapsing_meta_gives_width_to_preview(self, image_list_view, qtbot):
         image_list_view.resize(1000, 600)

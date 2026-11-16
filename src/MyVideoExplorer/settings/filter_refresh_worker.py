@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 
 from PySide6.QtCore import QThread, Signal
 
@@ -9,8 +10,13 @@ from MyVideoExplorer.db.db_filters import DbFilters
 logger = logging.getLogger(__name__)
 
 
-class FilterCountWorker(QThread):
-    """Refresh saved-filter counts without blocking the GUI thread."""
+class FilterRefreshWorker(QThread):
+    """Refresh saved filters without blocking the GUI thread.
+
+    Processes filters sequentially with a small delay between operations to ensure
+    DuckDB connections are fully closed before the next refresh, preventing
+    "filter_catalog.db not able to write" errors.
+    """
 
     progress = Signal(int, int, str)
     updated = Signal(str)
@@ -26,9 +32,12 @@ class FilterCountWorker(QThread):
         for index, name in enumerate(self.names, start=1):
             self.progress.emit(index, total, name)
             try:
-                self.filter_store.refresh_filter_counts(name)
+                self.filter_store.refresh_filter(name)
             except Exception as error:
-                logger.exception("Failed refreshing movie count for filter %s", name)
+                logger.exception("Failed refreshing saved filter %s", name)
                 self.failed.emit(name, str(error))
             else:
                 self.updated.emit(name)
+            # Small delay to ensure DuckDB connection is fully released before next refresh
+            if index < total:
+                time.sleep(0.05)

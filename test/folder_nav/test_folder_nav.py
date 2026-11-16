@@ -6,6 +6,7 @@ from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.folder_filter.folder_filter import FolderFilters
 from MyVideoExplorer.folder_filter.folder_filter_filter import FolderFilterFilter
 from MyVideoExplorer.folder_nav.folder_nav import FolderNav
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.settings.settings import Settings
 from MyVideoExplorer.utils.file_util import FileUtil
 
@@ -24,7 +25,7 @@ class TestFolderNav:
         file_util = MagicMock(spec=FileUtil)
         engine = MagicMock(spec=FolderFilterFilter)
         mock_log = MagicMock()
-        filters = FolderFilters(engine, file_util, settings, mock_log)
+        filters = FolderFilters(engine, file_util, settings, mock_log, LangEn())
 
         widget = FolderNav(filters, mock_log)
 

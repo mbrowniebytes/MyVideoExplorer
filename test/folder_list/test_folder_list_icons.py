@@ -4,6 +4,7 @@ import pytest
 from PySide6.QtCore import Qt
 
 from MyVideoExplorer.folder_list.folder_list import FolderList
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 
@@ -23,7 +24,9 @@ class TestFolderListIcons:
             return_value=True,
         ):
             mock_log = MagicMock()
-            widget = FolderList(file_util, settings=settings, log_util=mock_log)
+            widget = FolderList(
+                file_util, settings=settings, log_util=mock_log, lang=LangEn()
+            )
             with patch.object(widget, "refresh"):
                 widget.build()
         qtbot.addWidget(widget)

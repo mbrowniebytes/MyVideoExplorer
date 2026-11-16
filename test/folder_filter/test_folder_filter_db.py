@@ -5,6 +5,7 @@ import pytest
 
 from MyVideoExplorer.folder_filter.folder_filter import FolderFilters
 from MyVideoExplorer.folder_filter.folder_filter_filter import FolderFilterFilter
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
@@ -54,7 +55,7 @@ class TestFolderNavFiltersDB:
         engine = FolderFilterFilter(nfo_util, settings_mock.settings_data_model)
 
         mock_log = MagicMock()
-        widget = FolderFilters(engine, file_util, settings_mock, mock_log)
+        widget = FolderFilters(engine, file_util, settings_mock, mock_log, LangEn())
         widget.root_folders = ["movies"]  # Matches config path
         widget.build()
         qtbot.addWidget(widget)

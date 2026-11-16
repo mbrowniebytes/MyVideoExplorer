@@ -1,6 +1,7 @@
 import shutil
 
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QGuiApplication, QStandardItemModel
 from PySide6.QtWidgets import QMainWindow
 
 from MyVideoExplorer.app.app_controller import AppController
@@ -18,6 +19,7 @@ from MyVideoExplorer.folder_list.media_nav_search import (
 from MyVideoExplorer.folder_nav.folder_nav import FolderNav
 from MyVideoExplorer.image_list.image_list import ImageList
 from MyVideoExplorer.image_list.image_list_view import ImageListView
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.media_info.media_info import MediaInfo
 from MyVideoExplorer.media_info.media_info_view import MediaInfoView
 from MyVideoExplorer.media_info_side.media_info_side_view import MediaInfoSideView
@@ -73,7 +75,8 @@ class AppContainer:
         try:
             self.path_utils = FileUtils()
             self.file_util = FileUtil(self.log_util, self.path_utils)
-            self.settings = Settings(self.log_util, self.file_util)
+            self.lang = LangEn()
+            self.settings = Settings(self.log_util, self.file_util, self.lang)
         except Exception as e:
             self.log_util.error(f"Error initializing Settings: {e}")
             raise
@@ -103,7 +106,9 @@ class AppContainer:
             self.media_nav_search_service = MediaNavSearch(
                 self.settings.settings_data_model, self.path_utils
             )
-            self.folder_list = FolderList(self.file_util, self.settings, self.log_util)
+            self.folder_list = FolderList(
+                self.file_util, self.settings, self.log_util, self.lang
+            )
             self.folder_list.setParent(self.window)
 
             self.folder_nav_filters = FolderFilters(
@@ -111,15 +116,16 @@ class AppContainer:
                 self.file_util,
                 self.settings,
                 self.log_util,
+                self.lang,
             )
             self.folder_nav_filters.setParent(self.window)
             self.folder_nav = FolderNav(self.folder_nav_filters, self.log_util)
             self.folder_nav.setParent(self.window)
-            self.file_list = FileList(self.file_util, self.log_util)
+            self.file_list = FileList(self.file_util, self.log_util, self.lang)
             self.file_list.setParent(self.window)
 
             self.media_info_view = MediaInfoView(
-                self.nfo_parse_util, self.str_util, self.log_util
+                self.nfo_parse_util, self.str_util, self.log_util, self.lang
             )
             self.media_info_view.setParent(self.window)
             self.media_info_side_view = MediaInfoSideView(
@@ -129,6 +135,7 @@ class AppContainer:
                 self.db_play_history,
                 self.db_tags,
                 self.settings.settings_data_model,
+                lang=self.lang,
             )
             self.media_info_side_view.setParent(self.window)
             self.media_info = MediaInfo(
@@ -148,6 +155,7 @@ class AppContainer:
                 self.image_list_view,
                 self.file_list,
                 self.log_util,
+                self.lang,
             )
             self.image_list.setParent(self.window)
 
@@ -158,6 +166,7 @@ class AppContainer:
                 media_info=self.media_info,
                 image_list=self.image_list,
                 settings=self.settings,
+                lang=self.lang,
             )
             self.media_info_tabs.setParent(self.window)
 
@@ -285,7 +294,7 @@ class AppContainer:
         )
         self._connect(
             self.image_list.double_click_requested,
-            lambda p: self._play_video_from_current_folder(),
+            lambda p: self._play_video_with_default_player(),
         )
         self._connect(
             self.image_list_view.play_video_requested,
@@ -296,12 +305,36 @@ class AppContainer:
             self.media_info.play_video_requested,
             lambda p: self._play_video_from_current_folder(),
         )
+        title_widget = self.image_list_view.title_widget
+        title_widget.set_video_players(
+            self.settings.settings_data_model.video_player_configs
+        )
+        self._connect(
+            title_widget.video_player_requested,
+            self._play_video_with_configured_player,
+        )
+        self._connect(
+            self.settings.player_settings_tab.player_configurations_changed,
+            lambda p: title_widget.set_video_players(p),
+        )
         self._connect(
             self.folder_nav.filtered_items_updated,
             lambda p: self._on_filtered_items(p.data),
         )
         self._connect(
             self.folder_list.clear_filter_requested, self.folder_nav.clear_saved_filter
+        )
+        self._connect(
+            self.folder_list.folder_sort_changed,
+            self.folder_nav_filters.set_folder_sort_option,
+        )
+        self._connect(
+            self.folder_nav_filters.filter_sort_label_changed,
+            self.folder_list.set_filter_sort_label,
+        )
+        self._connect(
+            self.folder_nav_filters.filter_sort_option_changed,
+            self._on_filter_sort_option_changed,
         )
         self._connect(
             self.folder_nav_filters.saved_filter_selection_changed,
@@ -327,6 +360,28 @@ class AppContainer:
             self.folder_list.media_nav_search.create_filter_requested,
             self._on_create_filter_from_search,
         )
+        self._connect(
+            self.folder_list.enqueue_playlist_requested,
+            self._enqueue_filtered_playlist,
+        )
+        self._connect(
+            self.folder_nav.enqueue_playlist_requested,
+            self._enqueue_filtered_playlist,
+        )
+
+    def _on_filter_sort_option_changed(self, sort_option: str) -> None:
+        """When a filter is selected, auto-set the folder sort to use the filter's sort setting."""
+        combo = self.folder_list.header.sort_combo
+        model = combo.model()
+        if isinstance(model, QStandardItemModel):
+            for i in range(model.rowCount()):
+                item = model.item(i)
+                if (
+                    item is not None
+                    and item.data(Qt.ItemDataRole.UserRole) == "filter_sort"
+                ):
+                    combo.setCurrentIndex(i)
+                    break
 
     def _on_tag_clicked_for_filter(self, tag: str) -> None:
         """Handle tag click from media info panel: clear search, add tag, and submit search."""
@@ -367,8 +422,95 @@ class AppContainer:
         self.media_info.refresh(self.controller.state.current_folder, tab_index)
 
     def _play_video_from_current_folder(self) -> None:
-        self.video_player.set_folder_path(self.controller.state.current_folder)
-        self.video_player.play_video()
+        self.video_player.play_folder_with_external_app(
+            self.controller.state.current_folder
+        )
+
+    def _play_video_with_default_player(self) -> None:
+        config = next(
+            (
+                player
+                for player in self.settings.settings_data_model.video_player_configs
+                if player["is_default"]
+            ),
+            None,
+        )
+        if config is None or config["id"] == "os_default":
+            self._play_video_from_current_folder()
+            return
+        self._play_video_with_configured_player(config["id"])
+
+    def _enqueue_filtered_playlist(self) -> None:
+        """Enqueue videos from every folder in the navigation list."""
+        config = next(
+            (
+                player
+                for player in self.settings.settings_data_model.video_player_configs
+                if player["is_default"]
+            ),
+            None,
+        )
+        filters = self.folder_nav_filters.filter_table.collect_filters()
+        filters.extend(self.folder_nav_filters.collect_media_filters())
+        matching_videos = self.folder_nav_filters.db_filter.matching_videos(filters)
+        folder_order: dict[str, int] = {}
+        for row in range(self.folder_list.folder_list_view.count()):
+            item = self.folder_list.folder_list_view.item(row)
+            folder_path = item.data(Qt.ItemDataRole.UserRole)
+            if folder_path:
+                folder_order[FileUtils.normalize_path(folder_path).casefold()] = row
+
+        def playlist_sort_key(video: dict[str, str]) -> tuple[int, str]:
+            video_path = FileUtils.normalize_path(str(video["file_path"]))
+            parent_path = FileUtils.parent(video_path).casefold()
+            matching_folder_rank = max(
+                (
+                    rank
+                    for folder_path, rank in folder_order.items()
+                    if FileUtils.is_same_or_descendant(parent_path, folder_path)
+                ),
+                default=len(folder_order),
+            )
+            return matching_folder_rank, video_path.casefold()
+
+        matching_videos.sort(key=playlist_sort_key)
+        video_paths = [video["file_path"] for video in matching_videos]
+        self.log_util.info(
+            f"Enqueue filtered playlist: {len(video_paths)} filtered videos"
+        )
+        if config is None or config["id"] == "os_default":
+            self.video_player.enqueue_video_paths(video_paths)
+            return
+        self.video_player.enqueue_video_paths(
+            video_paths,
+            config["executable"],
+            config.get("arguments", ""),
+        )
+
+    def _play_video_with_configured_player(self, player_id: str) -> None:
+        if player_id == "os_default":
+            self._play_video_from_current_folder()
+            return
+
+        config = next(
+            (
+                player
+                for player in self.settings.settings_data_model.video_player_configs
+                if player["id"] == player_id
+            ),
+            None,
+        )
+        if config is None or not config["executable"]:
+            self.log_util.warning(
+                f"No executable configured for video player '{player_id}'."
+            )
+            return
+
+        self.video_player.play_folder_with_player(
+            config["executable"],
+            self.controller.state.current_folder,
+            config.get("arguments", ""),
+        )
 
     def _record_video_playback(self, file_path: str) -> None:
         if not self.db_play_history.record_playback(file_path):

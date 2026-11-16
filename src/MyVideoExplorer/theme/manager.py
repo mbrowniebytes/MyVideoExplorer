@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import qtawesome as qta  # type: ignore[import-untyped]
+import qtawesome as qta
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QFont, QIcon
 from PySide6.QtWidgets import (
@@ -166,14 +166,17 @@ class ThemeManager:
 
     def setup_checkbox(self, widget: QCheckBox) -> None:
         widget.setStyleSheet(StyleCheckbox.get_checkbox_style(self.config))
+        widget.setCursor(Qt.CursorShape.PointingHandCursor)
 
     def setup_tabs(self, widget: QTabBar) -> None:
         widget.setStyleSheet(StyleTab.get_tabs_qss(self.config))
+        widget.setCursor(Qt.CursorShape.PointingHandCursor)
 
     def setup_tab_widget(self, widget: QTabWidget) -> None:
         widget.setStyleSheet(StyleTab.get_tabs_qss(self.config))
 
     def setup_button(self, widget: QAbstractButton | QSpinBox) -> None:
+        widget.setCursor(Qt.CursorShape.PointingHandCursor)
         if isinstance(widget, (QPushButton, QToolButton)):
             if widget.property("preserve_custom_style"):
                 return

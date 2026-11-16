@@ -4,6 +4,7 @@ import pytest
 from PySide6.QtCore import Qt
 
 from MyVideoExplorer.file_list.file_list import FileList
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.utils.file_util import FileUtil
 
 
@@ -12,7 +13,7 @@ class TestFileList:
     def file_list(self, qtbot):
         file_util = MagicMock(spec=FileUtil)
         mock_log = MagicMock()
-        widget = FileList(file_util, mock_log)
+        widget = FileList(file_util, mock_log, LangEn())
         widget.build()
         qtbot.addWidget(widget)
         return widget

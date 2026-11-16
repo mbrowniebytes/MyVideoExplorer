@@ -30,6 +30,8 @@ class TagCloudSettings(QWidget):
             show_search_button=True,
             show_add_button=True,
             confirm_delete_at_count=10,
+            min_font_size=12,
+            max_font_size=32,
             parent=self,
         )
         layout.addWidget(self.cloud)

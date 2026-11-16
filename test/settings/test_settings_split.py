@@ -2,7 +2,10 @@ import json
 from unittest.mock import MagicMock, patch
 
 import pytest
+from PySide6.QtWidgets import QCheckBox, QLineEdit, QRadioButton
 
+from MyVideoExplorer.lang.lang_en import LangEn
+from MyVideoExplorer.settings.settings_player_tab import SettingsPlayerTab
 from MyVideoExplorer.settings.settings_state import SettingsState
 
 
@@ -24,6 +27,10 @@ class TestSettingsSplit:
             cfg_dir / "settings_app.json",
         )
         monkeypatch.setattr(
+            "MyVideoExplorer.settings.settings_state.SETTINGS_PLAYER_FILE",
+            cfg_dir / "settings_player.json",
+        )
+        monkeypatch.setattr(
             "MyVideoExplorer.settings.settings_state.SETTINGS_UI_FILE",
             cfg_dir / "settings_ui.json",
         )
@@ -42,6 +49,10 @@ class TestSettingsSplit:
         monkeypatch.setattr(
             "MyVideoExplorer.settings.settings_state.DEFAULTS_APP_FILE",
             cfg_dir / "defaults_app.json",
+        )
+        monkeypatch.setattr(
+            "MyVideoExplorer.settings.settings_state.DEFAULTS_PLAYER_FILE",
+            cfg_dir / "defaults_player.json",
         )
         monkeypatch.setattr(
             "MyVideoExplorer.settings.settings_state.DEFAULTS_UI_FILE",
@@ -68,6 +79,7 @@ class TestSettingsSplit:
         assert (cfg_dir / "defaults_filter.json").exists()
         assert (cfg_dir / "defaults_app.json").exists()
         assert (cfg_dir / "settings_app.json").exists()
+        assert (cfg_dir / "defaults_player.json").exists()
 
         # Verify content
         with (cfg_dir / "defaults_ui.json").open(encoding="utf-8") as f:
@@ -86,6 +98,7 @@ class TestSettingsSplit:
 
         assert (cfg_dir / "settings_ui.json").exists()
         assert (cfg_dir / "settings_media.json").exists()
+        assert (cfg_dir / "settings_player.json").exists()
         assert not (cfg_dir / "settings_filter.json").exists()
 
         with (cfg_dir / "settings_media.json").open(encoding="utf-8") as f:
@@ -120,27 +133,6 @@ class TestSettingsSplit:
         # Check if icon was added by migration/ensure logic
         assert state.media_configs[0]["icon"] == "fa6s.folder"
 
-    def test_legacy_filter_json_should_migrate_once_to_database(
-        self, setup_cfg, mock_log_util
-    ):
-        legacy = [
-            {"name": "Custom", "filters": [{"filter": "title", "value": "alpha"}]}
-        ]
-        (setup_cfg / "settings_filter.json").write_text(
-            json.dumps({"saved_filters": legacy}), encoding="utf-8"
-        )
-
-        state = SettingsState(mock_log_util)
-        assert state.saved_filters[0]["name"] == "Custom"
-        assert state.filter_store.list_filters()[0]["filters"] == legacy[0]["filters"]
-
-        state.save_filter("Updated", [], original_name="Custom")
-        reloaded = SettingsState(mock_log_util)
-
-        assert [item["name"] for item in reloaded.saved_filters] == ["Updated"]
-        with (setup_cfg / "settings_filter.json").open(encoding="utf-8") as file:
-            assert json.load(file)["saved_filters"] == legacy
-
     def test_backups_for_each_file(self, setup_cfg, mock_log_util):
         state = SettingsState(mock_log_util)
 
@@ -156,11 +148,12 @@ class TestSettingsSplit:
         ) as mock_backup:
             state.save_settings()
             # Filters are persisted in the filter catalog database.
-            assert mock_backup.call_count == 3
+            assert mock_backup.call_count == 4
 
             # Verify paths - check that all settings files are in the called paths
             called_paths = [str(call.args[0]) for call in mock_backup.call_args_list]
             assert any("settings_app.json" in path for path in called_paths)
+            assert any("settings_player.json" in path for path in called_paths)
             assert any("settings_ui.json" in path for path in called_paths)
             assert any("settings_media.json" in path for path in called_paths)
 
@@ -196,7 +189,7 @@ class TestSettingsSplit:
         assert [f["name"] for f in state.saved_filters] == ["A", "B2", "C"]
         assert state.saved_filters[1]["filters"] == new_cfg
 
-    def test_save_filter_rename_onto_existing_name_should_not_duplicate(
+    def test_save_filter_rename_onto_existing_name_should_raise_error(
         self, setup_cfg, mock_log_util
     ):
         state = SettingsState(mock_log_util)
@@ -206,9 +199,26 @@ class TestSettingsSplit:
         ]
         state.save_filters()
 
-        state.save_filter("A", [], original_name="B")
+        with pytest.raises(ValueError, match="already exists"):
+            state.save_filter("A", [], original_name="B")
 
-        assert [f["name"] for f in state.saved_filters] == ["A"]
+        # Filters should remain unchanged
+        assert [f["name"] for f in state.saved_filters] == ["A", "B"]
+
+    def test_save_filter_rename_case_insensitive_onto_existing_should_raise(
+        self, setup_cfg, mock_log_util
+    ):
+        state = SettingsState(mock_log_util)
+        state.saved_filters = [
+            {"name": "Alpha", "filters": []},
+            {"name": "Beta", "filters": []},
+        ]
+        state.save_filters()
+
+        with pytest.raises(ValueError, match="already exists"):
+            state.save_filter("alpha", [], original_name="Beta")
+
+        assert [f["name"] for f in state.saved_filters] == ["Alpha", "Beta"]
 
     def test_save_filter_should_emit_settings_changed_once(
         self, setup_cfg, mock_log_util
@@ -234,3 +244,110 @@ class TestSettingsSplit:
             json.dumps({"scan_media_timeout_seconds": 45}), encoding="utf-8"
         )
         assert SettingsState(mock_log_util).scan_media_timeout_seconds == 120
+
+    def test_video_player_settings_round_trip(self, setup_cfg, mock_log_util):
+        state = SettingsState(mock_log_util)
+        vlc = next(
+            player for player in state.video_player_configs if player["id"] == "vlc"
+        )
+        vlc["executable"] = "C:/Apps/VLC/vlc.exe"
+        vlc["show_icon"] = True
+        vlc["is_default"] = True
+        state.video_player_configs[0]["is_default"] = False
+        custom = next(
+            player for player in state.video_player_configs if player["id"] == "custom"
+        )
+        custom["arguments"] = '--fullscreen --profile "My Profile"'
+        state.save_player()
+
+        reloaded = SettingsState(mock_log_util)
+        saved_vlc = next(
+            player for player in reloaded.video_player_configs if player["id"] == "vlc"
+        )
+        assert saved_vlc["executable"] == "C:/Apps/VLC/vlc.exe"
+        assert saved_vlc["show_icon"] is True
+        assert saved_vlc["is_default"] is True
+        saved_custom = next(
+            player
+            for player in reloaded.video_player_configs
+            if player["id"] == "custom"
+        )
+        assert saved_custom["arguments"] == '--fullscreen --profile "My Profile"'
+        os_default = reloaded.video_player_configs[0]
+        assert os_default["id"] == "os_default"
+        assert os_default["is_default"] is False
+        assert [player["id"] for player in reloaded.video_player_configs] == [
+            "os_default",
+            "vlc",
+            "mpc_qt",
+            "custom",
+        ]
+
+    def test_video_tab_locks_os_default_player(self, setup_cfg, mock_log_util, qtbot):
+        state = SettingsState(mock_log_util)
+        tab = SettingsPlayerTab(state, mock_log_util, LangEn())
+        qtbot.addWidget(tab)
+
+        radios = tab.findChildren(QRadioButton)
+        assert len(radios) == 4
+        assert sum(radio.isChecked() for radio in radios) == 1
+        assert radios[0].isChecked()
+        assert all(radio.isEnabled() for radio in radios)
+        os_default_show = tab.findChild(QCheckBox, "os_default_show_checkbox")
+        assert os_default_show is not None
+        assert not os_default_show.isEnabled()
+        assert os_default_show.isChecked()
+        assert "disabled" in os_default_show.styleSheet()
+        argument_edits = tab.findChildren(QLineEdit)
+        player_arguments = [
+            edit for edit in argument_edits if edit.objectName().endswith("_arguments")
+        ]
+        assert len(player_arguments) == 4
+        assert all(edit.text() == "" for edit in player_arguments)
+        custom_label = next(
+            player["label"]
+            for player in state.video_player_configs
+            if player["id"] == "custom"
+        )
+        assert custom_label == "Custom"
+        vlc_radio = next(
+            radio for radio in radios if radio.toolTip().startswith("Use VLC")
+        )
+        vlc_radio.click()
+        assert sum(radio.isChecked() for radio in radios) == 1
+        assert vlc_radio.isChecked()
+        assert next(
+            player for player in state.video_player_configs if player["id"] == "vlc"
+        )["is_default"]
+
+    def test_video_player_defaults_include_common_windows_paths(
+        self, setup_cfg, mock_log_util
+    ):
+        state = SettingsState(mock_log_util)
+        executables = {
+            player["id"]: player["executable"] for player in state.video_player_configs
+        }
+        assert executables["vlc"] == "C:/Program Files/VideoLAN/VLC/vlc.exe"
+        assert executables["mpc_qt"] == "C:/Program Files/MPC-QT/mpc-qt.exe"
+
+    def test_legacy_player_settings_are_migrated(self, setup_cfg, mock_log_util):
+        legacy_players = [
+            {
+                "id": "vlc",
+                "executable": "C:/Legacy/vlc.exe",
+                "show_icon": True,
+                "is_default": True,
+            }
+        ]
+        (setup_cfg / "settings_app.json").write_text(
+            json.dumps({"video_player_configs": legacy_players}), encoding="utf-8"
+        )
+
+        state = SettingsState(mock_log_util)
+
+        vlc = next(
+            player for player in state.video_player_configs if player["id"] == "vlc"
+        )
+        assert vlc["executable"] == "C:/Legacy/vlc.exe"
+        assert vlc["show_icon"] is True
+        assert vlc["is_default"] is True

@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 import logging
 import sys
 import traceback
@@ -217,6 +217,9 @@ class LogUtil:
         root_logger.addHandler(self._file_handler)
         root_logger.setLevel(effective_level)
 
+        # Suppress noisy asyncio "Using proactor" messages from stdlib
+        logging.getLogger("asyncio").setLevel(logging.WARNING)
+
         self._logger_initialized = True
 
         return self
@@ -228,7 +231,6 @@ class LogUtil:
     def _get_memory_usage(self) -> float:
         # Primary method: psutil (works reliably on Windows, macOS, Linux)
         try:
-            # type: ignore[import-untyped]
             import psutil
 
             process = psutil.Process()
@@ -379,7 +381,7 @@ class LogUtil:
         self.remove_file_handler()
 
         # date_str = datetime.datetime.now(datetime.UTC).astimezone().strftime("%Y%m%d-%H%M%S")
-        date_str = datetime.datetime.now(datetime.UTC).astimezone().strftime("%Y%m%d")
+        date_str = dt.datetime.now(dt.UTC).astimezone().strftime("%Y%m%d")
         backup_log = LOG_DIR / f"app-{date_str}.log"
         # shutil.move(self.LOG_FILE, LOG_DIR / f"app-{date_str}.log")
         self.concat_files(

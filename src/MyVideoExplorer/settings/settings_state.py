@@ -7,6 +7,7 @@ from PySide6.QtCore import QObject, Signal
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.db.db_filters import DEFAULT_FILTER_DB_PATH, DbFilters
+from MyVideoExplorer.settings.settings_filter_import import load_playlists_from_json
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtils
 from MyVideoExplorer.utils.json_util import JsonUtil
@@ -18,17 +19,26 @@ PACKAGE_CFG_DIR = Path(__file__).resolve().parent / "cfg"
 CFG_DIR = Path("cfg")
 SETTINGS_STATE_FILE = CFG_DIR / "settings_state.json"
 SETTINGS_APP_FILE = CFG_DIR / "settings_app.json"
+SETTINGS_PLAYER_FILE = CFG_DIR / "settings_player.json"
 SETTINGS_UI_FILE = CFG_DIR / "settings_ui.json"
 SETTINGS_MEDIA_FILE = CFG_DIR / "settings_media.json"
 SETTINGS_FILTER_FILE = CFG_DIR / "settings_filter.json"
 
 DEFAULTS_STATE_FILE = PACKAGE_CFG_DIR / "defaults_state.json"
 DEFAULTS_APP_FILE = PACKAGE_CFG_DIR / "defaults_app.json"
+DEFAULTS_PLAYER_FILE = PACKAGE_CFG_DIR / "defaults_player.json"
 DEFAULTS_UI_FILE = PACKAGE_CFG_DIR / "defaults_ui.json"
 DEFAULTS_MEDIA_FILE = PACKAGE_CFG_DIR / "defaults_media.json"
 DEFAULTS_FILTER_FILE = PACKAGE_CFG_DIR / "defaults_filter.json"
 SCAN_MEDIA_TIMEOUT_OPTIONS = (30, 60, 120, 300, 600)
 DEFAULT_SCAN_MEDIA_TIMEOUT_SECONDS = 120
+
+VIDEO_PLAYER_DEFAULTS: tuple[tuple[str, str, bool], ...] = (
+    ("os_default", "OS default", True),
+    ("vlc", "VLC", False),
+    ("mpc_qt", "MPC-QT", False),
+    ("custom", "Custom", False),
+)
 
 
 class SettingsState(QObject):
@@ -56,19 +66,28 @@ class SettingsState(QObject):
         self.launch_app_pos = "app_pos_center_center"
         self.show_loading_screen = True
         self.scan_media_timeout_seconds = DEFAULT_SCAN_MEDIA_TIMEOUT_SECONDS
+        self.nfo_collapsed_by_default = False
+        self.meta_collapsed_by_default = False
+        self.video_player_configs = self._default_video_player_configs()
 
         self.media_configs: list[dict[str, Any]] = []
         self.selected_media_folders: list[str] = []
         self.tags: list[dict[str, str]] = []
         self._db_enabled = True
+        self.ffmpeg_path = ""
         self.saved_filters: list[dict[str, Any]] = []
         self._load_settings()
         self.filter_store = DbFilters(
             self,
-            self.saved_filters,
             db_path=filter_db_path or DEFAULT_FILTER_DB_PATH,
         )
         self.saved_filters = self.filter_store.list_filters()
+        # Load playlist templates from JSON on startup
+        self.saved_filters = load_playlists_from_json(
+            self.filter_store,
+            self.json_util,
+            on_filters_changed=self._emit_filters_changed,
+        )
         self.log_util.debug(f"__init__ {self.__class__.__name__}")
 
     def _ensure_defaults(self) -> None:
@@ -82,21 +101,25 @@ class SettingsState(QObject):
             "app_pos": "",
             "app_size": "",
         }
-        app_defaults: dict[str, str | bool | int] = {
+        app_defaults: dict[str, Any] = {
             "log_level": self.log_level,
             "auto_select_folder": self.auto_select_folder,
             "launch_app_size": self.launch_app_size,
             "launch_app_pos": self.launch_app_pos,
             "show_loading_screen": self.show_loading_screen,
             "scan_media_timeout_seconds": self.scan_media_timeout_seconds,
+            "nfo_collapsed_by_default": self.nfo_collapsed_by_default,
+            "meta_collapsed_by_default": self.meta_collapsed_by_default,
         }
         ui_defaults: dict[str, int | str] = {
             "font_size": 18,
             "app_font": "Lato",
+            "indent_indicator": "・",
         }
         media_defaults: dict[str, Any] = {
             "media_configs": self.media_configs,
             "db_enabled": self._db_enabled,
+            "ffmpeg_path": self.ffmpeg_path,
         }
         filter_defaults: dict[str, list[dict[str, Any]]] = {
             "saved_filters": self.saved_filters,
@@ -106,6 +129,10 @@ class SettingsState(QObject):
             PACKAGE_CFG_DIR, DEFAULTS_STATE_FILE, state_defaults
         )
         self.json_util.ensure_defaults(PACKAGE_CFG_DIR, DEFAULTS_APP_FILE, app_defaults)
+        player_defaults = {"video_player_configs": self.video_player_configs}
+        self.json_util.ensure_defaults(
+            PACKAGE_CFG_DIR, DEFAULTS_PLAYER_FILE, player_defaults
+        )
         self.json_util.ensure_defaults(PACKAGE_CFG_DIR, DEFAULTS_UI_FILE, ui_defaults)
         self.json_util.ensure_defaults(
             PACKAGE_CFG_DIR, DEFAULTS_MEDIA_FILE, media_defaults
@@ -153,6 +180,11 @@ class SettingsState(QObject):
                 "scan_media_timeout_seconds", DEFAULT_SCAN_MEDIA_TIMEOUT_SECONDS
             )
         )
+        self.nfo_collapsed_by_default = app_data.get("nfo_collapsed_by_default", False)
+        self.meta_collapsed_by_default = app_data.get(
+            "meta_collapsed_by_default", False
+        )
+        self._load_player_settings(app_data)
 
         # Load UI Settings
         ui_data = self.json_util.load_json(DEFAULTS_UI_FILE)
@@ -161,6 +193,9 @@ class SettingsState(QObject):
 
         APP_THEME.font_size = ui_data.get("font_size", APP_THEME.font_size)
         APP_THEME.font_family = ui_data.get("app_font", APP_THEME.font_family)
+        APP_THEME.indent_indicator = ui_data.get(
+            "indent_indicator", APP_THEME.indent_indicator
+        )
 
         # Load Media Settings
         media_data = self.json_util.load_json(DEFAULTS_MEDIA_FILE)
@@ -169,6 +204,7 @@ class SettingsState(QObject):
         self.media_configs = media_data.get("media_configs", self.media_configs)
         self._normalize_media_config_paths()
         self._db_enabled = media_data.get("db_enabled", False)
+        self.ffmpeg_path = media_data.get("ffmpeg_path", "")
 
         # Ensure each folder config has an icon
         for config in self.media_configs:
@@ -206,18 +242,29 @@ class SettingsState(QObject):
         """Save only App tab settings."""
         self._ensure_defaults()
 
-        app_settings: dict[str, str | bool | int] = {
+        app_settings: dict[str, Any] = {
             "log_level": self.log_level,
             "auto_select_folder": self.auto_select_folder,
             "launch_app_size": self.launch_app_size,
             "launch_app_pos": self.launch_app_pos,
             "show_loading_screen": self.show_loading_screen,
             "scan_media_timeout_seconds": self.scan_media_timeout_seconds,
+            "nfo_collapsed_by_default": self.nfo_collapsed_by_default,
+            "meta_collapsed_by_default": self.meta_collapsed_by_default,
         }
 
         # Backup then save
         self.json_util.backup_file(SETTINGS_APP_FILE, max_backups=5)
         self.json_util.save_json(SETTINGS_APP_FILE, app_settings)
+
+    def save_player(self) -> None:
+        """Persist configured video-player settings separately from app settings."""
+        self._ensure_defaults()
+        self.json_util.backup_file(SETTINGS_PLAYER_FILE, max_backups=5)
+        self.json_util.save_json(
+            SETTINGS_PLAYER_FILE,
+            {"video_player_configs": self.video_player_configs},
+        )
 
     def save_ui(self) -> None:
         """Persist UI settings to file."""
@@ -226,6 +273,7 @@ class SettingsState(QObject):
         settings_data = {
             "font_size": APP_THEME.font_size,
             "app_font": APP_THEME.font_family,
+            "indent_indicator": APP_THEME.indent_indicator,
         }
 
         # Backup then save
@@ -240,6 +288,7 @@ class SettingsState(QObject):
         media_settings: dict[str, Any] = {
             "media_configs": self.media_configs,
             "db_enabled": self._db_enabled,
+            "ffmpeg_path": self.ffmpeg_path,
         }
 
         self.log_util.info(f"Saving media_settings: {media_settings}")
@@ -267,8 +316,10 @@ class SettingsState(QObject):
 
     @staticmethod
     def is_valid_tag_name(tag: str) -> bool:
-        """Check if a tag name contains only alphanumeric characters."""
-        return bool(re.fullmatch(r"[A-Za-z0-9]+", tag))
+        """Check if a tag name matches the shared name validation pattern."""
+        from MyVideoExplorer.tag_cloud.tag_util import VALID_NAME_PATTERN
+
+        return bool(VALID_NAME_PATTERN.fullmatch(tag.strip()))
 
     @staticmethod
     def normalize_tags(tags: Any) -> list[dict[str, str]]:
@@ -317,6 +368,9 @@ class SettingsState(QObject):
 
         APP_THEME.font_size = ui_data.get("font_size", APP_THEME.font_size)
         APP_THEME.font_family = ui_data.get("app_font", APP_THEME.font_family)
+        APP_THEME.indent_indicator = ui_data.get(
+            "indent_indicator", APP_THEME.indent_indicator
+        )
 
     def load_app(self) -> None:
         """Reload App settings from file."""
@@ -343,6 +397,90 @@ class SettingsState(QObject):
                 "scan_media_timeout_seconds", DEFAULT_SCAN_MEDIA_TIMEOUT_SECONDS
             )
         )
+        self.nfo_collapsed_by_default = app_data.get("nfo_collapsed_by_default", False)
+        self.meta_collapsed_by_default = app_data.get(
+            "meta_collapsed_by_default", False
+        )
+
+    def load_player(self) -> None:
+        """Reload configured video players from their settings file."""
+        self._ensure_defaults()
+        app_data = self.json_util.load_json(DEFAULTS_APP_FILE)
+        if SETTINGS_APP_FILE.exists():
+            app_data.update(self.json_util.load_json(SETTINGS_APP_FILE))
+        self._load_player_settings(app_data)
+
+    def _load_player_settings(self, legacy_app_data: dict[str, Any]) -> None:
+        player_data = self.json_util.load_json(DEFAULTS_PLAYER_FILE)
+        if SETTINGS_PLAYER_FILE.exists():
+            player_data.update(self.json_util.load_json(SETTINGS_PLAYER_FILE))
+        legacy_configs = legacy_app_data.get("video_player_configs")
+        if not SETTINGS_PLAYER_FILE.exists() and legacy_configs is not None:
+            player_data["video_player_configs"] = legacy_configs
+        self.video_player_configs = self._normalize_video_player_configs(
+            player_data.get("video_player_configs")
+        )
+
+    @staticmethod
+    def _default_video_player_configs() -> list[dict[str, Any]]:
+        return [
+            {
+                "id": player_id,
+                "label": label,
+                "executable": {
+                    "vlc": "C:/Program Files/VideoLAN/VLC/vlc.exe",
+                    "mpc_qt": "C:/Program Files/MPC-QT/mpc-qt.exe",
+                }.get(player_id, ""),
+                "arguments": "",
+                "is_default": is_default,
+                "show_icon": is_default,
+            }
+            for player_id, label, is_default in VIDEO_PLAYER_DEFAULTS
+        ]
+
+    @classmethod
+    def _normalize_video_player_configs(cls, value: Any) -> list[dict[str, Any]]:
+        stored = (
+            {
+                entry.get("id"): entry
+                for entry in value
+                if isinstance(entry, dict) and isinstance(entry.get("id"), str)
+            }
+            if isinstance(value, list)
+            else {}
+        )
+        selected_id = next(
+            (
+                entry["id"]
+                for entry in (value if isinstance(value, list) else [])
+                if isinstance(entry, dict)
+                and isinstance(entry.get("id"), str)
+                and entry.get("is_default") is True
+            ),
+            None,
+        )
+        configs = cls._default_video_player_configs()
+        for config in configs:
+            saved = stored.get(config["id"], {})
+            executable = saved.get("executable", config["executable"])
+            if isinstance(executable, str):
+                config["executable"] = executable
+            arguments = saved.get("arguments", config["arguments"])
+            if isinstance(arguments, str):
+                config["arguments"] = arguments
+            config["show_icon"] = (
+                True
+                if config["id"] == "os_default"
+                else bool(saved.get("show_icon", config["show_icon"]))
+            )
+            config["is_default"] = (
+                config["id"] == selected_id
+                if selected_id is not None
+                else bool(saved.get("is_default", config["is_default"]))
+            )
+        if not any(config["is_default"] for config in configs):
+            configs[0]["is_default"] = True
+        return configs
 
     @staticmethod
     def _validated_scan_media_timeout(value: Any) -> int:
@@ -365,6 +503,7 @@ class SettingsState(QObject):
         self._normalize_media_config_paths()
         self.log_util.info(f"Loaded media_configs: {self.media_configs}")
         self._db_enabled = media_data.get("db_enabled", True)
+        self.ffmpeg_path = media_data.get("ffmpeg_path", "")
         # Ensure each folder config has an icon
         for config in self.media_configs:
             if "icon" not in config:
@@ -384,6 +523,11 @@ class SettingsState(QObject):
         name: str,
         filter_cfg: list[dict[str, Any]],
         original_name: str | None = None,
+        sort_option: str = "default",
+        manual_items: list[dict[str, Any]] | None = None,
+        group_id: int | None = None,
+        is_system: bool = False,
+        is_visible: bool = True,
     ) -> None:
         """
         Saves a named filter configuration.
@@ -393,8 +537,22 @@ class SettingsState(QObject):
             filter_cfg: Filter criteria list.
             original_name: Previous name when renaming, so the existing entry is
                 replaced in place instead of a duplicate being appended.
+            sort_option: Result ordering mode for this saved filter.
+            manual_items: Ordered video identities to persist when Manual is selected.
+            group_id: Optional filter group assignment.
+            is_system: Whether this filter is app-defined (protected from editing).
+            is_visible: Whether this filter appears in the navigation combo.
         """
-        self.filter_store.save_filter(name, filter_cfg, original_name)
+        self.filter_store.save_filter(
+            name,
+            filter_cfg,
+            original_name,
+            sort_option=sort_option,
+            manual_items=manual_items,
+            group_id=group_id,
+            is_system=is_system,
+            is_visible=is_visible,
+        )
         self.saved_filters = self.filter_store.list_filters()
         self._emit_filters_changed()
 
@@ -404,8 +562,43 @@ class SettingsState(QObject):
         self.saved_filters = self.filter_store.list_filters()
         self._emit_filters_changed()
 
+    def set_filter_visibility(self, name: str, is_visible: bool) -> None:
+        """Update the visibility flag for a saved filter."""
+        self.filter_store.set_filter_visibility(name, is_visible)
+        self.saved_filters = self.filter_store.list_filters()
+        self._emit_filters_changed()
+
+    def set_filter_group(self, name: str, group_id: int | None) -> None:
+        """Update the group assignment for a saved filter."""
+        self.filter_store.set_filter_group(name, group_id)
+        self.saved_filters = self.filter_store.list_filters()
+        self._emit_filters_changed()
+
+    def list_filter_groups(self) -> list[dict[str, Any]]:
+        """Return all filter groups with their filter counts."""
+        return self.filter_store.list_groups()
+
+    def create_filter_group(self, name: str) -> int:
+        """Create a new user-defined filter group and return its group_id."""
+        return self.filter_store.create_group(name)
+
+    def rename_filter_group(self, group_id: int, new_name: str) -> None:
+        """Rename a filter group."""
+        self.filter_store.rename_group(group_id, new_name)
+
+    def delete_filter_group(self, group_id: int) -> None:
+        """Delete a user-created filter group and ungroup its filters."""
+        self.filter_store.delete_group(group_id)
+
     @staticmethod
     def sanitize_media_label(label: Any) -> str:
+        """Sanitize a media folder label for use in database file names.
+
+        This method replaces characters that are invalid for file names
+        (slashes, wildcards, etc.) and collapses whitespace. It does not
+        enforce the shared name validation pattern — use validate_name()
+        for that. The result is safe for constructing DB file paths.
+        """
         text = str(label).strip()
         if not text:
             return ""
@@ -414,6 +607,20 @@ class SettingsState(QObject):
         text = re.sub(r"\s+", " ", text).strip()
         text = text.strip(" ._-")
         return text
+
+    @staticmethod
+    def validate_media_label(label: str) -> tuple[bool, str]:
+        """Validate a media folder label using the shared name validation.
+
+        Args:
+            label: The media folder label to validate.
+
+        Returns:
+            A tuple of (is_valid, error_message). If valid, error_message is empty.
+        """
+        from MyVideoExplorer.tag_cloud.tag_util import validate_name
+
+        return validate_name(label)
 
     def get_db_path(
         self, folder_config: dict[str, Any], label_override: str | None = None
@@ -433,11 +640,20 @@ class SettingsState(QObject):
     def validate_media_configs(self, media_configs: list[dict[str, Any]]) -> list[str]:
         errors: list[str] = []
         seen_names: set[str] = set()
+        seen_paths: set[str] = set()
 
         for idx, config in enumerate(media_configs, start=1):
             label = str(config.get("label", "")).strip()
             path = str(config.get("path", "")).strip()
             safe_label = self.sanitize_media_label(label)
+
+            # Validate label characters using shared validation
+            if label:
+                is_valid, error_msg = self.validate_media_label(label)
+                if not is_valid:
+                    errors.append(
+                        f"Media config '{label}' has an invalid name. {error_msg}"
+                    )
 
             if not label:
                 errors.append(f"Media config #{idx} is missing a name.")
@@ -448,10 +664,29 @@ class SettingsState(QObject):
                 errors.append(
                     f"Media config '{label or f'#{idx}'}' is missing a folder path."
                 )
-            elif not Path(path).is_dir():
-                errors.append(
-                    f"Media config '{label or f'#{idx}'}' path does not exist: {path}"
-                )
+            else:
+                # Validate path characters
+                from MyVideoExplorer.utils.file_util import validate_path
+
+                is_valid_path, path_error = validate_path(path)
+                if not is_valid_path:
+                    errors.append(
+                        f"Media config '{label or f'#{idx}'}' has an invalid path. {path_error}"
+                    )
+                elif not Path(path).is_dir():
+                    errors.append(
+                        f"Media config '{label or f'#{idx}'}' path does not exist: {path}"
+                    )
+
+            # Check for duplicate paths (normalized and case-insensitive on Windows)
+            if path:
+                normalized_path = FileUtils.normalize_path(path).casefold()
+                if normalized_path in seen_paths:
+                    errors.append(
+                        f"Media folder path '{path}' is already registered. "
+                        "Each path must be unique."
+                    )
+                seen_paths.add(normalized_path)
 
             if safe_label:
                 normalized_name = safe_label.casefold()
@@ -514,6 +749,7 @@ class SettingsState(QObject):
     def save_settings(self) -> None:
         """Save all tabs' settings"""
         self.save_app()
+        self.save_player()
         self.save_ui()
         self.save_media()
         self.save_filters()

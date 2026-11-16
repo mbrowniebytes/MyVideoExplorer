@@ -27,6 +27,7 @@ from MyVideoExplorer.widgets.buttons.action_button import ActionButton
 from MyVideoExplorer.widgets.buttons.delayed_delete_button import DelayedDeleteButton
 from MyVideoExplorer.widgets.combo_boxes.select_combo_box import SelectComboBox
 from MyVideoExplorer.widgets.flow_layout import FlowLayout
+from MyVideoExplorer.widgets.name_widget import NameWidget
 
 _TAG_CLOUD_SORT_MODE = "Name"
 
@@ -68,6 +69,8 @@ class TagCloudWidget(QWidget):
         show_search_button: bool = False,
         show_add_button: bool = False,
         confirm_delete_at_count: int | None = None,
+        min_font_size: int = 10,
+        max_font_size: int = 24,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -80,6 +83,8 @@ class TagCloudWidget(QWidget):
         if confirm_delete_at_count is not None and confirm_delete_at_count < 1:
             raise ValueError("confirm_delete_at_count must be positive.")
         self.confirm_delete_at_count = confirm_delete_at_count
+        self.min_font_size = min_font_size
+        self.max_font_size = max_font_size
         self._tags: list[dict[str, Any]] = []
         self._selected_tags: set[str] = set()
         self._tag_widgets: list[tuple[dict[str, Any], QWidget]] = []
@@ -105,6 +110,7 @@ class TagCloudWidget(QWidget):
             self.add_tag_button.setObjectName("add_tag_button")
             self.add_tag_button.clicked.connect(self._begin_add_tag)
             controls.addWidget(self.add_tag_button)
+        self._extra_controls = controls
         layout.addLayout(controls)
 
         self.cloud_container = QWidget(self)
@@ -115,6 +121,10 @@ class TagCloudWidget(QWidget):
         self.filter_edit.textChanged.connect(self.refresh)
         self.sort_combo.currentIndexChanged.connect(self._on_sort_changed)
         self.set_tags(tags or [])
+
+    def add_control_widget(self, widget: QWidget) -> None:
+        """Add a widget to the controls row, after the existing controls."""
+        self._extra_controls.addWidget(widget)
 
     @property
     def tags(self) -> list[dict[str, Any]]:
@@ -202,19 +212,32 @@ class TagCloudWidget(QWidget):
         self.cloud_layout.setGeometry(QRect(0, 0, max(target_w, 50), max(target_h, 30)))
         self.cloud_container.updateGeometry()
 
+    def _compute_chip_min_height(self, font_size: int) -> int:
+        """Compute the minimum height for a tag chip based on its font size.
+
+        The height scales with font size to make higher-quantity tags visibly
+        larger. A base padding of 12 pixels (6 top + 6 bottom) is added around
+        the font size, plus the font size itself for the text line.
+        """
+        return font_size + 12
+
     def _make_chip(self, tag: dict[str, Any], maximum_qty: int) -> QWidget:
         chip = QWidget(self.cloud_container)
         layout = QHBoxLayout(chip)
         layout.setContentsMargins(8, 3, 8, 3)
         layout.setSpacing(5)
 
-        size = self.MIN_FONT_SIZE
-        if maximum_qty:
+        if tag["qty"] == 0:
+            size = max(self.min_font_size - 2, 6)
+        elif maximum_qty:
             size = round(
-                self.MIN_FONT_SIZE
-                + (self.MAX_FONT_SIZE - self.MIN_FONT_SIZE)
+                self.min_font_size
+                + (self.max_font_size - self.min_font_size)
                 * sqrt(tag["qty"] / maximum_qty)
             )
+            size = max(size, self.min_font_size)
+        else:
+            size = self.min_font_size
         label = TagButton(chip)
         label.setText(f"{tag['tag']} ({tag['qty']})")
         label.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
@@ -227,6 +250,12 @@ class TagCloudWidget(QWidget):
             f"QToolButton {{ color: {self._text_color(tag['color'])}; "
             f"background-color: {tag['color']}; border: 0; border-radius: 5px; padding: 3px 5px; }}"
         )
+
+        # Scale the chip widget's minimum height based on quantity
+        min_h = self._compute_chip_min_height(size)
+        chip.setMinimumHeight(min_h)
+        label.setMinimumHeight(min_h)
+
         label.clicked.connect(
             lambda checked=False, name=tag["tag"]: self._on_tag_selected(name, checked)
         )
@@ -336,8 +365,9 @@ class TagCloudWidget(QWidget):
                 widget.setParent(None)
                 widget.deleteLater()
 
-        name_edit = QLineEdit(tag["tag"], chip)
+        name_edit = NameWidget(chip)
         name_edit.setObjectName("edit_tag_name")
+        name_edit.setText(tag["tag"])
         name_edit.setMinimumWidth(100)
         color_button = ActionButton(
             chip,

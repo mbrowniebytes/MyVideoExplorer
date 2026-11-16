@@ -14,6 +14,7 @@ class FileUtilModel:
     depth: int = 0
     file_type: str | None = None
     icon_name: str | None = None
+    sort_index: int | None = None
 
     @property
     def is_dir(self) -> bool:

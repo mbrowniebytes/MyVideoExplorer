@@ -64,6 +64,14 @@ jobs:
         if: runner.os == 'Linux'
         run: xvfb-run -a pytest
 
-      - name: Run tests (Windows/macOS)
-        if: runner.os != 'Linux'
+      - name: Run tests (Windows, offscreen)
+        if: runner.os == 'Windows'
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: pytest
+
+      - name: Run tests (macOS, offscreen)
+        if: runner.os == 'macOS'
+        env:
+          QT_QPA_PLATFORM: offscreen
         run: pytest

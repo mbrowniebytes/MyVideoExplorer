@@ -37,6 +37,14 @@ class Theme(ThemeManager):
         self.config.font_family_default = value
 
     @property
+    def indent_indicator(self) -> str:
+        return self.config.indent_indicator
+
+    @indent_indicator.setter
+    def indent_indicator(self, value: str):
+        self.config.indent_indicator = value
+
+    @property
     def background_color(self) -> str:
         return self.config.color_background_main
 

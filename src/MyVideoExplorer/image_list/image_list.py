@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QWidget
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.file_list.file_list import FileList
 from MyVideoExplorer.image_list.image_list_view import ImageListView
-from MyVideoExplorer.lang.lang_loader import LangLoader
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.settings.settings import Settings
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
@@ -19,9 +19,8 @@ from MyVideoExplorer.utils.log_util import LogUtil
 from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 from MyVideoExplorer.utils.str_util import StrUtil
 
-_EMPTY_STATE_NO_MEDIA_FOLDERS = (
-    "No media folders configured.\nOpen Settings (Gear) → Media and add a media folder."
-)
+_EMPTY_STATE_NO_MEDIA_FOLDERS = ""
+_EMPTY_STATE_MISSING_MEDIA_FOLDER = ""
 
 
 class ImageList(QWidget, ThemableMixin):
@@ -39,14 +38,16 @@ class ImageList(QWidget, ThemableMixin):
         image_list_view: ImageListView,
         file_list: FileList,
         log_util: LogUtil,
+        lang: LangEn,
     ) -> None:
         super().__init__()
         self.log_util = log_util
         self.settings = settings
+        self.lang = lang
         self.nfo_parse_util = nfo_parse_util
         self.file_util = file_util
         self.str_util = str_util
-        self.image_list: QWidget | None = None
+        self.image_list: QWidget
         self.images: list[str] = []
         self.selected_image_index = -1
         self.selected_image_path = ""
@@ -69,10 +70,11 @@ class ImageList(QWidget, ThemableMixin):
     def build(self):
         self.image_list = self.image_list_view.build()
         if not self._has_valid_media_folders():
-            self.image_list_view.show_empty_state(_EMPTY_STATE_NO_MEDIA_FOLDERS)
+            self.image_list_view.show_empty_state(
+                self.lang.ui.image_list.empty_state_no_media
+            )
         else:
-            lang = LangLoader.get_lang("en")
-            msg = random.choice(lang.loading_messages)
+            msg = random.choice(self.lang.loading_messages)
             self.image_list_view.show_loading_state(msg)
         self._connect_internal_sigs()
         self.clear_nfo()
@@ -207,9 +209,20 @@ class ImageList(QWidget, ThemableMixin):
         if not folder_path:
             self._reset_image_state()
             if not self._has_valid_media_folders():
-                self.image_list_view.show_empty_state(_EMPTY_STATE_NO_MEDIA_FOLDERS)
+                self.image_list_view.show_empty_state(
+                    self.lang.ui.image_list.empty_state_no_media
+                )
             else:
                 self._clear_preview()
+            return
+
+        if not FileUtils.is_dir_accessible(folder_path):
+            self._reset_image_state()
+            self.image_list_view.load_pixmap(None)
+            self.image_list_view.show_empty_state(
+                self.lang.ui.image_list.empty_state_missing_folder
+            )
+            self.clear_nfo()
             return
 
         self.image_list_view.show_loading_state()

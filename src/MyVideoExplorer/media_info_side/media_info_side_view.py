@@ -9,6 +9,7 @@ from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
 from MyVideoExplorer.db.db_play_history import DbPlayHistory
 from MyVideoExplorer.db.db_tags import DbTags
 from MyVideoExplorer.db.models.play_history import PlayHistory
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.media_info_section.media_info_section_definitions import (
     MEDIA_INFO_VIEW_MODE_IMAGE_LIST,
 )
@@ -18,6 +19,7 @@ from MyVideoExplorer.media_info_section.media_info_section_plot import (
 from MyVideoExplorer.media_info_side.media_info_side_content_widget import (
     MediaInfoSideContentWidget,
 )
+from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.tag_cloud.tag_cloud_media import TagStateProtocol
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
@@ -42,9 +44,12 @@ class MediaInfoSideView(QWidget, ThemableMixin):
         play_history: DbPlayHistory | None = None,
         tag_store: DbTags | None = None,
         tag_state: TagStateProtocol | None = None,
+        settings_state: SettingsState | None = None,
+        lang: LangEn | None = None,
     ) -> None:
         super().__init__()
         self.log_util = log_util
+        self.lang = lang or LangEn()
         self._ui_utils = UIUtils()
 
         self.nfo_parse_util = nfo_parse_util
@@ -52,6 +57,7 @@ class MediaInfoSideView(QWidget, ThemableMixin):
         self.play_history = play_history
         self.tag_store = tag_store
         self.tag_state = tag_state
+        self.settings_state = settings_state
         self.media_file_path = ""
 
         self.current_movie_info: dict | None = None
@@ -63,6 +69,8 @@ class MediaInfoSideView(QWidget, ThemableMixin):
             parent=self,
             tag_state=tag_state,
             tag_store=tag_store,
+            settings_state=settings_state,
+            lang=self.lang,
         )
         self.side_content_widget.hide()
         self.side_content_widget.column_widths_changed.connect(self.setFixedWidth)
@@ -74,7 +82,7 @@ class MediaInfoSideView(QWidget, ThemableMixin):
             parent=self,
         )
 
-        self.plot_section = MediaInfoPlotSection()
+        self.plot_section = MediaInfoPlotSection(self.lang)
 
         self.media_info_side_layout = self._ui_utils.apply_compact_layout(
             self, QVBoxLayout
@@ -85,7 +93,8 @@ class MediaInfoSideView(QWidget, ThemableMixin):
         self.media_info_side_layout.addWidget(self.side_content_widget)
         self.media_info_side_layout.addWidget(self.empty_nfo_placeholder_widget)
 
-        self.setFixedWidth(300)
+        self.setMinimumWidth(200)
+        self.setMaximumWidth(400)
         self.side_content_widget.played_count_changed.connect(self._save_played_count)
         self.side_content_widget.last_played_changed.connect(self._save_last_played)
         self.side_content_widget.tag_cloud_widget.tag_added.connect(self._add_media_tag)

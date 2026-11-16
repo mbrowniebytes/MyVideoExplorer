@@ -32,6 +32,7 @@ from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.widgets.buttons.action_button import ActionButton
 from MyVideoExplorer.widgets.buttons.delayed_delete_button import DelayedDeleteButton
 from MyVideoExplorer.widgets.flow_layout import FlowLayout
+from MyVideoExplorer.widgets.name_widget import NameWidget
 
 
 class AssignedTagsContainer(QWidget):
@@ -137,7 +138,12 @@ class TagPickerDialog(QDialog):
 
         layout.addWidget(QLabel("Available tags", self))
         self.cloud = TagCloudWidget(
-            editable=True, selectable=True, color_editable=True, parent=self
+            editable=True,
+            selectable=True,
+            color_editable=True,
+            min_font_size=8,
+            max_font_size=18,
+            parent=self,
         )
         self.cloud.tag_selected.connect(self._on_cloud_tag_selected)
         self.cloud.tag_color_changed.connect(self._on_cloud_tag_color_changed)
@@ -148,11 +154,11 @@ class TagPickerDialog(QDialog):
         scroll.setWidget(self.cloud)
         layout.addWidget(scroll, 1)
 
-        self.new_tag_edit: QLineEdit | None = None
+        self.new_tag_edit: NameWidget | None = None
         self.create_button: QPushButton | None = None
         if self.allow_create:
             create_row = QHBoxLayout()
-            self.new_tag_edit = QLineEdit(self)
+            self.new_tag_edit = NameWidget(self)
             self.new_tag_edit.setPlaceholderText("Create a new tag")
             self.create_button = QPushButton("Create and Add", self)
             self.create_button.clicked.connect(self._on_create_and_add)
@@ -276,8 +282,9 @@ class TagPickerDialog(QDialog):
                 widget.setParent(None)
                 widget.deleteLater()
 
-        name_edit = QLineEdit(tag, row_widget)
+        name_edit = NameWidget(row_widget)
         name_edit.setObjectName("edit_popup_assigned_tag_name")
+        name_edit.setText(tag)
         name_edit.setMinimumWidth(100)
         current_color = self._tag_colors.get(tag.casefold(), "#808080")
         color_button = ActionButton(

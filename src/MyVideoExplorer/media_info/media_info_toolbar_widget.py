@@ -5,6 +5,7 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QHBoxLayout, QPushButton, QSizePolicy, QWidget
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.media_info_section.media_info_section_definitions import (
     get_media_info_toolbar_section_definitions,
 )
@@ -15,9 +16,9 @@ class MediaInfoToolbarWidget(QWidget):
     section_visibility_toggle_requested = Signal(object)
     play_video_requested = Signal(object)
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, lang: LangEn, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-
+        self.lang = lang
         self.current_view_mode = ""
         self.section_toggle_buttons_by_id: dict[str, QPushButton] = {}
 

@@ -2,7 +2,7 @@
 
 ---
 
-### 2026-11-00
+### 2026-11-16
 
 - folder nav
   - filters
@@ -18,23 +18,40 @@
   - show media ancestor even if empty
   - restore tooltip info
   - reselect folder nav media on search or filter, if possible
+  - add additional sorting
+  - change the media filters from buttons to a checkbox combobox
 - settings 
+  - names
+    - unique per type
+    - different rules per type normalized, enforced to no slashes, quotes, non ascii chars
   - media
     - performance! scan media speed and save to db greatly increased
     - add Scan All button
+    - add Meta scan
+      - use ffmpeg
+      - scan for video meta info, bitrate, codec, resolution, etc
+    - add Compare db
+      - compare local media db to a temp imported media db
   - app
     - add Scan Media Timeout
+    - on App launch, META and NFO can be Collapsed/Expanded
   - filters
     - sortable list of filters
     - editing filter criteria is now a dialog
     - new filters
       - last played date
       - qty played
+    - add sorting, Default, Manual, A-Z, Z-A, Last Played, Qty Played
   - tags
     - re-position tag icons
+    - size scales with qty
   - filters, tags
     - delete button disabled, hover for 2.5s to enable
     - if more than 10 movies, show delete confirmation  
+  - video player, new settings
+    - in addition to system associated player, options to add custom player
+    - add additional play buttons on media
+    - handle multiple videos in folder eg tv episodes
 - fixes
   - re-select prior media on app launch
   - potential support launching either system associated media player vlc or mpc-qt
@@ -42,10 +59,16 @@
 - internal:
   - optimize filter and scan sql 
   - parse and store media Year in db
+  - use file name for media db title instead of nfo
+  - filters config moved to db to support counts
+  - make backups of tags db and filters db
+  - db ids changed from autoincrement ids or uuids to timestamp/snowflake ids
   - normalize all paths as posix and consolidate to file_utils
+  - add new widget checkbox combobox
+  - fix filter db error when scan all media
   - update ai docs in doc/ and .junie/
 
-release - [MyVideoExplorer-20261100-0.008](https://github.com/mbrowniebytes/MyVideoExplorer/releases/tag/20261100-0.008)
+release - [MyVideoExplorer-20261116-0.008](https://github.com/mbrowniebytes/MyVideoExplorer/releases/tag/20261116-0.008)
 
 ### 2026-10-06
 

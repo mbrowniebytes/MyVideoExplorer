@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import cast
+
 from PySide6.QtCore import QDate, QEvent, QObject, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QFontMetrics
 from PySide6.QtWidgets import (
@@ -16,12 +18,14 @@ from PySide6.QtWidgets import (
 )
 
 from MyVideoExplorer.db.db_tags import DbTags
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.media_info_side.media_info_side_facts_widget import (
     MediaInfoSideFactsWidget,
 )
 from MyVideoExplorer.media_info_side.media_info_side_header_widget import (
     MediaInfoSideHeaderWidget,
 )
+from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.tag_cloud.tag_cloud_media import TagCloudMedia, TagStateProtocol
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
@@ -36,7 +40,12 @@ class LastPlayedDateEdit(QDateEdit):
         super().__init__(parent)
         self.setCalendarPopup(True)
         self.calendarWidget().installEventFilter(self)
-        self.setToolTip("Press Delete or right-click to clear the date.")
+        content_widget = self.parent()
+        if content_widget is not None and hasattr(content_widget, "lang"):
+            lang_instance: LangEn = cast(
+                MediaInfoSideContentWidget, content_widget
+            ).lang
+            self.setToolTip(lang_instance.ui.media_info_side.clear_date_tooltip)
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         if watched is self.calendarWidget() and event.type() == QEvent.Type.Show:
@@ -51,7 +60,13 @@ class LastPlayedDateEdit(QDateEdit):
 
     def contextMenuEvent(self, event) -> None:
         menu = QMenu(self)
-        clear_action = menu.addAction("Clear date")
+        parent_widget = self.parent()
+        if parent_widget is not None and hasattr(parent_widget, "lang"):
+            lang_instance: LangEn = cast(MediaInfoSideContentWidget, parent_widget).lang
+            clear_text = lang_instance.ui.media_info_side.clear_date
+        else:
+            clear_text = "Clear"
+        clear_action = menu.addAction(clear_text)
         if menu.exec(event.globalPos()) == clear_action:
             self.setDate(self.minimumDate())
 
@@ -80,9 +95,13 @@ class MediaInfoSideContentWidget(QWidget, ThemableMixin):
         parent: QWidget | None = None,
         tag_state: TagStateProtocol | None = None,
         tag_store: DbTags | None = None,
+        settings_state: SettingsState | None = None,
+        lang: LangEn | None = None,
     ) -> None:
         super().__init__(parent)
         self.log_util = log_util or LogUtil()
+        self.lang = lang or LangEn()
+        self._settings_state = settings_state
 
         self.setObjectName("side_media_info")
 
@@ -102,7 +121,9 @@ class MediaInfoSideContentWidget(QWidget, ThemableMixin):
         self.meta_header_layout = QHBoxLayout(self.meta_header_widget)
         self.meta_header_layout.setContentsMargins(0, 0, 0, 0)
         self.meta_header_layout.setSpacing(4)
-        self.meta_title = QLabel("Meta", self.meta_widget)
+        self.meta_title = QLabel(
+            self.lang.ui.media_info_side.meta_title, self.meta_widget
+        )
         self.meta_title.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.meta_collapse_button = QToolButton(self.meta_header_widget)
         self.meta_collapse_button.setObjectName("meta_column_toggle")
@@ -111,8 +132,10 @@ class MediaInfoSideContentWidget(QWidget, ThemableMixin):
             Qt.ToolButtonStyle.ToolButtonTextBesideIcon
         )
         self.meta_collapse_button.setAutoRaise(True)
-        self.meta_collapse_button.setToolTip("Collapse Meta column")
-        self.meta_collapse_button.setAccessibleName("Collapse Meta column")
+        self.meta_collapse_button.setToolTip(self.lang.ui.media_info_side.collapse_meta)
+        self.meta_collapse_button.setAccessibleName(
+            self.lang.ui.media_info_side.collapse_meta
+        )
         self.meta_collapse_button.setIconSize(QSize(16, 16))
         self.meta_collapse_button.setFixedSize(40, 28)
         self._update_meta_collapse_button(False)
@@ -125,7 +148,9 @@ class MediaInfoSideContentWidget(QWidget, ThemableMixin):
         self.meta_body_layout = QVBoxLayout(self.meta_body_widget)
         self.meta_body_layout.setContentsMargins(0, 0, 0, 0)
         self.meta_body_layout.setSpacing(4)
-        self.played_label = QLabel("Played", self.meta_widget)
+        self.played_label = QLabel(
+            self.lang.ui.media_info_side.played, self.meta_widget
+        )
         self.played_label.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.played_spin_box = QSpinBox(self.meta_widget)
         self.played_spin_box.setMinimum(0)
@@ -150,12 +175,16 @@ class MediaInfoSideContentWidget(QWidget, ThemableMixin):
         self.played_spin_box.setFixedWidth(
             digits_width + spinner_width + spin_frame_width * 2 + 44
         )
-        self.last_played_label = QLabel("Last Played", self.meta_widget)
+        self.last_played_label = QLabel(
+            self.lang.ui.media_info_side.last_played, self.meta_widget
+        )
         self.last_played_label.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.last_played_date_edit = LastPlayedDateEdit(self.meta_widget)
         self.last_played_date_edit.setDisplayFormat("yyyy-MM-dd")
         self.last_played_date_edit.setMinimumDate(QDate(1900, 1, 1))
-        self.last_played_date_edit.setSpecialValueText("Never")
+        self.last_played_date_edit.setSpecialValueText(
+            self.lang.ui.media_info_side.never_played
+        )
         self.last_played_date_edit.setDate(self.last_played_date_edit.minimumDate())
         date_text_width = self.last_played_date_edit.fontMetrics().horizontalAdvance(
             "0000-00-00"
@@ -200,6 +229,13 @@ class MediaInfoSideContentWidget(QWidget, ThemableMixin):
             lambda played_date: self.last_played_changed.emit(played_date)
         )
 
+        # Apply default collapse states from settings
+        if self._settings_state is not None:
+            self.apply_default_collapse_states(
+                self._settings_state.nfo_collapsed_by_default,
+                self._settings_state.meta_collapsed_by_default,
+            )
+
         self.apply_theme()
 
     def update_from_movie_info(self, movie_info: dict) -> None:
@@ -210,6 +246,22 @@ class MediaInfoSideContentWidget(QWidget, ThemableMixin):
         self.nfo_body_widget.setVisible(
             available and not self.header_widget.collapse_button.isChecked()
         )
+
+    def apply_default_collapse_states(
+        self, nfo_collapsed: bool, meta_collapsed: bool
+    ) -> None:
+        """Apply default collapse states from settings."""
+        self.header_widget.collapse_button.blockSignals(True)
+        self.header_widget.collapse_button.setChecked(nfo_collapsed)
+        self.header_widget.collapse_button.blockSignals(False)
+        self.header_widget._update_collapse_button(nfo_collapsed)
+        self._set_nfo_collapsed(nfo_collapsed)
+
+        self.meta_collapse_button.blockSignals(True)
+        self.meta_collapse_button.setChecked(meta_collapsed)
+        self.meta_collapse_button.blockSignals(False)
+        self._update_meta_collapse_button(meta_collapsed)
+        self._set_meta_collapsed(meta_collapsed)
 
     def apply_theme(self) -> None:
         self._resize_meta_column()
@@ -252,10 +304,14 @@ class MediaInfoSideContentWidget(QWidget, ThemableMixin):
     def _set_meta_collapsed(self, collapsed: bool) -> None:
         self.meta_body_widget.setVisible(not collapsed)
         self.meta_title.setVisible(not collapsed)
-        label = "Expand" if collapsed else "Collapse"
+        label = (
+            self.lang.ui.media_info_side.expand_meta
+            if collapsed
+            else self.lang.ui.media_info_side.collapse_meta
+        )
         self._update_meta_collapse_button(collapsed)
-        self.meta_collapse_button.setToolTip(f"{label} Meta column")
-        self.meta_collapse_button.setAccessibleName(f"{label} Meta column")
+        self.meta_collapse_button.setToolTip(label)
+        self.meta_collapse_button.setAccessibleName(label)
         self._set_column_widths()
 
     def _update_meta_collapse_button(self, collapsed: bool) -> None:

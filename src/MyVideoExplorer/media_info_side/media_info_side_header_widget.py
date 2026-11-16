@@ -3,6 +3,7 @@ from __future__ import annotations
 from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QToolButton, QWidget
 
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.theme.themable_mixin import ThemableMixin
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.log_util import LogUtil
@@ -14,16 +15,20 @@ class MediaInfoSideHeaderWidget(QWidget, ThemableMixin):
     collapse_toggled = Signal(bool)
 
     def __init__(
-        self, log_util: LogUtil | None = None, parent: QWidget | None = None
+        self,
+        log_util: LogUtil | None = None,
+        lang: LangEn | None = None,
+        parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self.log_util = log_util or LogUtil()
+        self.lang = lang or LangEn()
 
         self.header_layout = QHBoxLayout(self)
         self.header_layout.setContentsMargins(0, 0, 0, 0)
         self.header_layout.setSpacing(4)
 
-        self.title_label = QLabel("NFO", parent=self)
+        self.title_label = QLabel(self.lang.ui.media_info_side.nfo_title, parent=self)
         self.title_label.setWordWrap(False)
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignRight)
 
@@ -34,8 +39,10 @@ class MediaInfoSideHeaderWidget(QWidget, ThemableMixin):
             Qt.ToolButtonStyle.ToolButtonTextBesideIcon
         )
         self.collapse_button.setAutoRaise(True)
-        self.collapse_button.setToolTip("Collapse NFO column")
-        self.collapse_button.setAccessibleName("Collapse NFO column")
+        self.collapse_button.setToolTip(self.lang.ui.media_info_side.collapse_nfo)
+        self.collapse_button.setAccessibleName(
+            self.lang.ui.media_info_side.collapse_nfo
+        )
         self.collapse_button.setIconSize(QSize(16, 16))
         self.collapse_button.setFixedSize(40, 28)
         self._update_collapse_button(False)
@@ -59,13 +66,17 @@ class MediaInfoSideHeaderWidget(QWidget, ThemableMixin):
         )
 
     def _update_collapse_button(self, collapsed: bool) -> None:
-        label = "Expand" if collapsed else "Collapse"
+        label = (
+            self.lang.ui.media_info_side.expand_nfo
+            if collapsed
+            else self.lang.ui.media_info_side.collapse_nfo
+        )
         self.title_label.setVisible(not collapsed)
         icon_name = "fa6s.chevron-down" if collapsed else "fa6s.chevron-up"
         self.collapse_button.setIcon(
             APP_THEME.icon(icon_name, color=APP_THEME.text_color)
         )
-        self.collapse_button.setText("I" if collapsed else "")
+        self.collapse_button.setText("N" if collapsed else "")
         self.collapse_button.setFixedSize(40, 28)
-        self.collapse_button.setToolTip(f"{label} NFO column")
-        self.collapse_button.setAccessibleName(f"{label} NFO column")
+        self.collapse_button.setToolTip(label)
+        self.collapse_button.setAccessibleName(label)

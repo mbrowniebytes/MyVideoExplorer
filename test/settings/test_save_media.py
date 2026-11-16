@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.settings.settings import Settings
 
 
@@ -15,7 +16,7 @@ def test_save_media_settings_calls_state_save_media(qtbot):
             with patch(
                 "MyVideoExplorer.settings.settings_state.SettingsState.save_media"
             ) as mock_save:
-                s = Settings(mock_log_util, mock_file_util)
+                s = Settings(mock_log_util, mock_file_util, LangEn())
 
                 # Mock UI interaction to avoid segfaults/errors
                 s.media_settings_tab.db_enabled_dropdown = MagicMock()

@@ -4,6 +4,7 @@ import pytest
 from PySide6.QtWidgets import QWidget
 
 from MyVideoExplorer.image_list.image_list import ImageList
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.media_info.media_info import MediaInfo
 from MyVideoExplorer.media_info_tabs.media_info_tabs import MediaInfoTabs
 from MyVideoExplorer.settings.settings import Settings
@@ -20,7 +21,7 @@ class TestMediaTabs:
         mock_il.build.return_value = QWidget()
         mock_settings = MagicMock(spec=Settings)
         mock_settings.build.return_value = QWidget()
-        tabs = MediaInfoTabs(mock_log, mock_mi, mock_il, mock_settings)
+        tabs = MediaInfoTabs(mock_log, mock_mi, mock_il, mock_settings, LangEn())
 
         tabs.build()
         qtbot.addWidget(tabs)

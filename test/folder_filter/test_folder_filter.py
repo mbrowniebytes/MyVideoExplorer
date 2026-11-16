@@ -14,6 +14,7 @@ from MyVideoExplorer.folder_filter.folder_filter_table import (
     FilterTagCloudWidget,
     FolderFilterTable,
 )
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.settings.settings_filter_tab import SettingsFilterTab
 from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.utils.file_util import FileUtil
@@ -22,6 +23,63 @@ from MyVideoExplorer.utils.nfo_parse_util import NfoParseUtil
 
 
 class TestFolderNavFilters:
+    def test_saved_filter_live_sort_sets_folder_navigation_order(
+        self, nav_filters, settings_mock
+    ):
+        settings_mock.settings_data_model.saved_filters = [
+            {"name": "Newest first", "filters": [], "sort_option": "z_a"}
+        ]
+        nav_filters._refresh_saved_filters_combo()
+        sort_labels: list[str] = []
+        nav_filters.filter_sort_label_changed.connect(sort_labels.append)
+        nav_filters.saved_filters_combo.setCurrentIndex(
+            nav_filters.saved_filters_combo.findData("Newest first")
+        )
+        nav_filters.db_filter.matching_videos = MagicMock(
+            return_value=[
+                {"file_path": "/movies/Zulu/movie.mkv"},
+                {"file_path": "/movies/Alpha/movie.mkv"},
+            ]
+        )
+        nav_filters.folder_sort_option = "filter_sort"
+        folders = [
+            FileUtilModel(type="dir", name="Alpha", full_path="/movies/Alpha", depth=0),
+            FileUtilModel(type="dir", name="Zulu", full_path="/movies/Zulu", depth=0),
+        ]
+
+        nav_filters._apply_saved_filter_sort(folders, [])
+
+        assert sort_labels[-1] == "Z-A"
+        assert [folder.sort_index for folder in folders] == [1, 0]
+
+    def test_explicit_folder_sort_should_override_saved_filter_sort(
+        self, nav_filters, settings_mock
+    ):
+        settings_mock.settings_data_model.saved_filters = [
+            {"name": "Newest first", "filters": [], "sort_option": "z_a"}
+        ]
+        nav_filters._refresh_saved_filters_combo()
+        nav_filters.saved_filters_combo.setCurrentIndex(
+            nav_filters.saved_filters_combo.findData("Newest first")
+        )
+        nav_filters.folder_sort_option = "last_played"
+        nav_filters.db_filter.matching_videos = MagicMock(
+            return_value=[{"file_path": "/movies/Alpha/movie.mkv"}]
+        )
+
+        nav_filters._apply_saved_filter_sort(
+            [
+                FileUtilModel(
+                    type="dir", name="Alpha", full_path="/movies/Alpha", depth=0
+                )
+            ],
+            [],
+        )
+
+        nav_filters.db_filter.matching_videos.assert_called_once_with(
+            [], sort_option="last_played"
+        )
+
     def test_play_history_query_preserves_metadata_field_count(
         self, monkeypatch, tmp_path
     ):
@@ -148,7 +206,7 @@ class TestFolderNavFilters:
         engine = FolderFilterFilter(nfo_util, settings_mock.settings_data_model)
         engine.apply_filters = MagicMock(side_effect=engine.apply_filters)
         mock_log = MagicMock()
-        widget = FolderFilters(engine, file_util, settings_mock, mock_log)
+        widget = FolderFilters(engine, file_util, settings_mock, mock_log, LangEn())
         widget.build()
         qtbot.addWidget(widget)
         return widget
@@ -197,9 +255,9 @@ class TestFolderNavFilters:
     ):
         store = DbFilters(
             settings_mock.settings_data_model,
-            [{"name": "Example", "filters": []}],
             tmp_path / "filters.db",
         )
+        store.replace_all([{"name": "Example", "filters": []}])
         with duckdb.connect(store.path_utils.normalize_path(store.db_path)) as con:
             con.execute(
                 "UPDATE media_filters SET folder_counts = map(['movies', 'tv'], [3, 7]), "
@@ -212,7 +270,11 @@ class TestFolderNavFilters:
         combo = nav_filters.saved_filters_combo
         assert combo.itemText(combo.findData("Example")) == "Example (10)"
 
-        nav_filters.media_filter_widget.media_button_group[0].setChecked(True)
+        # Select the first media folder label to trigger count filtering
+        first_label = next(iter(nav_filters._media_label_to_paths.keys()))
+        action = nav_filters.media_filter_combo._actions.get(first_label)
+        if action is not None:
+            action.setChecked(True)
         nav_filters._refresh_saved_filters_combo()
         assert combo.itemText(combo.findData("Example")) == "Example (3)"
 
@@ -444,7 +506,7 @@ class TestFolderNavFilters:
         ]
         tag_store.get_tag_counts.return_value = {"action": 12, "drama": 5}
 
-        tab = SettingsFilterTab(state, log, tag_store=tag_store)
+        tab = SettingsFilterTab(state, log, LangEn(), tag_store=tag_store)
         qtbot.addWidget(tab)
 
         # Verify the compact table shows the filter
@@ -487,7 +549,7 @@ class TestFolderNavFilters:
         ]
         tag_store.get_tag_counts.return_value = {"action": 10, "drama": 4, "sci-fi": 8}
 
-        tab = SettingsFilterTab(state, log, tag_store=tag_store)
+        tab = SettingsFilterTab(state, log, LangEn(), tag_store=tag_store)
         qtbot.addWidget(tab)
 
         # Verify the compact table shows the filter with correct count
@@ -597,7 +659,7 @@ class TestFolderNavFilters:
         ]
         tag_store.get_tag_counts.return_value = {f"tag{i}": i for i in range(20)}
 
-        tab = SettingsFilterTab(state, log, tag_store=tag_store)
+        tab = SettingsFilterTab(state, log, LangEn(), tag_store=tag_store)
         tab.resize(500, 600)
         tab.show()
         qtbot.addWidget(tab)

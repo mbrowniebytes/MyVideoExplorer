@@ -130,7 +130,7 @@ class ImageListView(QWidget, ThemableMixin):
         root_layout.addWidget(self.content_container)
         root_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        self.setMinimumSize(480, 300)
+        self.setMinimumSize(300, 200)
 
     def build_nfo(self, nfo: dict | None) -> None:
         if nfo is not None:

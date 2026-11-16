@@ -3,7 +3,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from MyVideoExplorer.utils.file_util import FileUtil, FileUtils
+from MyVideoExplorer.utils.file_util import (
+    VALID_PATH_PATTERN,
+    FileUtil,
+    FileUtils,
+    validate_path,
+)
 
 
 class MockDirEntry:
@@ -161,3 +166,58 @@ class TestFileUtil:
         # Check file
         f = next(f for f in files if f.name == "file.mp4")
         assert f.depth == 2
+
+
+def test_validate_path_accepts_valid_paths():
+    # Standard Windows paths with backslashes
+    assert validate_path("C:\\Media\\Movies") == (True, "")
+    # Standard Unix paths with forward slashes
+    assert validate_path("/home/user/media") == (True, "")
+    # Mixed slashes
+    assert validate_path("C:/Media/Movies") == (True, "")
+    # Path with spaces
+    assert validate_path("C:\\My Videos") == (True, "")
+    # Path with special characters
+    assert validate_path("C:\\Media (2024)") == (True, "")
+
+
+def test_validate_path_rejects_control_characters():
+    # Null byte
+    is_valid, msg = validate_path("C:\\Media\x00Movies")
+    assert is_valid is False
+    assert "invalid characters" in msg
+
+    # Tab character
+    is_valid, msg = validate_path("C:\\Media\tMovies")
+    assert is_valid is False
+
+    # Newline character
+    is_valid, msg = validate_path("C:\\Media\nMovies")
+    assert is_valid is False
+
+
+def test_validate_path_rejects_empty():
+    is_valid, msg = validate_path("")
+    assert is_valid is False
+    assert "cannot be empty" in msg
+
+    is_valid, msg = validate_path("   ")
+    assert is_valid is False
+    assert "cannot be empty" in msg
+
+
+def test_validate_path_allows_slashes_and_backslashes():
+    # Unlike validate_name(), validate_path() allows slashes
+    assert validate_path("path/to/folder") == (True, "")
+    assert validate_path("path\\to\\folder") == (True, "")
+
+
+def test_valid_path_pattern():
+    # Valid patterns
+    assert VALID_PATH_PATTERN.fullmatch("C:\\Media\\Movies")
+    assert VALID_PATH_PATTERN.fullmatch("/home/user/media")
+    assert VALID_PATH_PATTERN.fullmatch("C:/Media/Movies")
+
+    # Invalid patterns - control characters
+    assert VALID_PATH_PATTERN.fullmatch("C:\\Media\x00Movies") is None
+    assert VALID_PATH_PATTERN.fullmatch("") is None

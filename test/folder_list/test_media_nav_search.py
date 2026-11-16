@@ -6,9 +6,10 @@ import duckdb
 import pytest
 from PySide6.QtCore import QDate, QPointF, Qt
 from PySide6.QtGui import QEnterEvent
-from PySide6.QtWidgets import QToolButton
+from PySide6.QtWidgets import QToolButton, QWidget
 
 from MyVideoExplorer.db.db_migrations import DbMigrations
+from MyVideoExplorer.db.db_snowflake_id import SnowflakeIdGenerator
 from MyVideoExplorer.folder_list.media_nav_search import (
     MediaNavSearch,
     MediaNavSearchCriteria,
@@ -62,6 +63,7 @@ def media_db(tmp_path):
         ),
     ]
     with duckdb.connect(str(db_path)) as connection:
+        gen = SnowflakeIdGenerator()
         for (
             file_path,
             title,
@@ -76,11 +78,12 @@ def media_db(tmp_path):
             connection.execute(
                 """
                 INSERT INTO media_file (
-                    media_path, file_path, type, title, year, directors, actors,
+                    id, media_path, file_path, type, title, year, directors, actors,
                     tags, user_tags, qty_played, last_played
-                ) VALUES (?, ?, 'video', ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, 'video', ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
+                    gen.generate(),
                     "C:/Movies",
                     file_path,
                     title,
@@ -144,8 +147,9 @@ def test_search_returns_ancestor_folders_below_media_root(media_db):
     with duckdb.connect(str(media_db)) as connection:
         connection.execute(
             """
-            INSERT INTO media_file (media_path, file_path, type, title)
+            INSERT INTO media_file (id, media_path, file_path, type, title)
             VALUES (
+                1,
                 'C:/Movies',
                 'C:/Movies/TV/Show/Season 1/episode.mkv',
                 'video',
@@ -174,10 +178,10 @@ def test_search_deduplicates_ancestor_folders_within_media_root(media_db):
     with duckdb.connect(str(media_db)) as connection:
         connection.execute(
             """
-            INSERT INTO media_file (media_path, file_path, type, title)
+            INSERT INTO media_file (id, media_path, file_path, type, title)
             VALUES
-                ('C:/Movies', 'C:/Movies/TV/Show/Season 1/one.mkv', 'video', 'First'),
-                ('C:/Movies', 'C:/Movies/TV/Show/Season 1/two.mkv', 'video', 'Second')
+                (2, 'C:/Movies', 'C:/Movies/TV/Show/Season 1/one.mkv', 'video', 'First'),
+                (3, 'C:/Movies', 'C:/Movies/TV/Show/Season 1/two.mkv', 'video', 'Second')
             """
         )
 
@@ -194,15 +198,17 @@ def test_search_uses_media_icon_when_ancestor_is_also_movie_folder(media_db):
     with duckdb.connect(str(media_db)) as connection:
         connection.execute(
             """
-            INSERT INTO media_file (media_path, file_path, type, title)
+            INSERT INTO media_file (id, media_path, file_path, type, title)
             VALUES
                 (
+                    4,
                     'C:/Movies',
                     'C:/Movies/TV/Show/A/episode.mkv',
                     'video',
                     'Match Nested'
                 ),
                 (
+                    5,
                     'C:/Movies',
                     'C:/Movies/TV/Show/Z.mkv',
                     'video',
@@ -541,8 +547,7 @@ def test_options_radio_groups_year_options_and_placeholder(qtbot):
     assert options.qty_value.lineEdit().text() == "12345"
 
 
-def test_tags_are_visible_in_dialog_and_summary_and_removable(qtbot, monkeypatch):
-    monkeypatch.setattr(DelayedDeleteButton, "DEFAULT_UNLOCK_DELAY_MS", 10)
+def test_tags_are_visible_in_dialog_and_summary_and_removable(qtbot):
     widget = MediaNavSearchWidget(_WidgetSettings())
     qtbot.addWidget(widget)
 
@@ -557,11 +562,13 @@ def test_tags_are_visible_in_dialog_and_summary_and_removable(qtbot, monkeypatch
     )
     assert dialog_chip_item is not None
     dialog_chip = dialog_chip_item.widget()
-    assert isinstance(dialog_chip, QToolButton)
-    assert isinstance(dialog_chip, DelayedDeleteButton)
-    dialog_chip.enterEvent(QEnterEvent(QPointF(1, 1), QPointF(1, 1), QPointF(1, 1)))
-    qtbot.waitUntil(lambda: dialog_chip.is_armed, timeout=300)
-    dialog_chip.click()
+    # Tag chips are QWidget containers with label + X button, not DelayedDeleteButton
+    assert isinstance(dialog_chip, QWidget)
+    assert not isinstance(dialog_chip, DelayedDeleteButton)
+    # Find the X button inside the chip widget and click it
+    x_button = dialog_chip.findChild(QToolButton)
+    assert x_button is not None
+    x_button.click()
 
     assert widget._selected_tags == []
     assert widget.options_dialog.selected_tags_container.flow_layout.count() == 0
@@ -579,7 +586,7 @@ def test_tag_criteria_chip_uses_configured_tag_color(qtbot):
     chip_item = widget.criteria_summary.flow_layout.itemAt(0)
     assert chip_item is not None
     chip = chip_item.widget()
-    assert isinstance(chip, QToolButton)
+    assert isinstance(chip, QWidget)
     assert "background-color: #12ab34" in chip.styleSheet()
 
 
@@ -603,6 +610,7 @@ def test_active_filter_chips_expand_to_fit(qtbot, monkeypatch):
         180
     ) > widget.criteria_summary.heightForWidth(1200)
 
+    # Item at index 1 is the Year chip (DelayedDeleteButton); tags are at index 2-3
     summary_item = widget.criteria_summary.flow_layout.itemAt(1)
     assert summary_item is not None
     summary_chip = summary_item.widget()

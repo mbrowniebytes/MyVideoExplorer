@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
@@ -22,9 +22,7 @@ class SignalPayload:
     name: str = ""
     description: str = ""
     flow: SignalFlow = SignalFlow.CONTROLLER_OUTPUT
-    timestamp: datetime.datetime = field(
-        default_factory=datetime.datetime.now(datetime.UTC).astimezone
-    )
+    timestamp: dt.datetime = field(default_factory=dt.datetime.now(dt.UTC).astimezone)
 
     def to_debug_dict(self) -> dict[str, Any]:
         return {

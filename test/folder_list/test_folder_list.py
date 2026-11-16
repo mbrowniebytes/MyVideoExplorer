@@ -4,6 +4,7 @@ import pytest
 from PySide6.QtCore import Qt
 
 from MyVideoExplorer.folder_list.folder_list import FolderList
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.utils.file_util import FileUtil
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
@@ -20,7 +21,7 @@ class TestFolderList:
             return_value=True,
         ):
             mock_log = MagicMock()
-            widget = FolderList(file_util, settings, mock_log)
+            widget = FolderList(file_util, settings, mock_log, LangEn())
             # Prevent automatic refresh in build
             with patch.object(widget, "refresh"):
                 widget.build()

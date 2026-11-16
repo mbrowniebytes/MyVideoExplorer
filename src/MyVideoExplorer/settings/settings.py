@@ -1,15 +1,20 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QTabBar, QTabWidget, QVBoxLayout, QWidget
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
+from MyVideoExplorer.compare.compare_tab import CompareTab
 from MyVideoExplorer.db.db_tags import DbTags
+from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.settings.settings_app_tab import SettingsAppTab
 from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
 from MyVideoExplorer.settings.settings_filter_tab import SettingsFilterTab
 from MyVideoExplorer.settings.settings_media_tab import SettingsMediaTab
+from MyVideoExplorer.settings.settings_player_tab import SettingsPlayerTab
 from MyVideoExplorer.settings.settings_state import SettingsState
 from MyVideoExplorer.settings.settings_tags import SettingsTagsTab
 from MyVideoExplorer.settings.settings_ui_tab import SettingsUITab
@@ -25,10 +30,11 @@ class Settings(QWidget, ThemableMixin):
 
     dirty_changed = Signal(object)
 
-    def __init__(self, log_util: LogUtil, file_util: FileUtil) -> None:
+    def __init__(self, log_util: LogUtil, file_util: FileUtil, lang: LangEn) -> None:
         super().__init__()
         self.log_util = log_util
         self.file_util = file_util
+        self.lang = lang
 
         # Data Model (State Management)
         self.settings_data_model = SettingsState(self.log_util)
@@ -41,6 +47,8 @@ class Settings(QWidget, ThemableMixin):
         self._media_settings_tab: SettingsMediaTab | None = None
         self._filter_settings_tab: SettingsFilterTab | None = None
         self._tags_settings_tab: SettingsTagsTab | None = None
+        self._player_settings_tab: SettingsPlayerTab | None = None
+        self._compare_tab: CompareTab | None = None
 
     @property
     def app_settings_tab(self) -> SettingsAppTab:
@@ -83,6 +91,14 @@ class Settings(QWidget, ThemableMixin):
         return self._tags_settings_tab
 
     @property
+    def player_settings_tab(self) -> SettingsPlayerTab:
+        if self._player_settings_tab is None:
+            self._build_ui()
+            self._connect_signals()
+        assert self._player_settings_tab is not None
+        return self._player_settings_tab
+
+    @property
     def tag_store(self) -> DbTags | None:
         return self._tag_store
 
@@ -97,6 +113,25 @@ class Settings(QWidget, ThemableMixin):
         if self._filter_settings_tab is not None:
             self._filter_settings_tab.tag_store = value
 
+    def _resolve_local_db_path(self) -> Path:
+        """Resolve the local database path from the first available media config.
+
+        Returns:
+            Path to the local database file.
+        """
+        for config in self.settings_data_model.media_configs:
+            db_path = self.settings_data_model.get_db_path(config)
+            if Path(db_path).exists():
+                return Path(db_path)
+        # Fallback: use the first config's DB path even if it doesn't exist yet
+        if self.settings_data_model.media_configs:
+            return Path(
+                self.settings_data_model.get_db_path(
+                    self.settings_data_model.media_configs[0]
+                )
+            )
+        return Path("db/media_media.db")
+
     def _build_ui(self) -> None:
         """Constructs the settings UI layout and registers tabs."""
         if self.layout() is not None:
@@ -105,26 +140,52 @@ class Settings(QWidget, ThemableMixin):
         # Initialize tabs if not already done
         if not self.managed_tabs:
             self._app_settings_tab = SettingsAppTab(
-                self.settings_data_model, self.log_util, parent=self
+                self.settings_data_model, self.log_util, self.lang, parent=self
             )
             self._ui_settings_tab = SettingsUITab(
-                self.settings_data_model, self.log_util, self.file_util, parent=self
+                self.settings_data_model,
+                self.log_util,
+                self.file_util,
+                self.lang,
+                parent=self,
             )
             self._media_settings_tab = SettingsMediaTab(
-                self.settings_data_model, self.log_util, self.file_util, parent=self
+                self.settings_data_model,
+                self.log_util,
+                self.file_util,
+                self.lang,
+                parent=self,
             )
             self._filter_settings_tab = SettingsFilterTab(
                 self.settings_data_model,
                 self.log_util,
+                self.lang,
                 tag_store=self.tag_store,
                 parent=self,
+            )
+            self._media_settings_tab.library_scan_succeeded.connect(
+                self._filter_settings_tab.validate_manual_items_after_scan
             )
             self._tags_settings_tab = SettingsTagsTab(
                 self.settings_data_model,
                 self.log_util,
+                self.lang,
                 tag_store=self.tag_store,
                 parent=self,
             )
+            self._player_settings_tab = SettingsPlayerTab(
+                self.settings_data_model, self.log_util, self.lang, parent=self
+            )
+
+            # Create CompareTab with the settings state
+            self._compare_tab = CompareTab(
+                self.settings_data_model,
+                self.log_util,
+                self.file_util,
+                self.lang,
+                parent=self,
+            )
+            self._media_settings_tab.set_compare_tab(self._compare_tab)
 
             # Group tabs for centralized management (DRY principle)
             self.managed_tabs = [
@@ -133,6 +194,7 @@ class Settings(QWidget, ThemableMixin):
                 self._media_settings_tab,
                 self._filter_settings_tab,
                 self._tags_settings_tab,
+                self._player_settings_tab,
             ]
 
         main_layout = QVBoxLayout(self)
@@ -148,7 +210,7 @@ class Settings(QWidget, ThemableMixin):
         self._add_spacer_tab(self.settings_tabs_container, tab_bar)
 
         # Register settings tabs with consistent labels
-        tab_labels = ["App", "UI", "Media", "Filters", "Tags"]
+        tab_labels = ["App", "UI", "Media", "Filters", "Tags", "Player"]
         for tab_widget, label in zip(self.managed_tabs, tab_labels):
             self.settings_tabs_container.addTab(tab_widget, f" {label} ")
 

@@ -1,11 +1,10 @@
-CREATE SEQUENCE IF NOT EXISTS media_id_seq;
 CREATE TABLE IF NOT EXISTS schema_migrations (
     version TEXT PRIMARY KEY,
     applied_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS media_file (
-    id INTEGER PRIMARY KEY DEFAULT nextval('media_id_seq'),
+    id BIGINT PRIMARY KEY,
     media_path TEXT,
     file_path TEXT,
     type TEXT,
