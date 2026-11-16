@@ -2,7 +2,7 @@
 
 ---
 
-### 2026-11-00
+### 2026-11-16
 
 - folder nav
   - filters
@@ -23,7 +23,7 @@
 - settings 
   - names
     - unique per type
-    - different rules per type normalized, enforced to regex r"^[A-Za-z0-9\-_|!@#$%^&{}\[\](),.:+~*=]+$" eg no slashes, quotes, non ascii chars
+    - different rules per type normalized, enforced to no slashes, quotes, non ascii chars
   - media
     - performance! scan media speed and save to db greatly increased
     - add Scan All button
@@ -68,7 +68,7 @@
   - fix filter db error when scan all media
   - update ai docs in doc/ and .junie/
 
-release - [MyVideoExplorer-20261100-0.008](https://github.com/mbrowniebytes/MyVideoExplorer/releases/tag/20261100-0.008)
+release - [MyVideoExplorer-20261116-0.008](https://github.com/mbrowniebytes/MyVideoExplorer/releases/tag/20261116-0.008)
 
 ### 2026-10-06
 
