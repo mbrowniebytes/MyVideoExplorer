@@ -25,7 +25,7 @@ dependencies = [
 dev = [
     # Linting and formatting
     "ruff~=0.16.5",
-    "ty~=0.0.75",
+    "ty~=0.0.104",
     # Testing
     "pytest~=9.1.1",
     "pytest-qt~=4.5.0",
@@ -95,8 +95,8 @@ docstring-code-line-length = "dynamic"
 include = ["src", "test"]
 
 [tool.ty.rules]
-unresolved-attribute = "warn"
-unresolved-import = "warn"
+missing-attribute = "warn"
+import-not-found = "warn"
 division-by-zero = "error"
 deprecated = "warn"
 unused-ignore-comment = "warn"

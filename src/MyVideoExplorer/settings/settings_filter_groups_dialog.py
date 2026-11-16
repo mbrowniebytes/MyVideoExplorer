@@ -387,8 +387,6 @@ class SettingsFilterGroupsDialog(QDialog):
         table.setCellWidget(row, self.COL_NAME, edit_widget)
         self._editing_row = row
 
-        # Store reference for commit
-        edit_widget.setProperty("line_edit", line_edit)  # type: ignore[arg-type]
         QTimer.singleShot(50, line_edit.setFocus)
         QTimer.singleShot(50, line_edit.selectAll)
 
@@ -404,10 +402,7 @@ class SettingsFilterGroupsDialog(QDialog):
             return
 
         # Get the line edit from the widget
-        line_edit: QLineEdit | None = None
-        child = widget.findChild(QLineEdit)  # type: ignore[var-annotated]
-        if child is not None:
-            line_edit = child
+        line_edit = widget.findChild(QLineEdit)
 
         if line_edit is None:
             self._editing_row = None

@@ -231,7 +231,6 @@ class LogUtil:
     def _get_memory_usage(self) -> float:
         # Primary method: psutil (works reliably on Windows, macOS, Linux)
         try:
-            # type: ignore[import-untyped]
             import psutil
 
             process = psutil.Process()

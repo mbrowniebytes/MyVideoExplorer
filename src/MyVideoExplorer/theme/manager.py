@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import qtawesome as qta  # type: ignore[import-untyped]
+import qtawesome as qta
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QFont, QIcon
 from PySide6.QtWidgets import (

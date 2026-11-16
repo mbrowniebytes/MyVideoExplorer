@@ -458,10 +458,12 @@ class MediaNavSearchOptionsDialog(QDialog):
 
         # Check if there's a search query in the parent widget
         parent_widget = self.parent()
-        if parent_widget is not None and hasattr(parent_widget, "media_nav_search_box"):
-            query = parent_widget.media_nav_search_box.text().strip()  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]
-            if query:
-                filters.append({"filter": filter_type, "value": query})
+        if parent_widget is not None:
+            search_box = getattr(parent_widget, "media_nav_search_box", None)
+            if search_box is not None:
+                query = search_box.text().strip()
+                if query:
+                    filters.append({"filter": filter_type, "value": query})
 
         # Person field (actor/director)
         person_field = self.selected_person_field()

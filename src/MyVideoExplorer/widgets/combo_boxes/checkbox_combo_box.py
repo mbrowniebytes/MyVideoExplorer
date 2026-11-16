@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QComboBox, QMenu, QWidget
@@ -16,7 +18,7 @@ class _CheckboxCombo(QComboBox):
         super().__init__(parent)
         APP_THEME.setup_combo_box(self)
 
-    def showPopup(self) -> None:  # type: ignore[override]
+    def showPopup(self, *args: Any, **kwargs: Any) -> None:
         """Emit the custom_popup signal instead of showing the default dropdown."""
         self.custom_popup.emit()
 

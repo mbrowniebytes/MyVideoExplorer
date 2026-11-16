@@ -33,14 +33,18 @@ async def test_windows_launches_file_through_system_association(mock_popen):
 
 @pytest.mark.asyncio
 @patch("MyVideoExplorer.video_player.video_launcher.os.name", "nt")
+@patch("MyVideoExplorer.video_player.video_launcher.os.path.normpath")
 @patch("MyVideoExplorer.video_player.video_launcher.subprocess.Popen")
-async def test_windows_launches_configured_player_with_video_path(mock_popen):
+async def test_windows_launches_configured_player_with_video_path(
+    mock_popen, mock_normpath
+):
     log_util = MagicMock()
     launcher = VideoLauncher(log_util)
     process = MagicMock()
     process.communicate.return_value = (b"VLC started", None)
     process.returncode = 0
     mock_popen.return_value = process
+    mock_normpath.side_effect = lambda p: p
 
     with (
         patch(
@@ -57,13 +61,13 @@ async def test_windows_launches_configured_player_with_video_path(mock_popen):
         )
 
     args, kwargs = mock_popen.call_args
-    assert args == (["C:\\Apps\\VLC\\vlc.exe", "C:\\Videos\\My Movie.mp4"],)
+    assert args == (["C:\\Apps\\VLC\\vlc.exe", "C:/Videos/My Movie.mp4"],)
     assert "QT_PLUGIN_PATH" not in kwargs["env"]
     assert kwargs["cwd"] is None
     assert kwargs["stdout"] == subprocess.PIPE
     assert kwargs["stderr"] == subprocess.STDOUT
     log_util.info.assert_any_call(
-        'Executing video command: C:\\Apps\\VLC\\vlc.exe "C:\\Videos\\My Movie.mp4"'
+        'Executing video command: C:\\Apps\\VLC\\vlc.exe "C:/Videos/My Movie.mp4"'
     )
     log_util.info.assert_any_call("Video player output: VLC started")
     log_util.info.assert_any_call("Video player process exited with return code 0")
@@ -87,16 +91,20 @@ async def test_vlc_output_capture_is_disabled_by_default(mock_popen):
 
 @pytest.mark.asyncio
 @patch("MyVideoExplorer.video_player.video_launcher.os.name", "nt")
+@patch("MyVideoExplorer.video_player.video_launcher.os.path.normpath")
 @patch("MyVideoExplorer.video_player.video_launcher.subprocess.Popen")
-async def test_custom_player_uses_windows_path_and_clean_environment(mock_popen):
+async def test_custom_player_uses_windows_path_and_clean_environment(
+    mock_popen, mock_normpath
+):
     launcher = VideoLauncher(MagicMock())
+    mock_normpath.side_effect = lambda p: p
 
     await launcher.play_via_player(
         r"C:\Apps\Custom\player.exe", r"C:\Videos\My Movie.mp4"
     )
 
     args, kwargs = mock_popen.call_args
-    assert args == (["C:\\Apps\\Custom\\player.exe", "C:\\Videos\\My Movie.mp4"],)
+    assert args == (["C:\\Apps\\Custom\\player.exe", "C:/Videos/My Movie.mp4"],)
     assert kwargs["env"] == launcher._clean_environment()
     assert "stdout" not in kwargs
     assert "stderr" not in kwargs
@@ -104,10 +112,12 @@ async def test_custom_player_uses_windows_path_and_clean_environment(mock_popen)
 
 @pytest.mark.asyncio
 @patch("MyVideoExplorer.video_player.video_launcher.os.name", "nt")
+@patch("MyVideoExplorer.video_player.video_launcher.os.path.normpath")
 @patch("MyVideoExplorer.video_player.video_launcher.subprocess.Popen")
-async def test_custom_arguments_are_passed_before_video_path(mock_popen):
+async def test_custom_arguments_are_passed_before_video_path(mock_popen, mock_normpath):
     log_util = MagicMock()
     launcher = VideoLauncher(log_util)
+    mock_normpath.side_effect = lambda p: p
 
     await launcher.play_via_player(
         r"C:\Apps\Custom\player.exe",
@@ -122,7 +132,7 @@ async def test_custom_arguments_are_passed_before_video_path(mock_popen):
             "--fullscreen",
             "--profile",
             "My Profile",
-            "C:\\Videos\\My Movie.mp4",
+            "C:/Videos/My Movie.mp4",
         ],
     )
     assert kwargs["cwd"] is None
@@ -131,15 +141,17 @@ async def test_custom_arguments_are_passed_before_video_path(mock_popen):
     assert "stderr" not in kwargs
     log_util.info.assert_called_once_with(
         "Executing video command: C:\\Apps\\Custom\\player.exe --fullscreen "
-        '--profile "My Profile" "C:\\Videos\\My Movie.mp4"'
+        '--profile "My Profile" "C:/Videos/My Movie.mp4"'
     )
 
 
 @pytest.mark.asyncio
 @patch("MyVideoExplorer.video_player.video_launcher.os.name", "nt")
+@patch("MyVideoExplorer.video_player.video_launcher.os.path.normpath")
 @patch("MyVideoExplorer.video_player.video_launcher.subprocess.Popen")
-async def test_configured_player_receives_all_playlist_paths(mock_popen):
+async def test_configured_player_receives_all_playlist_paths(mock_popen, mock_normpath):
     launcher = VideoLauncher(MagicMock())
+    mock_normpath.side_effect = lambda p: p
 
     await launcher.play_videos_via_player(
         r"C:\Apps\VLC\vlc.exe",
@@ -152,8 +164,8 @@ async def test_configured_player_receives_all_playlist_paths(mock_popen):
         [
             "C:\\Apps\\VLC\\vlc.exe",
             "--fullscreen",
-            "C:\\Videos\\Episode 1.mkv",
-            "C:\\Videos\\Episode 2.mkv",
+            "C:/Videos/Episode 1.mkv",
+            "C:/Videos/Episode 2.mkv",
         ],
     )
 

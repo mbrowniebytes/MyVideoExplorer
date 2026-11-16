@@ -152,12 +152,8 @@ class FileUtil:
     @staticmethod
     def get_resource_path(relative_path: str) -> str:
         """Get absolute path to resource, works for dev and for PyInstaller."""
-        try:
-            # PyInstaller creates a temp folder and stores path in _MEIPASS
-            base_path = Path(sys._MEIPASS)  # type: ignore
-        except AttributeError:
-            base_path = Path.cwd()
-
+        meipass = getattr(sys, "_MEIPASS", None)
+        base_path = Path(meipass) if isinstance(meipass, str) else Path.cwd()
         return FileUtils.normalize_path(base_path / relative_path)
 
     def _scan_directory(self, path: Path) -> list[os.DirEntry[str]]:

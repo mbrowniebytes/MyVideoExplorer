@@ -169,7 +169,7 @@ class AppLoadingWidget(QWidget):
             if _orig_resize:
                 _orig_resize(event)
 
-        container_widget.resizeEvent = _on_container_resize  # type: ignore
+        container_widget.resizeEvent = _on_container_resize
 
         return container_widget
 
