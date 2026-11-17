@@ -188,6 +188,11 @@ fyi, creates [main.spec](https://pyinstaller.org/en/stable/spec-files.html)
 skip as `main.spec` already exists
 > pyinstaller src/main.py
 
+update version in pyproject.toml
+version = "YYYY.MM.DD.###"
+
+update doc/changelog.md
+
 creates dist
 > pyinstaller --clean --noconfirm main.spec
 

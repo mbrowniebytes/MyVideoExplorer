@@ -15,6 +15,12 @@ from PySide6.QtWidgets import (
 )
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
+from MyVideoExplorer.app.app_version import (
+    __version__ as app_version,
+)
+from MyVideoExplorer.app.app_version import (
+    format_version_for_display,
+)
 from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
 from MyVideoExplorer.settings.settings_state import (
@@ -328,6 +334,14 @@ class SettingsAppTab(SettingsBaseTab):
 
         app_group.setLayout(app_layout)
         self.internal_layout.addWidget(app_group)
+
+        # Version label (subtle, below settings)
+        version_label = QLabel(
+            f"MyVideoExplorer v{format_version_for_display(app_version)}"
+        )
+        version_label.setStyleSheet(APP_THEME.label_qss("meta"))
+        version_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.internal_layout.addWidget(version_label)
 
         # Add stretch to push save button to bottom
         self.internal_layout.addStretch(2)

@@ -4,8 +4,8 @@ import random
 from pathlib import Path
 from typing import cast
 
-from PySide6.QtCore import QEasingCurve, QPropertyAnimation, Qt, QTimer
-from PySide6.QtGui import QIcon, QPixmap, QResizeEvent
+from PySide6.QtCore import QEasingCurve, QEvent, QObject, QPropertyAnimation, Qt, QTimer
+from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QGraphicsEffect,
@@ -56,6 +56,15 @@ class AppLoadingWidget(QWidget):
         loading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         loading_label.setStyleSheet(APP_THEME.loading_label_qss())
         layout.addWidget(loading_label)
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+        if event.type() == QEvent.Type.Resize:
+            try:
+                widget = cast(QWidget, watched)
+                self.setGeometry(widget.rect())
+            except Exception:
+                pass
+        return super().eventFilter(watched, event)
 
     def setup_window(self, window: QMainWindow | None, app: QApplication) -> None:
         if window:
@@ -155,21 +164,8 @@ class AppLoadingWidget(QWidget):
         except Exception:
             pass
 
-        # Keep overlay sized on container resize
-        try:
-            _orig_resize = container_widget.resizeEvent
-        except Exception:
-            _orig_resize = None
-
-        def _on_container_resize(event: QResizeEvent) -> None:
-            try:
-                self.setGeometry(container_widget.rect())
-            except Exception:
-                pass
-            if _orig_resize:
-                _orig_resize(event)
-
-        container_widget.resizeEvent = _on_container_resize
+        # Keep overlay sized on container resize using an event filter
+        container_widget.installEventFilter(self)
 
         return container_widget
 

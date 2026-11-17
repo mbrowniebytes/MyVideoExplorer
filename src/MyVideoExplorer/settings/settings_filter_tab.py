@@ -26,6 +26,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from MyVideoExplorer.app.app_version import (
+    __version__ as app_version,
+)
+from MyVideoExplorer.app.app_version import (
+    format_version_for_display,
+)
 from MyVideoExplorer.db.db_filters import FILTER_SORT_OPTIONS, DbFilters
 from MyVideoExplorer.folder_filter.folder_filter_table import FolderFilterTable
 from MyVideoExplorer.lang.lang_en import LangEn
@@ -1272,7 +1278,11 @@ class SettingsFilterTab(SettingsBaseTab):
                 ]
             export_filters.append(entry)
 
-        return {"groups": export_groups, "filters": export_filters}
+        return {
+            "app_version": format_version_for_display(app_version),
+            "groups": export_groups,
+            "filters": export_filters,
+        }
 
     def _on_export_progress(self, current: int, total: int, label: str) -> None:
         if self._bulk_progress_bar is not None:

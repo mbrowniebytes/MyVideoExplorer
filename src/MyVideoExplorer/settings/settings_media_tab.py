@@ -23,6 +23,12 @@ from PySide6.QtWidgets import (
 )
 
 from MyVideoExplorer.app.app_signals_model import SignalFlow, SignalPayload
+from MyVideoExplorer.app.app_version import (
+    __version__ as app_version,
+)
+from MyVideoExplorer.app.app_version import (
+    format_version_for_display,
+)
 from MyVideoExplorer.compare.compare_tab import CompareTab
 from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
@@ -287,6 +293,7 @@ class SettingsMediaTab(SettingsBaseTab):
     def _build_export_data(self) -> dict[str, Any]:
         """Build the JSON payload for exporting media settings."""
         return {
+            "app_version": format_version_for_display(app_version),
             "media_configs": self.state.media_configs,
             "db_enabled": self.state._db_enabled,
         }

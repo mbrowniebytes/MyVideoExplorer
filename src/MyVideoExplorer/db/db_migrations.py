@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from pathlib import Path
 from typing import Literal
 
@@ -118,7 +119,9 @@ class DbMigrations:
             )
 
             # Map python_pre_step names to bound methods
-            _pre_step_dispatch: dict[str, object] = {
+            _pre_step_dispatch: dict[
+                str, Callable[[duckdb.DuckDBPyConnection], None]
+            ] = {
                 "normalize_legacy_paths": self._normalize_legacy_paths,
                 "reassign_snowflake_ids": self._reassign_to_snowflake_ids,
                 "reassign_filter_to_snowflake_ids": self._reassign_filter_to_snowflake_ids,

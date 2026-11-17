@@ -49,6 +49,7 @@ def run() -> int:
 
     try:
         qapp = QApplication(sys.argv)
+        qapp.setApplicationName("MyVideoExplorer")
         ensure_required_directories()
 
         # Configure early logging and settings (used to decide whether to show splash)

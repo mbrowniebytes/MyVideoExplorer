@@ -54,6 +54,9 @@ class StyleLabel:
                     border: 2px solid {c.color_border_highlight};
                 }}
             """
+        elif variant == "meta":
+            font_size_qss = f"font-size: {c.font_size_base - 4}px;"
+            color = c.color_text_secondary
         font_qss = f"""
             font-family: {c.font_family_default};
             {font_size_qss}

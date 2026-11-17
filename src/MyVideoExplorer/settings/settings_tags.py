@@ -5,6 +5,12 @@ from typing import TYPE_CHECKING, Any
 
 from PySide6.QtWidgets import QMessageBox, QVBoxLayout, QWidget
 
+from MyVideoExplorer.app.app_version import (
+    __version__ as app_version,
+)
+from MyVideoExplorer.app.app_version import (
+    format_version_for_display,
+)
 from MyVideoExplorer.db.db_tags import DbTags
 from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
@@ -88,7 +94,7 @@ class SettingsTagsTab(SettingsBaseTab):
     def _build_export_data(self) -> dict[str, Any]:
         """Build the JSON payload for exporting all tags."""
         tags = self._get_tags()
-        return {"tags": tags}
+        return {"app_version": format_version_for_display(app_version), "tags": tags}
 
     def _get_tags(self) -> list[dict[str, str]]:
         """Return the current list of tags from the tag store or state."""

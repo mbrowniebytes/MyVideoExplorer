@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "MyVideoExplorer"
-version = "0.0.1"
+version = "2026.11.16.008"
 description = "MyVideoExplorer"
 readme = "README.md"
 requires-python = "~=3.14"
@@ -45,39 +45,39 @@ target-version = "py314"
 [tool.ruff.lint]
 # https://pydevtools.com/handbook/how-to/how-to-configure-recommended-ruff-defaults/
 extend-select = [
-    "C4",       # Catch incorrect use of comprehensions, dict, list, etc
-    "E",        # PyCodeStyle errors
-    "F",        # Pyflakes rules
-    "FA",       # Enforce from __future__ import annotations
-    "FURB",     # Suggest more idiomatic Python patterns
-    "I",        # Sort imports properly
-    "ICN",      # Use common import conventions
-    "ISC",      # Good use of string concatenation
-    "NPY",      # Some numpy-specific things
-    "PTH",      # Use pathlib instead of os.path
-    "RET",      # Good return practices
-    "SIM",      # Common simplification rules
-    "TID",      # Some good import practices
-    "UP",       # Warn if certain things can changed due to newer Python versions
-    "W",        # PyCodeStyle warnings
-    # "TC",       # Enforce importing certain types in a TYPE_CHECKING block
-    # "TD",       # Be diligent with TODO comments
+    "C4", # Catch incorrect use of comprehensions, dict, list, etc
+    "E", # PyCodeStyle errors
+    "F", # Pyflakes rules
+    "FA", # Enforce from __future__ import annotations
+    "FURB", # Suggest more idiomatic Python patterns
+    "I", # Sort imports properly
+    "ICN", # Use common import conventions
+    "ISC", # Good use of string concatenation
+    "NPY", # Some numpy-specific things
+    "PTH", # Use pathlib instead of os.path
+    "RET", # Good return practices
+    "SIM", # Common simplification rules
+    "TID", # Some good import practices
+    "UP", # Warn if certain things can changed due to newer Python versions
+    "W", # PyCodeStyle warnings
+    # "TC", # Enforce importing certain types in a TYPE_CHECKING block
+    # "TD", # Be diligent with TODO comments
 ]
 ignore = [
-    "BLE001",   # Do not catch blind exception: `Exception`
-    "E501",     # line-too-long
-    "PIE790",   # Unnecessary `pass` statement
-    "RET504",   # Unnecessary assignment to `text` before `return` statement
-    "RUF059",   # Unpacked variable is never used
-    "RUF012",   # Mutable default value for class attribute
-    "S110",     # `try`-`except`-`pass` detected, consider logging the exception
-    "S112",     # `try`-`except`-`continue` detected, consider logging the exception
-    "SIM102",   # Use a single `if` statement instead of nested `if` statements
-    "SIM105",   # Use `contextlib.suppress(AttributeError)` instead of `try`-`except`-`pass`
-    "SIM117",   # Use a single `with` statement with multiple contexts instead of nested `with` statements
-    "SIM300",   # Yoda condition detected
-    "TC001",    # Move application import into a type-checking block"
-    "TC006"     # Add quotes to type expression in `typing.cast()`
+    "BLE001", # Do not catch blind exception: `Exception`
+    "E501", # line-too-long
+    "PIE790", # Unnecessary `pass` statement
+    "RET504", # Unnecessary assignment to `text` before `return` statement
+    "RUF059", # Unpacked variable is never used
+    "RUF012", # Mutable default value for class attribute
+    "S110", # `try`-`except`-`pass` detected, consider logging the exception
+    "S112", # `try`-`except`-`continue` detected, consider logging the exception
+    "SIM102", # Use a single `if` statement instead of nested `if` statements
+    "SIM105", # Use `contextlib.suppress(AttributeError)` instead of `try`-`except`-`pass`
+    "SIM117", # Use a single `with` statement with multiple contexts instead of nested `with` statements
+    "SIM300", # Yoda condition detected
+    "TC001", # Move application import into a type-checking block"
+    "TC006", # Add quotes to type expression in `typing.cast()`
 ]
 
 [tool.ruff.lint.pycodestyle]
@@ -95,7 +95,7 @@ docstring-code-line-length = "dynamic"
 include = ["src", "test"]
 
 [tool.ty.rules]
-missing-attribute = "warn"
+possibly-missing-attribute = "warn"
 import-not-found = "warn"
 division-by-zero = "error"
 deprecated = "warn"
