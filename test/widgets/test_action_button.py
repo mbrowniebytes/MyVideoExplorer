@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.widgets.buttons.action_button import ActionButton
 from MyVideoExplorer.widgets.buttons.delayed_delete_button import DelayedDeleteButton

@@ -1,3 +1,5 @@
+﻿from __future__ import annotations
+
 import shutil
 from pathlib import Path
 from types import SimpleNamespace
@@ -225,7 +227,7 @@ def test_snowflake_migration_converts_integer_ids(tmp_path):
     assert old_ids == [1, 2, 3], f"Expected [1, 2, 3], got {old_ids}"
     con.close()
 
-    # Run migrations — the snowflake migration should convert INTEGER to BIGINT
+    # Run migrations â€” the snowflake migration should convert INTEGER to BIGINT
     DbMigrations.clear_migrated_cache()
     migration = DbMigrations(str(db_path))
     migration.migrations_dir = MIGRATIONS_DIR
@@ -252,7 +254,7 @@ def test_snowflake_migration_converts_integer_ids(tmp_path):
     # IDs should be different from old sequential IDs
     assert new_ids != old_ids, "IDs were not converted to snowflake values"
 
-    # Verify data integrity — titles should be preserved
+    # Verify data integrity â€” titles should be preserved
     titles = [
         row[0]
         for row in con.execute("SELECT title FROM media_file ORDER BY id").fetchall()

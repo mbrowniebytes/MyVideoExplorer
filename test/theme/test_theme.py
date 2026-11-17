@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import (
@@ -17,25 +19,25 @@ class TestTheme:
     def theme(self):
         return Theme()
 
-    def test_initialization(self, theme):
+    def test_theme_should_initialize_with_default_values(self, theme):
         assert "Lato" in theme.font_family
         assert theme.font_size == 18
         assert theme.icon_size == 20
 
-    def test_app_qss(self, theme):
+    def test_app_qss_should_include_background_and_font(self, theme):
         qss = theme.app_qss()
         assert "background: #111111" in qss
         assert "QToolTip" in qss
         # QWidget font size is handled via setFont, not QSS
         assert f"font-family: {theme.font_family}" in qss
 
-    def test_button_qss(self, theme):
+    def test_button_qss_should_include_surface_color(self, theme):
         qss = theme.button_qss()
         assert "QAbstractButton" in qss
         # Buttons use surface_color
         assert theme.surface_color in qss
 
-    def test_setup_list_widget(self, theme, qtbot):
+    def test_setup_list_widget_should_set_icon_size_and_style(self, theme, qtbot):
         lw = QListWidget()
         qtbot.addWidget(lw)
         theme.setup_list_widget(lw)
@@ -69,7 +71,7 @@ class TestTheme:
         assert "border: none" in button.styleSheet()
         assert "border: 2px solid" not in button.styleSheet()
 
-    def test_refresh_theme(self, theme, qtbot):
+    def test_refresh_theme_should_update_app_stylesheet_and_fonts(self, theme, qtbot):
         import sys
         from typing import cast
 
@@ -92,7 +94,7 @@ class TestTheme:
         # Label should have the font set via recursive refresh
         assert label.font().pixelSize() == 20
 
-    def test_safe_icon(self, theme):
+    def test_icon_should_return_valid_icon_for_known_and_unknown_names(self, theme):
         from PySide6.QtGui import QIcon
 
         # Test valid icon

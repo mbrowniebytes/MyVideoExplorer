@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -25,14 +27,14 @@ class TestMediaInfo:
         qtbot.addWidget(mi)
         return mi
 
-    def test_build(self, media_info):
+    def test_build_should_create_layout_and_views(self, media_info):
         assert media_info.media_info is not None
         assert media_info.media_info_layout is not None
         # Check if media_info_view was added to layout
         # We can't easily check mock in layout, but we know build was called
         pass
 
-    def test_refresh(self, media_info):
+    def test_refresh_should_update_path_and_refresh_views(self, media_info):
         with patch.object(media_info.media_info_view, "refresh") as mock_refresh:
             with patch.object(
                 media_info.media_info_side_view, "refresh"
@@ -68,7 +70,7 @@ class TestMediaInfo:
             )
         assert blocker.signal_triggered
 
-    def test_apply_theme(self, media_info):
+    def test_apply_theme_should_propagate_to_views(self, media_info):
         with patch.object(media_info.media_info_view, "apply_theme") as mock_view_theme:
             with patch.object(
                 media_info.media_info_side_view, "apply_theme"

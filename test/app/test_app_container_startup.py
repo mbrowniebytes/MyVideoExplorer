@@ -1,12 +1,59 @@
+from __future__ import annotations
+
+import contextlib
 import json
 from unittest.mock import MagicMock, patch
 
+import pytest
 from PySide6.QtWidgets import QApplication, QMainWindow
 
 from MyVideoExplorer.app.app_container import AppContainer
 
+_CONTAINER_PATCHES = [
+    "MyVideoExplorer.app.app_container.FolderFilters",
+    "MyVideoExplorer.app.app_container.FolderNav",
+    "MyVideoExplorer.app.app_container.FolderList",
+    "MyVideoExplorer.app.app_container.FileList",
+    "MyVideoExplorer.app.app_container.MediaInfoView",
+    "MyVideoExplorer.app.app_container.MediaInfoSideView",
+    "MyVideoExplorer.app.app_container.MediaInfo",
+    "MyVideoExplorer.app.app_container.ImageListView",
+    "MyVideoExplorer.app.app_container.ImageList",
+    "MyVideoExplorer.app.app_container.MediaInfoTabs",
+]
 
-def test_app_container_creates_settings_app_from_defaults(tmp_path, monkeypatch):
+
+@pytest.fixture
+def mock_log():
+    return MagicMock()
+
+
+@pytest.fixture
+def container_patches(mock_log):
+    """Return an ExitStack with all container dependency patches applied (no Settings)."""
+    with contextlib.ExitStack() as stack:
+        stack.enter_context(
+            patch(
+                "MyVideoExplorer.utils.log_util.LogUtil.get_default",
+                return_value=mock_log,
+            )
+        )
+        mock_log.configure.return_value = mock_log
+        for target in _CONTAINER_PATCHES:
+            stack.enter_context(patch(target))
+        yield stack, mock_log
+
+
+def _make_container(container_patches):
+    """Create a QMainWindow and AppContainer inside the patched context."""
+    window = QMainWindow()
+    container = AppContainer(window)
+    return window, container
+
+
+def test_app_container_creates_settings_app_from_defaults(
+    tmp_path, monkeypatch, mock_log
+):
     QApplication.instance() or QApplication([])
 
     cfg_dir = tmp_path / "cfg"
@@ -29,36 +76,18 @@ def test_app_container_creates_settings_app_from_defaults(tmp_path, monkeypatch)
         "MyVideoExplorer.app.app_container.SETTINGS_APP_FILE", settings_app_file
     )
 
-    mock_log = MagicMock()
-    with patch(
-        "MyVideoExplorer.utils.log_util.LogUtil.get_default", return_value=mock_log
-    ):
+    with contextlib.ExitStack() as stack:
+        stack.enter_context(
+            patch(
+                "MyVideoExplorer.utils.log_util.LogUtil.get_default",
+                return_value=mock_log,
+            )
+        )
         mock_log.configure.return_value = mock_log
-        with patch("MyVideoExplorer.app.app_container.Settings"):
-            with patch("MyVideoExplorer.app.app_container.FolderFilters"):
-                with patch("MyVideoExplorer.app.app_container.FolderNav"):
-                    with patch("MyVideoExplorer.app.app_container.FolderList"):
-                        with patch("MyVideoExplorer.app.app_container.FileList"):
-                            with patch(
-                                "MyVideoExplorer.app.app_container.MediaInfoView"
-                            ):
-                                with patch(
-                                    "MyVideoExplorer.app.app_container.MediaInfoSideView"
-                                ):
-                                    with patch(
-                                        "MyVideoExplorer.app.app_container.MediaInfo"
-                                    ):
-                                        with patch(
-                                            "MyVideoExplorer.app.app_container.ImageListView"
-                                        ):
-                                            with patch(
-                                                "MyVideoExplorer.app.app_container.ImageList"
-                                            ):
-                                                with patch(
-                                                    "MyVideoExplorer.app.app_container.MediaInfoTabs"
-                                                ):
-                                                    window = QMainWindow()
-                                                    container = AppContainer(window)
+        stack.enter_context(patch("MyVideoExplorer.app.app_container.Settings"))
+        for target in _CONTAINER_PATCHES:
+            stack.enter_context(patch(target))
+        _, container = _make_container(stack)
 
     assert settings_app_file.exists()
     saved_data = json.loads(settings_app_file.read_text(encoding="utf-8"))
@@ -70,7 +99,7 @@ def test_app_container_creates_settings_app_from_defaults(tmp_path, monkeypatch)
         assert "Error loading configuration" not in str(call)
 
 
-def test_app_container_preserves_existing_settings_app(tmp_path, monkeypatch):
+def test_app_container_preserves_existing_settings_app(tmp_path, monkeypatch, mock_log):
     QApplication.instance() or QApplication([])
 
     cfg_dir = tmp_path / "cfg"
@@ -95,43 +124,27 @@ def test_app_container_preserves_existing_settings_app(tmp_path, monkeypatch):
         "MyVideoExplorer.app.app_container.SETTINGS_APP_FILE", settings_app_file
     )
 
-    mock_log = MagicMock()
-    with patch(
-        "MyVideoExplorer.utils.log_util.LogUtil.get_default", return_value=mock_log
-    ):
+    with contextlib.ExitStack() as stack:
+        stack.enter_context(
+            patch(
+                "MyVideoExplorer.utils.log_util.LogUtil.get_default",
+                return_value=mock_log,
+            )
+        )
         mock_log.configure.return_value = mock_log
-        with patch("MyVideoExplorer.app.app_container.Settings"):
-            with patch("MyVideoExplorer.app.app_container.FolderFilters"):
-                with patch("MyVideoExplorer.app.app_container.FolderNav"):
-                    with patch("MyVideoExplorer.app.app_container.FolderList"):
-                        with patch("MyVideoExplorer.app.app_container.FileList"):
-                            with patch(
-                                "MyVideoExplorer.app.app_container.MediaInfoView"
-                            ):
-                                with patch(
-                                    "MyVideoExplorer.app.app_container.MediaInfoSideView"
-                                ):
-                                    with patch(
-                                        "MyVideoExplorer.app.app_container.MediaInfo"
-                                    ):
-                                        with patch(
-                                            "MyVideoExplorer.app.app_container.ImageListView"
-                                        ):
-                                            with patch(
-                                                "MyVideoExplorer.app.app_container.ImageList"
-                                            ):
-                                                with patch(
-                                                    "MyVideoExplorer.app.app_container.MediaInfoTabs"
-                                                ):
-                                                    window = QMainWindow()
-                                                    _ = AppContainer(window)
+        stack.enter_context(patch("MyVideoExplorer.app.app_container.Settings"))
+        for target in _CONTAINER_PATCHES:
+            stack.enter_context(patch(target))
+        _, _ = _make_container(stack)
 
     saved_data = json.loads(settings_app_file.read_text(encoding="utf-8"))
     assert saved_data["log_level"] == "debug"
     mock_log.configure.assert_called_with("debug")
 
 
-def test_app_startup_and_initialization_applies_window_size_once(tmp_path, monkeypatch):
+def test_app_startup_and_initialization_applies_window_size_once(
+    tmp_path, monkeypatch, container_patches
+):
     QApplication.instance() or QApplication([])
 
     cfg_dir = tmp_path / "cfg"
@@ -161,43 +174,10 @@ def test_app_startup_and_initialization_applies_window_size_once(tmp_path, monke
     )
     monkeypatch.setattr("MyVideoExplorer.settings.settings_state.CFG_DIR", cfg_dir)
 
-    mock_log = MagicMock()
-    with patch(
-        "MyVideoExplorer.utils.log_util.LogUtil.get_default", return_value=mock_log
-    ):
-        mock_log.configure.return_value = mock_log
-        with patch("MyVideoExplorer.app.app_container.FolderFilters"):
-            with patch("MyVideoExplorer.app.app_container.FolderNav"):
-                with patch("MyVideoExplorer.app.app_container.FolderList"):
-                    with patch("MyVideoExplorer.app.app_container.FileList"):
-                        with patch("MyVideoExplorer.app.app_container.MediaInfoView"):
-                            with patch(
-                                "MyVideoExplorer.app.app_container.MediaInfoSideView"
-                            ):
-                                with patch(
-                                    "MyVideoExplorer.app.app_container.MediaInfo"
-                                ):
-                                    with patch(
-                                        "MyVideoExplorer.app.app_container.ImageListView"
-                                    ):
-                                        with patch(
-                                            "MyVideoExplorer.app.app_container.ImageList"
-                                        ):
-                                            with patch(
-                                                "MyVideoExplorer.app.app_container.MediaInfoTabs"
-                                            ):
-                                                window = QMainWindow()
-                                                container = AppContainer(window)
-                                                from MyVideoExplorer.app.app_state_handler import (
-                                                    AppStateHandler,
-                                                )
+    _, mock_log = container_patches
+    window, container = _make_container(container_patches)
 
-                                                handler = AppStateHandler(
-                                                    container, window
-                                                )
-                                                handler.initialize()
-
-    # Count how many times "Applying window size" was logged
+    # Count how many times "Applying window size" was logged during container init
     apply_size_logs = [
         call
         for call in mock_log.info.call_args_list
@@ -206,8 +186,24 @@ def test_app_startup_and_initialization_applies_window_size_once(tmp_path, monke
     assert len(apply_size_logs) == 1
     assert apply_size_logs[0].kwargs["extra_info"] == {"width": 1600, "height": 900}
 
+    # Verify initialize() does not reapply window size
+    mock_log.info.reset_mock()
+    from MyVideoExplorer.app.app_state_handler import AppStateHandler
 
-def test_window_pos_changed_does_not_reapply_window_size(tmp_path, monkeypatch):
+    handler = AppStateHandler(container, window)
+    handler.initialize()
+
+    apply_size_after = [
+        call
+        for call in mock_log.info.call_args_list
+        if len(call.args) > 0 and call.args[0] == "Applying window size"
+    ]
+    assert len(apply_size_after) == 0
+
+
+def test_window_pos_changed_does_not_reapply_window_size(
+    tmp_path, monkeypatch, container_patches
+):
     QApplication.instance() or QApplication([])
 
     cfg_dir = tmp_path / "cfg"
@@ -237,33 +233,8 @@ def test_window_pos_changed_does_not_reapply_window_size(tmp_path, monkeypatch):
     )
     monkeypatch.setattr("MyVideoExplorer.settings.settings_state.CFG_DIR", cfg_dir)
 
-    mock_log = MagicMock()
-    with patch(
-        "MyVideoExplorer.utils.log_util.LogUtil.get_default", return_value=mock_log
-    ):
-        mock_log.configure.return_value = mock_log
-        with patch("MyVideoExplorer.app.app_container.FolderFilters"):
-            with patch("MyVideoExplorer.app.app_container.FolderNav"):
-                with patch("MyVideoExplorer.app.app_container.FolderList"):
-                    with patch("MyVideoExplorer.app.app_container.FileList"):
-                        with patch("MyVideoExplorer.app.app_container.MediaInfoView"):
-                            with patch(
-                                "MyVideoExplorer.app.app_container.MediaInfoSideView"
-                            ):
-                                with patch(
-                                    "MyVideoExplorer.app.app_container.MediaInfo"
-                                ):
-                                    with patch(
-                                        "MyVideoExplorer.app.app_container.ImageListView"
-                                    ):
-                                        with patch(
-                                            "MyVideoExplorer.app.app_container.ImageList"
-                                        ):
-                                            with patch(
-                                                "MyVideoExplorer.app.app_container.MediaInfoTabs"
-                                            ):
-                                                window = QMainWindow()
-                                                container = AppContainer(window)
+    _, mock_log = container_patches
+    _, container = _make_container(container_patches)
 
     mock_log.info.reset_mock()
     from MyVideoExplorer.app.app_signals import SignalPayload

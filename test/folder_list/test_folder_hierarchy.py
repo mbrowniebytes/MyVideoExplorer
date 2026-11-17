@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from MyVideoExplorer.folder_list.folder_hierarchy import build_folder_rows
 
 

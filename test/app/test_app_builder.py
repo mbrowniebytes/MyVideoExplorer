@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from unittest.mock import Mock
 
 from PySide6.QtWidgets import QApplication, QMainWindow

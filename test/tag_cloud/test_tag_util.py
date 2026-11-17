@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import pytest
 from PySide6.QtWidgets import QToolButton, QWidget
 
 from MyVideoExplorer.tag_cloud.tag_util import (
@@ -8,21 +11,24 @@ from MyVideoExplorer.tag_cloud.tag_util import (
     validate_tag_name,
 )
 
+# -- Color and styling tests --
 
-def test_get_contrast_text_color():
-    # Light backgrounds require dark text
+
+def test_get_contrast_text_color_should_return_dark_text_for_light_background():
     assert get_contrast_text_color("#ffffff") == "#000000"
     assert get_contrast_text_color("#ffff00") == "#000000"
 
-    # Dark backgrounds require light text
+
+def test_get_contrast_text_color_should_return_light_text_for_dark_background():
     assert get_contrast_text_color("#000000") == "#ffffff"
     assert get_contrast_text_color("#112233") == "#ffffff"
 
-    # Invalid color fallback
+
+def test_get_contrast_text_color_should_fallback_for_invalid_color():
     assert get_contrast_text_color("invalid-color") == "#000000"
 
 
-def test_style_painter_button(qtbot):
+def test_style_painter_button_should_set_custom_style(qtbot):
     parent = QWidget()
     qtbot.addWidget(parent)
     button = QToolButton(parent)
@@ -32,106 +38,117 @@ def test_style_painter_button(qtbot):
     assert "background-color: #ff5500" in button.styleSheet()
 
 
-def test_validate_name_accepts_valid_names():
-    # Alphanumeric names
-    assert validate_name("Action") == (True, "")
-    assert validate_name("SciFi123") == (True, "")
-
-    # Names with spaces
-    assert validate_name("Alpha Renamed") == (True, "")
-    assert validate_name("My Filter") == (True, "")
-
-    # Names with allowed special characters
-    assert validate_name("My-Filter") == (True, "")
-    assert validate_name("test_123") == (True, "")
-    assert validate_name("a!b@c#") == (True, "")
-    assert validate_name("name(with)parens") == (True, "")
-    assert validate_name("tag|pipe") == (True, "")
-    assert validate_name("x^y&z") == (True, "")
-    assert validate_name("a{b}c") == (True, "")
-    assert validate_name("[brackets]") == (True, "")
-    assert validate_name("a,b") == (True, "")
-    assert validate_name("a.b") == (True, "")
-    assert validate_name("a:b") == (True, "")
-    assert validate_name("a+b") == (True, "")
-    assert validate_name("a~b") == (True, "")
-    assert validate_name("a*b") == (True, "")
-    assert validate_name("a=b") == (True, "")
-
-    # Names with only special characters
-    assert validate_name("---") == (True, "")
-    assert validate_name("___") == (True, "")
+# -- validate_name tests --
 
 
-def test_validate_name_rejects_slashes():
-    is_valid, msg = validate_name("path/to")
+@pytest.mark.parametrize(
+    "name",
+    [
+        "Action",
+        "SciFi123",
+        "Alpha Renamed",
+        "My Filter",
+        "My-Filter",
+        "test_123",
+        "a!b@c#",
+        "name(with)parens",
+        "tag|pipe",
+        "x^y&z",
+        "a{b}c",
+        "[brackets]",
+        "a,b",
+        "a.b",
+        "a:b",
+        "a+b",
+        "a~b",
+        "a*b",
+        "a=b",
+        "---",
+        "___",
+    ],
+)
+def test_validate_name_should_accept_valid_names(name):
+    assert validate_name(name) == (True, "")
+
+
+@pytest.mark.parametrize(
+    ("name", "reason"),
+    [
+        ("path/to", "forward slash"),
+        ("back\\slash", "backslash"),
+        ("it's", "single quote"),
+        ('say "hello"', "double quote"),
+    ],
+)
+def test_validate_name_should_reject_special_chars(name, reason):
+    is_valid, msg = validate_name(name)
     assert is_valid is False
     assert "Name may only contain" in msg
 
-    is_valid, msg = validate_name("back\\slash")
-    assert is_valid is False
 
-
-def test_validate_name_rejects_quotes():
-    is_valid, msg = validate_name("it's")
-    assert is_valid is False
-
-    is_valid, msg = validate_name('say "hello"')
-    assert is_valid is False
-
-
-def test_validate_name_rejects_empty_and_whitespace():
-    is_valid, msg = validate_name("")
-    assert is_valid is False
-    assert "cannot be empty" in msg
-
-    is_valid, msg = validate_name("   ")
+@pytest.mark.parametrize("name", ["", "   "])
+def test_validate_name_should_reject_empty_and_whitespace(name):
+    is_valid, msg = validate_name(name)
     assert is_valid is False
     assert "cannot be empty" in msg
 
 
-def test_validate_name_rejects_control_characters():
-    is_valid, msg = validate_name("name\twith\ttabs")
+@pytest.mark.parametrize(
+    "name",
+    [
+        "name\twith\ttabs",
+        "name\nwith\nnewlines",
+    ],
+)
+def test_validate_name_should_reject_control_characters(name):
+    is_valid, _ = validate_name(name)
     assert is_valid is False
 
-    is_valid, msg = validate_name("name\nwith\nnewlines")
-    assert is_valid is False
+
+# -- validate_tag_name tests --
 
 
-def test_validate_tag_name_uses_shared_regex():
-    # Alphanumeric names are valid
-    assert validate_tag_name("Action") == (True, "")
-    assert validate_tag_name("SciFi123") == (True, "")
+@pytest.mark.parametrize(
+    "name",
+    ["Action", "SciFi123", "Sci-Fi", "tag_pipe"],
+)
+def test_validate_tag_name_should_accept_valid_names(name):
+    assert validate_tag_name(name) == (True, "")
 
-    # Names with allowed special characters are now valid (extended from alphanumeric-only)
-    assert validate_tag_name("Sci-Fi") == (True, "")
-    assert validate_tag_name("tag_pipe") == (True, "")
 
-    # Empty names are rejected
-    is_valid, msg = validate_tag_name("")
+@pytest.mark.parametrize("name", ["", "   "])
+def test_validate_tag_name_should_reject_empty_and_whitespace(name):
+    is_valid, msg = validate_tag_name(name)
     assert is_valid is False
     assert "cannot be empty" in msg
 
-    is_valid, msg = validate_tag_name("   ")
+
+@pytest.mark.parametrize(
+    ("name", "reason"),
+    [
+        ("Sci/Fi", "forward slash"),
+        ("tag's", "single quote"),
+    ],
+)
+def test_validate_tag_name_should_reject_special_chars(name, reason):
+    is_valid, _ = validate_tag_name(name)
     assert is_valid is False
-    assert "cannot be empty" in msg
-
-    # Names with slashes are rejected
-    is_valid, msg = validate_tag_name("Sci/Fi")
-    assert is_valid is False
-
-    # Names with quotes are rejected
-    is_valid, msg = validate_tag_name("tag's")
-    assert is_valid is False
 
 
-def test_valid_name_pattern():
-    # Valid patterns
-    assert VALID_NAME_PATTERN.fullmatch("Action")
-    assert VALID_NAME_PATTERN.fullmatch("My-Filter_123")
-    assert VALID_NAME_PATTERN.fullmatch("a!b@c#")
+# -- VALID_NAME_PATTERN tests --
 
-    # Invalid patterns
-    assert VALID_NAME_PATTERN.fullmatch("path/to") is None
-    assert VALID_NAME_PATTERN.fullmatch("it's") is None
-    assert VALID_NAME_PATTERN.fullmatch("") is None
+
+@pytest.mark.parametrize(
+    "pattern",
+    ["Action", "My-Filter_123", "a!b@c#"],
+)
+def test_valid_name_pattern_should_match_valid_patterns(pattern):
+    assert VALID_NAME_PATTERN.fullmatch(pattern) is not None
+
+
+@pytest.mark.parametrize(
+    "pattern",
+    ["path/to", "it's", ""],
+)
+def test_valid_name_pattern_should_not_match_invalid_patterns(pattern):
+    assert VALID_NAME_PATTERN.fullmatch(pattern) is None

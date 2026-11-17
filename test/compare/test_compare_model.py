@@ -33,26 +33,29 @@ def compared_db(local_test_db, compare_test_db):
     return compare_test_db
 
 
+@pytest.fixture
+def compare_model(compared_db):
+    """Create a CompareTableModel from the compared database."""
+    return CompareTableModel(Path(compared_db))
+
+
 class TestCompareTableModelBasic:
     """Test basic table model functionality."""
 
-    def test_model_should_load_results(self, compared_db):
-        model = CompareTableModel(Path(compared_db))
+    def test_model_should_load_results(self, compare_model):
         # Paired rows: each DB row becomes 2 display rows
-        assert model.rowCount() > 0
-        assert model.columnCount() == len(COMPARE_COLUMNS)
+        assert compare_model.rowCount() > 0
+        assert compare_model.columnCount() == len(COMPARE_COLUMNS)
 
-    def test_model_should_return_column_headers(self, compared_db):
-        model = CompareTableModel(Path(compared_db))
-        for i in range(model.columnCount()):
-            header = model.headerData(i, Qt.Orientation.Horizontal)
+    def test_model_should_return_column_headers(self, compare_model):
+        for i in range(compare_model.columnCount()):
+            header = compare_model.headerData(i, Qt.Orientation.Horizontal)
             assert header == COMPARE_COLUMNS[i]["title"]
 
-    def test_model_should_return_data(self, compared_db):
-        model = CompareTableModel(Path(compared_db))
-        if model.rowCount() > 0:
-            index = model.index(0, 0)
-            data = model.data(index)
+    def test_model_should_return_data(self, compare_model):
+        if compare_model.rowCount() > 0:
+            index = compare_model.index(0, 0)
+            data = compare_model.data(index)
             assert data is not None
 
     def test_model_should_handle_empty_db(self, tmp_path):
@@ -68,10 +71,8 @@ class TestCompareTableModelBasic:
         model = CompareTableModel(Path(db_path))
         assert model.rowCount() == 0
 
-    def test_model_should_produce_paired_rows(self, compared_db):
+    def test_model_should_produce_paired_rows(self, compare_model, compared_db):
         """Verify that each DB row produces 2 display rows (local + compare)."""
-        model = CompareTableModel(Path(compared_db))
-
         conn = duckdb.connect(str(compared_db))
         row = conn.execute("SELECT COUNT(*) FROM compare_results").fetchone()
         assert row is not None
@@ -79,35 +80,33 @@ class TestCompareTableModelBasic:
         conn.close()
 
         # Each DB row should produce 2 display rows
-        assert model.rowCount() == db_count * 2
+        assert compare_model.rowCount() == db_count * 2
 
-    def test_model_should_have_row_numbers(self, compared_db):
+    def test_model_should_have_row_numbers(self, compare_model):
         """Verify row numbers have L/C suffix."""
-        model = CompareTableModel(Path(compared_db))
-        if model.rowCount() > 0:
+        if compare_model.rowCount() > 0:
             # Row number is column 0
-            index = model.index(0, 0)
-            row_num = model.data(index)
+            index = compare_model.index(0, 0)
+            row_num = compare_model.data(index)
             assert row_num is not None
             assert isinstance(row_num, str)
             assert row_num.endswith(("L", "C"))
             # First row should end with L (Local)
-            assert model.data(model.index(0, 0)).endswith("L")
+            assert compare_model.data(compare_model.index(0, 0)).endswith("L")
             # Second row should end with C (Compare)
-            if model.rowCount() > 1:
-                assert model.data(model.index(1, 0)).endswith("C")
+            if compare_model.rowCount() > 1:
+                assert compare_model.data(compare_model.index(1, 0)).endswith("C")
 
-    def test_model_titles_should_not_have_prefix(self, compared_db):
+    def test_model_titles_should_not_have_prefix(self, compare_model):
         """Verify titles do NOT have Local:/Compare: prefix."""
-        model = CompareTableModel(Path(compared_db))
-        if model.rowCount() > 0:
+        if compare_model.rowCount() > 0:
             # Column 1 is title
-            idx_local = model.index(0, 1)
-            title_local = model.data(idx_local)
+            idx_local = compare_model.index(0, 1)
+            title_local = compare_model.data(idx_local)
             assert not title_local.startswith("Local: ")
 
-            idx_compare = model.index(1, 1)
-            title_compare = model.data(idx_compare)
+            idx_compare = compare_model.index(1, 1)
+            title_compare = compare_model.data(idx_compare)
             assert not title_compare.startswith("Compare: ")
 
 
@@ -206,25 +205,23 @@ class TestCompareTableModelPagination:
 class TestCompareTableModelFiltering:
     """Test filtering functionality."""
 
-    def test_model_should_filter_by_status(self, compared_db):
-        model = CompareTableModel(Path(compared_db))
-        total_before = model.rowCount()
+    def test_model_should_filter_by_status(self, compare_model, compared_db):
+        total_before = compare_model.rowCount()
 
-        model.set_status_filter("missing")
-        missing_count = model.rowCount()
+        compare_model.set_status_filter("missing")
+        missing_count = compare_model.rowCount()
 
-        model.set_status_filter("")
-        all_count = model.rowCount()
+        compare_model.set_status_filter("")
+        all_count = compare_model.rowCount()
 
         assert all_count == total_before
         assert missing_count <= all_count
 
-    def test_model_should_hide_missing_when_requested(self, compared_db):
-        model = CompareTableModel(Path(compared_db))
-        total_before = model.rowCount()
+    def test_model_should_hide_missing_when_requested(self, compare_model, compared_db):
+        total_before = compare_model.rowCount()
 
-        model.set_show_missing(False)
-        without_missing = model.rowCount()
+        compare_model.set_show_missing(False)
+        without_missing = compare_model.rowCount()
 
         conn = duckdb.connect(str(compared_db))
         row = conn.execute(
@@ -240,78 +237,67 @@ class TestCompareTableModelFiltering:
         if missing_count > 0:
             assert without_missing == total_before - (missing_count * 2)
 
-    def test_model_should_search_by_title(self, compared_db):
-        model = CompareTableModel(Path(compared_db))
-
-        model.set_search_query("Inception")
-        inception_count = model.rowCount()
+    def test_model_should_search_by_title(self, compare_model):
+        compare_model.set_search_query("Inception")
+        inception_count = compare_model.rowCount()
         assert inception_count >= 0
 
-        model.set_search_query("")
-        all_count = model.rowCount()
+        compare_model.set_search_query("")
+        all_count = compare_model.rowCount()
         assert all_count >= inception_count
 
-    def test_model_should_search_case_insensitive(self, compared_db):
+    def test_model_should_search_case_insensitive(self, compare_model):
         """Verify search is case-insensitive."""
-        model = CompareTableModel(Path(compared_db))
+        compare_model.set_search_query("inception")
+        lower_count = compare_model.rowCount()
 
-        model.set_search_query("inception")
-        lower_count = model.rowCount()
-
-        model.set_search_query("Inception")
-        upper_count = model.rowCount()
+        compare_model.set_search_query("Inception")
+        upper_count = compare_model.rowCount()
 
         # Both should return the same results
         assert lower_count == upper_count
 
-    def test_model_should_search_all_columns(self, compared_db):
+    def test_model_should_search_all_columns(self, compare_model):
         """Verify search works across all text columns, not just title."""
-        model = CompareTableModel(Path(compared_db))
-
         # Search by codec
-        model.set_search_query("h264")
-        codec_count = model.rowCount()
+        compare_model.set_search_query("h264")
+        codec_count = compare_model.rowCount()
         assert codec_count >= 0
 
-        model.set_search_query("")
+        compare_model.set_search_query("")
 
-    def test_model_should_filter_by_multiple_statuses(self, compared_db):
+    def test_model_should_filter_by_multiple_statuses(self, compare_model):
         """Verify multi-status filtering works."""
-        model = CompareTableModel(Path(compared_db))
+        compare_model.set_status_filters(["missing"])
+        missing_count = compare_model.rowCount()
 
-        model.set_status_filters(["missing"])
-        missing_count = model.rowCount()
+        compare_model.set_status_filters(["match", "similar"])
+        matched_count = compare_model.rowCount()
 
-        model.set_status_filters(["match", "similar"])
-        matched_count = model.rowCount()
-
-        model.set_status_filters([])
-        all_count = model.rowCount()
+        compare_model.set_status_filters([])
+        all_count = compare_model.rowCount()
 
         assert all_count >= missing_count
         assert all_count >= matched_count
 
-    def test_model_should_combine_filters(self, compared_db):
-        model = CompareTableModel(Path(compared_db))
-
-        model.set_status_filter("missing")
-        model.set_show_missing(False)
+    def test_model_should_combine_filters(self, compare_model):
+        compare_model.set_status_filter("missing")
+        compare_model.set_show_missing(False)
         # Show missing = False should override status filter for missing
-        model.rowCount()
+        compare_model.rowCount()
 
-        model.set_show_missing(True)
-        model.set_status_filter("missing")
-        missing_count = model.rowCount()
+        compare_model.set_show_missing(True)
+        compare_model.set_status_filter("missing")
+        missing_count = compare_model.rowCount()
 
         assert missing_count >= 0
 
-    def test_model_should_format_score(self, compared_db):
+    def test_model_should_format_score(self, compare_model):
         """Verify score is formatted as an integer string with optional arrow."""
-        model = CompareTableModel(Path(compared_db))
-        if model.rowCount() > 0:
+        if compare_model.rowCount() > 0:
             # Column 4 is match_score (Score)
-            index = model.index(0, 4)
-            score = model.data(index)
+            index = compare_model.index(0, 4)
+            score = compare_model.data(index)
             assert isinstance(score, str)
             # Score should be digits, optionally followed by ↑ or ↓
             score_base = score.replace("↑", "").replace("↓", "")
@@ -321,33 +307,30 @@ class TestCompareTableModelFiltering:
 class TestCompareTableModelSorting:
     """Test sorting functionality."""
 
-    def test_model_should_sort_by_match_score_desc(self, compared_db):
-        model = CompareTableModel(Path(compared_db))
+    def test_model_should_sort_by_match_score_desc(self, compare_model):
         # Default sort is match_score DESC
         # Columns: 0=row_number, 1=title, 2=file_size, 3=status, 4=match_score, ...
         scores = []
-        for row in range(model.rowCount()):
-            index = model.index(row, 4)  # match_score column (Score)
-            score = model.data(index)
+        for row in range(compare_model.rowCount()):
+            index = compare_model.index(row, 4)  # match_score column (Score)
+            score = compare_model.data(index)
             scores.append(score if score is not None else "0")
 
         # Scores are formatted as "score (confidence)", check they are present
-        assert len(scores) == model.rowCount()
+        assert len(scores) == compare_model.rowCount()
 
-    def test_model_should_sort_by_status_ascending(self, compared_db):
-        model = CompareTableModel(Path(compared_db))
-
+    def test_model_should_sort_by_status_ascending(self, compare_model):
         # Sort by status ascending (column 3)
-        model.sort(3, Qt.SortOrder.AscendingOrder)
+        compare_model.sort(3, Qt.SortOrder.AscendingOrder)
 
         statuses = []
-        for row in range(model.rowCount()):
-            index = model.index(row, 3)
-            status = model.data(index)
+        for row in range(compare_model.rowCount()):
+            index = compare_model.index(row, 3)
+            status = compare_model.data(index)
             statuses.append(status if status is not None else "")
 
         # All statuses should be present and sorted
-        assert len(statuses) == model.rowCount()
+        assert len(statuses) == compare_model.rowCount()
         for s in statuses:
             assert s in ("match", "similar", "missing")
 
@@ -355,37 +338,33 @@ class TestCompareTableModelSorting:
         for i in range(0, len(statuses) - 1, 2):
             assert statuses[i] <= statuses[i + 1]
 
-    def test_model_should_sort_by_status_descending(self, compared_db):
-        model = CompareTableModel(Path(compared_db))
-
+    def test_model_should_sort_by_status_descending(self, compare_model):
         # Sort by status descending (column 3)
-        model.sort(3, Qt.SortOrder.DescendingOrder)
+        compare_model.sort(3, Qt.SortOrder.DescendingOrder)
 
         statuses = []
-        for row in range(model.rowCount()):
-            index = model.index(row, 3)
-            status = model.data(index)
+        for row in range(compare_model.rowCount()):
+            index = compare_model.index(row, 3)
+            status = compare_model.data(index)
             statuses.append(status if status is not None else "")
 
         # All statuses should be present
-        assert len(statuses) == model.rowCount()
+        assert len(statuses) == compare_model.rowCount()
         for s in statuses:
             assert s in ("match", "similar", "missing")
 
-    def test_model_should_sort_by_title_ascending(self, compared_db):
-        model = CompareTableModel(Path(compared_db))
-
+    def test_model_should_sort_by_title_ascending(self, compare_model):
         # Sort by title ascending (column 1)
-        model.sort(1, Qt.SortOrder.AscendingOrder)
+        compare_model.sort(1, Qt.SortOrder.AscendingOrder)
 
         titles = []
-        for row in range(model.rowCount()):
-            index = model.index(row, 1)
-            title = model.data(index)
+        for row in range(compare_model.rowCount()):
+            index = compare_model.index(row, 1)
+            title = compare_model.data(index)
             titles.append(title if title is not None else "")
 
         # Titles should be sorted (Local: and Compare: prefixes will sort together)
-        assert len(titles) == model.rowCount()
+        assert len(titles) == compare_model.rowCount()
 
 
 class TestCompareTableModelColumnInfo:
@@ -465,11 +444,10 @@ class TestCompareTableModelColumnInfo:
                 assert "align" in col
                 assert col["align"] & Qt.AlignmentFlag.AlignCenter
 
-    def test_score_header_should_have_tooltip(self, compared_db):
+    def test_score_header_should_have_tooltip(self, compare_model):
         """Verify Score column header has a tooltip explaining quality criteria."""
-        model = CompareTableModel(Path(compared_db))
         # Column 4 is match_score
-        tooltip = model.headerData(
+        tooltip = compare_model.headerData(
             4, Qt.Orientation.Horizontal, Qt.ItemDataRole.ToolTipRole
         )
         assert tooltip is not None
@@ -477,19 +455,18 @@ class TestCompareTableModelColumnInfo:
         assert "quality" in tooltip.lower()
         assert "resolution" in tooltip.lower()
 
-    def test_data_should_return_alignment_role(self, compared_db):
+    def test_data_should_return_alignment_role(self, compare_model):
         """Verify data() returns alignment for Qt.ItemDataRole.TextAlignmentRole."""
-        model = CompareTableModel(Path(compared_db))
-        if model.rowCount() > 0:
+        if compare_model.rowCount() > 0:
             # Score column (4) should be right-aligned
-            score_idx = model.index(0, 4)
-            align = model.data(score_idx, Qt.ItemDataRole.TextAlignmentRole)
+            score_idx = compare_model.index(0, 4)
+            align = compare_model.data(score_idx, Qt.ItemDataRole.TextAlignmentRole)
             assert align is not None
             assert Qt.AlignmentFlag.AlignRight in align
 
             # Status column (3) should be center-aligned
-            status_idx = model.index(0, 3)
-            align = model.data(status_idx, Qt.ItemDataRole.TextAlignmentRole)
+            status_idx = compare_model.index(0, 3)
+            align = compare_model.data(status_idx, Qt.ItemDataRole.TextAlignmentRole)
             assert align is not None
             assert Qt.AlignmentFlag.AlignCenter in align
 
@@ -497,45 +474,42 @@ class TestCompareTableModelColumnInfo:
 class TestCompareTableModelMissingEntries:
     """Test missing entries display with empty rows."""
 
-    def test_missing_local_should_show_empty_local_row(self, compared_db):
+    def test_missing_local_should_show_empty_local_row(self, compare_model):
         """When local is missing, the Local row should show empty values."""
-        model = CompareTableModel(Path(compared_db))
         # Find a missing entry where local is missing
-        for row in range(model.rowCount()):
-            row_num = model.data(model.index(row, 0))
-            status = model.data(model.index(row, 3))
+        for row in range(compare_model.rowCount()):
+            row_num = compare_model.data(compare_model.index(row, 0))
+            status = compare_model.data(compare_model.index(row, 3))
             if status == "missing" and row_num and row_num.endswith("L"):
                 # This is a Local row for a missing entry
-                title = model.data(model.index(row, 1))
+                title = compare_model.data(compare_model.index(row, 1))
                 # Local title should be empty for compare-missing-local entries
                 if not title:
                     # Found a compare-missing-local entry
-                    size = model.data(model.index(row, 2))
+                    size = compare_model.data(compare_model.index(row, 2))
                     assert size == ""
                     break
 
-    def test_missing_compare_should_show_empty_compare_row(self, compared_db):
+    def test_missing_compare_should_show_empty_compare_row(self, compare_model):
         """When compare is missing, the Compare row should show empty values."""
-        model = CompareTableModel(Path(compared_db))
         # Find a missing entry where compare is missing
-        for row in range(model.rowCount()):
-            row_num = model.data(model.index(row, 0))
-            status = model.data(model.index(row, 3))
+        for row in range(compare_model.rowCount()):
+            row_num = compare_model.data(compare_model.index(row, 0))
+            status = compare_model.data(compare_model.index(row, 3))
             if status == "missing" and row_num and row_num.endswith("C"):
                 # This is a Compare row for a missing entry
-                title = model.data(model.index(row, 1))
+                title = compare_model.data(compare_model.index(row, 1))
                 # Compare title should be empty for local-missing-compare entries
                 if not title:
                     # Found a local-missing-compare entry
-                    size = model.data(model.index(row, 2))
+                    size = compare_model.data(compare_model.index(row, 2))
                     assert size == ""
                     break
 
-    def test_file_size_should_always_be_gb(self, compared_db):
+    def test_file_size_should_always_be_gb(self, compare_model):
         """Verify file size is always shown in GB."""
-        model = CompareTableModel(Path(compared_db))
-        for row in range(model.rowCount()):
-            size = model.data(model.index(row, 2))
+        for row in range(compare_model.rowCount()):
+            size = compare_model.data(compare_model.index(row, 2))
             if size:
                 assert size.endswith(" GB"), f"Expected GB format, got: {size}"
 
@@ -543,11 +517,10 @@ class TestCompareTableModelMissingEntries:
 class TestCompareTableModelScoreAdjustment:
     """Test quality-aware score adjustment for 'similar' entries."""
 
-    def test_score_should_not_have_arrow_suffix(self, compared_db):
+    def test_score_should_not_have_arrow_suffix(self, compare_model):
         """Score should be a plain integer, no arrow suffix."""
-        model = CompareTableModel(Path(compared_db))
-        for row in range(model.rowCount()):
-            score = model.data(model.index(row, 4))
+        for row in range(compare_model.rowCount()):
+            score = compare_model.data(compare_model.index(row, 4))
             if score:
                 assert "↑" not in score, f"Score should not have arrow: {score}"
                 assert "↓" not in score, f"Score should not have arrow: {score}"
@@ -800,10 +773,9 @@ class TestCompareTableModelScoreAdjustment:
         assert direction == "local"
         assert points_diff > 0
 
-    def test_score_tooltip_should_explain_quality_adjustment(self, compared_db):
+    def test_score_tooltip_should_explain_quality_adjustment(self, compare_model):
         """Tooltip should mention quality adjustment."""
-        model = CompareTableModel(Path(compared_db))
-        tooltip = model.headerData(
+        tooltip = compare_model.headerData(
             4, Qt.Orientation.Horizontal, Qt.ItemDataRole.ToolTipRole
         )
         assert tooltip is not None

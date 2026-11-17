@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from PySide6.QtCore import QEvent, QPointF, Qt
 from PySide6.QtGui import QEnterEvent
 from PySide6.QtWidgets import QHBoxLayout, QMessageBox, QPushButton, QWidget

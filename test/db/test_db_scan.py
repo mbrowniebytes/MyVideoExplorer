@@ -1,3 +1,5 @@
+﻿from __future__ import annotations
+
 import datetime
 from pathlib import Path
 
@@ -17,7 +19,7 @@ class TestDbScanUtil:
     def db_util(self, db_path):
         return DbScanUtil(db_path)
 
-    def test_init_db(self, db_path):
+    def test_init_db_should_create_tables(self, db_path):
         DbScanUtil(db_path)
         assert Path(db_path).exists()
         con = duckdb.connect(db_path)
@@ -29,7 +31,7 @@ class TestDbScanUtil:
         assert "media_path_stats" in table_names
         con.close()
 
-    def test_save_and_get_stats(self, db_util, db_path):
+    def test_save_and_get_stats_should_persist_and_retrieve_stats(self, db_util, db_path):
         stats = {
             "media_path": "/test/path",
             "subfolders_count": 1,
@@ -48,7 +50,7 @@ class TestDbScanUtil:
         assert retrieved.subfolders_count == 1
         assert retrieved.files_count == 2
 
-    def test_save_media(self, db_util, db_path):
+    def test_save_media_should_insert_records(self, db_util, db_path):
         media_list = [
             {"file_path": "/test/path/video1.mp4", "metadata": {"title": "Movie 1"}},
             {"file_path": "/test/path/video2.mp4", "metadata": {"title": "Movie 2"}},

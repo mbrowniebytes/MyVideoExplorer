@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 from PySide6.QtCore import QRect
 from PySide6.QtWidgets import QLabel, QWidget
 
 from MyVideoExplorer.widgets.flow_layout import FlowLayout
 
 
-def test_flow_layout_item_management(qtbot):
+def test_flow_layout_should_add_and_remove_items(qtbot):
     parent = QWidget()
     qtbot.addWidget(parent)
     layout = FlowLayout(parent, spacing=6)
@@ -38,7 +40,7 @@ def test_flow_layout_item_management(qtbot):
     assert item1_after.widget() == lbl3
 
 
-def test_flow_layout_size_hint_and_height_for_width(qtbot):
+def test_flow_layout_should_wrap_items_on_narrow_width(qtbot):
     parent = QWidget()
     qtbot.addWidget(parent)
     layout = FlowLayout(parent, spacing=8)
@@ -60,7 +62,7 @@ def test_flow_layout_size_hint_and_height_for_width(qtbot):
     assert size_hint.height() >= 30
 
 
-def test_flow_layout_set_geometry(qtbot):
+def test_flow_layout_should_position_items_in_set_geometry(qtbot):
     parent = QWidget()
     qtbot.addWidget(parent)
     layout = FlowLayout(parent, spacing=4)

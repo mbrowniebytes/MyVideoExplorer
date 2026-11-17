@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.media_info.media_info_toolbar_widget import MediaInfoToolbarWidget
 from MyVideoExplorer.media_info_section.media_info_section_definitions import (

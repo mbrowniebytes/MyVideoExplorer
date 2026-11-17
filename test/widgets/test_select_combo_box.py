@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from MyVideoExplorer.theme.style.style_combo import StyleCombo
 from MyVideoExplorer.theme.theme import APP_THEME
 from MyVideoExplorer.widgets.combo_boxes.select_combo_box import SelectComboBox

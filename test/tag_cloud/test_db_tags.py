@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import duckdb
 
 from MyVideoExplorer.db.db_migrations import DbMigrations

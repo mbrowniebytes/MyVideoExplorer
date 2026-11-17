@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
 from MyVideoExplorer.folder_filter.folder_filter import FolderFilters

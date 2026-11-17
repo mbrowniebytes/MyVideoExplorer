@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import duckdb
 
 from MyVideoExplorer.utils.ffprobe_util import FfprobeUtil

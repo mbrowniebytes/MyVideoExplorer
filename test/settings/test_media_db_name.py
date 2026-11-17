@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from unittest.mock import MagicMock, patch
 
 from MyVideoExplorer.db.db_scan_worker import ScanWorker
@@ -7,13 +9,15 @@ from MyVideoExplorer.settings.settings_media_folder_browser_section import (
 from MyVideoExplorer.settings.settings_state import SettingsState
 
 
-def test_settings_state_get_db_path():
+def test_settings_state_get_db_path(tmp_path):
     mock_log_util = MagicMock()
     with patch("MyVideoExplorer.settings.settings_state.SettingsState._load_settings"):
         with patch(
             "MyVideoExplorer.settings.settings_state.SettingsState._ensure_defaults"
         ):
-            state = SettingsState(mock_log_util)
+            state = SettingsState(
+                mock_log_util, filter_db_path=tmp_path / "filter_catalog.db"
+            )
             assert state.get_db_path({"label": "Movies"}) == "db/media_Movies.db"
             assert state.get_db_path({"label": ""}) == "db/media_media.db"
             assert (
@@ -50,7 +54,9 @@ def test_rename_db_for_media_config(tmp_path, monkeypatch):
         with patch(
             "MyVideoExplorer.settings.settings_state.SettingsState._ensure_defaults"
         ):
-            state = SettingsState(mock_log_util)
+            state = SettingsState(
+                mock_log_util, filter_db_path=tmp_path / "filter_catalog.db"
+            )
 
             # Change working directory or mock get_db_path to tmp_path
             db_dir = tmp_path / "db"

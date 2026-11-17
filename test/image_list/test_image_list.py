@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
 import pytest
@@ -38,11 +40,13 @@ class TestImageList:
         il.build()
         return il
 
-    def test_initialization(self, image_list):
+    def test_initialization_should_start_with_no_images(self, image_list):
         assert image_list.selected_image_index == -1
         assert image_list.images == []
 
-    def test_update_image_from_folder(self, image_list, tmp_path):
+    def test_update_image_from_folder_should_load_images_and_poster(
+        self, image_list, tmp_path
+    ):
         image_list.file_util.get_images_from_folder.return_value = (
             ["img1.jpg", "img2.jpg"],
             "img1.jpg",
@@ -72,7 +76,7 @@ class TestImageList:
         assert image_list.selected_image_path == ""
         assert image_list.images == []
 
-    def test_request_next_image(self, image_list, qtbot):
+    def test_request_next_image_should_emit_selection_signal(self, image_list, qtbot):
         image_list.images = ["img1.jpg", "img2.jpg"]
         image_list.selected_image_index = 0
 
@@ -84,7 +88,7 @@ class TestImageList:
         assert image_list.selected_image_path == "img2.jpg"
         image_list.image_list_view.load_pixmap.assert_called_with("img2.jpg")
 
-    def test_request_next_image_wrap(self, image_list):
+    def test_request_next_image_should_wrap_to_first_on_last_index(self, image_list):
         image_list.images = ["img1.jpg", "img2.jpg"]
         image_list.selected_image_index = 1
 
@@ -93,11 +97,11 @@ class TestImageList:
         assert image_list.selected_image_index == 0
         assert image_list.selected_image_path == "img1.jpg"
 
-    def test_set_selected_image_empty(self, image_list):
+    def test_set_selected_image_should_clear_on_empty_path(self, image_list):
         image_list.set_selected_image("")
         assert image_list.selected_image_path == ""
         image_list.image_list_view.load_pixmap.assert_called_with(None)
 
-    def test_apply_theme(self, image_list):
+    def test_apply_theme_should_propagate_to_view(self, image_list):
         image_list.apply_theme()
         image_list.image_list_view.apply_theme.assert_called_once()

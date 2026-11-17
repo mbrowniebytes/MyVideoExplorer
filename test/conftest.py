@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 from MyVideoExplorer.utils.file_util_model import FileUtilModel

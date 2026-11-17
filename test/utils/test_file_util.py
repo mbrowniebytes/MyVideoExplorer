@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -82,7 +84,10 @@ class TestFileUtil:
         assert selected in {image.as_posix(), poster.as_posix()}
 
     @patch("MyVideoExplorer.utils.file_util.FileUtil._scan_directory")
-    def test_get_images_from_folder(self, _scan_directory, file_util):
+    def test_get_images_from_folder_should_filter_and_order_images(
+        self, _scan_directory, file_util
+    ):
+        # Test basic filtering: images only, video excluded, poster preferred
         _scan_directory.return_value = [
             MockDirEntry(
                 type="file", name="image1.jpg", full_path="/test/image1.jpg", depth=0
@@ -104,8 +109,7 @@ class TestFileUtil:
         assert poster is not None
         assert "folder-poster.png" in poster
 
-    @patch("MyVideoExplorer.utils.file_util.FileUtil._scan_directory")
-    def test_get_images_from_folder_order(self, _scan_directory, file_util):
+        # Test ordering: poster first, then fanart, then others
         _scan_directory.return_value = [
             MockDirEntry(
                 type="file", name="other.jpg", full_path="/test/other.jpg", depth=0
