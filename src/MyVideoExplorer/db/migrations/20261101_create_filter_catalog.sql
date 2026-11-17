@@ -1,4 +1,6 @@
--- Initial schema for filter_catalog.db
+-- @migration
+-- db: filter_catalog
+-- purpose: Initial filter_catalog schema: schema_migrations and media_filters tables
 
 CREATE TABLE IF NOT EXISTS schema_migrations (
     version TEXT PRIMARY KEY,

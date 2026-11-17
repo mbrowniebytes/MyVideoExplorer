@@ -40,6 +40,9 @@ def test_run_migrations_on_fresh_install(tmp_path):
         ("20260930_add_user_tags.sql",),
         ("20261027_normalize_posix_paths.sql",),
         ("20261101_snowflake_ids.sql",),
+        ("20261110_add_file_size.sql",),
+        ("20261110_ffprobe_meta_tables.sql",),
+        ("20261113_remove_ffprobe_foreign_keys.sql",),
     ]
     columns = {
         row[0]
@@ -139,6 +142,7 @@ def test_run_migrations_on_upgrade(tmp_path):
         migration_dir / "20260930_add_user_tags.sql",
     )
     (migration_dir / "20260802_add_upgrade_marker.sql").write_text(
+        "-- @migration\n-- db: media\n-- purpose: Create upgrade marker table\n"
         "CREATE TABLE IF NOT EXISTS media_upgrade_marker (id INTEGER PRIMARY KEY);\n",
         encoding="utf-8",
     )
@@ -336,14 +340,16 @@ def test_filter_catalog_upgrade_adds_manual_sort_fields(tmp_path):
 
     store = DbFilters(SimpleNamespace(media_configs=[]), db_path)
 
-    assert store.get_filter("Existing") == {
-        "name": "Existing",
-        "filters": [],
-        "folder_counts": {},
-        "total_count": None,
-        "sort_option": "default",
-        "needs_rebuild": False,
-    }
+    result = store.get_filter("Existing")
+    assert result["name"] == "Existing"
+    assert result["filters"] == []
+    assert result["folder_counts"] == {}
+    assert result["total_count"] is None
+    assert result["sort_option"] == "default"
+    assert result["needs_rebuild"] is False
+    assert result["is_system"] is False
+    assert result["is_visible"] is True
+    assert result["group_id"] is None
 
 
 def test_manual_refresh_preserves_order_appends_matches_and_reindexes(tmp_path):

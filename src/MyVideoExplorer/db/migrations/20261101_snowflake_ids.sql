@@ -1,4 +1,7 @@
--- Migrate media_file.id from INTEGER (SEQUENCE) to BIGINT (snowflake IDs)
+-- @migration
+-- db: media
+-- purpose: Recreate media_file with BIGINT PK using snowflake IDs
+-- python_pre_step: reassign_snowflake_ids
 -- DuckDB cannot ALTER a PRIMARY KEY column type, so we recreate the table.
 -- The Python migration code (_reassign_to_snowflake_ids) runs first and
 -- populates _id_mapping with snowflake IDs for each old ID.

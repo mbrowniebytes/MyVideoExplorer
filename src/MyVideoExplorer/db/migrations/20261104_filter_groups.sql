@@ -1,4 +1,6 @@
--- Add filter_groups table and extend media_filters with group_id, is_system, is_visible, last_modified
+-- @migration
+-- db: filter_catalog
+-- purpose: Create filter_groups table and add group_id, is_system, is_visible, last_modified columns
 
 CREATE TABLE IF NOT EXISTS filter_groups (
     group_id BIGINT PRIMARY KEY,

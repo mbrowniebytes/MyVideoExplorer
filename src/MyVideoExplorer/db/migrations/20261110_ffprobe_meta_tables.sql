@@ -1,3 +1,7 @@
+-- @migration
+-- db: media
+-- purpose: Create ffprobe metadata tables: media_file_video, media_file_audio, media_file_subtitle
+
 -- media_file_video (per video stream; usually 1 row per file)
 CREATE TABLE IF NOT EXISTS media_file_video (
     id BIGINT PRIMARY KEY,

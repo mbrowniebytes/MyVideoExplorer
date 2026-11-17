@@ -1,2 +1,5 @@
--- Normalize POSIX paths in media_file and media_path_stats tables.
+-- @migration
+-- db: media
+-- purpose: Normalize POSIX path separators and deduplicate rows
+-- python_pre_step: normalize_legacy_paths
 -- The actual path normalization logic runs in Python (DbMigrations._normalize_legacy_paths).

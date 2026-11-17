@@ -1,4 +1,6 @@
--- Initial schema for tag_catalog.db
+-- @migration
+-- db: tag_catalog
+-- purpose: Initial tag_catalog schema: schema_migrations and tags tables
 
 CREATE TABLE IF NOT EXISTS schema_migrations (
     version TEXT PRIMARY KEY,

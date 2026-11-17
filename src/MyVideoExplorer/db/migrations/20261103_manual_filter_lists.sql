@@ -1,3 +1,7 @@
+-- @migration
+-- db: filter_catalog
+-- purpose: Add sort_option, needs_rebuild columns and create filter_manual_list table
+
 ALTER TABLE media_filters
     ADD COLUMN IF NOT EXISTS sort_option VARCHAR DEFAULT 'default';
 

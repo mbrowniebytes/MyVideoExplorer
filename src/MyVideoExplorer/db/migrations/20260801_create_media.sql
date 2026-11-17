@@ -1,3 +1,7 @@
+-- @migration
+-- db: media
+-- purpose: Initial media schema: media_file, media_path_stats, schema_migrations tables
+
 CREATE TABLE IF NOT EXISTS schema_migrations (
     version TEXT PRIMARY KEY,
     applied_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP

@@ -1,4 +1,6 @@
--- Recreate ffprobe meta tables without foreign key constraints to allow UPDATEs on media_file.
+-- @migration
+-- db: media
+-- purpose: Recreate ffprobe tables without FK constraints to allow media_file UPDATEs
 -- DuckDB blocks UPDATEs on parent rows still referenced by foreign keys, even when
 -- the primary key is unchanged.  DuckDB does not support DROP CONSTRAINT for foreign keys,
 -- so the tables must be recreated.  These tables are a dumb data store, so application-

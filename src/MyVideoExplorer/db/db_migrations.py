@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Literal
 
@@ -7,15 +8,6 @@ import duckdb
 
 from MyVideoExplorer.db.db_snowflake_id import SnowflakeIdGenerator
 from MyVideoExplorer.utils.file_util import FileUtils
-
-POSIX_PATH_MIGRATION = "20261027_normalize_posix_paths.sql"
-SNOWFLAKE_ID_MIGRATION = "20261101_snowflake_ids.sql"
-FFPROBE_META_MIGRATION = "20261110_ffprobe_meta_tables.sql"
-FILE_SIZE_MIGRATION = "20261110_add_file_size.sql"
-
-FILTER_SNOWFLAKE_MIGRATION = "20261102_filter_snowflake_ids.sql"
-MANUAL_FILTER_LISTS_MIGRATION = "20261103_manual_filter_lists.sql"
-FILTER_GROUPS_MIGRATION = "20261104_filter_groups.sql"
 
 DbType = Literal["media", "filter_catalog", "tag_catalog"]
 
@@ -32,34 +24,57 @@ class DbMigrations:
     def clear_migrated_cache(cls) -> None:
         cls._migrated_dbs.clear()
 
-    def _migration_prefix(self) -> str:
-        if self.db_type == "filter_catalog":
-            return "20261101_create_filter_catalog"
-        if self.db_type == "tag_catalog":
-            return "20261101_create_tag_catalog"
-        return ""
+    _HEADER_START_RE = re.compile(r"^--\s*@migration\s*$")
+    _HEADER_FIELD_RE = re.compile(r"^--\s+(\w+):\s*(.*)$")
 
-    def _is_migration_for_type(self, migration_name: str) -> bool:
-        if self.db_type == "media":
-            return not migration_name.startswith(
-                (
-                    "20261101_create_filter_catalog",
-                    "20261101_create_tag_catalog",
-                    "20261102_filter_snowflake_ids",
-                    "20261103_manual_filter_lists",
-                    "20261104_filter_groups",
-                )
-            )
-        if self.db_type == "filter_catalog":
-            return migration_name.startswith(
-                (
-                    "20261101_create_filter_catalog",
-                    "20261102_filter_snowflake_ids",
-                    "20261103_manual_filter_lists",
-                    "20261104_filter_groups",
-                )
-            )
-        return migration_name.startswith(self._migration_prefix())
+    @staticmethod
+    def _parse_migration_header(migration_path: Path) -> dict | None:
+        """Parse the Liquibase-style multiline header from a migration SQL file.
+
+        Expects a block like:
+            -- @migration
+            -- db: media
+            -- purpose: Recreate media_file with BIGINT PK
+            -- python_pre_step: reassign_snowflake_ids
+
+        Returns a dict with keys 'db', 'purpose', and optionally 'python_pre_step',
+        or None if the header is missing or invalid.
+        """
+        try:
+            text = migration_path.read_text(encoding="utf-8")
+        except OSError:
+            return None
+
+        header: dict[str, str] = {}
+        in_header = False
+        for line in text.splitlines():
+            stripped = line.strip()
+            if not in_header:
+                if DbMigrations._HEADER_START_RE.match(stripped):
+                    in_header = True
+                continue
+            # Inside the header block: read consecutive -- lines
+            if not stripped.startswith("--"):
+                break  # end of comment block
+            m = DbMigrations._HEADER_FIELD_RE.match(stripped)
+            if m:
+                header[m.group(1)] = m.group(2).strip()
+            elif stripped == "--":
+                break
+        return header if "db" in header and "purpose" in header else None
+
+    def _is_migration_for_type(self, migration_path: Path) -> bool:
+        header = self._parse_migration_header(migration_path)
+        if header is None:
+            return False
+        return header.get("db") == self.db_type
+
+    @staticmethod
+    def _get_python_pre_step(header: dict | None) -> str | None:
+        """Extract the python_pre_step name from a migration header, if present."""
+        if header is None:
+            return None
+        return header.get("python_pre_step")
 
     def run_migrations(self):
         if not str(self.db_path).strip():
@@ -95,25 +110,37 @@ class DbMigrations:
                     ).fetchall()
                 ]
 
-            # Get available migrations (filter by prefix for non-media DBs)
+            # Get available migrations (filter by header comment for target db)
             migration_files = sorted(
-                path.name
+                path
                 for path in self.migrations_dir.iterdir()
-                if path.suffix == ".sql" and self._is_migration_for_type(path.name)
+                if path.suffix == ".sql" and self._is_migration_for_type(path)
             )
 
-            for migration_file in migration_files:
+            # Map python_pre_step names to bound methods
+            _pre_step_dispatch: dict[str, object] = {
+                "normalize_legacy_paths": self._normalize_legacy_paths,
+                "reassign_snowflake_ids": self._reassign_to_snowflake_ids,
+                "reassign_filter_to_snowflake_ids": self._reassign_filter_to_snowflake_ids,
+            }
+
+            for migration_path in migration_files:
+                migration_file = migration_path.name
                 if migration_file not in applied:
                     print(f"Applying migration: {migration_file}")
-                    migration_path = self.migrations_dir / migration_file
+                    header = self._parse_migration_header(migration_path)
+                    pre_step_name = self._get_python_pre_step(header)
+                    if pre_step_name is not None:
+                        method = _pre_step_dispatch.get(pre_step_name)
+                        if method is not None:
+                            method(con)
+                        else:
+                            print(
+                                f"Warning: Unknown python_pre_step '{pre_step_name}' "
+                                f"in migration {migration_file}"
+                            )
                     with migration_path.open(encoding="utf-8") as f:
                         sql = f.read()
-                        if migration_file == POSIX_PATH_MIGRATION:
-                            self._normalize_legacy_paths(con)
-                        elif migration_file == SNOWFLAKE_ID_MIGRATION:
-                            self._reassign_to_snowflake_ids(con)
-                        elif migration_file == FILTER_SNOWFLAKE_MIGRATION:
-                            self._reassign_filter_to_snowflake_ids(con)
                         con.execute(sql)
 
                         con.execute(

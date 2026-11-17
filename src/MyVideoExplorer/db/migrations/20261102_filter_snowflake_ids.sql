@@ -1,4 +1,7 @@
--- Migrate media_filters.filter_id from UUID to BIGINT snowflake IDs
+-- @migration
+-- db: filter_catalog
+-- purpose: Recreate media_filters with BIGINT PK using snowflake IDs
+-- python_pre_step: reassign_filter_to_snowflake_ids
 -- DuckDB cannot ALTER a PRIMARY KEY column type, so we recreate the table.
 -- The Python migration code (_reassign_filter_to_snowflake_ids) runs first
 -- and populates _filter_id_mapping with snowflake IDs.
