@@ -3,7 +3,7 @@
 > **CRITICAL RULE**: NEVER run `git add` or `git commit`.
 
 ## Quick Reference
-- **Stack**: Python 3.14 | PySide6 6.11 | DuckDB | pytest-qt | ruff | ty
+- **Stack**: Python 3.15 | PySide6 6.12 | DuckDB | pytest-qt | ruff | ty
 - **Run App**: `python -m MyVideoExplorer`
 - **Run Tests**: `pytest` (mirrors `src/` in `test/`) | Headless: `$env:QT_QPA_PLATFORM='offscreen'; pytest`
 - **Lint & Format**: `ruff check --fix` && `ruff format`
@@ -19,11 +19,11 @@
     - *media*: Content browsing via `file_list` (table) or `image_list` (grid/posters).
     - *info*: Metadata & `movie.nfo` details (`media_info*`, `tag_cloud`).
     - *settings*: Application preferences (`settings`).
-- **Data & Scanning**: `db/` uses DuckDB for media cataloging, metadata caching, and search filtering.
+- **Data & Scanning**: `db/` uses DuckDB for media cataloging, metadata caching, and search filtering. Saved-filter definitions and cached per-media-folder filtered-folder counts are stored in `db/filter_catalog.db`; Manual-sorted filters additionally store ordered video identities and relative paths. Library scans mark stale manual entries for rebuild, while **Refresh filter** reconciles their list.
 
 ## Key Modules (`src/MyVideoExplorer/`)
 - `app/`: DI container, controller, signal bus, main window.
-- `db/`: DuckDB schemas, repositories, file scanner & query filters.
+- `db/`: DuckDB schemas, repositories, file scanner & query filters. Saved-filter definitions and cached per-media-folder filtered-folder counts are stored in `db/filter_catalog.db`; Manual-sorted filters additionally store ordered video identities and relative paths. Library scans mark stale manual entries for rebuild, while **Refresh filter** reconciles their list.
 - `file_list/`, `image_list/`: Table and thumbnail/poster grid views.
 - `folder_list/`, `folder_nav/`, `folder_filter/`: Folder tree, breadcrumbs, search filtering.
 - `media_info*/`: Metadata panels, sections, sidebars, and tab manager.
@@ -37,7 +37,7 @@
 ## AI Guidelines & Conventions
 - **One class per file**: Snake_case filename, PascalCase class name. Keep classes in dedicated modules.
 - **Imports**: Top-of-file only; no conditional imports; enforce `from __future__ import annotations`.
-- **Paths**: Use `pathlib.Path` (avoid `os.path`).
+- **Paths**: Use `pathlib` for path operations and `utils/file_utils.py` for shared normalization. Keep application, filesystem, UI, and database path strings POSIX-formatted with `/` separators, including on Windows.
 - **Threading**: Run long-running tasks (DB scan/filter, thumbnail gen) off the GUI thread with progress/cancellation.
 - **Decoupling**: Keep UI widgets self-contained; communicate via `AppSignals` or `AppController`.
 - **Test Naming**: `test_{func}_{condition}_should_{expected}`.

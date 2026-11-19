@@ -725,67 +725,118 @@ class DbFilters:
 
     def refresh_filter(self, name: str) -> dict[str, Any]:
         """Refresh cached counts and reconcile the expanded list for Manual filters."""
-        record = self.get_filter(name)
-        if record is None:
-            raise KeyError(f"Saved filter does not exist: {name}")
+        with self._lock:
+            # Read the filter definition and manual items in a single connection
+            with self._connect() as con:
+                row = con.execute(
+                    "SELECT mf.filter_id, mf.name, mf.criteria, mf.folder_counts, "
+                    "mf.total_count, mf.sort_option, mf.needs_rebuild, mf.group_id, "
+                    "mf.is_system, mf.is_visible, mf.last_modified, fg.name "
+                    "FROM media_filters mf "
+                    "LEFT JOIN filter_groups fg ON fg.group_id = mf.group_id "
+                    "WHERE mf.name = ?",
+                    (name,),
+                ).fetchone()
+                if row is None:
+                    raise KeyError(f"Saved filter does not exist: {name}")
 
-        counts = self.db_filter.count_filtered_media_folders(record["filters"])
-        manual_items: list[dict[str, Any]] | None = None
-        if record["sort_option"] == "manual":
-            matches = self.db_filter.matching_videos(record["filters"])
-            existing = self.get_manual_items(name)
-            match_by_identity = {
-                (item["media_folder"].casefold(), int(item["media_id"])): item
-                for item in matches
-            }
-            manual_items = []
-            seen: set[tuple[str, int]] = set()
-            for item in existing:
-                identity = (item["media_folder"].casefold(), int(item["media_id"]))
-                match = match_by_identity.get(identity)
-                if match is None or match["rel_path"] != item["rel_path"]:
-                    continue
-                manual_items.append(match)
-                seen.add(identity)
-            for match in matches:
-                identity = (match["media_folder"].casefold(), int(match["media_id"]))
-                if identity not in seen:
+                filter_id = int(row[0])
+                filters_criteria = json.loads(row[2])
+                sort_option = row[5]
+
+                # Read manual items inline if this is a manual-sorted filter
+                existing_manual: list[dict[str, Any]] | None = None
+                if sort_option == "manual":
+                    mrows = con.execute(
+                        """
+                        SELECT media_folder, media_id, rel_path, status
+                        FROM filter_manual_list
+                        WHERE filter_id = ?
+                        ORDER BY order_index
+                        """,
+                        (filter_id,),
+                    ).fetchall()
+                    existing_manual = [
+                        {
+                            "media_folder": mf,
+                            "media_id": int(mid),
+                            "rel_path": rp,
+                            "status": st,
+                        }
+                        for mf, mid, rp, st in mrows
+                    ]
+
+            # Query media databases outside the lock (different DB files)
+            counts = self.db_filter.count_filtered_media_folders(filters_criteria)
+            manual_items: list[dict[str, Any]] | None = None
+            if sort_option == "manual":
+                matches = self.db_filter.matching_videos(filters_criteria)
+                match_by_identity = {
+                    (item["media_folder"].casefold(), int(item["media_id"])): item
+                    for item in matches
+                }
+                manual_items = []
+                seen: set[tuple[str, int]] = set()
+                for item in existing_manual or []:
+                    identity = (item["media_folder"].casefold(), int(item["media_id"]))
+                    match = match_by_identity.get(identity)
+                    if match is None or match["rel_path"] != item["rel_path"]:
+                        continue
                     manual_items.append(match)
                     seen.add(identity)
+                for match in matches:
+                    identity = (
+                        match["media_folder"].casefold(),
+                        int(match["media_id"]),
+                    )
+                    if identity not in seen:
+                        manual_items.append(match)
+                        seen.add(identity)
 
-        keys = list(counts)
-        values = [counts[key] for key in keys]
-        total = sum(values)
-        with self._connect() as con:
-            con.begin()
-            try:
-                updated = con.execute(
-                    """
-                    UPDATE media_filters
-                    SET folder_counts = map(?::VARCHAR[], ?::BIGINT[]),
-                        total_count = ?,
-                        needs_rebuild = CASE
-                            WHEN sort_option = 'manual' THEN FALSE
-                            ELSE needs_rebuild
-                        END
-                    WHERE name = ?
-                    RETURNING filter_id
-                    """,
-                    (keys, values, total, name),
-                ).fetchone()
-                if updated is not None and manual_items is not None:
-                    self._replace_manual_list(con, int(updated[0]), manual_items)
-                con.commit()
-            except Exception:
-                con.rollback()
-                raise
-        if updated is None:
-            raise KeyError(f"Saved filter does not exist: {name}")
-        logger.debug("Refreshed saved filter %s: %s media folders", name, total)
-        refreshed = self.get_filter(name)
-        if refreshed is None:
-            raise RuntimeError(f"Saved filter disappeared after refresh: {name}")
-        return refreshed
+            # Write back updated counts in a single connection
+            keys = list(counts)
+            values = [counts[key] for key in keys]
+            total = sum(values)
+            with self._connect() as con:
+                con.begin()
+                try:
+                    con.execute(
+                        """
+                        UPDATE media_filters
+                        SET folder_counts = map(?::VARCHAR[], ?::BIGINT[]),
+                            total_count = ?,
+                            needs_rebuild = CASE
+                                WHEN sort_option = 'manual' THEN FALSE
+                                ELSE needs_rebuild
+                            END
+                        WHERE name = ?
+                        """,
+                        (keys, values, total, name),
+                    )
+                    if manual_items is not None:
+                        self._replace_manual_list(con, filter_id, manual_items)
+                    con.commit()
+                except Exception:
+                    con.rollback()
+                    raise
+
+            logger.debug("Refreshed saved filter %s: %s media folders", name, total)
+
+            # Build the return dict from data we already have (no extra connection)
+            folder_counts = dict(counts)
+            return {
+                "name": name,
+                "filters": filters_criteria,
+                "folder_counts": folder_counts,
+                "total_count": total,
+                "sort_option": sort_option,
+                "needs_rebuild": False if sort_option == "manual" else bool(row[6]),
+                "group_id": row[7],
+                "group_name": row[11],
+                "is_system": bool(row[8]),
+                "is_visible": bool(row[9]),
+                "last_modified": row[10],
+            }
 
     # ---- Filter Group management ----
 

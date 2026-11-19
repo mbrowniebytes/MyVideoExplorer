@@ -934,6 +934,11 @@ class SettingsFilterTab(SettingsBaseTab):
         self._set_refresh_button_busy(name, True)
 
     def _on_filter_refreshed(self, name: str) -> None:
+        if self._worker_is_bulk:
+            # Skip load_filters() during bulk refresh to avoid competing connections.
+            # A single reload will happen in _on_filter_refresh_finished().
+            self._update_count_row(name)
+            return
         self.state.load_filters()
         self.state.filter_counts_changed.emit()
         self._update_count_row(name)
@@ -989,6 +994,8 @@ class SettingsFilterTab(SettingsBaseTab):
             self._bulk_progress_bar.setValue(self._bulk_progress_bar.maximum())
             self._bulk_progress_bar.hide()
             self._refresh_all_btn.setEnabled(True)
+            # Reload all filters once after bulk refresh completes
+            self.state.load_filters()
         self._refresh_all_btn.setIcon(
             APP_THEME.icon("fa6s.arrows-rotate", color=APP_THEME.text_color)
         )

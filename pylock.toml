@@ -3,14 +3,25 @@ created-by = "pip"
 
 [[packages]]
 name = "duckdb"
-version = "1.5.5"
+version = "2.0.0"
 
 [[packages.wheels]]
-name = "duckdb-1.5.5-cp314-cp314-win_amd64.whl"
-url = "https://files.pythonhosted.org/packages/91/41/fc7c829172c60ca22485251eab285f4f1a0d87b486a024c726f21471d86e/duckdb-1.5.5-cp314-cp314-win_amd64.whl"
+name = "duckdb-2.0.0-cp312-abi3-win_amd64.whl"
+url = "https://files.pythonhosted.org/packages/09/d3/9e8ca1242b98f04041bef09686ecfe098b41f820aa23240f63f360b64eaf/duckdb-2.0.0-cp312-abi3-win_amd64.whl"
 
 [packages.wheels.hashes]
-sha256 = "9dc826c4b50e64f6c4e4d07a3a9cb075ef70ba3899dc43ec5493dc3d7b04b353"
+sha256 = "f61c96547ed432f54dae42a717fd88563eda55cb47549715fac9f61f770c205a"
+
+[[packages]]
+name = "msgspec"
+version = "0.22.0"
+
+[[packages.wheels]]
+name = "msgspec-0.22.0-cp315-cp315-win_amd64.whl"
+url = "https://files.pythonhosted.org/packages/bb/37/9cf650779c8c1e53291ef184c838703930a4cabb1fb37e222c85a7d49fa9/msgspec-0.22.0-cp315-cp315-win_amd64.whl"
+
+[packages.wheels.hashes]
+sha256 = "0067057df265795f742658b15dbe53f3b6f21d19dcfa53676db11088cfa41e0a"
 
 [[packages]]
 name = "myvideoexplorer"
@@ -43,47 +54,69 @@ sha256 = "eb7e81434c8d223ec4a219b5fc1c47d0417b12be7ea866e24fb5ad6e84b3d988"
 
 [[packages]]
 name = "pyside6"
-version = "6.11.2"
+version = "6.12.0"
 
 [[packages.wheels]]
-name = "pyside6-6.11.2-cp310-abi3-win_amd64.whl"
-url = "https://files.pythonhosted.org/packages/94/fe/4aea9d30300fff4cda9bb729c1363b9e1095a8544e0d6b57065465e16599/pyside6-6.11.2-cp310-abi3-win_amd64.whl"
+name = "pyside6-6.12.0-cp310-abi3-win_amd64.whl"
+url = "https://files.pythonhosted.org/packages/a1/da/8e8514fc29ea916c3cd71a524480b77409e19ed12d709e8a5d73be089b81/pyside6-6.12.0-cp310-abi3-win_amd64.whl"
 
 [packages.wheels.hashes]
-sha256 = "3201d67e3c10be2eaedd3910ff0f02351eca7e88c95a291cde5e7f2f55ef207f"
+sha256 = "31a8d2893f2f28ab483b1534dde0438f27af6e234593de30425cb4729052d8f8"
 
 [[packages]]
 name = "pyside6-addons"
-version = "6.11.2"
+version = "6.12.0"
 
 [[packages.wheels]]
-name = "pyside6_addons-6.11.2-cp310-abi3-win_amd64.whl"
-url = "https://files.pythonhosted.org/packages/fb/c1/08bf6594101b42fc88834009f1dac59a983c5b6805c62c5081f077d09b4a/pyside6_addons-6.11.2-cp310-abi3-win_amd64.whl"
+name = "pyside6_addons-6.12.0-cp310-abi3-win_amd64.whl"
+url = "https://files.pythonhosted.org/packages/02/41/ba3d52fe2acd942ebf71eb02b3bdf0897f7f6f4ce8f52289cb50228e48d3/pyside6_addons-6.12.0-cp310-abi3-win_amd64.whl"
 
 [packages.wheels.hashes]
-sha256 = "f449ea4431da20e7b86752cca8d166f93434516fe417f981c27e5f8e1b554407"
+sha256 = "98d8d62010da6605344cee83e5c96fb846170a1f2d924523f10f5d92078b02b0"
 
 [[packages]]
 name = "pyside6-essentials"
-version = "6.11.2"
+version = "6.12.0"
 
 [[packages.wheels]]
-name = "pyside6_essentials-6.11.2-cp310-abi3-win_amd64.whl"
-url = "https://files.pythonhosted.org/packages/dc/09/d2662684aee4d3f027ff9b1e965f22301bc28ffc5b7f167658508e4475dc/pyside6_essentials-6.11.2-cp310-abi3-win_amd64.whl"
+name = "pyside6_essentials-6.12.0-cp310-abi3-win_amd64.whl"
+url = "https://files.pythonhosted.org/packages/03/61/9a7e32a37b224f68506785bfb0f288d516098ec71681782d72b695a6c95d/pyside6_essentials-6.12.0-cp310-abi3-win_amd64.whl"
 
 [packages.wheels.hashes]
-sha256 = "c8a29def77032773a30879f7f24415b5395ad08592d147c170824ef4c735dfc1"
+sha256 = "c9a95102aa23c1f86516a30d5a9be37552d324eee7e567eb7508973f1218cb42"
+
+[[packages]]
+name = "pyside6-pdf"
+version = "6.12.0.140"
+
+[[packages.wheels]]
+name = "pyside6_pdf-6.12.0.140-cp310-abi3-win_amd64.whl"
+url = "https://files.pythonhosted.org/packages/0e/8a/3f5eab9eb9e6486f0334b100322bbd0aff432dd90ad7977a3910979a163f/pyside6_pdf-6.12.0.140-cp310-abi3-win_amd64.whl"
+
+[packages.wheels.hashes]
+sha256 = "4971ba1a0ca15e7c29cfd808e9600aeb46b2305dad01456eb09fa3197166268e"
+
+[[packages]]
+name = "pyside6-webengine"
+version = "6.12.0.140"
+
+[[packages.wheels]]
+name = "pyside6_webengine-6.12.0.140-cp310-abi3-win_amd64.whl"
+url = "https://files.pythonhosted.org/packages/21/0d/260c7c286f2d4e8a49c099152a385414a872f022117f937824ca0a3f38e5/pyside6_webengine-6.12.0.140-cp310-abi3-win_amd64.whl"
+
+[packages.wheels.hashes]
+sha256 = "f9b61b1d457a591ee590a6b80515f25a3e61e2576a2a0a70566380f9d9de4ab0"
 
 [[packages]]
 name = "pytz"
-version = "2026.3.post1"
+version = "2026.6"
 
 [[packages.wheels]]
-name = "pytz-2026.3.post1-py2.py3-none-any.whl"
-url = "https://files.pythonhosted.org/packages/0f/7b/39c34ca613b0b198cb866466651b26b045e2009864c5183c979a3b83f383/pytz-2026.3.post1-py2.py3-none-any.whl"
+name = "pytz-2026.6-py2.py3-none-any.whl"
+url = "https://files.pythonhosted.org/packages/b6/25/564f3fc5b70c1398d706c51f2b1470d0ea0b1b2f96fee67877b6f5bdf3b6/pytz-2026.6-py2.py3-none-any.whl"
 
 [packages.wheels.hashes]
-sha256 = "dd95840dd199baea12d9cc096a1d452caa6596a1c1e4b5f3dbd1541855d5e815"
+sha256 = "7fed3fee8fd6bd4a2b7b75a8d56021d0624127bf69bd5691f115db929ac570b3"
 
 [[packages]]
 name = "qtawesome"
@@ -108,12 +141,23 @@ url = "https://files.pythonhosted.org/packages/69/76/37c0ccd5ab968a6a438f9c623ae
 sha256 = "72095afe13673e017946cc258b8d5da43314197b741ed2890e563cf384b51aa1"
 
 [[packages]]
-name = "shiboken6"
-version = "6.11.2"
+name = "rapidfuzz"
+version = "3.14.6"
 
 [[packages.wheels]]
-name = "shiboken6-6.11.2-cp310-abi3-win_amd64.whl"
-url = "https://files.pythonhosted.org/packages/ce/6b/fee1b4814317e4664e318644c9c007676c65a71e5b2b9d3ac4121a94dc0a/shiboken6-6.11.2-cp310-abi3-win_amd64.whl"
+name = "rapidfuzz-3.14.6-cp315-cp315-win_amd64.whl"
+url = "https://files.pythonhosted.org/packages/51/42/640e1bd16422392fbb6394def1f7dfd4d05bd13c986016ce4b3f91295430/rapidfuzz-3.14.6-cp315-cp315-win_amd64.whl"
 
 [packages.wheels.hashes]
-sha256 = "6ab0eba1c904455df621f9a6df3ca2bb896bab8670572d2bc4e37804ae91f19a"
+sha256 = "d4c5adb921b67dd79ffc0a14f92b9f8df3d012e66aab340b154ed87014229d93"
+
+[[packages]]
+name = "shiboken6"
+version = "6.12.0"
+
+[[packages.wheels]]
+name = "shiboken6-6.12.0-cp310-abi3-win_amd64.whl"
+url = "https://files.pythonhosted.org/packages/2a/b6/bee97e7a2edeab72aafabb46ee5adc939790a638d107860b4cad7a20e407/shiboken6-6.12.0-cp310-abi3-win_amd64.whl"
+
+[packages.wheels.hashes]
+sha256 = "a1906cb8116869178c64b6bab52623bbc8b4ceed7b30bfc3c9aa0f6e67f6438e"

@@ -3,7 +3,7 @@
 > **CRITICAL RULE**: NEVER run `git add` or `git commit`.
 
 ## Quick Reference
-- **Stack**: Python 3.14 | PySide6 6.11 | DuckDB | pytest-qt | ruff | ty
+- **Stack**: Python 3.15 | PySide6 6.12 | DuckDB | pytest-qt | ruff | ty
 - **Run App**: `python -m MyVideoExplorer`
 - **Run Tests**: `pytest` (mirrors `src/` in `test/`) | Headless: `$env:QT_QPA_PLATFORM='offscreen'; pytest`
 - **Lint & Format**: `ruff check --fix` && `ruff format`

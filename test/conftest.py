@@ -5,6 +5,16 @@ import pytest
 from MyVideoExplorer.utils.file_util_model import FileUtilModel
 
 
+def pytest_configure(config: pytest.Config) -> None:
+    """Force lazy imports in asyncio to resolve before tests run.
+
+    Python 3.15 uses lazy imports for concurrent.futures.ThreadPoolExecutor
+    in asyncio's event loop. Without this, asyncio.to_thread() fails with
+    "'lazy_import' object is not callable" during test execution.
+    """
+    import concurrent.futures  # noqa: F401 — forces lazy import resolution
+
+
 def pytest_addoption(parser) -> None:
     """Add custom command-line options."""
     parser.addoption(

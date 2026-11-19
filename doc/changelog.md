@@ -6,9 +6,11 @@
 
 -settings
   - filters
-    - fix import
+    - fix import filters
+    - fix refresh all filters
 - internal:
   - add json msgspec for faster, better defined import/export
+  - update to python 3.15, pyside6 6.12, duckdb 2.0, and other packages
 
 release - [MyVideoExplorer-20261200-0.009](https://github.com/mbrowniebytes/MyVideoExplorer/releases/tag/20261200-0.009)
 

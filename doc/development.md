@@ -1,7 +1,7 @@
 ## Development
 
-python 3.14  
-pyside 6.11
+python 3.15  
+pyside 6.12
 
 tip: ! update your .gitconfig !  
 [use your noreply github email](https://docs.github.com/en/account-and-profile/reference/email-addresses-reference)   
@@ -17,7 +17,7 @@ tip: ! update your .gitconfig !
 	autocrlf = input
 ```
 
-### install python 3.14+
+### install python 3.15+
 
 install [python for windows](https://www.python.org/downloads/windows/)
 
@@ -33,7 +33,7 @@ recommended ide [PyCharm](https://www.jetbrains.com/pycharm/)
 ### initialize a python env
 
 using [venv](https://pythonguides.com/virtual-environments-python/)
-> py -3.14 -m venv .venv
+> py -3.15 -m venv .venv
 
 ### activate env
 
