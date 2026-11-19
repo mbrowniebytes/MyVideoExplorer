@@ -32,10 +32,11 @@ from MyVideoExplorer.app.app_version import (
 from MyVideoExplorer.app.app_version import (
     format_version_for_display,
 )
-from MyVideoExplorer.db.db_filters import FILTER_SORT_OPTIONS, DbFilters
+from MyVideoExplorer.db.db_filters import DbFilters
 from MyVideoExplorer.folder_filter.folder_filter_table import FolderFilterTable
 from MyVideoExplorer.lang.lang_en import LangEn
 from MyVideoExplorer.media_nav_search.filter_criteria_dialog import FilterCriteriaDialog
+from MyVideoExplorer.settings.export_schemas import FilterExportPayload
 from MyVideoExplorer.settings.filter_refresh_worker import FilterRefreshWorker
 from MyVideoExplorer.settings.filter_scan_worker import FilterScanWorker
 from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
@@ -1320,7 +1321,7 @@ class SettingsFilterTab(SettingsBaseTab):
         if not file_path:
             return
         self._set_export_import_enabled(False)
-        worker = SettingsImportWorker(Path(file_path), self._validate_import_data)
+        worker = SettingsImportWorker(Path(file_path), FilterExportPayload)
         self._import_worker = worker
         worker.progress.connect(self._on_import_progress)
         worker.data_ready.connect(self._on_import_data_ready)
@@ -1328,44 +1329,13 @@ class SettingsFilterTab(SettingsBaseTab):
         worker.finished.connect(self._on_import_finished)
         worker.start()
 
-    def _validate_import_data(self, data: dict[str, Any]) -> list[str]:
-        """Validate the structure of imported filter data."""
-        errors: list[str] = []
-        if not isinstance(data, dict):
-            return ["Import file must contain a JSON object."]
-        filters = data.get("filters")
-        if not isinstance(filters, list):
-            return ["Import file must contain a 'filters' array."]
-        for idx, f in enumerate(filters):
-            prefix = f"Filter {idx + 1}"
-            name = f.get("name")
-            if not name or not isinstance(name, str) or not name.strip():
-                errors.append(f"{prefix}: missing or empty 'name'.")
-            criteria = f.get("filters")
-            if not isinstance(criteria, list) or not criteria:
-                errors.append(f"{prefix}: missing or empty 'filters' array.")
-            sort_option = f.get("sort_option")
-            if sort_option not in FILTER_SORT_OPTIONS:
-                errors.append(
-                    f"{prefix}: invalid 'sort_option' '{sort_option}'. "
-                    f"Must be one of: {', '.join(sorted(FILTER_SORT_OPTIONS))}."
-                )
-            if "manual_items" in f:
-                items = f["manual_items"]
-                if not isinstance(items, list):
-                    errors.append(f"{prefix}: 'manual_items' must be an array.")
-        return errors
-
     def _on_import_progress(self, current: int, total: int, label: str) -> None:
         self._bulk_progress_bar.show()
         self._bulk_progress_bar.setMaximum(total)
         self._bulk_progress_bar.setValue(current)
 
-    def _on_import_data_ready(self, data: dict[str, Any]) -> None:
+    def _on_import_data_ready(self, data: FilterExportPayload) -> None:
         """Apply the validated import data to the filter store."""
-        groups_data = data.get("groups", [])
-        filters_data = data.get("filters", [])
-
         # Build a name -> group_id map for existing groups
         existing_groups = self.state.filter_store.list_groups()
         group_map: dict[str, int] = {
@@ -1373,8 +1343,8 @@ class SettingsFilterTab(SettingsBaseTab):
         }
 
         # Create missing groups
-        for g in groups_data:
-            gname = g.get("name", "")
+        for g in data.groups:
+            gname = g.name
             if gname and gname.casefold() not in group_map:
                 try:
                     gid = self.state.filter_store.create_group(gname)
@@ -1382,32 +1352,45 @@ class SettingsFilterTab(SettingsBaseTab):
                 except ValueError:
                     pass
 
-        # Import each filter
-        for f in filters_data:
-            name = f.get("name", "").strip()
-            if not name:
-                continue
-            criteria = f.get("filters", [])
-            sort_option = f.get("sort_option", "default")
-            group_name = f.get("group_name", "")
-            is_visible = f.get("is_visible", True)
+        # Import each filter — defer signal emission until all filters are saved
+        self.state._defer_filters_changed = True
+        try:
+            for f in data.filters:
+                name = f.name.strip()
+                if not name:
+                    continue
+                group_id = None
+                if f.group_name:
+                    group_id = group_map.get(f.group_name.casefold())
 
-            group_id = None
-            if group_name:
-                group_id = group_map.get(group_name.casefold())
-
-            manual_items = f.get("manual_items")
-            try:
-                self.state.filter_store.save_filter(
-                    name=name,
-                    criteria=criteria,
-                    sort_option=sort_option,
-                    manual_items=manual_items,
-                    group_id=group_id,
-                    is_visible=is_visible,
-                )
-            except ValueError:
-                pass
+                manual_items_dicts: list[dict[str, Any]] | None = None
+                if f.manual_items is not None:
+                    manual_items_dicts = [
+                        {
+                            "order_index": mi.order_index,
+                            "media_folder": mi.media_folder,
+                            "rel_path": mi.rel_path,
+                        }
+                        for mi in f.manual_items
+                    ]
+                    # Resolve media_id from media_folder and rel_path in the target database
+                    manual_items_dicts = self.state.filter_store.resolve_manual_items(
+                        manual_items_dicts
+                    )
+                try:
+                    self.state.save_filter(
+                        name=name,
+                        filter_cfg=f.filters,
+                        sort_option=f.sort_option,
+                        manual_items=manual_items_dicts,
+                        group_id=group_id,
+                        is_visible=f.is_visible,
+                    )
+                except ValueError as exc:
+                    logger.warning("Failed to import filter '%s': %s", name, exc)
+        finally:
+            self.state._defer_filters_changed = False
+            self.state._emit_filters_changed()
 
         self._refresh_filter_list()
 

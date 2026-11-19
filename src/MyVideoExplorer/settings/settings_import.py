@@ -1,22 +1,22 @@
 from __future__ import annotations
 
-import json
 import logging
-from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import TypeVar
 
+import msgspec
 from PySide6.QtCore import QThread, Signal
 
 logger = logging.getLogger(__name__)
+
+T = TypeVar("T", bound=msgspec.Struct)
 
 
 class SettingsImportWorker(QThread):
     """Import settings data from a JSON file without blocking the GUI thread.
 
-    Reads and parses a JSON file, then validates it using a caller-provided
-    validation callback. Emits the parsed data on success for the caller to
-    process.
+    Reads and parses a JSON file, then validates it using msgspec schema-based
+    decoding. Emits the parsed data on success for the caller to process.
     """
 
     progress = Signal(int, int, str)
@@ -28,11 +28,11 @@ class SettingsImportWorker(QThread):
     def __init__(
         self,
         file_path: Path,
-        validate: Callable[[dict[str, Any]], list[str]],
+        decode_type: type[T],
     ) -> None:
         super().__init__()
         self._file_path = file_path
-        self._validate = validate
+        self._decode_type = decode_type
 
     def run(self) -> None:
         try:
@@ -40,18 +40,12 @@ class SettingsImportWorker(QThread):
             if not self._file_path.exists():
                 self.failed.emit(f"File not found: {self._file_path.name}")
                 return
-            raw = self._file_path.read_text(encoding="utf-8")
+            raw = self._file_path.read_bytes()
             self.progress.emit(1, 2, "Parsing JSON...")
             try:
-                data = json.loads(raw)
-            except json.JSONDecodeError as exc:
-                self.failed.emit(f"Invalid JSON: {exc}")
-                return
-
-            self.progress.emit(1, 2, "Validating...")
-            errors = self._validate(data)
-            if errors:
-                self.failed.emit("\n".join(errors))
+                data = msgspec.json.decode(raw, type=self._decode_type)
+            except msgspec.DecodeError as exc:
+                self.failed.emit(f"Invalid data format: {exc}")
                 return
 
             self.validated.emit(1)

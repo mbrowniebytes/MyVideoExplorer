@@ -31,6 +31,7 @@ from MyVideoExplorer.app.app_version import (
 )
 from MyVideoExplorer.compare.compare_tab import CompareTab
 from MyVideoExplorer.lang.lang_en import LangEn
+from MyVideoExplorer.settings.export_schemas import MediaExportPayload
 from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
 from MyVideoExplorer.settings.settings_export import SettingsExportWorker
 from MyVideoExplorer.settings.settings_import import SettingsImportWorker
@@ -329,7 +330,7 @@ class SettingsMediaTab(SettingsBaseTab):
         if not file_path:
             return
         self._set_export_import_enabled(False)
-        worker = SettingsImportWorker(Path(file_path), self._validate_import_data)
+        worker = SettingsImportWorker(Path(file_path), MediaExportPayload)
         self._import_worker = worker
         worker.progress.connect(self._on_import_progress)
         worker.data_ready.connect(self._on_import_data_ready)
@@ -337,59 +338,30 @@ class SettingsMediaTab(SettingsBaseTab):
         worker.finished.connect(self._on_import_finished)
         worker.start()
 
-    def _validate_import_data(self, data: dict[str, Any]) -> list[str]:
-        """Validate the structure of imported media settings data."""
-        errors: list[str] = []
-        if not isinstance(data, dict):
-            return ["Import file must contain a JSON object."]
-        media_configs = data.get("media_configs")
-        if not isinstance(media_configs, list):
-            return ["Import file must contain a 'media_configs' array."]
-        seen_labels: set[str] = set()
-        for idx, cfg in enumerate(media_configs):
-            prefix = f"Media config {idx + 1}"
-            if not isinstance(cfg, dict):
-                errors.append(f"{prefix}: must be a JSON object.")
-                continue
-            label = cfg.get("label")
-            if not label or not isinstance(label, str) or not label.strip():
-                errors.append(f"{prefix}: missing or empty 'label'.")
-            else:
-                key = label.strip().casefold()
-                if key in seen_labels:
-                    errors.append(f"{prefix}: duplicate label '{label.strip()}'.")
-                seen_labels.add(key)
-            path = cfg.get("path")
-            if not path or not isinstance(path, str) or not path.strip():
-                errors.append(f"{prefix}: missing or empty 'path'.")
-        db_enabled = data.get("db_enabled")
-        if db_enabled is not None and not isinstance(db_enabled, bool):
-            errors.append("'db_enabled' must be a boolean value.")
-        return errors
-
     def _on_import_progress(self, current: int, total: int, label: str) -> None:
         self._show_progress(current, total)
 
-    def _on_import_data_ready(self, data: dict[str, Any]) -> None:
+    def _on_import_data_ready(self, data: MediaExportPayload) -> None:
         """Apply the validated import data to the media settings."""
-        media_configs = data.get("media_configs", [])
+        # Convert struct items back to dicts for state storage
+        media_configs = [
+            {
+                "label": cfg.label,
+                "path": cfg.path,
+                "icon": cfg.icon,
+                "media_type": cfg.media_type,
+            }
+            for cfg in data.media_configs
+        ]
         self.state.media_configs = media_configs
         self.state._normalize_media_config_paths()
-        # Ensure each config has an icon
-        for config in self.state.media_configs:
-            if "icon" not in config:
-                config["icon"] = "fa6s.folder"
-            if "media_type" not in config:
-                config["media_type"] = "movie"
 
-        db_enabled = data.get("db_enabled")
-        if isinstance(db_enabled, bool):
-            self.state._db_enabled = db_enabled
-            self.db_enabled_dropdown.setCurrentText(
-                self.lang.ui.settings.media.yes
-                if db_enabled
-                else self.lang.ui.settings.media.no
-            )
+        self.state._db_enabled = data.db_enabled
+        self.db_enabled_dropdown.setCurrentText(
+            self.lang.ui.settings.media.yes
+            if data.db_enabled
+            else self.lang.ui.settings.media.no
+        )
 
         self._refresh_folder_nav_settings()
         self.refresh_scan_targets()

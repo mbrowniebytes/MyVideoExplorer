@@ -2,6 +2,16 @@
 
 ---
 
+### 2026-12-00
+
+-settings
+  - filters
+    - fix import
+- internal:
+  - add json msgspec for faster, better defined import/export
+
+release - [MyVideoExplorer-20261200-0.009](https://github.com/mbrowniebytes/MyVideoExplorer/releases/tag/20261200-0.009)
+
 ### 2026-11-16
 
 - folder nav

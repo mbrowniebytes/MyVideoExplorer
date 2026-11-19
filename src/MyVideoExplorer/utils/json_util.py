@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import datetime as dt
-import json
 import os
 import shutil
 from pathlib import Path
 from typing import Any
+
+import msgspec
 
 from MyVideoExplorer.utils.log_util import LogUtil
 
@@ -33,10 +36,10 @@ class JsonUtil:
         if not file_path.exists():
             return {}
         try:
-            with file_path.open(encoding=self.DEFAULT_ENCODING) as f:
-                data: Any = json.load(f)
-                return data
-        except (OSError, json.JSONDecodeError) as e:
+            raw = file_path.read_bytes()
+            data: dict[str, Any] = msgspec.json.decode(raw, type=dict)
+            return data
+        except (OSError, msgspec.DecodeError) as e:
             self.log_util.error(f"Failed to load {file_path}: {e}")
             return {}
 
@@ -45,10 +48,9 @@ class JsonUtil:
         try:
             file_path.parent.mkdir(parents=True, exist_ok=True)
             temp_path = file_path.parent / f".{file_path.name}.{os.getpid()}.tmp"
-            with temp_path.open("w", encoding=self.DEFAULT_ENCODING) as f:
-                json.dump(data, f, indent=self.DEFAULT_INDENT)
-                f.flush()
-                os.fsync(f.fileno())
+            raw = msgspec.json.encode(data)
+            formatted = msgspec.json.format(raw, indent=self.DEFAULT_INDENT)
+            temp_path.write_bytes(formatted)
             temp_path.replace(file_path)
         except OSError as e:
             self.log_util.error(f"Failed to save {file_path}: {e}")

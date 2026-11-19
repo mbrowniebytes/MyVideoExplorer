@@ -77,6 +77,7 @@ class SettingsState(QObject):
         self.ffmpeg_path = ""
         self.saved_filters: list[dict[str, Any]] = []
         self._load_settings()
+        self._defer_filters_changed = False
         self.filter_store = DbFilters(
             self,
             db_path=filter_db_path or DEFAULT_FILTER_DB_PATH,
@@ -554,7 +555,8 @@ class SettingsState(QObject):
             is_visible=is_visible,
         )
         self.saved_filters = self.filter_store.list_filters()
-        self._emit_filters_changed()
+        if not self._defer_filters_changed:
+            self._emit_filters_changed()
 
     def delete_filter(self, name: str) -> None:
         """Delete a named filter configuration from the catalog."""

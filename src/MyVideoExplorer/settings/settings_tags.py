@@ -13,6 +13,7 @@ from MyVideoExplorer.app.app_version import (
 )
 from MyVideoExplorer.db.db_tags import DbTags
 from MyVideoExplorer.lang.lang_en import LangEn
+from MyVideoExplorer.settings.export_schemas import TagsExportPayload
 from MyVideoExplorer.settings.settings_base_tab import SettingsBaseTab
 from MyVideoExplorer.settings.settings_export import SettingsExportWorker
 from MyVideoExplorer.settings.settings_import import SettingsImportWorker
@@ -133,7 +134,7 @@ class SettingsTagsTab(SettingsBaseTab):
         if not file_path:
             return
         self._set_export_import_enabled(False)
-        worker = SettingsImportWorker(Path(file_path), self._validate_import_data)
+        worker = SettingsImportWorker(Path(file_path), TagsExportPayload)
         self._import_worker = worker
         worker.progress.connect(self._on_import_progress)
         worker.data_ready.connect(self._on_import_data_ready)
@@ -141,37 +142,12 @@ class SettingsTagsTab(SettingsBaseTab):
         worker.finished.connect(self._on_import_finished)
         worker.start()
 
-    def _validate_import_data(self, data: dict[str, Any]) -> list[str]:
-        """Validate the structure of imported tag data."""
-        errors: list[str] = []
-        if not isinstance(data, dict):
-            return ["Import file must contain a JSON object."]
-        tags = data.get("tags")
-        if not isinstance(tags, list):
-            return ["Import file must contain a 'tags' array."]
-        seen: set[str] = set()
-        for idx, t in enumerate(tags):
-            prefix = f"Tag {idx + 1}"
-            name = t.get("tag")
-            if not name or not isinstance(name, str) or not name.strip():
-                errors.append(f"{prefix}: missing or empty 'tag'.")
-                continue
-            key = name.strip().casefold()
-            if key in seen:
-                errors.append(f"{prefix}: duplicate tag name '{name.strip()}'.")
-            seen.add(key)
-            color = t.get("color")
-            if color is not None:
-                if not isinstance(color, str) or not color.strip():
-                    errors.append(f"{prefix}: invalid 'color' value.")
-        return errors
-
     def _on_import_progress(self, current: int, total: int, label: str) -> None:
         self._show_progress(current, total)
 
-    def _on_import_data_ready(self, data: dict[str, Any]) -> None:
+    def _on_import_data_ready(self, data: TagsExportPayload) -> None:
         """Apply the validated import data to the tag store."""
-        tags_data = data.get("tags", [])
+        tags_data = [{"tag": t.tag, "color": t.color} for t in data.tags]
         if self.tag_store is not None:
             self._import_to_store(tags_data, self.tag_store)
         else:

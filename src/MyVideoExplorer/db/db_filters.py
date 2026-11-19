@@ -88,20 +88,31 @@ class DbFilters:
             rel_path = FileUtils.normalize_path(str(item.get("rel_path", "")))
             media_id = item.get("media_id")
             status = str(item.get("status", "exists"))
-            if (
-                not media_folder
-                or not rel_path
-                or media_id is None
-                or status not in {"exists", "missing"}
-            ):
-                raise ValueError("Manual filter entries require valid identity data.")
+            if not media_folder or not rel_path:
+                raise ValueError(
+                    "Manual filter entries require media_folder and rel_path."
+                )
+            if status not in {"exists", "missing"}:
+                raise ValueError(f"Invalid manual filter entry status: {status}")
+            # media_id may be None for entries imported from older exports;
+            # store 0 as a placeholder — the entry will be resolved on next refresh
+            effective_media_id = int(media_id) if media_id is not None else 0
+            if media_id is None:
+                status = "missing"
             con.execute(
                 """
                 INSERT INTO filter_manual_list
                     (filter_id, order_index, media_folder, media_id, rel_path, status)
                 VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                (filter_id, order_index, media_folder, int(media_id), rel_path, status),
+                (
+                    filter_id,
+                    order_index,
+                    media_folder,
+                    effective_media_id,
+                    rel_path,
+                    status,
+                ),
             )
 
     def _replace_all(
@@ -283,6 +294,10 @@ class DbFilters:
                 # Exclude the original name if this is a rename operation
                 if original_name is not None:
                     existing_lower.discard(original_name.casefold())
+                # Exclude the current name if the filter already exists with this name
+                # (e.g. during import, or when saving without a rename)
+                if old is not None:
+                    existing_lower.discard(old_name.casefold())
                 if name.casefold() in existing_lower:
                     raise ValueError(
                         f"A filter with the name '{name}' already exists. "
@@ -337,6 +352,8 @@ class DbFilters:
                                 old_filter_id,
                             ),
                         )
+                    # Always update manual_items when provided for manual sort filters,
+                    # even if criteria are unchanged (e.g. during import)
                     if manual_items is not None and sort_option == "manual":
                         self._replace_manual_list(con, int(old_filter_id), manual_items)
                         con.execute(
@@ -472,6 +489,107 @@ class DbFilters:
             }
             for media_folder, media_id, rel_path, status in rows
         ]
+
+    def resolve_manual_items(self, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Resolve media_id for imported manual items using media_folder and rel_path.
+
+        Looks up each item's media_id from the corresponding media database.
+        If a file is not found, media_id defaults to 0 and status is set to 'missing'.
+        """
+        if not items:
+            return items
+
+        # Group items by media_folder so we can query each media database once
+        items_by_folder: dict[str, list[dict[str, Any]]] = {}
+        for item in items:
+            folder = self.path_utils.normalize_path(
+                str(item.get("media_folder", "")).strip()
+            )
+            if folder:
+                items_by_folder.setdefault(folder, []).append(item)
+
+        resolved_items: list[dict[str, Any]] = []
+        for folder, folder_items in items_by_folder.items():
+            # Find the matching media config and database
+            root = folder.casefold()
+            configs = [
+                config
+                for config in (getattr(self.settings_state, "media_configs", []) or [])
+                if self.path_utils.normalize_path(
+                    str(config.get("path", ""))
+                ).casefold()
+                == root
+            ]
+            if not configs:
+                logger.warning(
+                    "No configured media folder matches: %s — manual items will be marked missing",
+                    folder,
+                )
+                for item in folder_items:
+                    item["media_id"] = 0
+                    item["status"] = "missing"
+                resolved_items.extend(folder_items)
+                continue
+
+            db_path = self.settings_state.get_db_path(configs[0])
+            normalized_db_path = self.path_utils.normalize_path(db_path)
+            if not Path(normalized_db_path).is_file():
+                logger.warning(
+                    "Media database does not exist: %s — manual items will be marked missing",
+                    normalized_db_path,
+                )
+                for item in folder_items:
+                    item["media_id"] = 0
+                    item["status"] = "missing"
+                resolved_items.extend(folder_items)
+                continue
+
+            # Build full file paths and query the media database
+            file_paths: list[str] = []
+            for item in folder_items:
+                rel_path = self.path_utils.normalize_path(
+                    str(item.get("rel_path", "")).strip()
+                )
+                full_path = self.path_utils.normalize_path(
+                    f"{folder}/{rel_path.lstrip('/')}"
+                )
+                file_paths.append(full_path)
+
+            with duckdb.connect(normalized_db_path) as media_con:
+                resolved_rows = media_con.execute(
+                    """
+                    SELECT id, file_path
+                    FROM media_file
+                    WHERE lower(file_path) IN (
+                        SELECT lower(unnest(?::VARCHAR[]))
+                    )
+                    """,
+                    (file_paths,),
+                ).fetchall()
+
+            resolved_map = {
+                self.path_utils.normalize_path(file_path).casefold(): int(media_id)
+                for media_id, file_path in resolved_rows
+            }
+
+            for item in folder_items:
+                rel_path = self.path_utils.normalize_path(
+                    str(item.get("rel_path", "")).strip()
+                )
+                full_path = self.path_utils.normalize_path(
+                    f"{folder}/{rel_path.lstrip('/')}"
+                )
+                media_id = resolved_map.get(full_path.casefold())
+                if media_id is not None:
+                    item["media_id"] = media_id
+                    item["status"] = "exists"
+                else:
+                    item["media_id"] = 0
+                    item["status"] = "missing"
+
+            resolved_items.extend(folder_items)
+
+        return resolved_items
 
     def mark_manual_items_stale(self, media_folder: str) -> list[str]:
         """Mark manual entries missing when a scan removed or replaced their media ID."""

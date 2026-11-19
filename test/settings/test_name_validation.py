@@ -184,3 +184,31 @@ def test_save_filter_rejects_name_with_quotes(tmp_path):
         assert False, "Expected ValueError"
     except ValueError as exc:
         assert "Name may only contain" in str(exc)
+
+
+def test_save_filter_without_original_name_should_update_existing(tmp_path):
+    """Simulates import: saving a filter with an existing name without original_name."""
+    store = _make_filter_store(tmp_path)
+    store.save_filter("MyFilter", [{"filter": "Folder", "value": "old"}])
+    # Import scenario: no original_name provided
+    store.save_filter("MyFilter", [{"filter": "Folder", "value": "new"}])
+    filters = store.list_filters()
+    assert len(filters) == 1
+    assert filters[0]["name"] == "MyFilter"
+    assert filters[0]["filters"] == [{"filter": "Folder", "value": "new"}]
+
+
+def test_save_filter_case_insensitive_duplicate_without_original_name(tmp_path):
+    """Saving a case variant of an existing filter name should still conflict."""
+    store = _make_filter_store(tmp_path)
+    store.save_filter("MyFilter", [])
+    store.save_filter("OtherFilter", [])
+    # "otherfilter" is a case variant of "OtherFilter" — should be rejected
+    # since the exact-name lookup finds no match, so old is None
+    try:
+        store.save_filter("otherfilter", [{"filter": "Tag", "value": "x"}])
+        assert False, "Expected ValueError"
+    except ValueError as exc:
+        assert "already exists" in str(exc)
+    filters = store.list_filters()
+    assert len(filters) == 2
